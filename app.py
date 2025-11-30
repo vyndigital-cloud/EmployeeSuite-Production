@@ -1,26 +1,48 @@
-from flask import Flask, jsonify, render_template_string
+from flask import Flask, jsonify, render_template_string, redirect, url_for
+from flask_login import LoginManager, login_required, current_user
+from flask_bcrypt import Bcrypt
 import os
+
+from models import db, User, ShopifyStore
+from auth import auth_bp, bcrypt as auth_bcrypt
 from order_processing import process_orders
 from inventory import update_inventory
 from reporting import generate_report
 
 app = Flask(__name__)
-app.config['ENV'] = os.getenv('FLASK_ENV', 'production')
-app.config['DEBUG'] = os.getenv('FLASK_DEBUG', 'False') == 'True'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///employeesuite.db')
+if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
+    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
+bcrypt = Bcrypt(app)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'auth.login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+app.register_blueprint(auth_bp)
 
 DASHBOARD_HTML = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Employee Suite - Live Dashboard</title>
+    <title>Employee Suite - Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
         .container { max-width: 1200px; margin: 0 auto; }
-        .header { text-align: center; color: white; padding: 40px 20px; }
-        .header h1 { font-size: 3em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
-        .header p { font-size: 1.2em; opacity: 0.9; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 20px 30px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header h1 { color: #667eea; }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .logout-btn { background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; text-decoration: none; }
         .status { background: rgba(255,255,255,0.95); border-radius: 15px; padding: 20px; margin: 20px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         .status h2 { color: #28a745; margin-bottom: 10px; }
         .button-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin: 30px 0; }
@@ -35,22 +57,23 @@ DASHBOARD_HTML = """
         .error { color: #dc3545; font-weight: bold; }
         .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .footer { text-align: center; color: white; padding: 20px; margin-top: 40px; opacity: 0.8; }
-        .report-item { padding: 15px; border-bottom: 1px solid #eee; }
-        .report-item strong { color: #667eea; }
-        .total { font-size: 1.3em; color: #28a745; margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🚀 Employee Suite</h1>
-            <p>Automated E-Commerce Management Platform</p>
+            <div class="user-info">
+                <span>{{ current_user.email }}</span>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
+            </div>
         </div>
+        
         <div class="status">
             <h2>✅ System Online</h2>
             <p>Connected to Shopify. Ready to automate your business.</p>
         </div>
+        
         <div class="button-grid">
             <div class="action-btn">
                 <h3>📦 Orders</h3>
@@ -68,13 +91,12 @@ DASHBOARD_HTML = """
                 <button class="btn" onclick="generateReport()">Generate Report</button>
             </div>
         </div>
+        
         <div id="output">
             <p style="color: #999; text-align: center; padding: 60px 0;">Click any button above to start automation...</p>
         </div>
-        <div class="footer">
-            <p>Powered by Employee Suite v1.0 | Real-time Shopify Integration</p>
-        </div>
     </div>
+    
     <script>
         function showLoading() {
             document.getElementById('output').innerHTML = '<div style="text-align: center; padding: 80px 0;"><div class="loading"></div><p style="margin-top: 20px; color: #999;">Processing...</p></div>';
@@ -110,13 +132,21 @@ DASHBOARD_HTML = """
 
 @app.route('/')
 def home():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('auth.login'))
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
     return render_template_string(DASHBOARD_HTML)
 
 @app.route('/health')
 def health():
-    return jsonify({"status": "healthy", "service": "Employee Suite", "version": "1.0"})
+    return jsonify({"status": "healthy", "service": "Employee Suite", "version": "2.0"})
 
 @app.route('/api/process_orders', methods=['GET', 'POST'])
+@login_required
 def api_process_orders():
     try:
         result = process_orders()
@@ -125,6 +155,7 @@ def api_process_orders():
         return jsonify({"error": str(e), "success": False}), 500
 
 @app.route('/api/update_inventory', methods=['GET', 'POST'])
+@login_required
 def api_update_inventory():
     try:
         result = update_inventory()
@@ -133,6 +164,7 @@ def api_update_inventory():
         return jsonify({"error": str(e), "success": False}), 500
 
 @app.route('/api/generate_report', methods=['GET', 'POST'])
+@login_required
 def api_generate_report():
     try:
         data = generate_report()
@@ -153,5 +185,7 @@ def server_error(e):
     return jsonify({"error": "Internal server error", "status": 500}), 500
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
