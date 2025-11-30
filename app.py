@@ -9,6 +9,7 @@ from auth import auth_bp, bcrypt as auth_bcrypt
 from shopify_routes import shopify_bp
 from billing import billing_bp
 from admin_routes import admin_bp
+from legal_routes import legal_bp
 from order_processing import process_orders
 from inventory import update_inventory
 from reporting import generate_report
@@ -35,6 +36,7 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(shopify_bp)
 app.register_blueprint(billing_bp)
 app.register_blueprint(admin_bp)
+app.register_blueprint(legal_bp)
 
 DASHBOARD_HTML = """
 <!DOCTYPE html>
@@ -143,6 +145,13 @@ DASHBOARD_HTML = """
             });
         }
     </script>
+
+        <div style="text-align: center; padding: 30px 20px; margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7);">
+            <a href="{{ url_for('legal.privacy') }}" style="color: rgba(255,255,255,0.8); margin: 0 15px; text-decoration: none;">Privacy Policy</a>
+            <a href="{{ url_for('legal.terms') }}" style="color: rgba(255,255,255,0.8); margin: 0 15px; text-decoration: none;">Terms of Service</a>
+            <p style="margin-top: 15px; font-size: 14px;">© 2025 Employee Suite. All rights reserved.</p>
+        </div>
+    </div>
 </body>
 </html>
 """

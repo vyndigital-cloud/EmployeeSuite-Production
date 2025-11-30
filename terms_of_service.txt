@@ -1,0 +1,92 @@
+TERMS OF SERVICE
+
+Last updated: December 01, 2025
+
+AGREEMENT TO TERMS
+
+By accessing Employee Suite ("Service"), you agree to be bound by these Terms of Service. If you disagree with any part of these terms, you may not access the Service.
+
+DESCRIPTION OF SERVICE
+
+Employee Suite provides e-commerce automation software for Shopify store owners, including inventory management, order processing, and reporting tools.
+
+USER ACCOUNTS
+
+You must:
+- Be at least 18 years old
+- Provide accurate and complete information
+- Maintain the security of your account
+- Notify us of any unauthorized use
+
+SUBSCRIPTION AND BILLING
+
+Pricing:
+- Setup fee: $1,000 AUD (one-time)
+- Monthly subscription: $500 AUD
+
+Free trial:
+- 2-day free trial for new users
+- No credit card required for trial
+- Subscription begins after trial ends
+
+Payment terms:
+- All fees are in Australian Dollars (AUD)
+- Payments processed through Stripe
+- Subscriptions renew automatically monthly
+- You may cancel anytime
+
+REFUND POLICY
+
+Setup fees are non-refundable. Monthly subscriptions can be cancelled anytime, with no refund for the current billing period.
+
+USER RESPONSIBILITIES
+
+You agree to:
+- Use the Service legally and appropriately
+- Not interfere with the Service's operation
+- Not attempt to gain unauthorized access
+- Maintain accurate Shopify integration credentials
+- Comply with Shopify's terms of service
+
+INTELLECTUAL PROPERTY
+
+The Service and its original content, features, and functionality are owned by Employee Suite and are protected by international copyright, trademark, and other intellectual property laws.
+
+LIMITATION OF LIABILITY
+
+Employee Suite shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the Service.
+
+SERVICE AVAILABILITY
+
+We strive for 99.9% uptime but do not guarantee uninterrupted access. We may suspend or terminate the Service for maintenance or other reasons.
+
+DATA AND PRIVACY
+
+Your use of the Service is also governed by our Privacy Policy. We integrate with Shopify and process data according to their terms.
+
+TERMINATION
+
+We may terminate or suspend your account immediately, without prior notice, for any breach of these Terms.
+
+CHANGES TO TERMS
+
+We reserve the right to modify these terms at any time. Continued use of the Service after changes constitutes acceptance of the new terms.
+
+GOVERNING LAW
+
+These Terms shall be governed by the laws of Western Australia, Australia.
+
+DISPUTE RESOLUTION
+
+Any disputes shall be resolved through good faith negotiations. If negotiations fail, disputes shall be resolved in the courts of Western Australia.
+
+CONTACT INFORMATION
+
+For questions about these Terms, contact us at:
+Employee Suite
+Hammond Park, WA, Australia
+Email: adam@golproductions.com
+
+AUSTRALIAN CONSUMER LAW
+
+Nothing in these Terms excludes, restricts, or modifies any consumer guarantee, right, or remedy under the Australian Consumer Law or any other applicable law that cannot be excluded, restricted, or modified by agreement.

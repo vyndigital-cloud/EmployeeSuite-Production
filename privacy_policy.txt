@@ -1,0 +1,85 @@
+PRIVACY POLICY
+
+Last updated: December 01, 2025
+
+INTRODUCTION
+
+Employee Suite ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our service located at employeesuite-production.onrender.com.
+
+INFORMATION WE COLLECT
+
+We collect information that you provide directly to us:
+- Email address
+- Password (encrypted)
+- Payment information (processed securely through Stripe)
+- Shopify store credentials and API tokens
+- Usage data and analytics
+
+We automatically collect certain information when you use our service:
+- Log data (IP address, browser type, pages visited)
+- Cookies and similar tracking technologies
+- Device information
+
+HOW WE USE YOUR INFORMATION
+
+We use your information to:
+- Provide, maintain, and improve our services
+- Process your transactions and send transaction confirmations
+- Send you technical notices and support messages
+- Respond to your comments and questions
+- Monitor and analyze trends and usage
+- Detect and prevent fraud and abuse
+
+INFORMATION SHARING
+
+We do not sell your personal information. We may share your information with:
+- Service providers (Stripe for payments, Shopify for integrations)
+- Law enforcement when required by law
+- In connection with a merger, sale, or acquisition
+
+DATA SECURITY
+
+We implement appropriate technical and organizational measures to protect your information. However, no method of transmission over the Internet is 100% secure.
+
+YOUR RIGHTS
+
+You have the right to:
+- Access your personal information
+- Correct inaccurate information
+- Delete your account and associated data
+- Opt-out of marketing communications
+- Export your data
+
+COOKIES
+
+We use cookies to:
+- Keep you signed in
+- Remember your preferences
+- Analyze site traffic and usage
+
+You can control cookies through your browser settings.
+
+THIRD-PARTY SERVICES
+
+Our service integrates with:
+- Stripe (payment processing) - see Stripe's privacy policy
+- Shopify (e-commerce integration) - see Shopify's privacy policy
+
+CHILDREN'S PRIVACY
+
+Our service is not intended for children under 18. We do not knowingly collect information from children.
+
+CHANGES TO THIS POLICY
+
+We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new policy on this page and updating the "Last updated" date.
+
+CONTACT US
+
+If you have questions about this Privacy Policy, contact us at:
+Employee Suite
+Hammond Park, WA, Australia
+Email: adam@golproductions.com
+
+AUSTRALIAN PRIVACY PRINCIPLES
+
+We comply with the Australian Privacy Principles under the Privacy Act 1988 (Cth). For more information about privacy in Australia, visit oaic.gov.au.
