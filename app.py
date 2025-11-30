@@ -189,10 +189,23 @@ def api_update_inventory():
 def api_generate_report():
     try:
         data = generate_report()
-        html = '<style>.report-item{padding:15px;border-bottom:1px solid #eee}.report-item strong{color:#667eea}.total{font-size:1.5em;color:#28a745;margin-top:20px;padding:20px;background:#f8f9fa;border-radius:8px}</style><h3 class="success">📊 Revenue Report</h3>'
-        for product in data['products']:
-            html += f'<div class="report-item"><strong>{product["name"]}</strong> - Stock: {product["stock"]} - Revenue: {product["revenue"]}</div>'
-        html += f'<div class="total">💰 Total Revenue: {data["total_revenue"]}<br>📦 Total Products: {data["total_products"]}</div>'
+        if 'error' in data:
+            return f"<h3 class='error'>❌ Error: {data['error']}</h3>", 500
+        
+        html = '<style>.report-item{padding:15px;border-bottom:1px solid #eee;display:flex;justify-content:space-between}.report-item strong{color:#667eea}.total{font-size:1.3em;color:#28a745;margin-top:20px;padding:20px;background:#f8f9fa;border-radius:8px;text-align:center}.stat{margin:10px 0}</style><h3 class="success">📊 Revenue Report</h3>'
+        
+        if len(data['products']) == 0:
+            html += '<p style="text-align:center;color:#999;padding:40px;">No products found. Connect your Shopify store first.</p>'
+        else:
+            for product in data['products']:
+                html += f'<div class="report-item"><strong>{product["name"]}</strong><span>Stock: {product["stock"]} | Revenue: {product["revenue"]}</span></div>'
+        
+        html += f'<div class="total">'
+        html += f'<div class="stat">💰 Total Revenue: <strong>{data["total_revenue"]}</strong></div>'
+        html += f'<div class="stat">📦 Total Products: <strong>{data["total_products"]}</strong></div>'
+        if 'total_orders' in data:
+            html += f'<div class="stat">🛍️ Total Orders: <strong>{data["total_orders"]}</strong></div>'
+        html += f'</div>'
         return html
     except Exception as e:
         return f"<h3 class='error'>❌ Error: {str(e)}</h3>", 500
