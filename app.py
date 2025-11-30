@@ -2,6 +2,7 @@ from flask import Flask, jsonify, render_template_string, redirect, url_for
 from flask_login import LoginManager, login_required, current_user
 from flask_bcrypt import Bcrypt
 import os
+from datetime import datetime
 
 from models import db, User, ShopifyStore
 from auth import auth_bp, bcrypt as auth_bcrypt
@@ -69,11 +70,19 @@ DASHBOARD_HTML = """
             <h1>🚀 Employee Suite</h1>
             <div class="user-info">
                 <span>{{ current_user.email }}</span>
-                <a href="{{ url_for('billing.subscribe') }}" class="logout-btn" style="background: #ffc107; margin-right: 10px; color: #000;">💳 Subscribe</a>
-                <a href="{{ url_for('shopify.shopify_settings') }}" class="logout-btn" style="background: #28a745; margin-right: 10px;">⚙️ Shopify Settings</a>
-                <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
+                <a href="{{ url_for('billing.subscribe') }}" class="logout-btn" style="background: #ffc107; margin-right: 10px; color: #000; padding: 8px 16px; font-size: 14px;">💳 Subscribe</a>
+                <a href="{{ url_for('shopify.shopify_settings') }}" class="logout-btn" style="background: #28a745; margin-right: 10px; padding: 8px 16px; font-size: 14px;">⚙️ Settings</a>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn" style="padding: 8px 16px; font-size: 14px;">Logout</a>
             </div>
         </div>
+        
+        {% if trial_active and not is_subscribed %}
+        <div style="background: #fff3cd; padding: 20px; border-radius: 15px; margin: 20px 0; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h3 style="color: #856404; margin-bottom: 10px;">⏰ Free Trial Active</h3>
+            <p style="color: #856404;">You have <strong style="color: #d63384;">{{ days_left }} days</strong> left in your trial.</p>
+            <a href="{{ url_for('billing.subscribe') }}" style="display: inline-block; margin-top: 15px; background: #667eea; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Subscribe Now</a>
+        </div>
+        {% endif %}
         
         <div class="status">
             <h2>✅ System Online</h2>
@@ -145,7 +154,13 @@ def home():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template_string(DASHBOARD_HTML)
+    if not current_user.has_access():
+        return redirect(url_for('billing.subscribe'))
+    
+    trial_active = current_user.is_trial_active()
+    days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+    
+    return render_template_string(DASHBOARD_HTML, trial_active=trial_active, days_left=days_left, is_subscribed=current_user.is_subscribed)
 
 @app.route('/health')
 def health():
