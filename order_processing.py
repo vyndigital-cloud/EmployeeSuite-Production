@@ -1,41 +1,25 @@
-# order_processing.py
-import json
+from shopify_integration import ShopifyClient
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def process_orders(creds_path='creds.json'):
-    """
-    Process orders from creds.json or dummy data
-    Returns: Success message string
-    """
     try:
-        # Check if creds file exists
-        if os.path.exists(creds_path):
-            with open(creds_path, 'r') as f:
-                creds = json.load(f)
-            message = "Orders processed successfully ✅"
-            print(message)
-            return message
-        else:
-            # Use dummy data if no creds file
-            dummy_orders = [
-                {"id": 1, "product": "Widget A", "quantity": 2, "price": 50, "customer": "John"},
-                {"id": 2, "product": "Widget B", "quantity": 1, "price": 75, "customer": "Jane"}
-            ]
-            message = f"Processed {len(dummy_orders)} dummy orders ✅"
-            print(message)
-            return message
-            
-    except FileNotFoundError:
-        error_msg = f"Error: {creds_path} not found!"
-        print(error_msg)
-        return error_msg
+        SHOP_URL = os.getenv('SHOPIFY_URL')
+        ACCESS_TOKEN = os.getenv('SHOPIFY_TOKEN')
+        if not ACCESS_TOKEN:
+            return "⚠️ Shopify not configured. Add credentials in settings."
+        client = ShopifyClient(SHOP_URL, ACCESS_TOKEN)
+        orders = client.get_orders()
+        if isinstance(orders, dict) and "error" in orders:
+            return f"❌ Error: {orders['error']}"
+        if len(orders) == 0:
+            return "✅ No pending orders. All caught up!"
+        return f"✅ Processed {len(orders)} Shopify orders successfully"
     except Exception as e:
-        error_msg = f"Error processing orders: {e}"
-        print(error_msg)
-        return error_msg
-
+        return f"❌ Error processing orders: {str(e)}"
 
 if __name__ == "__main__":
-    # Test the function
     result = process_orders()
     print(f"Result: {result}")

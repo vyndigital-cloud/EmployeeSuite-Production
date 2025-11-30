@@ -1,44 +1,30 @@
-# inventory.py
-import json
+from shopify_integration import ShopifyClient
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def update_inventory():
-    """
-    Track inventory and alert for low stock
-    Returns: Status message string
-    """
     try:
-        # Dummy inventory data
-        inventory = {
-            "Widget A": {"stock": 10, "threshold": 5},
-            "Widget B": {"stock": 1, "threshold": 5},
-            "Widget C": {"stock": 20, "threshold": 5}
-        }
-        
-        messages = []
-        low_stock_items = []
-        
-        for product, data in inventory.items():
-            if data["stock"] < data["threshold"]:
-                alert = f"Low stock alert 🚨: {product} - {data['stock']} units left"
-                print(alert)
-                low_stock_items.append(product)
-                messages.append(alert)
-        
-        if low_stock_items:
-            result = "\n".join(messages)
-        else:
-            result = "All inventory levels are healthy ✅"
-            print(result)
-        
-        return result
-        
+        SHOP_URL = os.getenv('SHOPIFY_URL')
+        ACCESS_TOKEN = os.getenv('SHOPIFY_TOKEN')
+        if not ACCESS_TOKEN:
+            return "⚠️ Shopify not configured. Add credentials in settings."
+        client = ShopifyClient(SHOP_URL, ACCESS_TOKEN)
+        low_stock = client.get_low_stock(threshold=10)
+        if isinstance(low_stock, dict) and "error" in low_stock:
+            return f"❌ Error: {low_stock['error']}"
+        if len(low_stock) == 0:
+            all_products = client.get_products()
+            total = len(all_products) if not isinstance(all_products, dict) else 0
+            return f"✅ All inventory levels healthy! {total} products in stock."
+        alerts = []
+        for item in low_stock:
+            alerts.append(f"🚨 {item['product']}: Only {item['stock']} units left")
+        return "\n".join(alerts)
     except Exception as e:
-        error_msg = f"Error updating inventory: {e}"
-        print(error_msg)
-        return error_msg
-
+        return f"❌ Error checking inventory: {str(e)}"
 
 if __name__ == "__main__":
-    # Test the function
     result = update_inventory()
     print(f"Result: {result}")

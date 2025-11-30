@@ -1,15 +1,16 @@
-# reporting.py - Temporary version without pandas
+# reporting.py - Temporary simple version
 
 def generate_report():
-    """
-    Generate profit report (simplified version)
-    Returns: dict with dummy data
-    """
+    """Generate basic report preview"""
     return {
-        "message": "Report generated (pandas disabled for local testing)",
-        "note": "Full reports will work on Render with Python 3.11"
+        "products": [
+            {"name": "Product A", "stock": 10, "revenue": "$500"},
+            {"name": "Product B", "stock": 5, "revenue": "$375"},
+            {"name": "Product C", "stock": 15, "revenue": "$750"}
+        ],
+        "total_revenue": "$1,625",
+        "total_products": 3
     }
 
 if __name__ == "__main__":
-    report = generate_report()
-    print(report)
+    print(generate_report())
