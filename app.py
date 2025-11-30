@@ -8,6 +8,7 @@ from models import db, User, ShopifyStore
 from auth import auth_bp, bcrypt as auth_bcrypt
 from shopify_routes import shopify_bp
 from billing import billing_bp
+from admin_routes import admin_bp
 from order_processing import process_orders
 from inventory import update_inventory
 from reporting import generate_report
@@ -33,6 +34,7 @@ def load_user(user_id):
 app.register_blueprint(auth_bp)
 app.register_blueprint(shopify_bp)
 app.register_blueprint(billing_bp)
+app.register_blueprint(admin_bp)
 
 DASHBOARD_HTML = """
 <!DOCTYPE html>
