@@ -6,6 +6,7 @@ import os
 from models import db, User, ShopifyStore
 from auth import auth_bp, bcrypt as auth_bcrypt
 from shopify_routes import shopify_bp
+from billing import billing_bp
 from order_processing import process_orders
 from inventory import update_inventory
 from reporting import generate_report
@@ -30,6 +31,7 @@ def load_user(user_id):
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(shopify_bp)
+app.register_blueprint(billing_bp)
 
 DASHBOARD_HTML = """
 <!DOCTYPE html>
@@ -67,6 +69,7 @@ DASHBOARD_HTML = """
             <h1>🚀 Employee Suite</h1>
             <div class="user-info">
                 <span>{{ current_user.email }}</span>
+                <a href="{{ url_for('billing.subscribe') }}" class="logout-btn" style="background: #ffc107; margin-right: 10px; color: #000;">💳 Subscribe</a>
                 <a href="{{ url_for('shopify.shopify_settings') }}" class="logout-btn" style="background: #28a745; margin-right: 10px;">⚙️ Shopify Settings</a>
                 <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
             </div>
