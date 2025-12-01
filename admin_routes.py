@@ -12,14 +12,140 @@ ADMIN_LOGIN_HTML = """
 <html>
 <head>
     <title>Admin Login</title>
-    <style>
+        <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .container { background: white; border-radius: 15px; padding: 40px; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        h1 { color: #667eea; margin-bottom: 30px; text-align: center; }
-        input { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; margin-bottom: 20px; }
-        .btn { width: 100%; background: #667eea; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; cursor: pointer; }
-        .error { background: #fee; color: #c00; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #fafafa;
+            color: #171717;
+            -webkit-font-smoothing: antialiased;
+        }
+        .header {
+            background: #fff;
+            border-bottom: 1px solid #e5e5e5;
+        }
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 18px;
+            font-weight: 600;
+            color: #171717;
+        }
+        .nav-btn {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            background: #171717;
+            color: #fff;
+        }
+        .nav-btn:hover {
+            background: #262626;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 48px 24px;
+        }
+        .page-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #171717;
+            margin-bottom: 8px;
+        }
+        .page-subtitle {
+            font-size: 16px;
+            color: #737373;
+            margin-bottom: 32px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .stat-card {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .stat-label {
+            font-size: 13px;
+            color: #737373;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #171717;
+        }
+        .table-card {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .table-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e5e5e5;
+            font-size: 16px;
+            font-weight: 600;
+            color: #171717;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            text-align: left;
+            padding: 16px 24px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #737373;
+            background: #fafafa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        td {
+            padding: 16px 24px;
+            font-size: 14px;
+            color: #171717;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .badge-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
     </style>
 </head>
 <body>

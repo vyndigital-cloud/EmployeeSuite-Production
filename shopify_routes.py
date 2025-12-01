@@ -8,88 +8,274 @@ SETTINGS_HTML = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Shopify Settings - Employee Suite</title>
+    <title>Settings - Employee Suite</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 20px 30px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .header h1 { color: #667eea; }
-        .back-btn { background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; text-decoration: none; }
-        .card { background: white; border-radius: 15px; padding: 30px; margin: 20px 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 5px; color: #333; font-weight: 500; }
-        input { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; }
-        input:focus { outline: none; border-color: #667eea; }
-        .btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 14px 30px; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: 600; }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-        .btn-danger { background: #dc3545; }
-        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .store-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .store-info h3 { color: #28a745; margin-bottom: 10px; }
-        .help-text { font-size: 14px; color: #666; margin-top: 5px; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #fafafa;
+            color: #171717;
+            -webkit-font-smoothing: antialiased;
+        }
+        .header {
+            background: #fff;
+            border-bottom: 1px solid #e5e5e5;
+        }
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 18px;
+            font-weight: 600;
+            color: #171717;
+            text-decoration: none;
+        }
+        .nav-btn {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            color: #525252;
+        }
+        .nav-btn:hover {
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 48px 24px;
+        }
+        .page-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #171717;
+            margin-bottom: 8px;
+        }
+        .page-subtitle {
+            font-size: 16px;
+            color: #737373;
+            margin-bottom: 32px;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+        .card-header {
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #171717;
+            margin-bottom: 4px;
+        }
+        .card-subtitle {
+            font-size: 14px;
+            color: #737373;
+        }
+        .status-connected {
+            display: inline-block;
+            padding: 6px 12px;
+            background: #dcfce7;
+            color: #166534;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .info-grid {
+            display: grid;
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f5f5f5;
+            font-size: 14px;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            color: #737373;
+            font-weight: 500;
+        }
+        .info-value {
+            color: #171717;
+            font-weight: 500;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #171717;
+            margin-bottom: 8px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #171717;
+        }
+        .form-help {
+            font-size: 13px;
+            color: #737373;
+            margin-top: 6px;
+        }
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: #171717;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #262626;
+        }
+        .btn-danger {
+            background: #dc2626;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+        .banner-success {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-left: 3px solid #16a34a;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #166534;
+        }
+        .banner-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-left: 3px solid #dc2626;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #991b1b;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>⚙️ Shopify Settings</h1>
-            <a href="{{ url_for('dashboard') }}" class="back-btn">← Back to Dashboard</a>
+    <div class="header">
+        <div class="header-content">
+            <a href="/dashboard" class="logo">Employee Suite</a>
+            <a href="/dashboard" class="nav-btn">Back to Dashboard</a>
         </div>
+    </div>
+    
+    <div class="container">
+        <h1 class="page-title">Settings</h1>
+        <p class="page-subtitle">Manage your Shopify connection and account</p>
         
         {% if success %}
-        <div class="success">{{ success }}</div>
+        <div class="banner-success">{{ success }}</div>
         {% endif %}
         
         {% if error %}
-        <div class="error">{{ error }}</div>
+        <div class="banner-error">{{ error }}</div>
+        {% endif %}
+        
+        {% if current_user.is_subscribed %}
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Subscription</h2>
+                <p class="card-subtitle">Manage your subscription</p>
+            </div>
+            <div class="info-grid">
+                <div class="info-row">
+                    <span class="info-label">Status</span>
+                    <span class="info-value">Active</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Plan</span>
+                    <span class="info-value">Employee Suite Pro</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Billing</span>
+                    <span class="info-value">$500/month</span>
+                </div>
+            </div>
+            <form method="POST" action="{{ url_for('shopify.cancel_subscription') }}" style="margin-top: 20px;">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Cancel subscription? You will lose access to all features.')">Cancel Subscription</button>
+            </form>
+        </div>
         {% endif %}
         
         {% if store %}
         <div class="card">
-            <div class="store-info">
-                <h3>✅ Connected Store</h3>
-                <p><strong>Store URL:</strong> {{ store.shop_url }}</p>
-                <p><strong>Connected:</strong> {{ store.created_at.strftime('%B %d, %Y') }}</p>
-                <p><strong>Status:</strong> {% if store.is_active %}Active{% else %}Inactive{% endif %}</p>
+            <div class="card-header">
+                <h2 class="card-title">Shopify Connection</h2>
+                <span class="status-connected">✓ Connected</span>
             </div>
-            <form method="POST" action="{{ url_for('shopify.disconnect_store') }}">
-                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to disconnect this store?')">Disconnect Store</button>
+            <div class="info-grid">
+                <div class="info-row">
+                    <span class="info-label">Store URL</span>
+                    <span class="info-value">{{ store.shop_url }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Connected</span>
+                    <span class="info-value">{{ store.created_at.strftime('%B %d, %Y') }}</span>
+                </div>
+            </div>
+            <form method="POST" action="{{ url_for('shopify.disconnect_store') }}" style="margin-top: 20px;">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Disconnect store?')">Disconnect Store</button>
             </form>
         </div>
         {% else %}
         <div class="card">
-            <h2>Connect Your Shopify Store</h2>
-            <p style="margin: 20px 0; color: #666;">Connect your Shopify store to start automating your inventory and orders.</p>
-            
+            <div class="card-header">
+                <h2 class="card-title">Connect Shopify Store</h2>
+                <p class="card-subtitle">Connect your store to start automating</p>
+            </div>
             <form method="POST" action="{{ url_for('shopify.connect_store') }}">
                 <div class="form-group">
-                    <label>Store URL</label>
-                    <input type="text" name="shop_url" placeholder="your-store.myshopify.com" required>
-                    <p class="help-text">Your Shopify store URL (e.g., my-store.myshopify.com)</p>
+                    <label class="form-label">Store URL</label>
+                    <input type="text" name="shop_url" placeholder="yourstore.myshopify.com" class="form-input" required>
+                    <p class="form-help">Your Shopify store URL</p>
                 </div>
-                
                 <div class="form-group">
-                    <label>Admin API Access Token</label>
-                    <input type="text" name="access_token" placeholder="shpat_xxxxx" required>
-                    <p class="help-text">Get this from your Shopify Admin → Apps → Develop apps</p>
+                    <label class="form-label">Admin API Access Token</label>
+                    <input type="password" name="access_token" class="form-input" required>
+                    <p class="form-help">Get this from Shopify Admin → Settings → Apps → Develop apps</p>
                 </div>
-                
-                <button type="submit" class="btn">Connect Store</button>
+                <button type="submit" class="btn btn-primary">Connect Store</button>
             </form>
-            
-            <div style="margin-top: 30px; padding: 20px; background: #fff3cd; border-radius: 8px;">
-                <h4>📚 How to get your API token:</h4>
-                <ol style="margin: 10px 0 0 20px; line-height: 1.8;">
-                    <li>Go to your Shopify Admin</li>
-                    <li>Settings → Apps and sales channels</li>
-                    <li>Develop apps → Create an app</li>
-                    <li>Configure Admin API scopes (enable: read_products, write_products, read_inventory, write_inventory, read_orders)</li>
-                    <li>Install app → Copy the Admin API access token</li>
-                </ol>
-            </div>
         </div>
         {% endif %}
     </div>
