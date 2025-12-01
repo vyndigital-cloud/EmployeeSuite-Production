@@ -287,7 +287,7 @@ DASHBOARD_HTML = """
             <div class="header-nav">
                 <a href="{{ url_for('shopify.shopify_settings') }}" class="nav-btn">Settings</a>
                 <a href="{{ url_for('billing.subscribe') }}" class="nav-btn nav-btn-primary">Subscribe</a>
-                <a href="{{ url_for('auth.logout') }}" class="nav-btn">Logout</a>
+                <a href="{{ url_for('logout') }}" class="nav-btn">Logout</a>
             </div>
         </div>
     </div>
