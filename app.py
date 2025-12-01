@@ -35,7 +35,6 @@ def load_user(user_id):
 app.register_blueprint(auth_bp)
 app.register_blueprint(shopify_bp)
 app.register_blueprint(billing_bp)
-app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(legal_bp)
 
