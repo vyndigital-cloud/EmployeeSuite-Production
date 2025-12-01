@@ -4,7 +4,7 @@ from models import db, ShopifyStore
 
 shopify_bp = Blueprint('shopify', __name__)
 
-SETTINGS_HTML = """
+SETTINGS_HTML = '''
 <!DOCTYPE html>
 <html>
 <head>
@@ -281,7 +281,7 @@ SETTINGS_HTML = """
     </div>
 </body>
 </html>
-"""
+'''
 
 @shopify_bp.route('/settings/shopify')
 @login_required

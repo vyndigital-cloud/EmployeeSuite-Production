@@ -8,7 +8,7 @@ from datetime import datetime
 billing_bp = Blueprint('billing', __name__)
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
-CHECKOUT_HTML = """
+CHECKOUT_HTML = '''
 <!DOCTYPE html>
 <html>
 <head>
@@ -71,7 +71,7 @@ CHECKOUT_HTML = """
     </div>
 </body>
 </html>
-"""
+'''
 
 @billing_bp.route('/subscribe')
 @login_required
@@ -135,7 +135,7 @@ def success():
     </body>
     </html>
     """)
-SUBSCRIBE_HTML = """
+SUBSCRIBE_HTML = '''
 <!DOCTYPE html>
 <html>
 <head>
@@ -306,7 +306,7 @@ SUBSCRIBE_HTML = """
     </div>
 </body>
 </html>
-"""
+'''
 <!DOCTYPE html>
 <html>
 <head>
@@ -369,7 +369,7 @@ SUBSCRIBE_HTML = """
     </div>
 </body>
 </html>
-SUCCESS_HTML = """
+SUCCESS_HTML = '''
 <!DOCTYPE html>
 <html>
 <head>
@@ -441,7 +441,7 @@ SUCCESS_HTML = """
     </div>
 </body>
 </html>
-"""
+'''
 <!DOCTYPE html>
 <html>
 <head>

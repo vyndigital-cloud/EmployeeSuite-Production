@@ -7,7 +7,7 @@ admin_bp = Blueprint('admin', __name__)
 
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'admin123')
 
-ADMIN_LOGIN_HTML = """
+ADMIN_LOGIN_HTML = '''
 <!DOCTYPE html>
 <html>
 <head>
@@ -161,9 +161,9 @@ ADMIN_LOGIN_HTML = """
     </div>
 </body>
 </html>
-"""
+'''
 
-ADMIN_DASHBOARD_HTML = """
+ADMIN_DASHBOARD_HTML = '''
 <!DOCTYPE html>
 <html>
 <head>
@@ -264,7 +264,7 @@ ADMIN_DASHBOARD_HTML = """
     </div>
 </body>
 </html>
-"""
+'''
 
 @admin_bp.route('/admin/login', methods=['GET', 'POST'])
 def login():
