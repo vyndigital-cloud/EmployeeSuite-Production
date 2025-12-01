@@ -89,8 +89,13 @@ DASHBOARD_HTML = """
         {% endif %}
         
         <div class="status">
+            {% if has_shopify %}
             <h2>✅ System Online</h2>
             <p>Connected to Shopify. Ready to automate your business.</p>
+            {% else %}
+            <h2>⚠️ Connect Your Store</h2>
+            <p>Click "Settings" above to connect your Shopify store and start automating.</p>
+            {% endif %}
         </div>
         
         <div class="button-grid">
@@ -171,7 +176,11 @@ def dashboard():
     trial_active = current_user.is_trial_active()
     days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
     
-    return render_template_string(DASHBOARD_HTML, trial_active=trial_active, days_left=days_left, is_subscribed=current_user.is_subscribed)
+    # Check if user has connected Shopify
+    from models import ShopifyStore
+    has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
+    
+    return render_template_string(DASHBOARD_HTML, trial_active=trial_active, days_left=days_left, is_subscribed=current_user.is_subscribed, has_shopify=has_shopify)
 
 @app.route('/health')
 def health():
