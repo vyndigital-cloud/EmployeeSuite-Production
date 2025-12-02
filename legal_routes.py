@@ -14,17 +14,28 @@ LEGAL_HTML = """
 <head>
     <title>{{ title }} - Employee Suite</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
+        <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto; background: #f8f9fa; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h1 { color: #667eea; margin-bottom: 10px; font-size: 2em; }
-        .updated { color: #999; font-size: 0.9em; margin-bottom: 30px; }
-        h2 { color: #333; margin-top: 30px; margin-bottom: 15px; font-size: 1.3em; }
-        p { line-height: 1.8; color: #666; margin-bottom: 15px; white-space: pre-wrap; }
-        a { color: #667eea; text-decoration: none; }
-        .back { display: inline-block; margin-bottom: 20px; color: #667eea; font-weight: 500; }
-        .back:hover { text-decoration: underline; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #fafafa;
+            color: #171717;
+        }
+        .header { background: #fff; border-bottom: 1px solid #e5e5e5; }
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+        }
+        .logo { font-size: 18px; font-weight: 600; color: #171717; text-decoration: none; }
+        .container { max-width: 800px; margin: 0 auto; padding: 48px 24px; }
+        .page-title { font-size: 32px; font-weight: 700; color: #171717; margin-bottom: 32px; }
+        .content { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 32px; line-height: 1.8; }
+        h2 { font-size: 20px; font-weight: 600; color: #171717; margin: 32px 0 16px; }
+        p { margin: 16px 0; color: #525252; font-size: 15px; }
     </style>
 </head>
 <body>
