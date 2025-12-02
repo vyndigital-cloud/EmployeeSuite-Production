@@ -5,7 +5,7 @@ from sendgrid.helpers.mail import Mail
 def send_welcome_email(user_email):
     """Send welcome email when user signs up"""
     message = Mail(
-        from_email='adam@golproductions.com',
+        from_email=('adam@golproductions.com', 'Employee Suite'),
         to_emails=user_email,
         subject='Welcome to Employee Suite - Your Trial Has Started',
         html_content=f'''
@@ -46,7 +46,7 @@ def send_welcome_email(user_email):
 def send_trial_expiry_warning(user_email, days_left):
     """Send email 1 day before trial expires"""
     message = Mail(
-        from_email='adam@golproductions.com',
+        from_email=('adam@golproductions.com', 'Employee Suite'),
         to_emails=user_email,
         subject=f'Your Employee Suite Trial Ends in {days_left} Day{"s" if days_left != 1 else ""}',
         html_content=f'''
@@ -89,7 +89,7 @@ def send_trial_expiry_warning(user_email, days_left):
 def send_payment_success(user_email):
     """Send email when payment succeeds"""
     message = Mail(
-        from_email='adam@golproductions.com',
+        from_email=('adam@golproductions.com', 'Employee Suite'),
         to_emails=user_email,
         subject='Payment Confirmed - Welcome to Employee Suite Pro',
         html_content='''
@@ -127,7 +127,7 @@ def send_payment_success(user_email):
 def send_payment_failed(user_email):
     """Send email when payment fails"""
     message = Mail(
-        from_email='adam@golproductions.com',
+        from_email=('adam@golproductions.com', 'Employee Suite'),
         to_emails=user_email,
         subject='Payment Failed - Update Your Payment Method',
         html_content='''
