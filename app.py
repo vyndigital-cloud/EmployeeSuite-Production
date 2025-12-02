@@ -434,7 +434,10 @@ def health():
 def api_process_orders():
     try:
         result = process_orders()
-        return jsonify({"message": result, "success": True})
+        if isinstance(result, dict):
+            return jsonify(result)
+        else:
+            return jsonify({"message": str(result), "success": True})
     except Exception as e:
         return jsonify({"error": str(e), "success": False}), 500
 
