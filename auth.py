@@ -97,7 +97,6 @@ REGISTER_HTML = '''
         .form-label { display: block; font-size: 14px; font-weight: 500; color: #171717; margin-bottom: 8px; }
         .form-input { width: 100%; padding: 12px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 14px; font-family: inherit; }
         .form-input:focus { outline: none; border-color: #171717; }
-        .form-help { font-size: 13px; color: #737373; margin-top: 6px; }
         .btn { width: 100%; padding: 12px; background: #171717; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 8px; }
         .btn:hover { background: #262626; }
         .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
@@ -110,8 +109,8 @@ REGISTER_HTML = '''
     <div class="register-container">
         <div class="logo">Employee Suite</div>
         <div class="card">
-            <h1 class="card-title">Create Account</h1>
-            <p class="card-subtitle">Start your 2-day free trial</p>
+            <h1 class="card-title">Start Free Trial</h1>
+            <p class="card-subtitle">Your 2-day trial begins immediately</p>
             {% if error %}
             <div class="banner-error">{{ error }}</div>
             {% endif %}
@@ -127,11 +126,6 @@ REGISTER_HTML = '''
                 <div class="form-group">
                     <label class="form-label">Confirm Password</label>
                     <input type="password" name="confirm_password" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Shopify Store URL</label>
-                    <input type="text" name="store_url" placeholder="yourstore.myshopify.com" class="form-input" required>
-                    <p class="form-help">We will verify you own a Shopify store</p>
                 </div>
                 <button type="submit" class="btn">Start Free Trial</button>
             </form>
@@ -166,15 +160,6 @@ def register():
         email = request.form.get('email')
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
-        store_url = request.form.get('store_url', '').strip()
-        
-        free_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'aol.com']
-        email_domain = email.split('@')[1].lower() if '@' in email else ''
-        if email_domain in free_domains:
-            return render_template_string(REGISTER_HTML, error="Please use a business email address")
-        
-        if not store_url or not store_url.endswith('.myshopify.com'):
-            return render_template_string(REGISTER_HTML, error="Please enter a valid Shopify store URL")
         
         if password != confirm_password:
             return render_template_string(REGISTER_HTML, error="Passwords don't match")
