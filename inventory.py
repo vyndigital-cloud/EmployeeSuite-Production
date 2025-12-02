@@ -42,3 +42,7 @@ def check_inventory():
     
     except Exception as e:
         return {"success": False, "error": f"Error checking inventory: {str(e)}"}
+
+def update_inventory():
+    """Update inventory - wrapper for check_inventory"""
+    return check_inventory()

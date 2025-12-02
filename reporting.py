@@ -1,80 +1,91 @@
-from shopify_integration import ShopifyClient
 from flask_login import current_user
 from models import ShopifyStore
+from shopify_integration import ShopifyClient
 
 def generate_report():
+    """Generate revenue report from Shopify data"""
+    store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+    
+    if not store:
+        return {"error": "No Shopify store connected"}
+    
     try:
-        if not current_user.is_authenticated:
-            return {
-                "products": [],
-                "total_revenue": "$0",
-                "total_products": 0,
-                "error": "Please log in first"
-            }
-        
-        store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
-        
-        if not store:
-            return {
-                "products": [],
-                "total_revenue": "$0",
-                "total_products": 0,
-                "error": "No Shopify store connected"
-            }
-        
         client = ShopifyClient(store.shop_url, store.access_token)
-        
-        # Get products
+        orders = client.get_orders()
         products = client.get_products()
-        if isinstance(products, dict) and "error" in products:
-            return {
-                "products": [],
-                "total_revenue": "$0",
-                "total_products": 0,
-                "error": products["error"]
-            }
         
-        # Get orders for revenue calculation
-        orders = client.get_orders(limit=250)  # Last 250 orders
-        if isinstance(orders, dict) and "error" in orders:
-            orders = []
-        
-        # Calculate revenue
         total_revenue = sum(float(order.get('total_price', 0)) for order in orders)
+        order_count = len(orders)
+        product_count = len(products)
         
-        # Format product data
-        product_list = []
-        for product in products[:10]:  # Top 10 products
-            # Calculate revenue for this product from orders
-            product_id = str(product.get('id'))
-            product_revenue = 0
-            
-            for order in orders:
-                for item in order.get('line_items', []):
-                    if str(item.get('product_id')) == product_id:
-                        product_revenue += float(item.get('price', 0)) * int(item.get('quantity', 0))
-            
-            product_list.append({
-                "name": product.get('product', 'Unknown'),
-                "stock": product.get('stock', 0),
-                "revenue": f"${product_revenue:,.2f}"
-            })
+        product_revenue = {}
+        for order in orders:
+            for item in order.get('line_items', []):
+                product_id = item.get('product_id')
+                revenue = float(item.get('price', 0)) * int(item.get('quantity', 0))
+                product_revenue[product_id] = product_revenue.get(product_id, 0) + revenue
         
-        return {
-            "products": product_list,
-            "total_revenue": f"${total_revenue:,.2f}",
-            "total_products": len(products),
-            "total_orders": len(orders)
+        top_products = []
+        for product in products:
+            product_id = product.get('id')
+            if product_id in product_revenue:
+                top_products.append({
+                    'title': product.get('title', 'Unknown'),
+                    'revenue': product_revenue[product_id],
+                    'inventory': product.get('inventory_quantity', 0)
+                })
+        
+        top_products.sort(key=lambda x: x['revenue'], reverse=True)
+        
+        report = {
+            'total_revenue': total_revenue,
+            'order_count': order_count,
+            'product_count': product_count,
+            'products': top_products,
+            'error': None
         }
         
+        return report
+    
     except Exception as e:
-        return {
-            "products": [],
-            "total_revenue": "$0",
-            "total_products": 0,
-            "error": str(e)
-        }
+        return {"error": f"Error generating report: {str(e)}"}
 
-if __name__ == "__main__":
-    result = generate_report()
-    print(f"Result: {result}")
+def generate_report_html(report):
+    """Generate clean HTML for report display"""
+    if report.get('error'):
+        return f'<div style="color: #dc2626; font-size: 14px; padding: 16px; background: #fef2f2; border-radius: 6px; border-left: 3px solid #dc2626;">{report["error"]}</div>'
+    
+    products_html = ""
+    if report.get('products'):
+        products_html = "<div style='margin: 20px 0;'>"
+        products_html += "<h4 style='font-size: 15px; font-weight: 600; color: #171717; margin-bottom: 16px;'>Top Products</h4>"
+        for p in report['products'][:10]:
+            products_html += f"""
+            <div style='display: flex; justify-content: space-between; padding: 14px; margin: 8px 0; background: #fafafa; border-radius: 6px; border-left: 3px solid #e5e5e5;'>
+                <div>
+                    <div style='font-weight: 500; color: #171717; font-size: 14px;'>{p['title']}</div>
+                    <div style='color: #737373; margin-top: 4px; font-size: 13px;'>Stock: {p['inventory']} units</div>
+                </div>
+                <div style='font-weight: 600; color: #171717; font-size: 16px;'>${p['revenue']:.2f}</div>
+            </div>
+            """
+        products_html += "</div>"
+    
+    summary_html = f"""
+    <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 24px;'>
+        <div style='background: #fafafa; padding: 16px; border-radius: 8px; border: 1px solid #e5e5e5;'>
+            <div style='font-size: 12px; color: #737373; font-weight: 600; margin-bottom: 8px; letter-spacing: 0.5px;'>TOTAL REVENUE</div>
+            <div style='font-size: 22px; font-weight: 700; color: #171717;'>${report.get('total_revenue', 0):.2f}</div>
+        </div>
+        <div style='background: #fafafa; padding: 16px; border-radius: 8px; border: 1px solid #e5e5e5;'>
+            <div style='font-size: 12px; color: #737373; font-weight: 600; margin-bottom: 8px; letter-spacing: 0.5px;'>PRODUCTS</div>
+            <div style='font-size: 22px; font-weight: 700; color: #171717;'>{report.get('product_count', 0)}</div>
+        </div>
+        <div style='background: #fafafa; padding: 16px; border-radius: 8px; border: 1px solid #e5e5e5;'>
+            <div style='font-size: 12px; color: #737373; font-weight: 600; margin-bottom: 8px; letter-spacing: 0.5px;'>ORDERS</div>
+            <div style='font-size: 22px; font-weight: 700; color: #171717;'>{report.get('order_count', 0)}</div>
+        </div>
+    </div>
+    """
+    
+    return products_html + summary_html
