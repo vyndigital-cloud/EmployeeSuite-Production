@@ -395,6 +395,8 @@ DASHBOARD_HTML = """
 
     <footer style="margin-top: 60px; padding: 24px; border-top: 1px solid #e5e5e5; text-align: center; background: #fff;">
         <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; font-size: 14px;">
+            <a href="/faq" style="color: #525252; text-decoration: none; font-weight: 500;">FAQ</a>
+            <span style="color: #d4d4d4;">|</span>
             <a href="/privacy" style="color: #525252; text-decoration: none; font-weight: 500;">Privacy Policy</a>
             <span style="color: #d4d4d4;">|</span>
             <a href="/terms" style="color: #525252; text-decoration: none; font-weight: 500;">Terms of Service</a>
@@ -426,6 +428,23 @@ def dashboard():
     has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
     
     return render_template_string(DASHBOARD_HTML, trial_active=trial_active, days_left=days_left, is_subscribed=current_user.is_subscribed, has_shopify=has_shopify)
+
+
+@app.route('/cron/send-trial-warnings', methods=['GET', 'POST'])
+def cron_trial_warnings():
+    """Endpoint for external cron service"""
+    import os
+    secret = request.args.get('secret') or request.form.get('secret')
+    
+    if secret != os.getenv('CRON_SECRET'):
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    from cron_jobs import send_trial_warnings
+    try:
+        send_trial_warnings()
+        return jsonify({"success": True, "message": "Warnings sent"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/health')
 def health():
