@@ -17,12 +17,12 @@ def check_inventory():
         threshold = 10
         
         for product in products:
-            inventory = product.get('inventory_quantity', 0)
+            inventory = product.get('stock', 0)
             if inventory < threshold:
                 low_stock_items.append({
-                    'title': product.get('title', 'Unknown'),
+                    'title': product.get('product', 'Unknown Product'),
                     'inventory': inventory,
-                    'id': product.get('id')
+                    'id': product.get('sku', 'N/A')
                 })
         
         if low_stock_items:
