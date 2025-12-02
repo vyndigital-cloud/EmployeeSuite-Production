@@ -139,6 +139,7 @@ ADMIN_DASHBOARD_HTML = '''
                 <thead>
                     <tr>
                         <th>Email</th>
+                        <th>Action</th>
                         <th>Status</th>
                         <th>Trial Ends</th>
                         <th>Created</th>
@@ -148,6 +149,11 @@ ADMIN_DASHBOARD_HTML = '''
                     {% for user in users %}
                     <tr>
                         <td>{{ user.email }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}" style="display:inline;" onsubmit="return confirm('Delete {{ user.email }}?')">
+                                <button type="submit" style="background:#dc2626;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:12px;cursor:pointer;font-weight:600;">Delete</button>
+                            </form>
+                        </td>
                         <td>
                             {% if user.is_subscribed %}
                             <span class="badge badge-success">Subscribed</span>
@@ -204,3 +210,25 @@ def dashboard():
         trial_users=trial_users,
         total_stores=total_stores
     )
+
+@admin_bp.route('/delete-user/<int:user_id>', methods=['POST'])
+def delete_user(user_id):
+    """Delete a user and their associated data"""
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin.login'))
+    
+    try:
+        user = User.query.get(user_id)
+        if user:
+            # Delete associated stores
+            ShopifyStore.query.filter_by(user_id=user.id).delete()
+            # Delete user
+            email = user.email
+            db.session.delete(user)
+            db.session.commit()
+            return redirect(url_for('admin.dashboard') + f'?deleted={email}')
+        else:
+            return redirect(url_for('admin.dashboard') + '?error=User not found')
+    except Exception as e:
+        return redirect(url_for('admin.dashboard') + f'?error={str(e)}')
+
