@@ -85,8 +85,8 @@ SUBSCRIBE_HTML = '''
     </div>
     
     <div class="container">
-        <h1 class="page-title">Subscribe to Continue</h1>
-        <p class="page-subtitle">Your trial has started. Subscribe to keep access after 2 days.</p>
+        <h1 class="page-title">Ready to Subscribe?</h1>
+        <p class="page-subtitle">Your free trial is active. Subscribe now to ensure uninterrupted access when your trial ends.</p>
         
         <div class="pricing-card">
             <div class="pricing-item">
@@ -174,8 +174,8 @@ SUCCESS_HTML = '''
 <body>
     <div class="success-container">
         <div class="success-icon">✓</div>
-        <h1 class="success-title">Welcome to Employee Suite!</h1>
-        <p class="success-text">Your subscription is active. Redirecting to dashboard...</p>
+        <h1 class="success-title">🎉 You're All Set!</h1>
+        <p class="success-text">Payment confirmed. You now have unlimited access to Employee Suite.</p>
         <a href="{{ url_for('dashboard') }}" class="btn">Go to Dashboard</a>
     </div>
 </body>
