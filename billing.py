@@ -22,12 +22,8 @@ SUBSCRIBE_HTML = '''
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: #fafafa;
             color: #171717;
-            -webkit-font-smoothing: antialiased;
         }
-        .header {
-            background: #fff;
-            border-bottom: 1px solid #e5e5e5;
-        }
+        .header { background: #fff; border-bottom: 1px solid #e5e5e5; }
         .header-content {
             max-width: 1200px;
             margin: 0 auto;
@@ -37,83 +33,34 @@ SUBSCRIBE_HTML = '''
             justify-content: space-between;
             align-items: center;
         }
-        .logo {
-            font-size: 18px;
-            font-weight: 600;
-            color: #171717;
-            text-decoration: none;
+        .logo { font-size: 18px; font-weight: 600; color: #171717; text-decoration: none; }
+        .nav-btn { padding: 8px 14px; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none; color: #525252; }
+        .nav-btn:hover { background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; padding: 48px 24px; }
+        .page-title { font-size: 32px; font-weight: 700; color: #171717; margin-bottom: 8px; }
+        .page-subtitle { font-size: 16px; color: #737373; margin-bottom: 32px; }
+        .pricing-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 32px; }
+        .pricing-item {
+            padding: 20px 0;
+            border-bottom: 1px solid #f5f5f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .nav-btn {
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            text-decoration: none;
-            color: #525252;
-        }
-        .nav-btn:hover {
-            background: #f5f5f5;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 48px 24px;
-        }
-        .page-title {
-            font-size: 32px;
-            font-weight: 700;
-            color: #171717;
-            margin-bottom: 8px;
-        }
-        .page-subtitle {
-            font-size: 16px;
-            color: #737373;
-            margin-bottom: 32px;
-        }
-        .pricing-card {
-            background: #fff;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
-            padding: 32px;
-            margin-bottom: 24px;
-        }
-        .price {
-            font-size: 48px;
-            font-weight: 700;
-            color: #171717;
-            margin-bottom: 8px;
-        }
-        .price-currency {
-            font-size: 24px;
-            color: #737373;
-        }
-        .price-period {
-            font-size: 16px;
-            color: #737373;
-        }
-        .price-note {
-            font-size: 14px;
-            color: #737373;
-            margin-bottom: 24px;
-        }
-        .features-list {
-            list-style: none;
-            margin: 24px 0;
-        }
+        .pricing-item:last-child { border-bottom: none; }
+        .pricing-label { font-size: 16px; font-weight: 500; color: #171717; }
+        .pricing-detail { font-size: 13px; color: #737373; margin-top: 4px; }
+        .pricing-value { font-size: 24px; font-weight: 700; color: #171717; }
+        .features-list { list-style: none; margin: 24px 0; padding: 24px 0; border-top: 1px solid #f5f5f5; }
         .features-list li {
-            padding: 12px 0;
+            padding: 10px 0;
             font-size: 14px;
             color: #525252;
             display: flex;
             align-items: center;
             gap: 12px;
         }
-        .features-list li:before {
-            content: '✓';
-            color: #16a34a;
-            font-weight: 700;
-            font-size: 16px;
-        }
+        .features-list li:before { content: '✓'; color: #16a34a; font-weight: 700; font-size: 16px; }
         .btn {
             width: 100%;
             padding: 14px;
@@ -124,19 +71,8 @@ SUBSCRIBE_HTML = '''
             font-size: 14px;
             font-weight: 500;
             cursor: pointer;
-            text-decoration: none;
-            display: block;
-            text-align: center;
         }
-        .btn:hover {
-            background: #262626;
-        }
-        .trial-note {
-            text-align: center;
-            margin-top: 16px;
-            font-size: 13px;
-            color: #737373;
-        }
+        .btn:hover { background: #262626; }
     </style>
 </head>
 <body>
@@ -148,20 +84,25 @@ SUBSCRIBE_HTML = '''
     </div>
     
     <div class="container">
-        <h1 class="page-title">Subscribe</h1>
-        <p class="page-subtitle">Get full access to Employee Suite</p>
+        <h1 class="page-title">Subscribe to Continue</h1>
+        <p class="page-subtitle">Your trial has started. Subscribe to keep access after 2 days.</p>
         
         <div class="pricing-card">
-            <div class="price">
-                <span class="price-currency">$1,000</span> setup
+            <div class="pricing-item">
+                <div>
+                    <div class="pricing-label">Setup Fee</div>
+                    <div class="pricing-detail">One-time payment</div>
+                </div>
+                <div class="pricing-value">$1,000</div>
             </div>
-            <p class="price-note">One-time setup fee</p>
             
-            <div class="price">
-                <span class="price-currency">$500</span>
-                <span class="price-period">/month</span>
+            <div class="pricing-item">
+                <div>
+                    <div class="pricing-label">Monthly Subscription</div>
+                    <div class="pricing-detail">Recurring monthly payment</div>
+                </div>
+                <div class="pricing-value">$500/mo</div>
             </div>
-            <p class="price-note">Billed monthly, cancel anytime</p>
             
             <ul class="features-list">
                 <li>Real-time inventory tracking</li>
@@ -175,7 +116,6 @@ SUBSCRIBE_HTML = '''
             <form method="POST" action="{{ url_for('billing.create_checkout') }}">
                 <button type="submit" class="btn">Subscribe Now</button>
             </form>
-            <p class="trial-note">2-day free trial • Cancel anytime</p>
         </div>
     </div>
 </body>
@@ -202,10 +142,7 @@ SUCCESS_HTML = '''
             min-height: 100vh;
             padding: 24px;
         }
-        .success-container {
-            text-align: center;
-            max-width: 480px;
-        }
+        .success-container { text-align: center; max-width: 480px; }
         .success-icon {
             width: 80px;
             height: 80px;
@@ -217,18 +154,8 @@ SUCCESS_HTML = '''
             font-size: 40px;
             margin: 0 auto 24px;
         }
-        .success-title {
-            font-size: 28px;
-            font-weight: 700;
-            color: #171717;
-            margin-bottom: 12px;
-        }
-        .success-text {
-            font-size: 16px;
-            color: #737373;
-            line-height: 1.6;
-            margin-bottom: 24px;
-        }
+        .success-title { font-size: 28px; font-weight: 700; color: #171717; margin-bottom: 12px; }
+        .success-text { font-size: 16px; color: #737373; line-height: 1.6; margin-bottom: 24px; }
         .btn {
             padding: 12px 24px;
             background: #171717;
@@ -240,9 +167,7 @@ SUCCESS_HTML = '''
             text-decoration: none;
             display: inline-block;
         }
-        .btn:hover {
-            background: #262626;
-        }
+        .btn:hover { background: #262626; }
     </style>
 </head>
 <body>
@@ -289,7 +214,7 @@ def create_checkout():
         )
         return redirect(checkout_session.url, code=303)
     except Exception as e:
-        return f"Error creating checkout: {str(e)}", 500
+        return f"Error: {str(e)}", 500
 
 @billing_bp.route('/success')
 @login_required
@@ -303,5 +228,4 @@ def success():
             db.session.commit()
         except:
             pass
-    
     return render_template_string(SUCCESS_HTML)
