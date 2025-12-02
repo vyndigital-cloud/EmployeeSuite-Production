@@ -454,6 +454,7 @@ def api_update_inventory():
 @login_required
 def api_generate_report():
     try:
+        from reporting import generate_report_html
         data = generate_report()
         if data.get('error') and data['error'] is not None:
             return f"<h3 class='error'>❌ Error: {data['error']}</h3>", 500

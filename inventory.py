@@ -31,7 +31,7 @@ def check_inventory():
                 alert_color = '#dc2626' if item['inventory'] == 0 else '#f59e0b'
                 message += f"""
                 <div style='padding: 12px; margin: 8px 0; background: #fafafa; border-radius: 6px; border-left: 3px solid {alert_color};'>
-                    <div style='font-weight: 500; color: #171717; font-size: 14px;'>{item['title']}</div>
+                    <div style='font-weight: 500; color: #171717; font-size: 14px;'>{item.get('title', 'Unknown Product')}</div>
                     <div style='color: #737373; margin-top: 4px; font-size: 13px;'>Stock: {item['inventory']} units (below threshold of {threshold})</div>
                 </div>
                 """
