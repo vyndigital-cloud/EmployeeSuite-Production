@@ -198,12 +198,19 @@ def create_checkout():
             customer_email=current_user.email,
             payment_method_types=['card'],
             line_items=[
-                {'price': os.getenv('STRIPE_SETUP_PRICE_ID'), 'quantity': 1},
-                {'price': os.getenv('STRIPE_MONTHLY_PRICE_ID'), 'quantity': 1}
+                {
+                    'price': os.getenv('STRIPE_SETUP_PRICE_ID'), 
+                    'quantity': 1,
+                },
+                {
+                    'price': os.getenv('STRIPE_MONTHLY_PRICE_ID'), 
+                    'quantity': 1,
+                }
             ],
             mode='subscription',
             subscription_data={
                 'trial_period_days': 2,
+                'description': 'Employee Suite - Shopify Inventory Automation',
                 'trial_settings': {
                     'end_behavior': {
                         'missing_payment_method': 'cancel'
