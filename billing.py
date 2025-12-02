@@ -209,13 +209,7 @@ def create_checkout():
             ],
             mode='subscription',
             subscription_data={
-                'trial_period_days': 2,
-                'description': 'Employee Suite - Shopify Inventory Automation',
-                'trial_settings': {
-                    'end_behavior': {
-                        'missing_payment_method': 'cancel'
-                    }
-                }
+                'description': 'Employee Suite - Shopify Inventory Automation'
             },
             success_url=url_for('billing.success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
             cancel_url=url_for('billing.subscribe', _external=True),
