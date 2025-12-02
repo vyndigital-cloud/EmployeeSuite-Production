@@ -92,7 +92,7 @@ FAQ_HTML = '''
         
         <div class="faq-item">
             <div class="faq-question">How do I get support?</div>
-            <div class="faq-answer">Email support@employeesuite.app. We respond within 24 hours.</div>
+            <div class="faq-answer">Email adam@golproductions.com. We respond within 24 hours.</div>
         </div>
         
         <div class="faq-item">
