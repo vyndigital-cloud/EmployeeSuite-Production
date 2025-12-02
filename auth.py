@@ -2,6 +2,7 @@ from flask import Blueprint, render_template_string, request, redirect, url_for
 from flask_login import login_user, logout_user, login_required
 from models import db, User
 from flask_bcrypt import Bcrypt
+from email_service import send_welcome_email
 
 auth_bp = Blueprint('auth', __name__)
 bcrypt = Bcrypt()
@@ -172,6 +173,12 @@ def register():
         
         db.session.add(new_user)
         db.session.commit()
+        
+        # Send welcome email
+        try:
+            send_welcome_email(email)
+        except:
+            pass  # Don't block signup if email fails
         
         login_user(new_user)
         return redirect(url_for('dashboard'))

@@ -10,6 +10,7 @@ from shopify_routes import shopify_bp
 from billing import billing_bp
 from admin_routes import admin_bp
 from legal_routes import legal_bp
+from faq_routes import faq_bp
 from order_processing import process_orders
 from inventory import update_inventory
 from reporting import generate_report
@@ -37,6 +38,7 @@ app.register_blueprint(shopify_bp)
 app.register_blueprint(billing_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(legal_bp)
+app.register_blueprint(faq_bp)
 
 DASHBOARD_HTML = """
 <!DOCTYPE html>

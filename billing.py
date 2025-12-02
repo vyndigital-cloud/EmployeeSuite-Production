@@ -4,6 +4,7 @@ import stripe
 import os
 from models import db
 from datetime import datetime
+from email_service import send_payment_success
 
 billing_bp = Blueprint('billing', __name__)
 
@@ -226,6 +227,12 @@ def success():
             current_user.stripe_customer_id = session.customer
             current_user.is_subscribed = True
             db.session.commit()
+            
+            # Send confirmation email
+            try:
+                send_payment_success(current_user.email)
+            except:
+                pass
         except:
             pass
     return render_template_string(SUCCESS_HTML)
