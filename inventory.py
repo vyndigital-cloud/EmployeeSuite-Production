@@ -1,37 +1,44 @@
-from shopify_integration import ShopifyClient
 from flask_login import current_user
 from models import ShopifyStore
+from shopify_integration import ShopifyClient
 
-def update_inventory():
+def check_inventory():
+    """Check inventory levels and return low stock alerts"""
+    store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+    
+    if not store:
+        return {"success": False, "error": "No Shopify store connected"}
+    
     try:
-        if not current_user.is_authenticated:
-            return "⚠️ Please log in first."
-        
-        store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
-        
-        if not store:
-            return "⚠️ No Shopify store connected. Go to Settings to connect your store."
-        
         client = ShopifyClient(store.shop_url, store.access_token)
-        low_stock = client.get_low_stock(threshold=10)
+        products = client.get_products()
         
-        if isinstance(low_stock, dict) and "error" in low_stock:
-            return f"❌ Error: {low_stock['error']}"
+        low_stock_items = []
+        threshold = 10
         
-        if len(low_stock) == 0:
-            all_products = client.get_products()
-            total = len(all_products) if not isinstance(all_products, dict) else 0
-            return f"✅ All inventory levels healthy! {total} products in stock."
+        for product in products:
+            inventory = product.get('inventory_quantity', 0)
+            if inventory < threshold:
+                low_stock_items.append({
+                    'title': product.get('title', 'Unknown'),
+                    'inventory': inventory,
+                    'id': product.get('id')
+                })
         
-        alerts = []
-        for item in low_stock:
-            alerts.append(f"🚨 {item['product']}: Only {item['stock']} units left")
-        
-        return "\n".join(alerts)
-        
+        if low_stock_items:
+            message = "<div style='margin: 16px 0;'><h4 style='font-size: 15px; font-weight: 600; color: #171717; margin-bottom: 12px;'>Low Stock Alerts</h4>"
+            for item in low_stock_items:
+                alert_color = '#dc2626' if item['inventory'] == 0 else '#f59e0b'
+                message += f"""
+                <div style='padding: 12px; margin: 8px 0; background: #fafafa; border-radius: 6px; border-left: 3px solid {alert_color};'>
+                    <div style='font-weight: 500; color: #171717; font-size: 14px;'>{item['title']}</div>
+                    <div style='color: #737373; margin-top: 4px; font-size: 13px;'>Stock: {item['inventory']} units (below threshold of {threshold})</div>
+                </div>
+                """
+            message += "</div>"
+            return {"success": True, "message": message}
+        else:
+            return {"success": True, "message": "<div style='padding: 16px; background: #f0fdf4; border-radius: 6px; border-left: 3px solid #16a34a; color: #166534; font-size: 14px;'>All products have sufficient stock</div>"}
+    
     except Exception as e:
-        return f"❌ Error checking inventory: {str(e)}"
-
-if __name__ == "__main__":
-    result = update_inventory()
-    print(f"Result: {result}")
+        return {"success": False, "error": f"Error checking inventory: {str(e)}"}
