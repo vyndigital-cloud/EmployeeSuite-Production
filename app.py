@@ -390,6 +390,16 @@ DASHBOARD_HTML = """
                 });
         }
     </script>
+
+    <footer style="margin-top: 60px; padding: 24px; border-top: 1px solid #e5e5e5; text-align: center; background: #fff;">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; font-size: 14px;">
+            <a href="/privacy" style="color: #525252; text-decoration: none; font-weight: 500;">Privacy Policy</a>
+            <span style="color: #d4d4d4;">|</span>
+            <a href="/terms" style="color: #525252; text-decoration: none; font-weight: 500;">Terms of Service</a>
+            <span style="color: #d4d4d4;">|</span>
+            <span style="color: #737373;">© 2025 Employee Suite</span>
+        </div>
+    </footer>
 </body>
 </html>
 """
