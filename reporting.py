@@ -11,13 +11,24 @@ def generate_report():
     
     try:
         client = ShopifyClient(store.shop_url, store.access_token)
-        orders = client.get_orders()
-        products = client.get_products()
         
+        # Get raw Shopify data
+        orders_data = client._make_request("orders.json")
+        products_data = client._make_request("products.json")
+        
+        if "error" in orders_data:
+            return {"error": orders_data["error"]}
+        if "error" in products_data:
+            return {"error": products_data["error"]}
+        
+        orders = orders_data.get('orders', [])
+        products_raw = products_data.get('products', [])
+        
+        # Calculate revenue
         total_revenue = sum(float(order.get('total_price', 0)) for order in orders)
         order_count = len(orders)
-        product_count = len(products)
         
+        # Build product revenue map
         product_revenue = {}
         for order in orders:
             for item in order.get('line_items', []):
@@ -25,27 +36,28 @@ def generate_report():
                 revenue = float(item.get('price', 0)) * int(item.get('quantity', 0))
                 product_revenue[product_id] = product_revenue.get(product_id, 0) + revenue
         
+        # Build top products list
         top_products = []
-        for product in products:
+        for product in products_raw:
             product_id = product.get('id')
+            total_inventory = sum(v.get('inventory_quantity', 0) for v in product.get('variants', []))
+            
             if product_id in product_revenue:
                 top_products.append({
                     'title': product.get('title', 'Unknown'),
                     'revenue': product_revenue[product_id],
-                    'inventory': product.get('inventory_quantity', 0)
+                    'inventory': total_inventory
                 })
         
         top_products.sort(key=lambda x: x['revenue'], reverse=True)
         
-        report = {
+        return {
             'total_revenue': total_revenue,
             'order_count': order_count,
-            'product_count': product_count,
+            'product_count': len(products_raw),
             'products': top_products,
             'error': None
         }
-        
-        return report
     
     except Exception as e:
         return {"error": f"Error generating report: {str(e)}"}

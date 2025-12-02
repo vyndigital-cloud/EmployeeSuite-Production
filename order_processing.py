@@ -13,18 +13,22 @@ def process_orders(creds_path='creds.json'):
             return {"success": False, "error": "No Shopify store connected. Go to Settings."}
         
         client = ShopifyClient(store.shop_url, store.access_token)
-        orders = client.get_orders()
         
-        if isinstance(orders, dict) and "error" in orders:
-            return {"success": False, "error": orders['error']}
+        # Get raw Shopify orders
+        orders_data = client._make_request("orders.json")
+        
+        if "error" in orders_data:
+            return {"success": False, "error": orders_data['error']}
+        
+        orders = orders_data.get('orders', [])
         
         if len(orders) == 0:
             return {"success": True, "message": "<div style='padding: 16px; background: #f0fdf4; border-radius: 6px; border-left: 3px solid #16a34a; color: #166534; font-size: 14px;'>✅ No pending orders. All caught up!</div>"}
         
-        # Build clean HTML output like Reports
+        # Build clean HTML output
         html = "<div style='margin: 16px 0;'><h4 style='font-size: 15px; font-weight: 600; color: #171717; margin-bottom: 12px;'>Recent Orders</h4>"
         
-        for order in orders[:10]:  # Show latest 10
+        for order in orders[:10]:
             order_name = order.get('name', 'N/A')
             total = order.get('total_price', '0')
             status = order.get('financial_status', 'pending')
