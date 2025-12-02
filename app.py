@@ -447,6 +447,9 @@ def api_update_inventory():
             return jsonify(result)
         else:
             return jsonify({"success": False, "error": str(result)})
+    except Exception as e:
+        return jsonify({"error": str(e), "success": False}), 500
+
 @app.route('/api/generate_report', methods=['GET', 'POST'])
 @login_required
 def api_generate_report():
