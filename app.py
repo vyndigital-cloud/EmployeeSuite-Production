@@ -291,7 +291,7 @@ DASHBOARD_HTML = """
 <body>
     <div class="header">
         <div class="header-content">
-            <div class="logo">Employee Suite</div>
+            <div class="logo">Employee Suite v1</div>
             <div class="header-nav">
                 <a href="{{ url_for('shopify.shopify_settings') }}" class="nav-btn">Settings</a>
                 <a href="{{ url_for('billing.subscribe') }}" class="nav-btn nav-btn-primary">Subscribe</a>

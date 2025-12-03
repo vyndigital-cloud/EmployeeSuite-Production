@@ -194,7 +194,7 @@ SETTINGS_HTML = '''
 <body>
     <div class="header">
         <div class="header-content">
-            <a href="/dashboard" class="logo">Employee Suite</a>
+            <a href="/dashboard" class="logo">Employee Suite v1</a>
             <a href="/dashboard" class="nav-btn">Back to Dashboard</a>
         </div>
     </div>

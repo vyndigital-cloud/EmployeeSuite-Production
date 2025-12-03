@@ -44,7 +44,7 @@ LOGIN_HTML = '''
 </head>
 <body>
     <div class="login-container">
-        <div class="logo">Employee Suite</div>
+        <div class="logo">Employee Suite v1</div>
         <div class="card">
             <h1 class="card-title">Login</h1>
             {% if error %}
@@ -108,7 +108,7 @@ REGISTER_HTML = '''
 </head>
 <body>
     <div class="register-container">
-        <div class="logo">Employee Suite</div>
+        <div class="logo">Employee Suite v1</div>
         <div class="card">
             <h1 class="card-title">Start Free Trial</h1>
             <p class="card-subtitle">Your 2-day trial begins immediately</p>

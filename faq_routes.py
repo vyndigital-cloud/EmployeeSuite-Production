@@ -52,7 +52,7 @@ FAQ_HTML = '''
 <body>
     <div class="header">
         <div class="header-content">
-            <a href="/" class="logo">Employee Suite</a>
+            <a href="/" class="logo">Employee Suite v1</a>
         </div>
     </div>
     
