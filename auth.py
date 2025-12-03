@@ -149,7 +149,7 @@ def login():
         
         if user and bcrypt.check_password_hash(user.password_hash, password):
             login_user(user, remember=True)
-        session.permanent = True
+            session.permanent = True
             return redirect(url_for('dashboard'))
         
         return render_template_string(LOGIN_HTML, error="Invalid email or password")
