@@ -6,6 +6,7 @@ from datetime import datetime
 
 from models import db, User, ShopifyStore
 from auth import auth_bp, bcrypt as auth_bcrypt
+from shopify_oauth import oauth_bp
 from shopify_routes import shopify_bp
 from billing import billing_bp
 from admin_routes import admin_bp
@@ -44,6 +45,7 @@ app.register_blueprint(shopify_bp)
 app.register_blueprint(billing_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(legal_bp)
+app.register_blueprint(oauth_bp)
 app.register_blueprint(faq_bp)
 
 DASHBOARD_HTML = """
