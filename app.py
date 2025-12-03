@@ -14,7 +14,6 @@ from faq_routes import faq_bp
 from order_processing import process_orders
 from inventory import update_inventory
 from reporting import generate_report
-from flask_session import Session
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
