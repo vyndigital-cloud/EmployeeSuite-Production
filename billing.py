@@ -106,12 +106,12 @@ SUBSCRIBE_HTML = '''
             </div>
             
             <ul class="features-list">
-                <li>Real-time inventory tracking</li>
-                <li>Automated low-stock alerts</li>
-                <li>Order processing automation</li>
-                <li>Revenue analytics & reports</li>
-                <li>Multi-store support</li>
-                <li>Priority customer support</li>
+                <li>Real-time inventory monitoring</li>
+                <li>Low-stock alerts (set your own threshold)</li>
+                <li>Order tracking and status updates</li>
+                <li>Revenue reports by product</li>
+                <li>Shopify API integration</li>
+                <li>Email support</li>
             </ul>
             
             <form method="POST" action="{{ url_for('billing.create_checkout') }}">
