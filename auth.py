@@ -148,7 +148,8 @@ def login():
         user = User.query.filter_by(email=email).first()
         
         if user and bcrypt.check_password_hash(user.password_hash, password):
-            login_user(user)
+            login_user(user, remember=True)
+        session.permanent = True
             return redirect(url_for('dashboard'))
         
         return render_template_string(LOGIN_HTML, error="Invalid email or password")
@@ -180,7 +181,8 @@ def register():
         except:
             pass  # Don't block signup if email fails
         
-        login_user(new_user)
+        login_user(new_user, remember=True)
+        session.permanent = True
         return redirect(url_for('dashboard'))
     
     return render_template_string(REGISTER_HTML)
