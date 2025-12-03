@@ -29,7 +29,6 @@ app.config['SESSION_TYPE'] = 'sqlalchemy'
 app.config['SESSION_SQLALCHEMY'] = db
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 * 30
-Session(app)
 bcrypt = Bcrypt(app)
 
 login_manager = LoginManager()
