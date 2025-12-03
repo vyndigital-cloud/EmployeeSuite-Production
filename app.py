@@ -289,7 +289,16 @@ DASHBOARD_HTML = """
             .banner { flex-direction: column; gap: 16px; text-align: center; }
         }
     </style>
-</head>
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-RBBQ4X7FJ3');
+    </script>
+    </head>
 <body>
     <div class="header">
         <div class="header-content">
