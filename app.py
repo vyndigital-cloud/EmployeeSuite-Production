@@ -148,21 +148,21 @@ DASHBOARD_HTML = """
         
         /* Trial Banner */
         .banner {
-            background: #fff;
-            border: 1.5px solid #d4d4d4;
+            background: #fafafa;
+            border: 1px solid #e5e5e5;
             border-radius: 12px;
-            padding: 24px 28px;
+            padding: 20px 24px;
             margin-bottom: 32px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            box-shadow: none;
         }
         .banner-warning {
-            border-left: 3px solid #f59e0b;
+            border-left: 3px solid #4a7338;
         }
         .banner-info {
-            border-left: 3px solid #3b82f6;
+            border-left: 3px solid #4a7338;
         }
         .banner-content h3 {
             font-size: 16px;
@@ -179,12 +179,13 @@ DASHBOARD_HTML = """
         .banner-action {
             background: #4a7338;
             color: #fff;
-            padding: 10px 18px;
-            border-radius: 6px;
+            padding: 10px 20px;
+            border-radius: 8px;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             text-decoration: none;
             white-space: nowrap;
+            transition: all 0.2s ease;
         }
         .banner-action:hover {
             background: #3a5c2a;
@@ -201,16 +202,16 @@ DASHBOARD_HTML = """
         }
         .card {
             background: #fff;
-            border: 1.5px solid #d4d4d4;
+            border: 1px solid #e5e5e5;
             border-radius: 12px;
-            padding: 32px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            transition: all 0.3s ease;
+            padding: 28px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            transition: all 0.2s ease;
         }
         .card:hover {
-            border-color: #a3a3a3;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.12);
-            transform: translateY(-2px);
+            border-color: #d4d4d4;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            transform: translateY(-1px);
         }
         .card-icon {
             font-size: 28px;
@@ -252,18 +253,18 @@ DASHBOARD_HTML = """
         /* Output */
         .output-container {
             background: #fff;
-            border: 1.5px solid #d4d4d4;
+            border: 1px solid #e5e5e5;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
         .output-header {
-            padding: 20px 28px;
-            border-bottom: 1.5px solid #e5e5e5;
-            font-size: 16px;
-            font-weight: 700;
-            color: #0a0a0a;
-            letter-spacing: -0.2px;
+            padding: 18px 24px;
+            border-bottom: 1px solid #e5e5e5;
+            font-size: 15px;
+            font-weight: 600;
+            color: #171717;
+            letter-spacing: 0;
         }
         #output {
             padding: 24px;
