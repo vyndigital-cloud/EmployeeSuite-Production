@@ -50,7 +50,7 @@ LOGIN_HTML = '''
 <body>
     <div class="login-container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(114, 176, 94, 0.8)); animation: pulse-glow 3s ease-in-out infinite;">
+            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 170px; height: 170px; filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(114, 176, 94, 0.8)); animation: pulse-glow 3s ease-in-out infinite;">
         </div>
         <style>
             @keyframes pulse-glow {
@@ -136,7 +136,7 @@ REGISTER_HTML = '''
 <body>
     <div class="register-container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(114, 176, 94, 0.8)); animation: pulse-glow 3s ease-in-out infinite;">
+            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 170px; height: 170px; filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(114, 176, 94, 0.8)); animation: pulse-glow 3s ease-in-out infinite;">
         </div>
         <style>
             @keyframes pulse-glow {
