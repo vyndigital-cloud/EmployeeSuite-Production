@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template_string, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from models import db, ShopifyStore
+from access_control import require_access
 
 shopify_bp = Blueprint('shopify', __name__)
 
@@ -285,6 +286,7 @@ SETTINGS_HTML = '''
 
 @shopify_bp.route('/settings/shopify')
 @login_required
+@require_access
 def shopify_settings():
     store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
     return render_template_string(SETTINGS_HTML, store=store, success=request.args.get('success'), error=request.args.get('error'))

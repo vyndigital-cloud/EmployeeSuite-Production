@@ -18,6 +18,7 @@ from webhook_stripe import webhook_bp
 from order_processing import process_orders
 from inventory import update_inventory
 from reporting import generate_report
+from access_control import require_access
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -466,6 +467,7 @@ def home():
 
 @app.route('/dashboard')
 @login_required
+@require_access
 def dashboard():
     if not current_user.has_access():
         return redirect(url_for('billing.subscribe'))
@@ -528,7 +530,8 @@ def api_update_inventory():
 @login_required
 def api_generate_report():
     try:
-        from reporting import generate_report_html
+        from reporting import generate_report
+from access_control import require_access_html
         data = generate_report()
         if data.get('error') and data['error'] is not None:
             return f"<h3 class='error'>❌ Error: {data['error']}</h3>", 500
