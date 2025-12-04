@@ -18,7 +18,7 @@ from webhook_stripe import webhook_bp
 from order_processing import process_orders
 from inventory import update_inventory
 from reporting import generate_report
-from access_control import require_access_html
+
 from logging_config import logger
 from access_control import require_access
 

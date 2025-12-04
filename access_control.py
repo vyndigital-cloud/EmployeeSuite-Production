@@ -3,7 +3,6 @@ from flask import redirect, url_for
 from flask_login import current_user
 
 def require_access(f):
-    """Decorator to enforce trial/subscription access on routes"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
