@@ -60,9 +60,7 @@ app.register_blueprint(webhook_bp)
 # Initialize rate limiter with global limits
 limiter = init_limiter(app)
 
-# Exempt specific routes from rate limiting (health checks, webhooks)
-limiter.exempt(health)
-limiter.exempt(stripe_webhook)
+# Rate limiter initialized with global 100 req/hour limit
 
 DASHBOARD_HTML = """
 <!DOCTYPE html>
