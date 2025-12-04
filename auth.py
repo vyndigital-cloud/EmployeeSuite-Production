@@ -1,11 +1,10 @@
 from flask import Blueprint, render_template_string, request, redirect, url_for, session
 from flask_login import login_user, logout_user, login_required
 from models import db, User
-from flask_bcrypt import Bcrypt
 from email_service import send_welcome_email
+from app import bcrypt
 
 auth_bp = Blueprint('auth', __name__)
-bcrypt = Bcrypt()
 
 LOGIN_HTML = '''
 <!DOCTYPE html>
