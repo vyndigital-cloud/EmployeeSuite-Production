@@ -52,13 +52,6 @@ LOGIN_HTML = '''
             <img src="https://i.imgur.com/Dl0kD4t.png" alt="Employee Suite" style="width: 90px; height: 90px; filter: drop-shadow(0 8px 16px rgba(114, 176, 94, 0.3)); animation: float 3s ease-in-out infinite; margin-bottom: 16px;">
             <div class="logo">Employee Suite v1</div>
         </div>
-        <style>
-            @keyframes float {
-                0%, 100% { transform: translateY(0px); }
-                50% { transform: translateY(-10px); }
-            }
-        </style>
-        <div style="display:none;">
         <div class="card">
             <h1 class="card-title">Login</h1>
             {% if error %}
