@@ -48,9 +48,8 @@ LOGIN_HTML = '''
 </head>
 <body>
     <div class="login-container">
-        <div style="text-align: center; margin-bottom: 32px;">
-            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 90px; height: 90px; filter: drop-shadow(0 8px 16px rgba(114, 176, 94, 0.3)); animation: float 3s ease-in-out infinite; margin-bottom: 16px;">
-            <div class="logo">Employee Suite v1</div>
+        <div style="text-align: center; margin-bottom: 40px;">
+            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 120px; height: 120px; filter: drop-shadow(0 8px 16px rgba(114, 176, 94, 0.3)); animation: float 3s ease-in-out infinite;">
         </div>
         <div class="card">
             <h1 class="card-title">Login</h1>
@@ -122,9 +121,8 @@ REGISTER_HTML = '''
 </head>
 <body>
     <div class="register-container">
-        <div style="text-align: center; margin-bottom: 32px;">
-            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 90px; height: 90px; filter: drop-shadow(0 8px 16px rgba(114, 176, 94, 0.3)); animation: float 3s ease-in-out infinite; margin-bottom: 16px;">
-            <div class="logo">Employee Suite v1</div>
+        <div style="text-align: center; margin-bottom: 40px;">
+            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 120px; height: 120px; filter: drop-shadow(0 8px 16px rgba(114, 176, 94, 0.3)); animation: float 3s ease-in-out infinite;">
         </div>
         <style>
             @keyframes float {
