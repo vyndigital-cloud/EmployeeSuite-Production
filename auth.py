@@ -50,16 +50,16 @@ LOGIN_HTML = '''
 <body>
     <div class="login-container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(102, 126, 234, 0.6)); animation: pulse-glow 3s ease-in-out infinite;">
+            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(114, 176, 94, 0.8)); animation: pulse-glow 3s ease-in-out infinite;">
         </div>
         <style>
             @keyframes pulse-glow {
                 0%, 100% { 
-                    filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(102, 126, 234, 0.6));
+                    filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(114, 176, 94, 0.8));
                     transform: scale(1);
                 }
                 50% { 
-                    filter: drop-shadow(0 0 60px rgba(255, 255, 255, 1)) drop-shadow(0 0 30px rgba(102, 126, 234, 0.9));
+                    filter: drop-shadow(0 0 60px rgba(255, 255, 255, 1)) drop-shadow(0 0 30px rgba(114, 176, 94, 1));
                     transform: scale(1.05);
                 }
             }
@@ -136,16 +136,16 @@ REGISTER_HTML = '''
 <body>
     <div class="register-container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(102, 126, 234, 0.6)); animation: pulse-glow 3s ease-in-out infinite;">
+            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(114, 176, 94, 0.8)); animation: pulse-glow 3s ease-in-out infinite;">
         </div>
         <style>
             @keyframes pulse-glow {
                 0%, 100% { 
-                    filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(102, 126, 234, 0.6));
+                    filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(114, 176, 94, 0.8));
                     transform: scale(1);
                 }
                 50% { 
-                    filter: drop-shadow(0 0 60px rgba(255, 255, 255, 1)) drop-shadow(0 0 30px rgba(102, 126, 234, 0.9));
+                    filter: drop-shadow(0 0 60px rgba(255, 255, 255, 1)) drop-shadow(0 0 30px rgba(114, 176, 94, 1));
                     transform: scale(1.05);
                 }
             }
