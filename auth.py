@@ -45,24 +45,18 @@ LOGIN_HTML = '''
         .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
         .footer-link a:hover { text-decoration: underline; }
         
-        @keyframes hover-float {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            10% { transform: translate(-8px, -6px) rotate(-4deg); }
-            20% { transform: translate(-12px, -8px) rotate(-5deg); }
-            30% { transform: translate(-8px, -10px) rotate(-3deg); }
-            40% { transform: translate(0, -12px) rotate(0deg); }
-            50% { transform: translate(8px, -10px) rotate(3deg); }
-            60% { transform: translate(12px, -8px) rotate(5deg); }
-            70% { transform: translate(8px, -6px) rotate(4deg); }
-            80% { transform: translate(0, -4px) rotate(0deg); }
-            90% { transform: translate(-4px, -2px) rotate(-2deg); }
+        @keyframes smooth-sway {
+            0%, 100% { transform: translateX(0) rotate(0deg); }
+            25% { transform: translateX(-8px) rotate(-2deg); }
+            50% { transform: translateX(0) rotate(0deg); }
+            75% { transform: translateX(8px) rotate(2deg); }
         }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 8px 28px rgba(114, 176, 94, 0.45)); animation: hover-float 6s ease-in-out infinite;">
+            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 8px 28px rgba(114, 176, 94, 0.45)); animation: smooth-sway 4s ease-in-out infinite;">
         </div>
         <div class="card">
             <h1 class="card-title">Login</h1>
@@ -131,24 +125,18 @@ REGISTER_HTML = '''
         .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
         .footer-link a:hover { text-decoration: underline; }
         
-        @keyframes hover-float {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            10% { transform: translate(-8px, -6px) rotate(-4deg); }
-            20% { transform: translate(-12px, -8px) rotate(-5deg); }
-            30% { transform: translate(-8px, -10px) rotate(-3deg); }
-            40% { transform: translate(0, -12px) rotate(0deg); }
-            50% { transform: translate(8px, -10px) rotate(3deg); }
-            60% { transform: translate(12px, -8px) rotate(5deg); }
-            70% { transform: translate(8px, -6px) rotate(4deg); }
-            80% { transform: translate(0, -4px) rotate(0deg); }
-            90% { transform: translate(-4px, -2px) rotate(-2deg); }
+        @keyframes smooth-sway {
+            0%, 100% { transform: translateX(0) rotate(0deg); }
+            25% { transform: translateX(-8px) rotate(-2deg); }
+            50% { transform: translateX(0) rotate(0deg); }
+            75% { transform: translateX(8px) rotate(2deg); }
         }
     </style>
 </head>
 <body>
     <div class="register-container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 8px 28px rgba(114, 176, 94, 0.45)); animation: hover-float 6s ease-in-out infinite;">
+            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 8px 28px rgba(114, 176, 94, 0.45)); animation: smooth-sway 4s ease-in-out infinite;">
         </div>
         <style>
             @keyframes float {
