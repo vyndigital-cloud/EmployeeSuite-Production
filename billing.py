@@ -35,7 +35,7 @@ SUBSCRIBE_HTML = '''
             align-items: center;
         }
         .logo { font-size: 18px; font-weight: 600; color: #171717; text-decoration: none; }
-        .nav-btn { padding: 8px 14px; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none; color: #525252; }
+        .nav-btn { padding: 8px 14px; border-radius: 6px; font-size: 14px; font-weight: 600; text-decoration: none; color: #525252; }
         .nav-btn:hover { background: #f5f5f5; }
         .container { max-width: 600px; margin: 0 auto; padding: 48px 24px; }
         .page-title { font-size: 32px; font-weight: 700; color: #171717; margin-bottom: 8px; }
@@ -49,7 +49,7 @@ SUBSCRIBE_HTML = '''
             align-items: center;
         }
         .pricing-item:last-child { border-bottom: none; }
-        .pricing-label { font-size: 16px; font-weight: 500; color: #171717; }
+        .pricing-label { font-size: 16px; font-weight: 600; color: #171717; }
         .pricing-detail { font-size: 13px; color: #737373; margin-top: 4px; }
         .pricing-value { font-size: 24px; font-weight: 700; color: #171717; }
         .features-list { list-style: none; margin: 24px 0; padding: 24px 0; border-top: 1px solid #f5f5f5; }
@@ -66,11 +66,11 @@ SUBSCRIBE_HTML = '''
             width: 100%;
             padding: 14px;
             background: #00D924;
-            color: #fff;
+            color: #000;
             border: none;
             border-radius: 6px;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
         }
         .btn:hover { background: #00B81F; }
@@ -160,11 +160,11 @@ SUCCESS_HTML = '''
         .btn {
             padding: 12px 24px;
             background: #00D924;
-            color: #fff;
+            color: #000;
             border: none;
             border-radius: 6px;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             text-decoration: none;
             display: inline-block;
         }
