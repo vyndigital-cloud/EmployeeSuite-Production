@@ -44,12 +44,20 @@ LOGIN_HTML = '''
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
         .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
         .footer-link a:hover { text-decoration: underline; }
+        
+        @keyframes legendary-float {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(6px, -3px) rotate(2deg); }
+            50% { transform: translate(10px, 0) rotate(0deg); }
+            75% { transform: translate(6px, 3px) rotate(-2deg); }
+            100% { transform: translate(0, 0); }
+        }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 4px 16px rgba(114, 176, 94, 0.2));">
+            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 6px 20px rgba(114, 176, 94, 0.35)); animation: legendary-float 4.5s ease-in-out infinite;">
         </div>
         <div class="card">
             <h1 class="card-title">Login</h1>
@@ -117,12 +125,20 @@ REGISTER_HTML = '''
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
         .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
         .footer-link a:hover { text-decoration: underline; }
+        
+        @keyframes legendary-float {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(6px, -3px) rotate(2deg); }
+            50% { transform: translate(10px, 0) rotate(0deg); }
+            75% { transform: translate(6px, 3px) rotate(-2deg); }
+            100% { transform: translate(0, 0); }
+        }
     </style>
 </head>
 <body>
     <div class="register-container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 4px 16px rgba(114, 176, 94, 0.2));">
+            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 6px 20px rgba(114, 176, 94, 0.35)); animation: legendary-float 4.5s ease-in-out infinite;">
         </div>
         <style>
             @keyframes float {
