@@ -13,6 +13,7 @@ from billing import billing_bp
 from admin_routes import admin_bp
 from legal_routes import legal_bp
 from faq_routes import faq_bp
+from webhook_stripe import webhook_bp
 from order_processing import process_orders
 from inventory import update_inventory
 from reporting import generate_report
@@ -53,6 +54,7 @@ app.register_blueprint(admin_bp)
 app.register_blueprint(legal_bp)
 app.register_blueprint(oauth_bp)
 app.register_blueprint(faq_bp)
+app.register_blueprint(webhook_bp)
 
 DASHBOARD_HTML = """
 <!DOCTYPE html>
