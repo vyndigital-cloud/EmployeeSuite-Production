@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 
 from models import db, User, ShopifyStore
-from auth import auth_bp, bcrypt as auth_bcrypt
+from auth import auth_bp
 from shopify_oauth import oauth_bp
 from shopify_routes import shopify_bp
 from billing import billing_bp
@@ -37,6 +37,10 @@ db.init_app(app)
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 * 30
 bcrypt = Bcrypt(app)
+
+# Initialize auth module with app
+import auth as auth_module
+auth_module.init_auth(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
