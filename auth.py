@@ -32,14 +32,14 @@ LOGIN_HTML = '''
             0%, 100% { transform: translateY(0px); }
             50% { transform: translateY(-10px); }
         }
-        .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 40px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
         .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 24px; }
         .form-group { margin-bottom: 20px; }
         .form-label { display: block; font-size: 14px; font-weight: 500; color: #171717; margin-bottom: 8px; }
         .form-input { width: 100%; padding: 12px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 14px; font-family: inherit; }
-        .form-input:focus { outline: none; border-color: #171717; }
+        .form-input:focus { outline: none; border-color: #171717; box-shadow: 0 0 0 3px rgba(23, 23, 23, 0.1); }
         .btn { width: 100%; padding: 12px; background: #171717; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 8px; }
-        .btn:hover { background: #262626; }
+        .btn:hover { background: #262626; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); } .btn { transition: all 0.2s; }
         .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
         .footer-link a { color: #171717; text-decoration: none; font-weight: 500; }
@@ -48,9 +48,9 @@ LOGIN_HTML = '''
 </head>
 <body>
     <div class="login-container">
-        <div style="text-align: center; margin-bottom: 48px;">
+        <div style="text-align: center; margin-bottom: 40px;">
             <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 140px; height: 140px; filter: drop-shadow(0 6px 20px rgba(114, 176, 94, 0.25)); margin-bottom: 16px;">
-            <div style="font-size: 24px; font-weight: 700; color: #171717;">Welcome!</div>
+            <div style="font-size: 28px; font-weight: 600; color: #171717; letter-spacing: -0.5px;">Welcome!</div>
         </div>
         <div class="card">
             <h1 class="card-title">Login</h1>
@@ -105,15 +105,15 @@ REGISTER_HTML = '''
             0%, 100% { transform: translateY(0px); }
             50% { transform: translateY(-10px); }
         }
-        .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 40px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
         .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 8px; }
         .card-subtitle { font-size: 14px; color: #737373; margin-bottom: 24px; }
         .form-group { margin-bottom: 20px; }
         .form-label { display: block; font-size: 14px; font-weight: 500; color: #171717; margin-bottom: 8px; }
         .form-input { width: 100%; padding: 12px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 14px; font-family: inherit; }
-        .form-input:focus { outline: none; border-color: #171717; }
+        .form-input:focus { outline: none; border-color: #171717; box-shadow: 0 0 0 3px rgba(23, 23, 23, 0.1); }
         .btn { width: 100%; padding: 12px; background: #171717; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 8px; }
-        .btn:hover { background: #262626; }
+        .btn:hover { background: #262626; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); } .btn { transition: all 0.2s; }
         .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
         .footer-link a { color: #171717; text-decoration: none; font-weight: 500; }
@@ -122,9 +122,9 @@ REGISTER_HTML = '''
 </head>
 <body>
     <div class="register-container">
-        <div style="text-align: center; margin-bottom: 48px;">
+        <div style="text-align: center; margin-bottom: 40px;">
             <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 140px; height: 140px; filter: drop-shadow(0 6px 20px rgba(114, 176, 94, 0.25)); margin-bottom: 16px;">
-            <div style="font-size: 24px; font-weight: 700; color: #171717;">Welcome!</div>
+            <div style="font-size: 28px; font-weight: 600; color: #171717; letter-spacing: -0.5px;">Welcome!</div>
         </div>
         <style>
             @keyframes float {
