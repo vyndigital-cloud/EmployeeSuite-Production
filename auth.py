@@ -44,19 +44,13 @@ LOGIN_HTML = '''
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
         .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
         .footer-link a:hover { text-decoration: underline; }
-        
-        @keyframes smooth-sway {
-            0%, 100% { transform: translateX(0) rotate(0deg); }
-            25% { transform: translateX(-8px) rotate(-2deg); }
-            50% { transform: translateX(0) rotate(0deg); }
-            75% { transform: translateX(8px) rotate(2deg); }
-        }
+
     </style>
 </head>
 <body>
     <div class="login-container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 8px 28px rgba(114, 176, 94, 0.45)); animation: smooth-sway 4s ease-in-out infinite;">
+            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 4px 16px rgba(114, 176, 94, 0.2));">
         </div>
         <div class="card">
             <h1 class="card-title">Login</h1>
@@ -124,19 +118,13 @@ REGISTER_HTML = '''
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
         .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
         .footer-link a:hover { text-decoration: underline; }
-        
-        @keyframes smooth-sway {
-            0%, 100% { transform: translateX(0) rotate(0deg); }
-            25% { transform: translateX(-8px) rotate(-2deg); }
-            50% { transform: translateX(0) rotate(0deg); }
-            75% { transform: translateX(8px) rotate(2deg); }
-        }
+
     </style>
 </head>
 <body>
     <div class="register-container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 8px 28px rgba(114, 176, 94, 0.45)); animation: smooth-sway 4s ease-in-out infinite;">
+            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 4px 16px rgba(114, 176, 94, 0.2));">
         </div>
         <style>
             @keyframes float {
