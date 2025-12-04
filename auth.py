@@ -27,7 +27,11 @@ LOGIN_HTML = '''
             padding: 24px;
         }
         .login-container { width: 100%; max-width: 400px; }
-        .logo { text-align: center; font-size: 24px; font-weight: 700; color: #171717; margin-bottom: 32px; }
+        .logo { text-align: center; font-size: 24px; font-weight: 700; color: #171717; margin-bottom: 16px; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
         .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 32px; }
         .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 24px; }
         .form-group { margin-bottom: 20px; }
@@ -44,7 +48,17 @@ LOGIN_HTML = '''
 </head>
 <body>
     <div class="login-container">
-        <div class="logo">Employee Suite v1</div>
+        <div style="text-align: center; margin-bottom: 32px;">
+            <img src="https://i.imgur.com/Dl0kD4t.png" alt="Employee Suite" style="width: 90px; height: 90px; filter: drop-shadow(0 8px 16px rgba(114, 176, 94, 0.3)); animation: float 3s ease-in-out infinite; margin-bottom: 16px;">
+            <div class="logo">Employee Suite v1</div>
+        </div>
+        <style>
+            @keyframes float {
+                0%, 100% { transform: translateY(0px); }
+                50% { transform: translateY(-10px); }
+            }
+        </style>
+        <div style="display:none;">
         <div class="card">
             <h1 class="card-title">Login</h1>
             {% if error %}
@@ -93,7 +107,11 @@ REGISTER_HTML = '''
             padding: 24px;
         }
         .register-container { width: 100%; max-width: 400px; }
-        .logo { text-align: center; font-size: 24px; font-weight: 700; color: #171717; margin-bottom: 32px; }
+        .logo { text-align: center; font-size: 24px; font-weight: 700; color: #171717; margin-bottom: 16px; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
         .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 32px; }
         .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 8px; }
         .card-subtitle { font-size: 14px; color: #737373; margin-bottom: 24px; }
@@ -111,7 +129,17 @@ REGISTER_HTML = '''
 </head>
 <body>
     <div class="register-container">
-        <div class="logo">Employee Suite v1</div>
+        <div style="text-align: center; margin-bottom: 32px;">
+            <img src="https://i.imgur.com/Dl0kD4t.png" alt="Employee Suite" style="width: 90px; height: 90px; filter: drop-shadow(0 8px 16px rgba(114, 176, 94, 0.3)); animation: float 3s ease-in-out infinite; margin-bottom: 16px;">
+            <div class="logo">Employee Suite v1</div>
+        </div>
+        <style>
+            @keyframes float {
+                0%, 100% { transform: translateY(0px); }
+                50% { transform: translateY(-10px); }
+            }
+        </style>
+        <div style="display:none;">
         <div class="card">
             <h1 class="card-title">Start Free Trial</h1>
             <p class="card-subtitle">Your 2-day trial begins immediately</p>

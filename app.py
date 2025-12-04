@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, render_template_string, redirect, url_for
 from flask_login import LoginManager, login_required, current_user
 from flask_bcrypt import Bcrypt
+from flask_session import Session
 import os
 from datetime import datetime
 
@@ -30,6 +31,7 @@ app.config['SESSION_TYPE'] = 'sqlalchemy'
 app.config['SESSION_SQLALCHEMY'] = db
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 * 30
+Session(app)
 bcrypt = Bcrypt(app)
 
 login_manager = LoginManager()
