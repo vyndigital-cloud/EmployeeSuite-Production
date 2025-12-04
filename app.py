@@ -133,27 +133,30 @@ DASHBOARD_HTML = """
         
         /* Page Title */
         .page-title {
-            font-size: 32px;
+            font-size: 36px;
             font-weight: 700;
-            color: #171717;
-            margin-bottom: 8px;
+            color: #0a0a0a;
+            margin-bottom: 10px;
+            letter-spacing: -1px;
         }
         .page-subtitle {
-            font-size: 16px;
+            font-size: 17px;
             color: #737373;
-            margin-bottom: 40px;
+            margin-bottom: 48px;
+            font-weight: 400;
         }
         
         /* Trial Banner */
         .banner {
             background: #fff;
-            border: 1px solid #e5e5e5;
+            border: 1.5px solid #d4d4d4;
             border-radius: 12px;
-            padding: 20px 24px;
+            padding: 24px 28px;
             margin-bottom: 32px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
         .banner-warning {
             border-left: 3px solid #f59e0b;
@@ -162,14 +165,16 @@ DASHBOARD_HTML = """
             border-left: 3px solid #3b82f6;
         }
         .banner-content h3 {
-            font-size: 15px;
-            font-weight: 600;
-            color: #171717;
-            margin-bottom: 4px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #0a0a0a;
+            margin-bottom: 6px;
+            letter-spacing: -0.2px;
         }
         .banner-content p {
-            font-size: 14px;
+            font-size: 15px;
             color: #737373;
+            font-weight: 400;
         }
         .banner-action {
             background: #4a7338;
@@ -191,16 +196,16 @@ DASHBOARD_HTML = """
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-            gap: 20px;
-            margin-bottom: 32px;
+            gap: 24px;
+            margin-bottom: 40px;
         }
         .card {
             background: #fff;
             border: 1.5px solid #d4d4d4;
             border-radius: 12px;
-            padding: 28px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            transition: all 0.2s ease;
+            padding: 32px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: all 0.3s ease;
         }
         .card:hover {
             border-color: #a3a3a3;
@@ -212,16 +217,18 @@ DASHBOARD_HTML = """
             margin-bottom: 16px;
         }
         .card-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #171717;
-            margin-bottom: 8px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #0a0a0a;
+            margin-bottom: 10px;
+            letter-spacing: -0.3px;
         }
         .card-description {
-            font-size: 14px;
+            font-size: 15px;
             color: #737373;
             line-height: 1.6;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
+            font-weight: 400;
         }
         .card-btn {
             width: 100%;
@@ -245,16 +252,18 @@ DASHBOARD_HTML = """
         /* Output */
         .output-container {
             background: #fff;
-            border: 1px solid #e5e5e5;
+            border: 1.5px solid #d4d4d4;
             border-radius: 12px;
             overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
         .output-header {
-            padding: 16px 24px;
-            border-bottom: 1px solid #e5e5e5;
-            font-size: 14px;
-            font-weight: 600;
-            color: #171717;
+            padding: 20px 28px;
+            border-bottom: 1.5px solid #e5e5e5;
+            font-size: 16px;
+            font-weight: 700;
+            color: #0a0a0a;
+            letter-spacing: -0.2px;
         }
         #output {
             padding: 24px;
