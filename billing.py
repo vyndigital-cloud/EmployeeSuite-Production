@@ -65,7 +65,7 @@ SUBSCRIBE_HTML = '''
         .btn {
             width: 100%;
             padding: 14px;
-            background: #4a7338;
+            background: #171717;
             color: #fff;
             border: none;
             border-radius: 6px;
@@ -85,7 +85,7 @@ SUBSCRIBE_HTML = '''
     </div>
     
     <div class="container">
-        <h1 class="page-title">Ready to Subscribe?</h1>
+        <h1 class="page-title" style="color: #4a7338;">Ready to Subscribe?</h1>
         <p class="page-subtitle">Your free trial is active. Subscribe now to ensure uninterrupted access when your trial ends.</p>
         
         <div class="pricing-card">
@@ -159,7 +159,7 @@ SUCCESS_HTML = '''
         .success-text { font-size: 16px; color: #737373; line-height: 1.6; margin-bottom: 24px; }
         .btn {
             padding: 12px 24px;
-            background: #4a7338;
+            background: #171717;
             color: #fff;
             border: none;
             border-radius: 6px;
