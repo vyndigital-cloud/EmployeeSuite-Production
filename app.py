@@ -534,7 +534,7 @@ def api_generate_report():
         if data.get('error') and data['error'] is not None:
             return f"<h3 class='error'>❌ Error: {data['error']}</h3>", 500
         
-        html = generate_report_html(data)
+        # Report HTML is already in data['message']
         return html
     except Exception as e:
         return f"<h3 class='error'>❌ Error: {str(e)}</h3>", 500
