@@ -169,7 +169,7 @@ REGISTER_HTML = '''
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email')
+        email = request.form.get('email').lower().strip()  # Normalize email
         password = request.form.get('password')
         
         user = User.query.filter_by(email=email).first()
@@ -186,7 +186,7 @@ def login():
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        email = request.form.get('email')
+        email = request.form.get('email').lower().strip()  # Normalize email
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
         
