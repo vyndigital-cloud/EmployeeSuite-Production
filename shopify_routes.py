@@ -319,3 +319,55 @@ def disconnect_store():
         db.session.commit()
         return redirect(url_for('shopify.shopify_settings', success='Store disconnected successfully!'))
     return redirect(url_for('shopify.shopify_settings', error='No active store found.'))
+
+@shopify_bp.route('/settings/shopify/cancel', methods=['POST'])
+@login_required
+def cancel_subscription():
+    """Cancel user's Stripe subscription"""
+    import stripe
+    import os
+    
+    stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+    
+    if not current_user.is_subscribed:
+        return redirect(url_for('shopify.shopify_settings', error='No active subscription found.'))
+    
+    if not current_user.stripe_customer_id:
+        return redirect(url_for('shopify.shopify_settings', error='No Stripe customer ID found.'))
+    
+    try:
+        # Get all subscriptions for this customer
+        subscriptions = stripe.Subscription.list(
+            customer=current_user.stripe_customer_id,
+            status='active',
+            limit=10
+        )
+        
+        # Cancel all active subscriptions
+        cancelled_count = 0
+        for subscription in subscriptions.data:
+            stripe.Subscription.delete(subscription.id)
+            cancelled_count += 1
+        
+        if cancelled_count == 0:
+            return redirect(url_for('shopify.shopify_settings', error='No active subscriptions found in Stripe.'))
+        
+        # Update database
+        current_user.is_subscribed = False
+        db.session.commit()
+        
+        # Send cancellation email
+        try:
+            from email_service import send_cancellation_email
+            send_cancellation_email(current_user.email)
+        except Exception as e:
+            print(f"Failed to send cancellation email: {e}")
+        
+        return redirect(url_for('shopify.shopify_settings', success='Subscription cancelled successfully. You will retain access until the end of your billing period.'))
+        
+    except stripe.error.StripeError as e:
+        print(f"Stripe error during cancellation: {e}")
+        return redirect(url_for('shopify.shopify_settings', error=f'Failed to cancel subscription: {str(e)}'))
+    except Exception as e:
+        print(f"Unexpected error during cancellation: {e}")
+        return redirect(url_for('shopify.shopify_settings', error='An unexpected error occurred. Please contact support.'))

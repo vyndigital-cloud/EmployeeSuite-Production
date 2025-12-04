@@ -158,3 +158,44 @@ def send_payment_failed(user_email):
         print(f"Email error: {e}")
         return False
 # Force redeploy
+
+def send_cancellation_email(user_email):
+    """Send email when user cancels subscription"""
+    message = Mail(
+        from_email=('adam@golproductions.com', 'Employee Suite'),
+        to_emails=user_email,
+        subject='Subscription Cancelled - Employee Suite',
+        html_content='''
+        <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #171717;">Subscription Cancelled</h1>
+            <p style="font-size: 16px; color: #525252; line-height: 1.6;">
+                Your Employee Suite subscription has been cancelled.
+            </p>
+            
+            <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 20px; margin: 20px 0;">
+                <p style="color: #991b1b; font-weight: 600;">What happens next:</p>
+                <ul style="color: #991b1b;">
+                    <li>You'll retain access until the end of your current billing period</li>
+                    <li>No further charges will be made</li>
+                    <li>Your data will be preserved for 30 days</li>
+                </ul>
+            </div>
+            
+            <p style="font-size: 14px; color: #737373; margin-top: 30px;">
+                Changed your mind? You can reactivate anytime by logging in and subscribing again.
+            </p>
+            
+            <p style="font-size: 14px; color: #737373; margin-top: 20px;">
+                We're sorry to see you go. If you have feedback, reply to this email.
+            </p>
+        </div>
+        '''
+    )
+    
+    try:
+        sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
+        sg.send(message)
+        return True
+    except Exception as e:
+        print(f"Email error: {e}")
+        return False
