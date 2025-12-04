@@ -72,7 +72,7 @@ DASHBOARD_HTML = """
         
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #fafafa;
+            background: #f5f5f5;
             color: #171717;
             -webkit-font-smoothing: antialiased;
         }
@@ -117,11 +117,11 @@ DASHBOARD_HTML = """
             background: #f5f5f5;
         }
         .nav-btn-primary {
-            background: #171717;
+            background: #4a7338;
             color: #fff;
         }
         .nav-btn-primary:hover {
-            background: #262626;
+            background: #3a5c2a;
         }
         
         /* Container */
@@ -172,7 +172,7 @@ DASHBOARD_HTML = """
             color: #737373;
         }
         .banner-action {
-            background: #171717;
+            background: #4a7338;
             color: #fff;
             padding: 10px 18px;
             border-radius: 6px;
@@ -182,7 +182,9 @@ DASHBOARD_HTML = """
             white-space: nowrap;
         }
         .banner-action:hover {
-            background: #262626;
+            background: #3a5c2a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(74, 115, 56, 0.3);
         }
         
         /* Cards Grid */
@@ -194,13 +196,16 @@ DASHBOARD_HTML = """
         }
         .card {
             background: #fff;
-            border: 1px solid #e5e5e5;
+            border: 1.5px solid #d4d4d4;
             border-radius: 12px;
-            padding: 24px;
-            transition: border-color 0.2s;
+            padding: 28px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: all 0.2s ease;
         }
         .card:hover {
-            border-color: #d4d4d4;
+            border-color: #a3a3a3;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+            transform: translateY(-2px);
         }
         .card-icon {
             font-size: 28px;
@@ -220,18 +225,21 @@ DASHBOARD_HTML = """
         }
         .card-btn {
             width: 100%;
-            background: #171717;
+            background: #4a7338;
             color: #fff;
             border: none;
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s ease;
+            letter-spacing: 0.3px;
         }
         .card-btn:hover {
-            background: #262626;
+            background: #3a5c2a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(74, 115, 56, 0.4);
         }
         
         /* Output */
