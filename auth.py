@@ -65,6 +65,9 @@ LOGIN_HTML = '''
         <div class="footer-link">
             Don't have an account? <a href="{{ url_for('auth.register') }}">Sign up</a>
         </div>
+        <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
+            <a href="/terms" style="color: #999;">Terms</a> • <a href="/privacy" style="color: #999;">Privacy</a>
+        </div>
     </div>
 </body>
 </html>
@@ -133,6 +136,9 @@ REGISTER_HTML = '''
         </div>
         <div class="footer-link">
             Already have an account? <a href="{{ url_for('auth.login') }}">Login</a>
+        </div>
+        <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
+            By signing up, you agree to our <a href="/terms" style="color: #171717;">Terms</a> and <a href="/privacy" style="color: #171717;">Privacy Policy</a>
         </div>
     </div>
 </body>
