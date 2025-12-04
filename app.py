@@ -57,8 +57,12 @@ app.register_blueprint(oauth_bp)
 app.register_blueprint(faq_bp)
 app.register_blueprint(webhook_bp)
 
-# Initialize rate limiter
+# Initialize rate limiter with global limits
 limiter = init_limiter(app)
+
+# Exempt specific routes from rate limiting (health checks, webhooks)
+limiter.exempt(health)
+limiter.exempt(stripe_webhook)
 
 DASHBOARD_HTML = """
 <!DOCTYPE html>
