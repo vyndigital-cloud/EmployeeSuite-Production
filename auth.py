@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template_string, request, redirect, url_for, session
+from app import limiter
 from flask_login import login_user, logout_user, login_required
 from models import db, User
 from email_service import send_welcome_email
@@ -196,6 +197,7 @@ REGISTER_HTML = '''
 </html>
 '''
 
+@limiter.limit('10 per minute')
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -213,6 +215,7 @@ def login():
     
     return render_template_string(LOGIN_HTML)
 
+@limiter.limit('5 per hour')
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':

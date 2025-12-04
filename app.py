@@ -13,6 +13,7 @@ from billing import billing_bp
 from admin_routes import admin_bp
 from legal_routes import legal_bp
 from faq_routes import faq_bp
+from rate_limiter import init_limiter
 from webhook_stripe import webhook_bp
 from order_processing import process_orders
 from inventory import update_inventory
@@ -55,6 +56,9 @@ app.register_blueprint(legal_bp)
 app.register_blueprint(oauth_bp)
 app.register_blueprint(faq_bp)
 app.register_blueprint(webhook_bp)
+
+# Initialize rate limiter
+limiter = init_limiter(app)
 
 DASHBOARD_HTML = """
 <!DOCTYPE html>
