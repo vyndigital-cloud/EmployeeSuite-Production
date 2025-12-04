@@ -5,12 +5,7 @@ from email_service import send_welcome_email
 from flask_bcrypt import Bcrypt
 
 auth_bp = Blueprint('auth', __name__)
-
-def init_auth(app):
-    global bcrypt
-    bcrypt = Bcrypt(app)
-
-bcrypt = None
+bcrypt = Bcrypt()  # Initialize immediately
 
 LOGIN_HTML = '''
 <!DOCTYPE html>

@@ -38,10 +38,6 @@ app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 * 30
 bcrypt = Bcrypt(app)
 
-# Initialize auth module with app
-import auth as auth_module
-auth_module.init_auth(app)
-
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'auth.login'
