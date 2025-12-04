@@ -529,7 +529,6 @@ def api_generate_report():
     logger.info(f"Generate report called by user {current_user.id}")
     try:
         from reporting import generate_report
-from logging_config import logger
 from access_control import require_access_html
         data = generate_report()
         if data.get('error') and data['error'] is not None:
