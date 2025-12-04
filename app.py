@@ -32,11 +32,10 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
 # Configure server-side sessions
-app.config['SESSION_TYPE'] = 'sqlalchemy'
-app.config['SESSION_SQLALCHEMY'] = db
+# Session config removed - using Flask defaults
+
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 * 30
-Session(app)
 bcrypt = Bcrypt(app)
 
 login_manager = LoginManager()
