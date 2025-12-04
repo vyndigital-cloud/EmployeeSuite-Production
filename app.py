@@ -340,12 +340,11 @@ DASHBOARD_HTML = """
         <div class="page-subtitle">Manage your Shopify store automation</div>
         
         {% if trial_active and not is_subscribed %}
-        <div class="banner banner-warning">
+        <div class="banner banner-warning" style="justify-content: flex-start;">
             <div class="banner-content">
                 <h3>Trial Active</h3>
-                <p>{{ days_left }} day{{ 's' if days_left != 1 else '' }} remaining</p>
+                <p>{{ days_left }} day{{ 's' if days_left != 1 else '' }} remaining - Subscribe in the top right to keep access</p>
             </div>
-            <a href="{{ url_for('billing.subscribe') }}" class="banner-action">Subscribe</a>
         </div>
         {% endif %}
         
