@@ -65,7 +65,7 @@ SUBSCRIBE_HTML = '''
         .btn {
             width: 100%;
             padding: 14px;
-            background: #4a7338;
+            background: #00D924;
             color: #fff;
             border: none;
             border-radius: 6px;
@@ -73,7 +73,7 @@ SUBSCRIBE_HTML = '''
             font-weight: 500;
             cursor: pointer;
         }
-        .btn:hover { background: #3a5c2a; }
+        .btn:hover { background: #00B81F; }
     </style>
 </head>
 <body>
@@ -159,7 +159,7 @@ SUCCESS_HTML = '''
         .success-text { font-size: 16px; color: #737373; line-height: 1.6; margin-bottom: 24px; }
         .btn {
             padding: 12px 24px;
-            background: #4a7338;
+            background: #00D924;
             color: #fff;
             border: none;
             border-radius: 6px;
@@ -168,7 +168,7 @@ SUCCESS_HTML = '''
             text-decoration: none;
             display: inline-block;
         }
-        .btn:hover { background: #3a5c2a; }
+        .btn:hover { background: #00B81F; }
     </style>
 </head>
 <body>
