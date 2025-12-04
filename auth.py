@@ -50,8 +50,20 @@ LOGIN_HTML = '''
 <body>
     <div class="login-container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 4px 16px rgba(114, 176, 94, 0.2));">
+            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(102, 126, 234, 0.6)); animation: pulse-glow 3s ease-in-out infinite;">
         </div>
+        <style>
+            @keyframes pulse-glow {
+                0%, 100% { 
+                    filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(102, 126, 234, 0.6));
+                    transform: scale(1);
+                }
+                50% { 
+                    filter: drop-shadow(0 0 60px rgba(255, 255, 255, 1)) drop-shadow(0 0 30px rgba(102, 126, 234, 0.9));
+                    transform: scale(1.05);
+                }
+            }
+        </style>
         <div class="card">
             <h1 class="card-title">Login</h1>
             {% if error %}
@@ -124,8 +136,20 @@ REGISTER_HTML = '''
 <body>
     <div class="register-container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 4px 16px rgba(114, 176, 94, 0.2));">
+            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 150px; height: 150px; filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(102, 126, 234, 0.6)); animation: pulse-glow 3s ease-in-out infinite;">
         </div>
+        <style>
+            @keyframes pulse-glow {
+                0%, 100% { 
+                    filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(102, 126, 234, 0.6));
+                    transform: scale(1);
+                }
+                50% { 
+                    filter: drop-shadow(0 0 60px rgba(255, 255, 255, 1)) drop-shadow(0 0 30px rgba(102, 126, 234, 0.9));
+                    transform: scale(1.05);
+                }
+            }
+        </style>
         <style>
             @keyframes float {
                 0%, 100% { transform: translateY(0px); }
