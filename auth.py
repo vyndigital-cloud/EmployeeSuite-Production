@@ -196,7 +196,6 @@ REGISTER_HTML = '''
 </html>
 '''
 
-@limiter.limit('10 per minute')
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -214,7 +213,6 @@ def login():
     
     return render_template_string(LOGIN_HTML)
 
-@limiter.limit('5 per hour')
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
