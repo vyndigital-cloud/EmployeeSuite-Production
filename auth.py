@@ -21,7 +21,7 @@ LOGIN_HTML = '''
             background: #f5f5f5;
             color: #171717;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             padding-top: 8vh;
             justify-content: center;
             min-height: 100vh;
@@ -107,7 +107,7 @@ REGISTER_HTML = '''
             background: #f5f5f5;
             color: #171717;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             padding-top: 8vh;
             justify-content: center;
             min-height: 100vh;
