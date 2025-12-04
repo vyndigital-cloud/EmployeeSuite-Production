@@ -159,7 +159,8 @@ DASHBOARD_HTML = """
             box-shadow: none;
         }
         .banner-warning {
-            border-left: 3px solid #4a7338;
+            border-left: 4px solid #72b05e;
+            background: #f5faf3;
         }
         .banner-info {
             border-left: 3px solid #4a7338;
