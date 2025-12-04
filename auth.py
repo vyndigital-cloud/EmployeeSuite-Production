@@ -18,7 +18,7 @@ LOGIN_HTML = '''
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f5f5f5;
+            background: #e8e8e8;
             color: #171717;
             display: flex;
             align-items: center;
@@ -35,14 +35,14 @@ LOGIN_HTML = '''
         .card { background: #fff; border: 1px solid #d4d4d4; border-radius: 12px; padding: 44px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
         .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 24px; }
         .form-group { margin-bottom: 20px; }
-        .form-label { display: block; font-size: 14px; font-weight: 600; color: #0a0a0a; margin-bottom: 10px; letter-spacing: 0.2px; }
+        .form-label { display: block; font-size: 14px; font-weight: 600; color: #1a3a0d; margin-bottom: 10px; letter-spacing: 0.2px; }
         .form-input { width: 100%; padding: 13px 16px; border: 1.5px solid #d4d4d4; border-radius: 8px; font-size: 15px; font-family: inherit; background: #fafafa; transition: all 0.2s; }
-        .form-input:focus { outline: none; border-color: #5a9147; box-shadow: 0 0 0 3px rgba(90, 145, 71, 0.1); background: #fff; }
-        .btn { width: 100%; padding: 14px; background: #5a9147; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; letter-spacing: 0.3px; }
-        .btn:hover { background: #4a7a38; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(90, 145, 71, 0.4); } .btn { transition: all 0.2s ease; }
+        .form-input:focus { outline: none; border-color: #2d5016; box-shadow: 0 0 0 3px rgba(45, 80, 22, 0.15); background: #fff; }
+        .btn { width: 100%; padding: 14px; background: #2d5016; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; letter-spacing: 0.3px; }
+        .btn:hover { background: #1f3910; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(45, 80, 22, 0.4); } .btn { transition: all 0.2s ease; }
         .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
-        .footer-link a { color: #5a9147; text-decoration: none; font-weight: 600; }
+        .footer-link a { color: #2d5016; text-decoration: none; font-weight: 600; }
         .footer-link a:hover { text-decoration: underline; }
     </style>
 </head>
@@ -50,7 +50,7 @@ LOGIN_HTML = '''
     <div class="login-container">
         <div style="text-align: center; margin-bottom: 40px;">
             <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 140px; height: 140px; filter: drop-shadow(0 6px 20px rgba(114, 176, 94, 0.25)); margin-bottom: 16px;">
-            <div style="font-size: 32px; font-weight: 700; color: #0a0a0a; letter-spacing: -0.8px;">Welcome</div>
+            <div style="font-size: 32px; font-weight: 700; color: #1a3a0d; letter-spacing: -0.8px;">Welcome</div>
         </div>
         <div class="card">
             <h1 class="card-title">Login</h1>
@@ -91,7 +91,7 @@ REGISTER_HTML = '''
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f5f5f5;
+            background: #e8e8e8;
             color: #171717;
             display: flex;
             align-items: center;
@@ -109,14 +109,14 @@ REGISTER_HTML = '''
         .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 8px; }
         .card-subtitle { font-size: 14px; color: #737373; margin-bottom: 24px; }
         .form-group { margin-bottom: 20px; }
-        .form-label { display: block; font-size: 14px; font-weight: 600; color: #0a0a0a; margin-bottom: 10px; letter-spacing: 0.2px; }
+        .form-label { display: block; font-size: 14px; font-weight: 600; color: #1a3a0d; margin-bottom: 10px; letter-spacing: 0.2px; }
         .form-input { width: 100%; padding: 13px 16px; border: 1.5px solid #d4d4d4; border-radius: 8px; font-size: 15px; font-family: inherit; background: #fafafa; transition: all 0.2s; }
-        .form-input:focus { outline: none; border-color: #5a9147; box-shadow: 0 0 0 3px rgba(90, 145, 71, 0.1); background: #fff; }
-        .btn { width: 100%; padding: 14px; background: #5a9147; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; letter-spacing: 0.3px; }
-        .btn:hover { background: #4a7a38; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(90, 145, 71, 0.4); } .btn { transition: all 0.2s ease; }
+        .form-input:focus { outline: none; border-color: #2d5016; box-shadow: 0 0 0 3px rgba(45, 80, 22, 0.15); background: #fff; }
+        .btn { width: 100%; padding: 14px; background: #2d5016; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; letter-spacing: 0.3px; }
+        .btn:hover { background: #1f3910; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(45, 80, 22, 0.4); } .btn { transition: all 0.2s ease; }
         .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
-        .footer-link a { color: #5a9147; text-decoration: none; font-weight: 600; }
+        .footer-link a { color: #2d5016; text-decoration: none; font-weight: 600; }
         .footer-link a:hover { text-decoration: underline; }
     </style>
 </head>
@@ -124,7 +124,7 @@ REGISTER_HTML = '''
     <div class="register-container">
         <div style="text-align: center; margin-bottom: 40px;">
             <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 140px; height: 140px; filter: drop-shadow(0 6px 20px rgba(114, 176, 94, 0.25)); margin-bottom: 16px;">
-            <div style="font-size: 32px; font-weight: 700; color: #0a0a0a; letter-spacing: -0.8px;">Welcome</div>
+            <div style="font-size: 32px; font-weight: 700; color: #1a3a0d; letter-spacing: -0.8px;">Welcome</div>
         </div>
         <style>
             @keyframes float {
