@@ -85,7 +85,7 @@ SUBSCRIBE_HTML = '''
     </div>
     
     <div class="container">
-        <h1 class="page-title" style="color: #4a7338;">Ready to Subscribe?</h1>
+        <h1 class="page-title">Ready to Subscribe?</h1>
         <p class="page-subtitle">Your free trial is active. Subscribe now to ensure uninterrupted access when your trial ends.</p>
         
         <div class="pricing-card">
