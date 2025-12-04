@@ -58,12 +58,8 @@ app.register_blueprint(oauth_bp)
 app.register_blueprint(faq_bp)
 app.register_blueprint(webhook_bp)
 
-# Initialize rate limiter
+# Initialize rate limiter with global 200 req/hour
 limiter = init_limiter(app)
-
-# Apply route-specific rate limits
-from rate_limiter import apply_rate_limits
-apply_rate_limits(limiter, auth_bp, billing_bp)
 
 DASHBOARD_HTML = """
 <!DOCTYPE html>
