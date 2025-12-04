@@ -535,7 +535,7 @@ def api_generate_report():
             return f"<h3 class='error'>❌ Error: {data['error']}</h3>", 500
         
         # Report HTML is already in data['message']
-        return html
+        return data.get('message', '<h3 class="error">❌ No report data available</h3>')
     except Exception as e:
         return f"<h3 class='error'>❌ Error: {str(e)}</h3>", 500
 
