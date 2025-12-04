@@ -18,6 +18,7 @@ from webhook_stripe import webhook_bp
 from order_processing import process_orders
 from inventory import update_inventory
 from reporting import generate_report
+from access_control import require_access_html
 from logging_config import logger
 from access_control import require_access
 
@@ -529,7 +530,6 @@ def api_generate_report():
     logger.info(f"Generate report called by user {current_user.id}")
     try:
         from reporting import generate_report
-from access_control import require_access_html
         data = generate_report()
         if data.get('error') and data['error'] is not None:
             return f"<h3 class='error'>❌ Error: {data['error']}</h3>", 500
