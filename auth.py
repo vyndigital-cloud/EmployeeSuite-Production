@@ -37,12 +37,12 @@ LOGIN_HTML = '''
         .form-group { margin-bottom: 20px; }
         .form-label { display: block; font-size: 14px; font-weight: 600; color: #0a0a0a; margin-bottom: 10px; letter-spacing: 0.2px; }
         .form-input { width: 100%; padding: 13px 16px; border: 1.5px solid #d4d4d4; border-radius: 8px; font-size: 15px; font-family: inherit; background: #fafafa; transition: all 0.2s; }
-        .form-input:focus { outline: none; border-color: #72b05e; box-shadow: 0 0 0 3px rgba(114, 176, 94, 0.1); background: #fff; }
-        .btn { width: 100%; padding: 14px; background: #72b05e; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; letter-spacing: 0.3px; }
-        .btn:hover { background: #5d9a4a; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(114, 176, 94, 0.4); } .btn { transition: all 0.2s ease; }
+        .form-input:focus { outline: none; border-color: #5a9147; box-shadow: 0 0 0 3px rgba(90, 145, 71, 0.1); background: #fff; }
+        .btn { width: 100%; padding: 14px; background: #5a9147; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; letter-spacing: 0.3px; }
+        .btn:hover { background: #4a7a38; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(90, 145, 71, 0.4); } .btn { transition: all 0.2s ease; }
         .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
-        .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
+        .footer-link a { color: #5a9147; text-decoration: none; font-weight: 600; }
         .footer-link a:hover { text-decoration: underline; }
     </style>
 </head>
@@ -111,12 +111,12 @@ REGISTER_HTML = '''
         .form-group { margin-bottom: 20px; }
         .form-label { display: block; font-size: 14px; font-weight: 600; color: #0a0a0a; margin-bottom: 10px; letter-spacing: 0.2px; }
         .form-input { width: 100%; padding: 13px 16px; border: 1.5px solid #d4d4d4; border-radius: 8px; font-size: 15px; font-family: inherit; background: #fafafa; transition: all 0.2s; }
-        .form-input:focus { outline: none; border-color: #72b05e; box-shadow: 0 0 0 3px rgba(114, 176, 94, 0.1); background: #fff; }
-        .btn { width: 100%; padding: 14px; background: #72b05e; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; letter-spacing: 0.3px; }
-        .btn:hover { background: #5d9a4a; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(114, 176, 94, 0.4); } .btn { transition: all 0.2s ease; }
+        .form-input:focus { outline: none; border-color: #5a9147; box-shadow: 0 0 0 3px rgba(90, 145, 71, 0.1); background: #fff; }
+        .btn { width: 100%; padding: 14px; background: #5a9147; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; letter-spacing: 0.3px; }
+        .btn:hover { background: #4a7a38; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(90, 145, 71, 0.4); } .btn { transition: all 0.2s ease; }
         .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
-        .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
+        .footer-link a { color: #5a9147; text-decoration: none; font-weight: 600; }
         .footer-link a:hover { text-decoration: underline; }
     </style>
 </head>
