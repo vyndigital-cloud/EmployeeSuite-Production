@@ -49,7 +49,7 @@ LOGIN_HTML = '''
 <body>
     <div class="login-container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 160px; height: 160px; filter: drop-shadow(0 4px 16px rgba(114, 176, 94, 0.2));">
+            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 175px; height: 175px; filter: drop-shadow(0 4px 16px rgba(114, 176, 94, 0.2));">
         </div>
         <div class="card">
             <h1 class="card-title">Login</h1>
@@ -122,7 +122,7 @@ REGISTER_HTML = '''
 <body>
     <div class="register-container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 160px; height: 160px; filter: drop-shadow(0 4px 16px rgba(114, 176, 94, 0.2));">
+            <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 175px; height: 175px; filter: drop-shadow(0 4px 16px rgba(114, 176, 94, 0.2));">
         </div>
         <style>
             @keyframes float {
