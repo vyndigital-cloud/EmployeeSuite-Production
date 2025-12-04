@@ -18,6 +18,7 @@ from webhook_stripe import webhook_bp
 from order_processing import process_orders
 from inventory import update_inventory
 from reporting import generate_report
+from logging_config import logger
 from access_control import require_access
 
 app = Flask(__name__)
@@ -525,8 +526,10 @@ def api_update_inventory():
 @app.route('/api/generate_report', methods=['GET', 'POST'])
 @login_required
 def api_generate_report():
+    logger.info(f"Generate report called by user {current_user.id}")
     try:
         from reporting import generate_report
+from logging_config import logger
 from access_control import require_access_html
         data = generate_report()
         if data.get('error') and data['error'] is not None:
