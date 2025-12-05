@@ -441,23 +441,6 @@ DASHBOARD_HTML = """
             }, 3000);
         }
         
-        // Retry logic for API calls
-        async function fetchWithRetry(url, options = {}, retries = 2) {
-            for (let i = 0; i <= retries; i++) {
-                try {
-                    const response = await fetch(url, options);
-                    if (!response.ok && i < retries) {
-                        await new Promise(r => setTimeout(r, 1000 * (i + 1)));
-                        continue;
-                    }
-                    return response;
-                } catch (error) {
-                    if (i === retries) throw error;
-                    await new Promise(r => setTimeout(r, 1000 * (i + 1)));
-                }
-            }
-        }
-        
         function showLoading() {
             document.getElementById('output').innerHTML = `
                 <div class="loading">
@@ -467,68 +450,77 @@ DASHBOARD_HTML = """
             `;
         }
         
-        async function processOrders() {
+        function processOrders() {
             showLoading();
-            try {
-                const r = await fetchWithRetry('/api/process_orders');
-                if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
-                const d = await r.json();
-                const c = d.success ? 'success' : 'error';
-                document.getElementById('output').innerHTML = `
-                    <h3 class="${c}">${d.success ? '✓' : '✗'} ${d.success ? 'Success' : 'Error'}</h3>
-                    <p style="margin-top: 12px;">${d.message || d.error || 'Unknown error'}</p>
-                `;
-                if (d.success) showToast('Orders processed successfully!', 'success');
-                else showToast('Failed to process orders', 'error');
-            } catch (error) {
-                document.getElementById('output').innerHTML = `
-                    <h3 class="error">✗ Network Error</h3>
-                    <p style="margin-top: 12px;">Failed to process orders. Please check your connection and try again.</p>
-                    <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
-                `;
-                showToast('Network error. Please try again.', 'error');
-            }
+            fetch('/api/process_orders')
+                .then(r => {
+                    if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                    return r.json();
+                })
+                .then(d => {
+                    const c = d.success ? 'success' : 'error';
+                    document.getElementById('output').innerHTML = `
+                        <h3 class="${c}">${d.success ? '✓' : '✗'} ${d.success ? 'Success' : 'Error'}</h3>
+                        <p style="margin-top: 12px;">${d.message || d.error || 'Unknown error'}</p>
+                    `;
+                    if (d.success) showToast('Orders processed successfully!', 'success');
+                    else showToast('Failed to process orders', 'error');
+                })
+                .catch(error => {
+                    document.getElementById('output').innerHTML = `
+                        <h3 class="error">✗ Network Error</h3>
+                        <p style="margin-top: 12px;">Failed to process orders. Please check your connection and try again.</p>
+                        <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
+                    `;
+                    showToast('Network error. Please try again.', 'error');
+                });
         }
         
-        async function updateInventory() {
+        function updateInventory() {
             showLoading();
-            try {
-                const r = await fetchWithRetry('/api/update_inventory');
-                if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
-                const d = await r.json();
-                const c = d.success ? 'success' : 'error';
-                document.getElementById('output').innerHTML = `
-                    <h3 class="${c}">${d.success ? '✓' : '✗'} ${d.success ? 'Success' : 'Error'}</h3>
-                    <p style="margin-top: 12px; white-space: pre-wrap;">${d.message || d.error || 'Unknown error'}</p>
-                `;
-                if (d.success) showToast('Inventory updated successfully!', 'success');
-                else showToast('Failed to update inventory', 'error');
-            } catch (error) {
-                document.getElementById('output').innerHTML = `
-                    <h3 class="error">✗ Network Error</h3>
-                    <p style="margin-top: 12px;">Failed to update inventory. Please check your connection and try again.</p>
-                    <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
-                `;
-                showToast('Network error. Please try again.', 'error');
-            }
+            fetch('/api/update_inventory')
+                .then(r => {
+                    if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                    return r.json();
+                })
+                .then(d => {
+                    const c = d.success ? 'success' : 'error';
+                    document.getElementById('output').innerHTML = `
+                        <h3 class="${c}">${d.success ? '✓' : '✗'} ${d.success ? 'Success' : 'Error'}</h3>
+                        <p style="margin-top: 12px; white-space: pre-wrap;">${d.message || d.error || 'Unknown error'}</p>
+                    `;
+                    if (d.success) showToast('Inventory updated successfully!', 'success');
+                    else showToast('Failed to update inventory', 'error');
+                })
+                .catch(error => {
+                    document.getElementById('output').innerHTML = `
+                        <h3 class="error">✗ Network Error</h3>
+                        <p style="margin-top: 12px;">Failed to update inventory. Please check your connection and try again.</p>
+                        <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
+                    `;
+                    showToast('Network error. Please try again.', 'error');
+                });
         }
         
-        async function generateReport() {
+        function generateReport() {
             showLoading();
-            try {
-                const r = await fetchWithRetry('/api/generate_report');
-                if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
-                const html = await r.text();
-                document.getElementById('output').innerHTML = html;
-                showToast('Report generated successfully!', 'success');
-            } catch (error) {
-                document.getElementById('output').innerHTML = `
-                    <h3 class="error">✗ Network Error</h3>
-                    <p style="margin-top: 12px;">Failed to generate report. Please check your connection and try again.</p>
-                    <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
-                `;
-                showToast('Network error. Please try again.', 'error');
-            }
+            fetch('/api/generate_report')
+                .then(r => {
+                    if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                    return r.text();
+                })
+                .then(html => {
+                    document.getElementById('output').innerHTML = html;
+                    showToast('Report generated successfully!', 'success');
+                })
+                .catch(error => {
+                    document.getElementById('output').innerHTML = `
+                        <h3 class="error">✗ Network Error</h3>
+                        <p style="margin-top: 12px;">Failed to generate report. Please check your connection and try again.</p>
+                        <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
+                    `;
+                    showToast('Network error. Please try again.', 'error');
+                });
         }
         
         // Keyboard shortcuts
