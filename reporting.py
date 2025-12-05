@@ -17,7 +17,7 @@ def generate_report():
         client = ShopifyClient(store.shop_url, store.access_token)
         
         # Fetch ALL paid orders using proper Shopify pagination
-        # Shopify REST API uses cursor-based pagination via Link headers
+        # Shopify REST API uses since_id for pagination (cursor-based)
         all_orders = []
         limit = 250  # Shopify max per page
         endpoint = f"orders.json?financial_status=paid&limit={limit}"
@@ -40,14 +40,15 @@ def generate_report():
                     break
                 
                 all_orders.extend(orders)
+                logger.info(f"Fetched {len(orders)} orders (iteration {iteration + 1}), total so far: {len(all_orders)}")
                 
                 # Check if we got fewer than limit (last page)
                 if len(orders) < limit:
+                    logger.info(f"Fetched all orders. Total: {len(all_orders)}")
                     break
                 
-                # For Shopify REST API, we need to use the Link header or since_id for pagination
-                # Since _make_request only returns JSON, we'll use since_id pagination
-                # Get the highest order ID from current batch
+                # For Shopify REST API, use since_id pagination
+                # Get the highest order ID from current batch to fetch next page
                 if orders:
                     last_order_id = max(order.get('id', 0) for order in orders)
                     endpoint = f"orders.json?financial_status=paid&limit={limit}&since_id={last_order_id}"
