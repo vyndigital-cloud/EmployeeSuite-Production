@@ -432,7 +432,7 @@ DASHBOARD_HTML = """
         // Toast notification system
         function showToast(message, type) {
             type = type || 'success';
-            const toast = document.createElement('div');
+            var toast = document.createElement('div');
             toast.className = 'toast toast-' + type;
             toast.textContent = message;
             document.body.appendChild(toast);
