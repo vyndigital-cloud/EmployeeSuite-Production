@@ -409,12 +409,22 @@ DASHBOARD_HTML = """
         function processOrders() {
             showLoading();
             fetch('/api/process_orders')
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                    return r.json();
+                })
                 .then(d => {
                     const c = d.success ? 'success' : 'error';
                     document.getElementById('output').innerHTML = `
                         <h3 class="${c}">${d.success ? '✓' : '✗'} ${d.success ? 'Success' : 'Error'}</h3>
-                        <p style="margin-top: 12px;">${d.message || d.error}</p>
+                        <p style="margin-top: 12px;">${d.message || d.error || 'Unknown error'}</p>
+                    `;
+                })
+                .catch(error => {
+                    document.getElementById('output').innerHTML = `
+                        <h3 class="error">✗ Network Error</h3>
+                        <p style="margin-top: 12px;">Failed to process orders. Please check your connection and try again.</p>
+                        <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
                     `;
                 });
         }
@@ -422,12 +432,22 @@ DASHBOARD_HTML = """
         function updateInventory() {
             showLoading();
             fetch('/api/update_inventory')
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                    return r.json();
+                })
                 .then(d => {
                     const c = d.success ? 'success' : 'error';
                     document.getElementById('output').innerHTML = `
                         <h3 class="${c}">${d.success ? '✓' : '✗'} ${d.success ? 'Success' : 'Error'}</h3>
-                        <p style="margin-top: 12px; white-space: pre-wrap;">${d.message || d.error}</p>
+                        <p style="margin-top: 12px; white-space: pre-wrap;">${d.message || d.error || 'Unknown error'}</p>
+                    `;
+                })
+                .catch(error => {
+                    document.getElementById('output').innerHTML = `
+                        <h3 class="error">✗ Network Error</h3>
+                        <p style="margin-top: 12px;">Failed to update inventory. Please check your connection and try again.</p>
+                        <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
                     `;
                 });
         }
@@ -435,10 +455,49 @@ DASHBOARD_HTML = """
         function generateReport() {
             showLoading();
             fetch('/api/generate_report')
-                .then(r => r.text())
+                .then(r => {
+                    if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                    return r.text();
+                })
                 .then(html => {
                     document.getElementById('output').innerHTML = html;
+                })
+                .catch(error => {
+                    document.getElementById('output').innerHTML = `
+                        <h3 class="error">✗ Network Error</h3>
+                        <p style="margin-top: 12px;">Failed to generate report. Please check your connection and try again.</p>
+                        <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
+                    `;
                 });
+        }
+        
+        function exportReport() {
+            if (!window.reportData) {
+                alert('No report data available. Please generate a report first.');
+                return;
+            }
+            
+            const data = window.reportData;
+            let csv = 'Revenue Report\n';
+            csv += `Total Revenue,${data.totalRevenue.toFixed(2)}\n`;
+            csv += `Total Orders,${data.totalOrders}\n`;
+            csv += `Generated,${data.timestamp}\n\n`;
+            csv += 'Product,Revenue,Percentage\n';
+            
+            data.products.forEach(([product, revenue]) => {
+                const percentage = ((revenue / data.totalRevenue) * 100).toFixed(1);
+                csv += `"${product}",${revenue.toFixed(2)},${percentage}%\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `revenue-report-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
         }
     </script>
 
