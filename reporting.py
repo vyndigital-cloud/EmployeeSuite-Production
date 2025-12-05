@@ -67,19 +67,8 @@ def generate_report():
                 return {"success": False, "error": f"Shopify API error: {str(e)}"}
         
         # Filter for paid orders client-side to ensure we get ALL paid orders
-        # Debug: Log all financial_status values to see what we're getting
-        financial_statuses = [order.get('financial_status', 'MISSING') for order in all_orders_raw]
-        logger.info(f"Financial statuses found: {set(financial_statuses)}")
-        logger.info(f"Total orders fetched: {len(all_orders_raw)}")
-        
         all_orders = [order for order in all_orders_raw if order.get('financial_status', '').lower() == 'paid']
         logger.info(f"Filtered to {len(all_orders)} paid orders from {len(all_orders_raw)} total orders")
-        
-        # Additional debug: Show order IDs and totals
-        if all_orders:
-            order_totals = [float(order.get('total_price', 0)) for order in all_orders]
-            logger.info(f"Paid order totals: {order_totals}")
-            logger.info(f"Sum of paid orders: ${sum(order_totals):,.2f}")
         
         if len(all_orders) == 0:
             return {"success": True, "message": "<div style='padding: 16px; background: #fffbeb; border-radius: 6px; border-left: 3px solid #f59e0b; color: #92400e; font-size: 14px;'>No paid orders found.</div>"}
@@ -111,19 +100,28 @@ def generate_report():
         # Sort by revenue
         sorted_products = sorted(product_revenue.items(), key=lambda x: x[1], reverse=True)
         
+        # Calculate additional metrics
+        average_order_value = total_revenue / total_orders if total_orders > 0 else 0
+        total_items = sum(sum(item.get('quantity', 1) for item in order.get('line_items', [])) for order in all_orders)
+        average_items_per_order = total_items / total_orders if total_orders > 0 else 0
+        
         # Build HTML report with real-time timestamp
         from datetime import datetime
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
         
-        html = f"<div style='margin: 16px 0;'><div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;'><h4 style='font-size: 15px; font-weight: 600; color: #171717; margin: 0;'>All-Time Revenue Report (Top Products)</h4><button onclick='exportReport()' style='padding: 8px 16px; background: #4a7338; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.2s;'>📥 Export CSV</button></div>"
-        html += f"<div style='padding: 12px; background: #f0fdf4; border-radius: 6px; border-left: 3px solid #16a34a; margin-bottom: 16px;'>"
-        html += f"<div style='font-weight: 600; color: #166534; font-size: 14px;'>Total Revenue: ${total_revenue:,.2f}</div>"
-        html += f"<div style='color: #166534; font-size: 13px; margin-top: 4px;'>From {total_orders} paid orders (all-time data)</div>"
-        html += f"<div style='color: #737373; font-size: 12px; margin-top: 6px; font-style: italic;'>🔄 Live data fetched: {timestamp}</div>"
+        html = f"<div style='margin: 16px 0;'><div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 12px;'><h4 style='font-size: 15px; font-weight: 600; color: #171717; margin: 0;'>All-Time Revenue Report (Top Products)</h4><button onclick='exportReport()' style='padding: 8px 16px; background: #4a7338; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.2s;'>📥 Export CSV</button></div>"
+        html += f"<div style='padding: 16px; background: #f0fdf4; border-radius: 6px; border-left: 3px solid #16a34a; margin-bottom: 16px;'>"
+        html += f"<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 12px;'>"
+        html += f"<div><div style='font-size: 12px; color: #737373; margin-bottom: 4px;'>Total Revenue</div><div style='font-weight: 600; color: #166534; font-size: 18px;'>${total_revenue:,.2f}</div></div>"
+        html += f"<div><div style='font-size: 12px; color: #737373; margin-bottom: 4px;'>Total Orders</div><div style='font-weight: 600; color: #166534; font-size: 18px;'>{total_orders}</div></div>"
+        html += f"<div><div style='font-size: 12px; color: #737373; margin-bottom: 4px;'>Avg Order Value</div><div style='font-weight: 600; color: #166534; font-size: 18px;'>${average_order_value:,.2f}</div></div>"
+        html += f"<div><div style='font-size: 12px; color: #737373; margin-bottom: 4px;'>Total Items Sold</div><div style='font-weight: 600; color: #166534; font-size: 18px;'>{int(total_items)}</div></div>"
+        html += f"</div>"
+        html += f"<div style='color: #737373; font-size: 12px; margin-top: 8px; font-style: italic; border-top: 1px solid #d1fae5; padding-top: 8px;'>🔄 Live data fetched: {timestamp}</div>"
         html += "</div>"
         
-        # Store data for export
-        html += f"<script>window.reportData = {{totalRevenue: {total_revenue}, totalOrders: {total_orders}, products: {sorted_products[:10]}, timestamp: '{timestamp}'}};</script>"
+        # Store data for export (with enhanced metrics)
+        html += f"<script>window.reportData = {{totalRevenue: {total_revenue}, totalOrders: {total_orders}, averageOrderValue: {average_order_value}, totalItems: {int(total_items)}, products: {sorted_products[:10]}, timestamp: '{timestamp}'}};</script>"
         
         for product, revenue in sorted_products[:10]:
             percentage = (revenue / total_revenue) * 100 if total_revenue > 0 else 0

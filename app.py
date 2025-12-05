@@ -314,12 +314,51 @@ DASHBOARD_HTML = """
         .success { color: #16a34a; font-weight: 500; }
         .error { color: #dc2626; font-weight: 500; }
         
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 14px 20px;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+            max-width: 400px;
+        }
+        .toast-success { background: #16a34a; }
+        .toast-error { background: #dc2626; }
+        .toast-info { background: #3b82f6; }
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        /* Button States */
+        .card-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
         /* Responsive */
         @media (max-width: 768px) {
             .container { padding: 32px 16px; }
             .page-title { font-size: 24px; }
             .cards-grid { grid-template-columns: 1fr; }
             .banner { flex-direction: column; gap: 16px; text-align: center; }
+            .header-nav { flex-wrap: wrap; gap: 4px; }
+            .nav-btn { font-size: 13px; padding: 6px 12px; }
+            .toast { right: 10px; left: 10px; max-width: calc(100% - 20px); }
+        }
+        
+        @media (max-width: 480px) {
+            .page-title { font-size: 20px; }
+            .card { padding: 20px; }
+            .card-title { font-size: 18px; }
         }
     </style>
 
@@ -397,6 +436,35 @@ DASHBOARD_HTML = """
     </div>
     
     <script>
+        // Toast notification system
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        // Retry logic for API calls
+        async function fetchWithRetry(url, options = {}, retries = 2) {
+            for (let i = 0; i <= retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok && i < retries) {
+                        await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+                        continue;
+                    }
+                    return response;
+                } catch (error) {
+                    if (i === retries) throw error;
+                    await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+                }
+            }
+        }
+        
         function showLoading() {
             document.getElementById('output').innerHTML = `
                 <div class="loading">
@@ -406,74 +474,113 @@ DASHBOARD_HTML = """
             `;
         }
         
-        function processOrders() {
-            showLoading();
-            fetch('/api/process_orders')
-                .then(r => {
-                    if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
-                    return r.json();
-                })
-                .then(d => {
-                    const c = d.success ? 'success' : 'error';
-                    document.getElementById('output').innerHTML = `
-                        <h3 class="${c}">${d.success ? '✓' : '✗'} ${d.success ? 'Success' : 'Error'}</h3>
-                        <p style="margin-top: 12px;">${d.message || d.error || 'Unknown error'}</p>
-                    `;
-                })
-                .catch(error => {
-                    document.getElementById('output').innerHTML = `
-                        <h3 class="error">✗ Network Error</h3>
-                        <p style="margin-top: 12px;">Failed to process orders. Please check your connection and try again.</p>
-                        <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
-                    `;
-                });
+        function setButtonLoading(buttonId, loading) {
+            const buttons = document.querySelectorAll('.card-btn');
+            buttons.forEach(btn => {
+                btn.disabled = loading;
+            });
         }
         
-        function updateInventory() {
+        async function processOrders() {
             showLoading();
-            fetch('/api/update_inventory')
-                .then(r => {
-                    if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
-                    return r.json();
-                })
-                .then(d => {
-                    const c = d.success ? 'success' : 'error';
-                    document.getElementById('output').innerHTML = `
-                        <h3 class="${c}">${d.success ? '✓' : '✗'} ${d.success ? 'Success' : 'Error'}</h3>
-                        <p style="margin-top: 12px; white-space: pre-wrap;">${d.message || d.error || 'Unknown error'}</p>
-                    `;
-                })
-                .catch(error => {
-                    document.getElementById('output').innerHTML = `
-                        <h3 class="error">✗ Network Error</h3>
-                        <p style="margin-top: 12px;">Failed to update inventory. Please check your connection and try again.</p>
-                        <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
-                    `;
-                });
+            setButtonLoading('processOrders', true);
+            try {
+                const r = await fetchWithRetry('/api/process_orders');
+                if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                const d = await r.json();
+                const c = d.success ? 'success' : 'error';
+                document.getElementById('output').innerHTML = `
+                    <h3 class="${c}">${d.success ? '✓' : '✗'} ${d.success ? 'Success' : 'Error'}</h3>
+                    <p style="margin-top: 12px;">${d.message || d.error || 'Unknown error'}</p>
+                `;
+                if (d.success) showToast('Orders processed successfully!', 'success');
+                else showToast('Failed to process orders', 'error');
+            } catch (error) {
+                document.getElementById('output').innerHTML = `
+                    <h3 class="error">✗ Network Error</h3>
+                    <p style="margin-top: 12px;">Failed to process orders. Please check your connection and try again.</p>
+                    <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
+                `;
+                showToast('Network error. Please try again.', 'error');
+            } finally {
+                setButtonLoading('processOrders', false);
+            }
         }
         
-        function generateReport() {
+        async function updateInventory() {
             showLoading();
-            fetch('/api/generate_report')
-                .then(r => {
-                    if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
-                    return r.text();
-                })
-                .then(html => {
-                    document.getElementById('output').innerHTML = html;
-                })
-                .catch(error => {
-                    document.getElementById('output').innerHTML = `
-                        <h3 class="error">✗ Network Error</h3>
-                        <p style="margin-top: 12px;">Failed to generate report. Please check your connection and try again.</p>
-                        <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
-                    `;
-                });
+            setButtonLoading('updateInventory', true);
+            try {
+                const r = await fetchWithRetry('/api/update_inventory');
+                if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                const d = await r.json();
+                const c = d.success ? 'success' : 'error';
+                document.getElementById('output').innerHTML = `
+                    <h3 class="${c}">${d.success ? '✓' : '✗'} ${d.success ? 'Success' : 'Error'}</h3>
+                    <p style="margin-top: 12px; white-space: pre-wrap;">${d.message || d.error || 'Unknown error'}</p>
+                `;
+                if (d.success) showToast('Inventory updated successfully!', 'success');
+                else showToast('Failed to update inventory', 'error');
+            } catch (error) {
+                document.getElementById('output').innerHTML = `
+                    <h3 class="error">✗ Network Error</h3>
+                    <p style="margin-top: 12px;">Failed to update inventory. Please check your connection and try again.</p>
+                    <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
+                `;
+                showToast('Network error. Please try again.', 'error');
+            } finally {
+                setButtonLoading('updateInventory', false);
+            }
+        }
+        
+        async function generateReport() {
+            showLoading();
+            setButtonLoading('generateReport', true);
+            try {
+                const r = await fetchWithRetry('/api/generate_report');
+                if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                const html = await r.text();
+                document.getElementById('output').innerHTML = html;
+                showToast('Report generated successfully!', 'success');
+            } catch (error) {
+                document.getElementById('output').innerHTML = `
+                    <h3 class="error">✗ Network Error</h3>
+                    <p style="margin-top: 12px;">Failed to generate report. Please check your connection and try again.</p>
+                    <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
+                `;
+                showToast('Network error. Please try again.', 'error');
+            } finally {
+                setButtonLoading('generateReport', false);
+            }
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + 1, 2, 3 for quick actions
+            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+                if (e.key === '1') {
+                    e.preventDefault();
+                    processOrders();
+                } else if (e.key === '2') {
+                    e.preventDefault();
+                    updateInventory();
+                } else if (e.key === '3') {
+                    e.preventDefault();
+                    generateReport();
+                }
+            }
+        });
+        
+        // Performance: Preload fonts
+        if ('fonts' in document) {
+            document.fonts.ready.then(() => {
+                console.log('Fonts loaded');
+            });
         }
         
         function exportReport() {
             if (!window.reportData) {
-                alert('No report data available. Please generate a report first.');
+                showToast('No report data available. Please generate a report first.', 'error');
                 return;
             }
             
@@ -481,6 +588,8 @@ DASHBOARD_HTML = """
             let csv = 'Revenue Report\n';
             csv += `Total Revenue,${data.totalRevenue.toFixed(2)}\n`;
             csv += `Total Orders,${data.totalOrders}\n`;
+            csv += `Average Order Value,${(data.averageOrderValue || 0).toFixed(2)}\n`;
+            csv += `Total Items Sold,${data.totalItems || 0}\n`;
             csv += `Generated,${data.timestamp}\n\n`;
             csv += 'Product,Revenue,Percentage\n';
             
@@ -498,6 +607,7 @@ DASHBOARD_HTML = """
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
+            showToast('Report exported successfully!', 'success');
         }
     </script>
 
