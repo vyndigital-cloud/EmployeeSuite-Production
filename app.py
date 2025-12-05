@@ -655,6 +655,8 @@ DASHBOARD_HTML = """
                 console.log('Fonts loaded');
             });
         }
+        
+        })(); // End IIFE - all functions now in global scope via window
     </script>
 
     <footer style="margin-top: 60px; padding: 24px; border-top: 1px solid #e5e5e5; text-align: center; background: #fff;">
