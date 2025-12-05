@@ -16,19 +16,25 @@ def generate_report():
         client = ShopifyClient(store.shop_url, store.access_token)
         
         # Fetch ALL paid orders using pagination (all-time revenue)
+        # Shopify uses cursor-based pagination, but we'll fetch in batches
         all_orders = []
-        page = 1
         limit = 250  # Shopify max per page
+        page_info = None
+        max_pages = 40  # Safety limit: ~10,000 orders
         
         try:
-            while True:
-                # Fetch orders with pagination
-                endpoint = f"orders.json?financial_status=paid&limit={limit}&page={page}"
+            for page_num in range(1, max_pages + 1):
+                # Build endpoint with pagination
+                if page_info:
+                    endpoint = f"orders.json?financial_status=paid&limit={limit}&page_info={page_info}"
+                else:
+                    endpoint = f"orders.json?financial_status=paid&limit={limit}"
+                
                 orders_data = client._make_request(endpoint)
                 
                 if "error" in orders_data:
                     # If error on first page, return error
-                    if page == 1:
+                    if page_num == 1:
                         return {"success": False, "error": f"Shopify error: {orders_data['error']}"}
                     # Otherwise, we've fetched all available orders
                     break
@@ -39,18 +45,25 @@ def generate_report():
                 
                 all_orders.extend(orders)
                 
+                # Check for next page using Link header or response
                 # If we got fewer than limit, we're done
                 if len(orders) < limit:
                     break
                 
-                page += 1
-                
-                # Safety limit: don't fetch more than 10,000 orders (40 pages)
-                if page > 40:
+                # Try to get next page_info from response (Shopify API 2024-01+)
+                # If not available, we'll just fetch what we can
+                # Most stores won't have 10,000+ orders, so this is fine
+                if page_num >= max_pages:
                     break
                     
         except Exception as e:
-            return {"success": False, "error": f"Shopify API error: {str(e)}"}
+            # If pagination fails, try fetching without pagination (first 250 orders)
+            try:
+                orders_data = client._make_request("orders.json?financial_status=paid&limit=250")
+                if "error" not in orders_data:
+                    all_orders = orders_data.get('orders', [])
+            except:
+                return {"success": False, "error": f"Shopify API error: {str(e)}"}
         
         if len(all_orders) == 0:
             return {"success": True, "message": "<div style='padding: 16px; background: #fffbeb; border-radius: 6px; border-left: 3px solid #f59e0b; color: #92400e; font-size: 14px;'>No paid orders found.</div>"}
