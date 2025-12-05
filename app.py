@@ -577,14 +577,30 @@ DASHBOARD_HTML = """
         // Verify functions are accessible
         console.log('✅ Functions defined:', typeof processOrders, typeof updateInventory, typeof generateReport);
         
-        // Test button click handler
+        // Test button click handler - attach event listeners directly
         document.addEventListener('DOMContentLoaded', function() {
             console.log('✅ DOM loaded');
-            var testBtn = document.querySelector('.card-btn');
-            if (testBtn) {
-                console.log('✅ Buttons found:', document.querySelectorAll('.card-btn').length);
-            } else {
-                console.error('❌ No buttons found!');
+            var buttons = document.querySelectorAll('.card-btn');
+            console.log('✅ Buttons found:', buttons.length);
+            
+            // Attach click handlers directly as backup
+            if (buttons.length >= 3) {
+                buttons[0].addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Button 1 clicked via addEventListener');
+                    processOrders();
+                });
+                buttons[1].addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Button 2 clicked via addEventListener');
+                    updateInventory();
+                });
+                buttons[2].addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Button 3 clicked via addEventListener');
+                    generateReport();
+                });
+                console.log('✅ Event listeners attached to all buttons');
             }
         });
         
