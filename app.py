@@ -429,6 +429,14 @@ DASHBOARD_HTML = """
     </div>
     
     <script>
+        // Global error handler
+        window.addEventListener('error', function(e) {
+            console.error('JavaScript Error:', e.message, e.filename, e.lineno);
+        });
+        
+        // Test if JavaScript is working
+        console.log('✅ JavaScript loaded');
+        
         // Toast notification system
         function showToast(message, type) {
             type = type || 'success';
@@ -565,6 +573,20 @@ DASHBOARD_HTML = """
         window.updateInventory = updateInventory;
         window.generateReport = generateReport;
         window.exportReport = exportReport;
+        
+        // Verify functions are accessible
+        console.log('✅ Functions defined:', typeof processOrders, typeof updateInventory, typeof generateReport);
+        
+        // Test button click handler
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ DOM loaded');
+            var testBtn = document.querySelector('.card-btn');
+            if (testBtn) {
+                console.log('✅ Buttons found:', document.querySelectorAll('.card-btn').length);
+            } else {
+                console.error('❌ No buttons found!');
+            }
+        });
         
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
