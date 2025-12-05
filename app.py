@@ -525,8 +525,49 @@ DASHBOARD_HTML = """
                 });
         }
         
+        function exportReport() {
+            if (!window.reportData) {
+                showToast('No report data available. Please generate a report first.', 'error');
+                return;
+            }
+            
+            var data = window.reportData;
+            var csv = 'Revenue Report\n';
+            csv += 'Total Revenue,' + data.totalRevenue.toFixed(2) + '\n';
+            csv += 'Total Orders,' + data.totalOrders + '\n';
+            csv += 'Average Order Value,' + (data.averageOrderValue || 0).toFixed(2) + '\n';
+            csv += 'Total Items Sold,' + (data.totalItems || 0) + '\n';
+            csv += 'Generated,' + data.timestamp + '\n\n';
+            csv += 'Product,Revenue,Percentage\n';
+            
+            for (var i = 0; i < data.products.length; i++) {
+                var product = data.products[i][0];
+                var revenue = data.products[i][1];
+                var percentage = ((revenue / data.totalRevenue) * 100).toFixed(1);
+                csv += '"' + product + '",' + revenue.toFixed(2) + ',' + percentage + '%\n';
+            }
+            
+            var blob = new Blob([csv], { type: 'text/csv' });
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            var dateStr = new Date().toISOString().split('T')[0];
+            a.download = 'revenue-report-' + dateStr + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            showToast('Report exported successfully!', 'success');
+        }
+        
+        // Make functions globally accessible (after they're defined)
+        window.processOrders = processOrders;
+        window.updateInventory = updateInventory;
+        window.generateReport = generateReport;
+        window.exportReport = exportReport;
+        
         // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
+        document.addEventListener('keydown', function(e) {
             // Ctrl/Cmd + 1, 2, 3 for quick actions
             if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
                 if (e.key === '1') {
@@ -544,41 +585,9 @@ DASHBOARD_HTML = """
         
         // Performance: Preload fonts
         if ('fonts' in document) {
-            document.fonts.ready.then(() => {
+            document.fonts.ready.then(function() {
                 console.log('Fonts loaded');
             });
-        }
-        
-        function exportReport() {
-            if (!window.reportData) {
-                showToast('No report data available. Please generate a report first.', 'error');
-                return;
-            }
-            
-            const data = window.reportData;
-            let csv = 'Revenue Report\n';
-            csv += `Total Revenue,${data.totalRevenue.toFixed(2)}\n`;
-            csv += `Total Orders,${data.totalOrders}\n`;
-            csv += `Average Order Value,${(data.averageOrderValue || 0).toFixed(2)}\n`;
-            csv += `Total Items Sold,${data.totalItems || 0}\n`;
-            csv += `Generated,${data.timestamp}\n\n`;
-            csv += 'Product,Revenue,Percentage\n';
-            
-            data.products.forEach(([product, revenue]) => {
-                const percentage = ((revenue / data.totalRevenue) * 100).toFixed(1);
-                csv += `"${product}",${revenue.toFixed(2)},${percentage}%\n`;
-            });
-            
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `revenue-report-${new Date().toISOString().split('T')[0]}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            showToast('Report exported successfully!', 'success');
         }
     </script>
 
