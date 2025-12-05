@@ -429,6 +429,9 @@ DASHBOARD_HTML = """
     </div>
     
     <script>
+        (function() {
+        'use strict';
+        
         // Global error handler
         window.addEventListener('error', function(e) {
             console.error('JavaScript Error:', e.message, e.filename, e.lineno);
@@ -436,8 +439,6 @@ DASHBOARD_HTML = """
         
         // Test if JavaScript is working
         console.log('✅ JavaScript loaded');
-        
-        // Define functions immediately (before DOMContentLoaded)
         
         // Toast notification system
         function showToast(message, type) {
@@ -586,12 +587,6 @@ DASHBOARD_HTML = """
         console.log('✅ Functions defined:', typeof processOrders, typeof updateInventory, typeof generateReport);
         
         // Attach event listeners when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initButtons);
-        } else {
-            initButtons();
-        }
-        
         function initButtons() {
             console.log('✅ DOM ready, initializing buttons');
             var buttons = document.querySelectorAll('.card-btn');
@@ -628,6 +623,13 @@ DASHBOARD_HTML = """
                 });
                 console.log('✅ Event listeners attached to all buttons');
             }
+        }
+        
+        // Initialize buttons when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initButtons);
+        } else {
+            initButtons();
         }
         
         // Keyboard shortcuts
