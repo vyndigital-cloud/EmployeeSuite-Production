@@ -18,9 +18,10 @@ def generate_report():
         
         # Fetch ALL orders first, then filter client-side to ensure we get everything
         # This avoids pagination issues with since_id that might skip orders
+        # IMPORTANT: Use status=any to get ALL orders (including archived/closed)
         all_orders_raw = []
         limit = 250  # Shopify max per page
-        endpoint = f"orders.json?limit={limit}"  # Fetch ALL orders, filter client-side
+        endpoint = f"orders.json?status=any&limit={limit}"  # Fetch ALL orders (any status), filter client-side
         max_iterations = 50  # Safety limit: ~12,500 orders
         
         try:
@@ -51,14 +52,14 @@ def generate_report():
                 # Get the highest order ID from current batch to fetch next page
                 if orders:
                     last_order_id = max(order.get('id', 0) for order in orders)
-                    endpoint = f"orders.json?limit={limit}&since_id={last_order_id}"
+                    endpoint = f"orders.json?status=any&limit={limit}&since_id={last_order_id}"
                 else:
                     break
                     
         except Exception as e:
             # If pagination fails, try fetching without pagination (all orders, may be limited)
             try:
-                orders_data = client._make_request("orders.json?limit=250")
+                orders_data = client._make_request("orders.json?status=any&limit=250")
                 if "error" not in orders_data:
                     all_orders_raw = orders_data.get('orders', [])
                     logger.warning(f"Pagination failed, fetched {len(all_orders_raw)} orders without pagination")
