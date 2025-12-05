@@ -455,7 +455,7 @@ DASHBOARD_HTML = """
         function showLoading() {
             var output = document.getElementById('output');
             if (output) {
-                output.innerHTML = '<div class="loading"><div class="spinner"></div><div class="loading-text">Processing...</div></div>';
+                output.innerHTML = "<div class=\"loading\"><div class=\"spinner\"></div><div class=\"loading-text\">Processing...</div></div>";
             }
         }
         
@@ -471,7 +471,10 @@ DASHBOARD_HTML = """
                     var output = document.getElementById('output');
                     if (output) {
                         var c = d.success ? 'success' : 'error';
-                        output.innerHTML = '<h3 class="' + c + '">' + (d.success ? '✓' : '✗') + ' ' + (d.success ? 'Success' : 'Error') + '</h3><p style="margin-top: 12px;">' + (d.message || d.error || 'Unknown error') + '</p>';
+                        var symbol = d.success ? '✓' : '✗';
+                        var status = d.success ? 'Success' : 'Error';
+                        var msg = d.message || d.error || 'Unknown error';
+                        output.innerHTML = "<h3 class=\"" + c + "\">" + symbol + " " + status + "</h3><p style=\"margin-top: 12px;\">" + msg + "</p>";
                     }
                     if (d.success) showToast('Orders processed successfully!', 'success');
                     else showToast('Failed to process orders', 'error');
@@ -479,7 +482,7 @@ DASHBOARD_HTML = """
                 .catch(function(error) {
                     var output = document.getElementById('output');
                     if (output) {
-                        output.innerHTML = '<h3 class="error">✗ Network Error</h3><p style="margin-top: 12px;">Failed to process orders. Please check your connection and try again.</p><p style="margin-top: 8px; font-size: 12px; color: #737373;">' + error.message + '</p>';
+                        output.innerHTML = "<h3 class=\"error\">✗ Network Error</h3><p style=\"margin-top: 12px;\">Failed to process orders. Please check your connection and try again.</p><p style=\"margin-top: 8px; font-size: 12px; color: #737373;\">" + error.message + "</p>";
                     }
                     showToast('Network error. Please try again.', 'error');
                 });
@@ -497,7 +500,10 @@ DASHBOARD_HTML = """
                     var output = document.getElementById('output');
                     if (output) {
                         var c = d.success ? 'success' : 'error';
-                        output.innerHTML = '<h3 class="' + c + '">' + (d.success ? '✓' : '✗') + ' ' + (d.success ? 'Success' : 'Error') + '</h3><p style="margin-top: 12px; white-space: pre-wrap;">' + (d.message || d.error || 'Unknown error') + '</p>';
+                        var symbol = d.success ? '✓' : '✗';
+                        var status = d.success ? 'Success' : 'Error';
+                        var msg = d.message || d.error || 'Unknown error';
+                        output.innerHTML = "<h3 class=\"" + c + "\">" + symbol + " " + status + "</h3><p style=\"margin-top: 12px; white-space: pre-wrap;\">" + msg + "</p>";
                     }
                     if (d.success) showToast('Inventory updated successfully!', 'success');
                     else showToast('Failed to update inventory', 'error');
@@ -505,7 +511,7 @@ DASHBOARD_HTML = """
                 .catch(function(error) {
                     var output = document.getElementById('output');
                     if (output) {
-                        output.innerHTML = '<h3 class="error">✗ Network Error</h3><p style="margin-top: 12px;">Failed to update inventory. Please check your connection and try again.</p><p style="margin-top: 8px; font-size: 12px; color: #737373;">' + error.message + '</p>';
+                        output.innerHTML = "<h3 class=\"error\">✗ Network Error</h3><p style=\"margin-top: 12px;\">Failed to update inventory. Please check your connection and try again.</p><p style=\"margin-top: 8px; font-size: 12px; color: #737373;\">" + error.message + "</p>";
                     }
                     showToast('Network error. Please try again.', 'error');
                 });
@@ -529,7 +535,7 @@ DASHBOARD_HTML = """
                 .catch(function(error) {
                     var output = document.getElementById('output');
                     if (output) {
-                        output.innerHTML = '<h3 class="error">✗ Network Error</h3><p style="margin-top: 12px;">Failed to generate report. Please check your connection and try again.</p><p style="margin-top: 8px; font-size: 12px; color: #737373;">' + error.message + '</p>';
+                        output.innerHTML = "<h3 class=\"error\">✗ Network Error</h3><p style=\"margin-top: 12px;\">Failed to generate report. Please check your connection and try again.</p><p style=\"margin-top: 8px; font-size: 12px; color: #737373;\">" + error.message + "</p>";
                     }
                     showToast('Network error. Please try again.', 'error');
                 });
