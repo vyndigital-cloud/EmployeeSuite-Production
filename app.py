@@ -560,7 +560,40 @@ def init_db():
     with app.app_context():
         try:
             db.create_all()
-            logger.info("Database tables initialized")
+            # Add reset_token columns if they don't exist (migration)
+            try:
+                # Check if reset_token column exists
+                result = db.session.execute(db.text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name='users' AND column_name='reset_token'
+                """))
+                if not result.fetchone():
+                    logger.info("Adding reset_token columns to users table...")
+                    try:
+                        db.session.execute(db.text("""
+                            ALTER TABLE users 
+                            ADD COLUMN reset_token VARCHAR(100)
+                        """))
+                        db.session.execute(db.text("""
+                            ALTER TABLE users 
+                            ADD COLUMN reset_token_expires TIMESTAMP
+                        """))
+                        db.session.commit()
+                        logger.info("✅ reset_token columns added successfully")
+                    except Exception as alter_error:
+                        # Column might already exist (race condition or already added)
+                        if "already exists" in str(alter_error).lower() or "duplicate" in str(alter_error).lower():
+                            logger.info("✅ reset_token columns already exist")
+                        else:
+                            logger.warning(f"Could not add reset_token columns: {alter_error}")
+                        db.session.rollback()
+                else:
+                    logger.info("✅ reset_token columns already exist")
+            except Exception as e:
+                # If check fails, try to add columns anyway (might work)
+                logger.warning(f"Could not check for reset_token columns: {e}")
+            logger.info("Database tables initialized/verified")
         except Exception as e:
             logger.error(f"Database initialization error: {e}")
 
