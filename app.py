@@ -430,95 +430,97 @@ DASHBOARD_HTML = """
     
     <script>
         // Toast notification system
-        function showToast(message, type = 'success') {
+        function showToast(message, type) {
+            type = type || 'success';
             const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
+            toast.className = 'toast toast-' + type;
             toast.textContent = message;
             document.body.appendChild(toast);
-            setTimeout(() => {
+            setTimeout(function() {
                 toast.style.animation = 'slideIn 0.3s ease reverse';
-                setTimeout(() => toast.remove(), 300);
+                setTimeout(function() { toast.remove(); }, 300);
             }, 3000);
         }
         
         function showLoading() {
-            document.getElementById('output').innerHTML = `
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <div class="loading-text">Processing...</div>
-                </div>
-            `;
+            var output = document.getElementById('output');
+            if (output) {
+                output.innerHTML = '<div class="loading"><div class="spinner"></div><div class="loading-text">Processing...</div></div>';
+            }
         }
         
         function processOrders() {
+            console.log('processOrders called');
             showLoading();
             fetch('/api/process_orders')
-                .then(r => {
-                    if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                .then(function(r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status + ': ' + r.statusText);
                     return r.json();
                 })
-                .then(d => {
-                    const c = d.success ? 'success' : 'error';
-                    document.getElementById('output').innerHTML = `
-                        <h3 class="${c}">${d.success ? '✓' : '✗'} ${d.success ? 'Success' : 'Error'}</h3>
-                        <p style="margin-top: 12px;">${d.message || d.error || 'Unknown error'}</p>
-                    `;
+                .then(function(d) {
+                    var output = document.getElementById('output');
+                    if (output) {
+                        var c = d.success ? 'success' : 'error';
+                        output.innerHTML = '<h3 class="' + c + '">' + (d.success ? '✓' : '✗') + ' ' + (d.success ? 'Success' : 'Error') + '</h3><p style="margin-top: 12px;">' + (d.message || d.error || 'Unknown error') + '</p>';
+                    }
                     if (d.success) showToast('Orders processed successfully!', 'success');
                     else showToast('Failed to process orders', 'error');
                 })
-                .catch(error => {
-                    document.getElementById('output').innerHTML = `
-                        <h3 class="error">✗ Network Error</h3>
-                        <p style="margin-top: 12px;">Failed to process orders. Please check your connection and try again.</p>
-                        <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
-                    `;
+                .catch(function(error) {
+                    var output = document.getElementById('output');
+                    if (output) {
+                        output.innerHTML = '<h3 class="error">✗ Network Error</h3><p style="margin-top: 12px;">Failed to process orders. Please check your connection and try again.</p><p style="margin-top: 8px; font-size: 12px; color: #737373;">' + error.message + '</p>';
+                    }
                     showToast('Network error. Please try again.', 'error');
                 });
         }
         
         function updateInventory() {
+            console.log('updateInventory called');
             showLoading();
             fetch('/api/update_inventory')
-                .then(r => {
-                    if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                .then(function(r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status + ': ' + r.statusText);
                     return r.json();
                 })
-                .then(d => {
-                    const c = d.success ? 'success' : 'error';
-                    document.getElementById('output').innerHTML = `
-                        <h3 class="${c}">${d.success ? '✓' : '✗'} ${d.success ? 'Success' : 'Error'}</h3>
-                        <p style="margin-top: 12px; white-space: pre-wrap;">${d.message || d.error || 'Unknown error'}</p>
-                    `;
+                .then(function(d) {
+                    var output = document.getElementById('output');
+                    if (output) {
+                        var c = d.success ? 'success' : 'error';
+                        output.innerHTML = '<h3 class="' + c + '">' + (d.success ? '✓' : '✗') + ' ' + (d.success ? 'Success' : 'Error') + '</h3><p style="margin-top: 12px; white-space: pre-wrap;">' + (d.message || d.error || 'Unknown error') + '</p>';
+                    }
                     if (d.success) showToast('Inventory updated successfully!', 'success');
                     else showToast('Failed to update inventory', 'error');
                 })
-                .catch(error => {
-                    document.getElementById('output').innerHTML = `
-                        <h3 class="error">✗ Network Error</h3>
-                        <p style="margin-top: 12px;">Failed to update inventory. Please check your connection and try again.</p>
-                        <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
-                    `;
+                .catch(function(error) {
+                    var output = document.getElementById('output');
+                    if (output) {
+                        output.innerHTML = '<h3 class="error">✗ Network Error</h3><p style="margin-top: 12px;">Failed to update inventory. Please check your connection and try again.</p><p style="margin-top: 8px; font-size: 12px; color: #737373;">' + error.message + '</p>';
+                    }
                     showToast('Network error. Please try again.', 'error');
                 });
         }
         
         function generateReport() {
+            console.log('generateReport called');
             showLoading();
             fetch('/api/generate_report')
-                .then(r => {
-                    if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                .then(function(r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status + ': ' + r.statusText);
                     return r.text();
                 })
-                .then(html => {
-                    document.getElementById('output').innerHTML = html;
+                .then(function(html) {
+                    var output = document.getElementById('output');
+                    if (output) {
+                        output.innerHTML = html;
+                    }
                     showToast('Report generated successfully!', 'success');
                 })
-                .catch(error => {
-                    document.getElementById('output').innerHTML = `
-                        <h3 class="error">✗ Network Error</h3>
-                        <p style="margin-top: 12px;">Failed to generate report. Please check your connection and try again.</p>
-                        <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
-                    `;
+                .catch(function(error) {
+                    var output = document.getElementById('output');
+                    if (output) {
+                        output.innerHTML = '<h3 class="error">✗ Network Error</h3><p style="margin-top: 12px;">Failed to generate report. Please check your connection and try again.</p><p style="margin-top: 8px; font-size: 12px; color: #737373;">' + error.message + '</p>';
+                    }
                     showToast('Network error. Please try again.', 'error');
                 });
         }
