@@ -66,8 +66,19 @@ def generate_report():
                 return {"success": False, "error": f"Shopify API error: {str(e)}"}
         
         # Filter for paid orders client-side to ensure we get ALL paid orders
+        # Debug: Log all financial_status values to see what we're getting
+        financial_statuses = [order.get('financial_status', 'MISSING') for order in all_orders_raw]
+        logger.info(f"Financial statuses found: {set(financial_statuses)}")
+        logger.info(f"Total orders fetched: {len(all_orders_raw)}")
+        
         all_orders = [order for order in all_orders_raw if order.get('financial_status', '').lower() == 'paid']
         logger.info(f"Filtered to {len(all_orders)} paid orders from {len(all_orders_raw)} total orders")
+        
+        # Additional debug: Show order IDs and totals
+        if all_orders:
+            order_totals = [float(order.get('total_price', 0)) for order in all_orders]
+            logger.info(f"Paid order totals: {order_totals}")
+            logger.info(f"Sum of paid orders: ${sum(order_totals):,.2f}")
         
         if len(all_orders) == 0:
             return {"success": True, "message": "<div style='padding: 16px; background: #fffbeb; border-radius: 6px; border-left: 3px solid #f59e0b; color: #92400e; font-size: 14px;'>No paid orders found.</div>"}
