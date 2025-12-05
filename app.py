@@ -337,13 +337,6 @@ DASHBOARD_HTML = """
             to { transform: translateX(0); opacity: 1; }
         }
         
-        /* Button States */
-        .card-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-        
         /* Responsive */
         @media (max-width: 768px) {
             .container { padding: 32px 16px; }
@@ -474,16 +467,8 @@ DASHBOARD_HTML = """
             `;
         }
         
-        function setButtonLoading(buttonId, loading) {
-            const buttons = document.querySelectorAll('.card-btn');
-            buttons.forEach(btn => {
-                btn.disabled = loading;
-            });
-        }
-        
         async function processOrders() {
             showLoading();
-            setButtonLoading('processOrders', true);
             try {
                 const r = await fetchWithRetry('/api/process_orders');
                 if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
@@ -502,14 +487,11 @@ DASHBOARD_HTML = """
                     <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
                 `;
                 showToast('Network error. Please try again.', 'error');
-            } finally {
-                setButtonLoading('processOrders', false);
             }
         }
         
         async function updateInventory() {
             showLoading();
-            setButtonLoading('updateInventory', true);
             try {
                 const r = await fetchWithRetry('/api/update_inventory');
                 if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
@@ -528,14 +510,11 @@ DASHBOARD_HTML = """
                     <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
                 `;
                 showToast('Network error. Please try again.', 'error');
-            } finally {
-                setButtonLoading('updateInventory', false);
             }
         }
         
         async function generateReport() {
             showLoading();
-            setButtonLoading('generateReport', true);
             try {
                 const r = await fetchWithRetry('/api/generate_report');
                 if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
@@ -549,8 +528,6 @@ DASHBOARD_HTML = """
                     <p style="margin-top: 8px; font-size: 12px; color: #737373;">${error.message}</p>
                 `;
                 showToast('Network error. Please try again.', 'error');
-            } finally {
-                setButtonLoading('generateReport', false);
             }
         }
         
