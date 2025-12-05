@@ -437,6 +437,8 @@ DASHBOARD_HTML = """
         // Test if JavaScript is working
         console.log('✅ JavaScript loaded');
         
+        // Define functions immediately (before DOMContentLoaded)
+        
         // Toast notification system
         function showToast(message, type) {
             type = type || 'success';
@@ -568,7 +570,7 @@ DASHBOARD_HTML = """
             showToast('Report exported successfully!', 'success');
         }
         
-        // Make functions globally accessible (after they're defined)
+        // Make functions globally accessible IMMEDIATELY
         window.processOrders = processOrders;
         window.updateInventory = updateInventory;
         window.generateReport = generateReport;
@@ -577,9 +579,15 @@ DASHBOARD_HTML = """
         // Verify functions are accessible
         console.log('✅ Functions defined:', typeof processOrders, typeof updateInventory, typeof generateReport);
         
-        // Test button click handler - attach event listeners directly
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ DOM loaded');
+        // Attach event listeners when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initButtons);
+        } else {
+            initButtons();
+        }
+        
+        function initButtons() {
+            console.log('✅ DOM ready, initializing buttons');
             var buttons = document.querySelectorAll('.card-btn');
             console.log('✅ Buttons found:', buttons.length);
             
@@ -588,21 +596,33 @@ DASHBOARD_HTML = """
                 buttons[0].addEventListener('click', function(e) {
                     e.preventDefault();
                     console.log('Button 1 clicked via addEventListener');
-                    processOrders();
+                    if (typeof processOrders === 'function') {
+                        processOrders();
+                    } else {
+                        console.error('processOrders is not a function!');
+                    }
                 });
                 buttons[1].addEventListener('click', function(e) {
                     e.preventDefault();
                     console.log('Button 2 clicked via addEventListener');
-                    updateInventory();
+                    if (typeof updateInventory === 'function') {
+                        updateInventory();
+                    } else {
+                        console.error('updateInventory is not a function!');
+                    }
                 });
                 buttons[2].addEventListener('click', function(e) {
                     e.preventDefault();
                     console.log('Button 3 clicked via addEventListener');
-                    generateReport();
+                    if (typeof generateReport === 'function') {
+                        generateReport();
+                    } else {
+                        console.error('generateReport is not a function!');
+                    }
                 });
                 console.log('✅ Event listeners attached to all buttons');
             }
-        });
+        }
         
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
