@@ -539,11 +539,17 @@ def api_generate_report():
         from reporting import generate_report
         data = generate_report()
         if data.get('error') and data['error'] is not None:
+            logger.error(f"Generate report error for user {current_user.id}: {data['error']}")
             return f"<h3 class='error'>❌ Error: {data['error']}</h3>", 500
         
         # Report HTML is already in data['message']
+        if not data.get('message'):
+            logger.warning(f"Generate report returned no message for user {current_user.id}")
+            return '<h3 class="error">❌ No report data available</h3>', 500
+        
         return data.get('message', '<h3 class="error">❌ No report data available</h3>')
     except Exception as e:
+        logger.error(f"Generate report exception for user {current_user.id}: {str(e)}", exc_info=True)
         return f"<h3 class='error'>❌ Error: {str(e)}</h3>", 500
 
 @app.errorhandler(404)
