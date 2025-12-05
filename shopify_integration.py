@@ -16,7 +16,14 @@ class ShopifyClient:
     def _make_request(self, endpoint):
         url = f"https://{self.shop_url}/admin/api/{self.api_version}/{endpoint}"
         try:
-            response = requests.get(url, headers=self._get_headers(), timeout=10)
+            # Always fetch fresh data - no caching
+            # Add cache-control headers to ensure real-time data
+            headers = self._get_headers()
+            headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            headers['Pragma'] = 'no-cache'
+            headers['Expires'] = '0'
+            
+            response = requests.get(url, headers=headers, timeout=10)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:

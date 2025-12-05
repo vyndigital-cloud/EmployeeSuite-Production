@@ -90,11 +90,15 @@ def generate_report():
         # Sort by revenue
         sorted_products = sorted(product_revenue.items(), key=lambda x: x[1], reverse=True)
         
-        # Build HTML report
+        # Build HTML report with real-time timestamp
+        from datetime import datetime
+        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+        
         html = f"<div style='margin: 16px 0;'><h4 style='font-size: 15px; font-weight: 600; color: #171717; margin-bottom: 12px;'>All-Time Revenue Report (Top Products)</h4>"
         html += f"<div style='padding: 12px; background: #f0fdf4; border-radius: 6px; border-left: 3px solid #16a34a; margin-bottom: 16px;'>"
         html += f"<div style='font-weight: 600; color: #166534; font-size: 14px;'>Total Revenue: ${total_revenue:,.2f}</div>"
         html += f"<div style='color: #166534; font-size: 13px; margin-top: 4px;'>From {total_orders} paid orders (all-time data)</div>"
+        html += f"<div style='color: #737373; font-size: 12px; margin-top: 6px; font-style: italic;'>🔄 Live data fetched: {timestamp}</div>"
         html += "</div>"
         
         for product, revenue in sorted_products[:10]:

@@ -36,8 +36,12 @@ def check_inventory():
         threshold = 10
         low_stock_count = sum(1 for p in products if p.get('stock', 0) < threshold)
         
-        # Build complete inventory report
+        # Build complete inventory report with real-time timestamp
+        from datetime import datetime
+        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+        
         message = f"<div style='margin: 16px 0;'><h4 style='font-size: 15px; font-weight: 600; color: #171717; margin-bottom: 12px;'>Complete Inventory ({len(products)} products)</h4>"
+        message += f"<div style='font-size: 12px; color: #737373; margin-bottom: 12px; font-style: italic;'>🔄 Live data fetched: {timestamp}</div>"
         
         if low_stock_count > 0:
             message += f"<div style='padding: 12px; background: #fef2f2; border-radius: 6px; border-left: 3px solid #dc2626; margin-bottom: 16px; font-size: 14px; color: #991b1b;'>⚠️ {low_stock_count} product(s) below {threshold} units</div>"

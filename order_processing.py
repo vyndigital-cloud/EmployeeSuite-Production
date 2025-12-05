@@ -48,9 +48,13 @@ def process_orders(creds_path='creds.json'):
         if len(all_orders) == 0:
             return {"success": True, "message": "<div style='padding: 16px; background: #f0fdf4; border-radius: 6px; border-left: 3px solid #16a34a; color: #166534; font-size: 14px;'>✅ No pending orders. All caught up!</div>"}
         
-        # Build clean HTML output
+        # Build clean HTML output with real-time timestamp
+        from datetime import datetime
+        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+        
         html = f"<div style='margin: 16px 0;'><h4 style='font-size: 15px; font-weight: 600; color: #171717; margin-bottom: 12px;'>Pending Orders ({len(all_orders)})</h4>"
         html += "<div style='font-size: 13px; color: #737373; margin-bottom: 12px;'>Showing orders that need action: pending payment or unfulfilled</div>"
+        html += f"<div style='font-size: 12px; color: #737373; margin-bottom: 12px; font-style: italic;'>🔄 Live data fetched: {timestamp}</div>"
         
         for order in all_orders[:50]:  # Show up to 50 orders
             order_name = order.get('name', 'N/A')
