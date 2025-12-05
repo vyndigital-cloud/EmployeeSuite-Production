@@ -1,8 +1,11 @@
 from flask import Blueprint, render_template_string, request, redirect, url_for, session
 from flask_login import login_user, logout_user, login_required
 from models import db, User
-from email_service import send_welcome_email
+from email_service import send_welcome_email, send_password_reset_email
 from flask_bcrypt import Bcrypt
+from datetime import datetime, timedelta
+import secrets
+from input_validation import validate_email, sanitize_input
 
 auth_bp = Blueprint('auth', __name__)
 bcrypt = Bcrypt()  # Initialize immediately
@@ -86,6 +89,9 @@ LOGIN_HTML = '''
         </div>
         <div class="footer-link">
             Don't have an account? <a href="{{ url_for('auth.register') }}">Sign up</a>
+        </div>
+        <div class="footer-link" style="margin-top: 12px;">
+            <a href="{{ url_for('auth.forgot_password') }}">Forgot password?</a>
         </div>
         <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
             <a href="/terms" style="color: #999;">Terms</a> • <a href="/privacy" style="color: #999;">Privacy</a>
@@ -199,8 +205,15 @@ REGISTER_HTML = '''
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email').lower().strip()  # Normalize email
-        password = request.form.get('password')
+        email = request.form.get('email', '').lower().strip()
+        password = request.form.get('password', '')
+        
+        # Input validation
+        if not email or not password:
+            return render_template_string(LOGIN_HTML, error="Email and password are required")
+        
+        if not validate_email(email):
+            return render_template_string(LOGIN_HTML, error="Invalid email format")
         
         user = User.query.filter_by(email=email).first()
         
@@ -216,9 +229,19 @@ def login():
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        email = request.form.get('email').lower().strip()  # Normalize email
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
+        email = request.form.get('email', '').lower().strip()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        
+        # Input validation
+        if not email or not password or not confirm_password:
+            return render_template_string(REGISTER_HTML, error="All fields are required")
+        
+        if not validate_email(email):
+            return render_template_string(REGISTER_HTML, error="Invalid email format")
+        
+        if len(password) < 8:
+            return render_template_string(REGISTER_HTML, error="Password must be at least 8 characters")
         
         if password != confirm_password:
             return render_template_string(REGISTER_HTML, error="Passwords don't match")
@@ -249,3 +272,194 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for('auth.login'))
+
+FORGOT_PASSWORD_HTML = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Forgot Password - Employee Suite</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f5f5;
+            color: #171717;
+            display: flex;
+            align-items: flex-start;
+            padding-top: 5vh;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .container { width: 100%; max-width: 440px; }
+        .card { background: #fff; border: 1px solid #d4d4d4; border-radius: 12px; padding: 44px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+        .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 24px; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 14px; font-weight: 600; color: #0a0a0a; margin-bottom: 10px; }
+        .form-input { width: 100%; padding: 13px 16px; border: 1.5px solid #d4d4d4; border-radius: 8px; font-size: 15px; font-family: inherit; background: #fafafa; }
+        .form-input:focus { outline: none; border-color: #72b05e; box-shadow: 0 0 0 3px rgba(114, 176, 94, 0.1); background: #fff; }
+        .btn { width: 100%; padding: 14px; background: #4a7338; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; }
+        .btn:hover { background: #3a5c2a; }
+        .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
+        .banner-success { background: #f0fdf4; border: 1px solid #86efac; border-left: 3px solid #16a34a; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #166534; }
+        .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
+        .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1 class="card-title">Reset Password</h1>
+            {% if error %}
+            <div class="banner-error">{{ error }}</div>
+            {% endif %}
+            {% if success %}
+            <div class="banner-success">{{ success }}</div>
+            {% endif %}
+            {% if not success %}
+            <form method="POST">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-input" required autofocus>
+                </div>
+                <button type="submit" class="btn">Send Reset Link</button>
+            </form>
+            {% endif %}
+        </div>
+        <div class="footer-link">
+            <a href="{{ url_for('auth.login') }}">Back to Login</a>
+        </div>
+    </div>
+</body>
+</html>
+'''
+
+RESET_PASSWORD_HTML = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reset Password - Employee Suite</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f5f5;
+            color: #171717;
+            display: flex;
+            align-items: flex-start;
+            padding-top: 5vh;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .container { width: 100%; max-width: 440px; }
+        .card { background: #fff; border: 1px solid #d4d4d4; border-radius: 12px; padding: 44px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+        .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 24px; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 14px; font-weight: 600; color: #0a0a0a; margin-bottom: 10px; }
+        .form-input { width: 100%; padding: 13px 16px; border: 1.5px solid #d4d4d4; border-radius: 8px; font-size: 15px; font-family: inherit; background: #fafafa; }
+        .form-input:focus { outline: none; border-color: #72b05e; box-shadow: 0 0 0 3px rgba(114, 176, 94, 0.1); background: #fff; }
+        .btn { width: 100%; padding: 14px; background: #4a7338; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; }
+        .btn:hover { background: #3a5c2a; }
+        .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
+        .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
+        .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1 class="card-title">Set New Password</h1>
+            {% if error %}
+            <div class="banner-error">{{ error }}</div>
+            {% endif %}
+            <form method="POST">
+                <input type="hidden" name="token" value="{{ token }}">
+                <div class="form-group">
+                    <label class="form-label">New Password</label>
+                    <input type="password" name="password" class="form-input" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confirm Password</label>
+                    <input type="password" name="confirm_password" class="form-input" required>
+                </div>
+                <button type="submit" class="btn">Reset Password</button>
+            </form>
+        </div>
+        <div class="footer-link">
+            <a href="{{ url_for('auth.login') }}">Back to Login</a>
+        </div>
+    </div>
+</body>
+</html>
+'''
+
+@auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email', '').lower().strip()
+        
+        if not email:
+            return render_template_string(FORGOT_PASSWORD_HTML, error="Email is required")
+        
+        if not validate_email(email):
+            return render_template_string(FORGOT_PASSWORD_HTML, error="Invalid email format")
+        
+        user = User.query.filter_by(email=email).first()
+        
+        # Always show success message (security: don't reveal if email exists)
+        if user:
+            # Generate reset token
+            reset_token = secrets.token_urlsafe(32)
+            user.reset_token = reset_token
+            user.reset_token_expires = datetime.utcnow() + timedelta(hours=1)
+            db.session.commit()
+            
+            # Send reset email
+            try:
+                send_password_reset_email(email, reset_token)
+            except:
+                pass  # Don't reveal if email failed
+        
+        return render_template_string(FORGOT_PASSWORD_HTML, success="If that email exists, we've sent a password reset link.")
+    
+    return render_template_string(FORGOT_PASSWORD_HTML)
+
+@auth_bp.route('/reset-password', methods=['GET', 'POST'])
+def reset_password():
+    token = request.args.get('token') or request.form.get('token')
+    
+    if not token:
+        return render_template_string(RESET_PASSWORD_HTML, error="Invalid or missing reset token")
+    
+    user = User.query.filter_by(reset_token=token).first()
+    
+    if not user or not user.reset_token_expires or datetime.utcnow() > user.reset_token_expires:
+        return render_template_string(RESET_PASSWORD_HTML, error="Reset token is invalid or expired")
+    
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        
+        if not password or not confirm_password:
+            return render_template_string(RESET_PASSWORD_HTML, error="All fields are required", token=token)
+        
+        if len(password) < 8:
+            return render_template_string(RESET_PASSWORD_HTML, error="Password must be at least 8 characters", token=token)
+        
+        if password != confirm_password:
+            return render_template_string(RESET_PASSWORD_HTML, error="Passwords don't match", token=token)
+        
+        # Update password
+        user.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+        user.reset_token = None
+        user.reset_token_expires = None
+        db.session.commit()
+        
+        return redirect(url_for('auth.login'))
+    
+    return render_template_string(RESET_PASSWORD_HTML, token=token)

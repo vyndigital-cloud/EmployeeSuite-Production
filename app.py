@@ -498,7 +498,14 @@ def cron_trial_warnings():
 
 @app.route('/health')
 def health():
-    return jsonify({"status": "healthy", "service": "Employee Suite", "version": "2.0"})
+    """Health check endpoint for monitoring"""
+    try:
+        # Quick DB connectivity check
+        db.session.execute(db.text('SELECT 1'))
+        return jsonify({"status": "healthy", "service": "Employee Suite", "version": "2.0", "database": "connected"}), 200
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return jsonify({"status": "unhealthy", "error": str(e)}), 500
 
 @app.route('/api/process_orders', methods=['GET', 'POST'])
 @login_required
@@ -547,8 +554,19 @@ def not_found(e):
 def server_error(e):
     return jsonify({"error": "Internal server error", "status": 500}), 500
 
-if __name__ == '__main__':
+# Initialize database tables on startup (safe for production - only creates if don't exist)
+def init_db():
+    """Initialize database tables - safe to run multiple times"""
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+            logger.info("Database tables initialized")
+        except Exception as e:
+            logger.error(f"Database initialization error: {e}")
+
+# Run on import (for Render/Gunicorn)
+init_db()
+
+if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)

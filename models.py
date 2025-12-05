@@ -14,6 +14,8 @@ class User(UserMixin, db.Model):
     trial_ends_at = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=2))
     is_subscribed = db.Column(db.Boolean, default=False)
     stripe_customer_id = db.Column(db.String(255), nullable=True, index=True)
+    reset_token = db.Column(db.String(100), nullable=True)
+    reset_token_expires = db.Column(db.DateTime, nullable=True)
     
     shopify_stores = db.relationship('ShopifyStore', backref='user', lazy=True, cascade='all, delete-orphan')
     

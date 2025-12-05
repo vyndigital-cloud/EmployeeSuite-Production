@@ -2,6 +2,7 @@ from flask import Blueprint, render_template_string, request, redirect, url_for,
 from flask_login import login_required, current_user
 from models import db, ShopifyStore
 from access_control import require_access
+from input_validation import validate_url, sanitize_input
 
 shopify_bp = Blueprint('shopify', __name__)
 
@@ -294,8 +295,25 @@ def shopify_settings():
 @shopify_bp.route('/settings/shopify/connect', methods=['POST'])
 @login_required
 def connect_store():
-    shop_url = request.form.get('shop_url')
-    access_token = request.form.get('access_token')
+    shop_url = request.form.get('shop_url', '').strip()
+    access_token = request.form.get('access_token', '').strip()
+    
+    # Input validation
+    if not shop_url or not access_token:
+        return redirect(url_for('shopify.shopify_settings', error='Store URL and access token are required.'))
+    
+    # Sanitize and validate shop URL
+    shop_url = sanitize_input(shop_url)
+    # Remove https:// or http:// if present
+    shop_url = shop_url.replace('https://', '').replace('http://', '').replace('www.', '')
+    
+    # Validate Shopify URL format
+    if not validate_url(shop_url):
+        return redirect(url_for('shopify.shopify_settings', error='Invalid Shopify store URL format. Use: yourstore.myshopify.com'))
+    
+    # Validate access token (basic check - should be non-empty)
+    if len(access_token) < 10:
+        return redirect(url_for('shopify.shopify_settings', error='Invalid access token format.'))
     
     if ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first():
         return redirect(url_for('shopify.shopify_settings', error='You already have a connected store. Disconnect it first.'))

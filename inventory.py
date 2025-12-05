@@ -30,32 +30,55 @@ def check_inventory():
         if not products or len(products) == 0:
             return {"success": True, "message": "<div style='padding: 16px; background: #fffbeb; border-radius: 6px; border-left: 3px solid #f59e0b; color: #92400e; font-size: 14px;'>⚠️ No products found in your store.</div>"}
         
-        low_stock_items = []
+        # Sort products by stock level (lowest first)
+        sorted_products = sorted(products, key=lambda x: x.get('stock', 0))
+        
         threshold = 10
+        low_stock_count = sum(1 for p in products if p.get('stock', 0) < threshold)
         
-        for product in products:
-            inventory = product.get('stock', 0)
-            if inventory < threshold:
-                low_stock_items.append({
-                    'title': product.get('product', 'Unknown Product'),
-                    'inventory': inventory,
-                    'id': product.get('sku', 'N/A')
-                })
+        # Build complete inventory report
+        message = f"<div style='margin: 16px 0;'><h4 style='font-size: 15px; font-weight: 600; color: #171717; margin-bottom: 12px;'>Complete Inventory ({len(products)} products)</h4>"
         
-        if low_stock_items:
-            message = "<div style='margin: 16px 0;'><h4 style='font-size: 15px; font-weight: 600; color: #171717; margin-bottom: 12px;'>Low Stock Alerts</h4>"
-            for item in low_stock_items:
-                alert_color = '#dc2626' if item['inventory'] == 0 else '#f59e0b'
-                message += f"""
-                <div style='padding: 12px; margin: 8px 0; background: #fafafa; border-radius: 6px; border-left: 3px solid {alert_color};'>
-                    <div style='font-weight: 500; color: #171717; font-size: 14px;'>{item.get('title', 'Unknown Product')}</div>
-                    <div style='color: #737373; margin-top: 4px; font-size: 13px;'>Stock: {item['inventory']} units (below threshold of {threshold})</div>
-                </div>
-                """
-            message += "</div>"
-            return {"success": True, "message": message}
+        if low_stock_count > 0:
+            message += f"<div style='padding: 12px; background: #fef2f2; border-radius: 6px; border-left: 3px solid #dc2626; margin-bottom: 16px; font-size: 14px; color: #991b1b;'>⚠️ {low_stock_count} product(s) below {threshold} units</div>"
         else:
-            return {"success": True, "message": "<div style='padding: 16px; background: #f0fdf4; border-radius: 6px; border-left: 3px solid #16a34a; color: #166534; font-size: 14px;'>✅ All products have sufficient stock</div>"}
+            message += f"<div style='padding: 12px; background: #f0fdf4; border-radius: 6px; border-left: 3px solid #16a34a; margin-bottom: 16px; font-size: 14px; color: #166534;'>✅ All products have sufficient stock</div>"
+        
+        # Show all products with stock levels
+        for product in sorted_products:
+            inventory = product.get('stock', 0)
+            product_name = product.get('product', 'Unknown Product')
+            sku = product.get('sku', 'N/A')
+            price = product.get('price', 'N/A')
+            
+            # Determine color based on stock level
+            if inventory == 0:
+                alert_color = '#dc2626'
+                stock_status = 'OUT OF STOCK'
+            elif inventory < threshold:
+                alert_color = '#f59e0b'
+                stock_status = 'LOW STOCK'
+            else:
+                alert_color = '#16a34a'
+                stock_status = 'IN STOCK'
+            
+            message += f"""
+            <div style='padding: 12px; margin: 8px 0; background: #fafafa; border-radius: 6px; border-left: 3px solid {alert_color};'>
+                <div style='display: flex; justify-content: space-between; align-items: center;'>
+                    <div>
+                        <div style='font-weight: 500; color: #171717; font-size: 14px;'>{product_name}</div>
+                        <div style='color: #737373; margin-top: 4px; font-size: 13px;'>SKU: {sku} • {price}</div>
+                    </div>
+                    <div style='text-align: right;'>
+                        <div style='font-weight: 600; color: {alert_color}; font-size: 14px;'>{inventory} units</div>
+                        <div style='color: #737373; font-size: 12px; margin-top: 2px;'>{stock_status}</div>
+                    </div>
+                </div>
+            </div>
+            """
+        
+        message += "</div>"
+        return {"success": True, "message": message}
     
     except Exception as e:
         return {"success": False, "error": f"Unexpected error: {str(e)}"}

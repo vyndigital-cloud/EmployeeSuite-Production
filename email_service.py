@@ -199,3 +199,42 @@ def send_cancellation_email(user_email):
     except Exception as e:
         print(f"Email error: {e}")
         return False
+
+def send_password_reset_email(user_email, reset_token):
+    """Send password reset email with token"""
+    reset_url = f"https://employeesuite-production.onrender.com/reset-password?token={reset_token}"
+    message = Mail(
+        from_email=('adam@golproductions.com', 'Employee Suite'),
+        to_emails=user_email,
+        subject='Reset Your Password - Employee Suite',
+        html_content=f'''
+        <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #171717;">Reset Your Password</h1>
+            <p style="font-size: 16px; color: #525252; line-height: 1.6;">
+                You requested to reset your password. Click the button below to create a new password.
+            </p>
+            
+            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p style="color: #737373; font-size: 14px; margin-bottom: 10px;">This link will expire in 1 hour.</p>
+            </div>
+            
+            <a href="{reset_url}" 
+               style="display: inline-block; background: #171717; color: white; padding: 14px 28px; 
+                      text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600;">
+                Reset Password
+            </a>
+            
+            <p style="font-size: 14px; color: #737373; margin-top: 30px;">
+                If you didn't request this, you can safely ignore this email.
+            </p>
+        </div>
+        '''
+    )
+    
+    try:
+        sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
+        sg.send(message)
+        return True
+    except Exception as e:
+        print(f"Email error: {e}")
+        return False
