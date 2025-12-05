@@ -258,7 +258,7 @@ def register():
         # Send welcome email
         try:
             send_welcome_email(email)
-        except:
+        except Exception:
             pass  # Don't block signup if email fails
         
         login_user(new_user, remember=True)
@@ -422,7 +422,7 @@ def forgot_password():
             # Send reset email
             try:
                 send_password_reset_email(email, reset_token)
-            except:
+            except Exception:
                 pass  # Don't reveal if email failed
         
         return render_template_string(FORGOT_PASSWORD_HTML, success="If that email exists, we've sent a password reset link.")

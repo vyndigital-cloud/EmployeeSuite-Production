@@ -232,8 +232,8 @@ def success():
             # Send confirmation email
             try:
                 send_payment_success(current_user.email)
-            except:
+            except Exception:
                 pass
-        except:
+        except Exception:
             pass
     return render_template_string(SUCCESS_HTML)

@@ -62,7 +62,7 @@ def generate_report():
                 orders_data = client._make_request("orders.json?financial_status=paid&limit=250")
                 if "error" not in orders_data:
                     all_orders = orders_data.get('orders', [])
-            except:
+            except Exception:
                 return {"success": False, "error": f"Shopify API error: {str(e)}"}
         
         if len(all_orders) == 0:
