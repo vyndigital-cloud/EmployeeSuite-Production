@@ -670,6 +670,7 @@ DASHBOARD_HTML = """
             <span style="color: #737373;">© 2025 Employee Suite</span>
         </div>
     </footer>
+    <script src="/static/js/dashboard-fix.js"></script>
 </body>
 </html>
 """
