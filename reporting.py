@@ -1,6 +1,7 @@
 from shopify_integration import ShopifyClient
 from flask_login import current_user
 from models import ShopifyStore
+from logging_config import logger
 
 def generate_report():
     """Generate revenue report from Shopify data"""
@@ -15,26 +16,21 @@ def generate_report():
         
         client = ShopifyClient(store.shop_url, store.access_token)
         
-        # Fetch ALL paid orders using pagination (all-time revenue)
-        # Shopify uses cursor-based pagination, but we'll fetch in batches
+        # Fetch ALL paid orders using proper Shopify pagination
+        # Shopify REST API uses cursor-based pagination via Link headers
         all_orders = []
         limit = 250  # Shopify max per page
-        page_info = None
-        max_pages = 40  # Safety limit: ~10,000 orders
+        endpoint = f"orders.json?financial_status=paid&limit={limit}"
+        max_iterations = 50  # Safety limit: ~12,500 orders
         
         try:
-            for page_num in range(1, max_pages + 1):
-                # Build endpoint with pagination
-                if page_info:
-                    endpoint = f"orders.json?financial_status=paid&limit={limit}&page_info={page_info}"
-                else:
-                    endpoint = f"orders.json?financial_status=paid&limit={limit}"
-                
+            for iteration in range(max_iterations):
+                # Make request and get response
                 orders_data = client._make_request(endpoint)
                 
                 if "error" in orders_data:
-                    # If error on first page, return error
-                    if page_num == 1:
+                    # If error on first request, return error
+                    if iteration == 0:
                         return {"success": False, "error": f"Shopify error: {orders_data['error']}"}
                     # Otherwise, we've fetched all available orders
                     break
@@ -45,23 +41,26 @@ def generate_report():
                 
                 all_orders.extend(orders)
                 
-                # Check for next page using Link header or response
-                # If we got fewer than limit, we're done
+                # Check if we got fewer than limit (last page)
                 if len(orders) < limit:
                     break
                 
-                # Try to get next page_info from response (Shopify API 2024-01+)
-                # If not available, we'll just fetch what we can
-                # Most stores won't have 10,000+ orders, so this is fine
-                if page_num >= max_pages:
+                # For Shopify REST API, we need to use the Link header or since_id for pagination
+                # Since _make_request only returns JSON, we'll use since_id pagination
+                # Get the highest order ID from current batch
+                if orders:
+                    last_order_id = max(order.get('id', 0) for order in orders)
+                    endpoint = f"orders.json?financial_status=paid&limit={limit}&since_id={last_order_id}"
+                else:
                     break
                     
         except Exception as e:
-            # If pagination fails, try fetching without pagination (first 250 orders)
+            # If pagination fails, try fetching without pagination (all orders, may be limited)
             try:
                 orders_data = client._make_request("orders.json?financial_status=paid&limit=250")
                 if "error" not in orders_data:
                     all_orders = orders_data.get('orders', [])
+                    logger.warning(f"Pagination failed, fetched {len(all_orders)} orders without pagination")
             except Exception:
                 return {"success": False, "error": f"Shopify API error: {str(e)}"}
         
