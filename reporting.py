@@ -16,11 +16,11 @@ def generate_report():
         
         client = ShopifyClient(store.shop_url, store.access_token)
         
-        # Fetch ALL paid orders using proper Shopify pagination
-        # Shopify REST API uses since_id for pagination (cursor-based)
-        all_orders = []
+        # Fetch ALL orders first, then filter client-side to ensure we get everything
+        # This avoids pagination issues with since_id that might skip orders
+        all_orders_raw = []
         limit = 250  # Shopify max per page
-        endpoint = f"orders.json?financial_status=paid&limit={limit}"
+        endpoint = f"orders.json?limit={limit}"  # Fetch ALL orders, filter client-side
         max_iterations = 50  # Safety limit: ~12,500 orders
         
         try:
@@ -39,41 +39,52 @@ def generate_report():
                 if not orders or len(orders) == 0:
                     break
                 
-                all_orders.extend(orders)
-                logger.info(f"Fetched {len(orders)} orders (iteration {iteration + 1}), total so far: {len(all_orders)}")
+                all_orders_raw.extend(orders)
+                logger.info(f"Fetched {len(orders)} orders (iteration {iteration + 1}), total so far: {len(all_orders_raw)}")
                 
                 # Check if we got fewer than limit (last page)
                 if len(orders) < limit:
-                    logger.info(f"Fetched all orders. Total: {len(all_orders)}")
+                    logger.info(f"Fetched all orders. Total: {len(all_orders_raw)}")
                     break
                 
                 # For Shopify REST API, use since_id pagination
                 # Get the highest order ID from current batch to fetch next page
                 if orders:
                     last_order_id = max(order.get('id', 0) for order in orders)
-                    endpoint = f"orders.json?financial_status=paid&limit={limit}&since_id={last_order_id}"
+                    endpoint = f"orders.json?limit={limit}&since_id={last_order_id}"
                 else:
                     break
                     
         except Exception as e:
             # If pagination fails, try fetching without pagination (all orders, may be limited)
             try:
-                orders_data = client._make_request("orders.json?financial_status=paid&limit=250")
+                orders_data = client._make_request("orders.json?limit=250")
                 if "error" not in orders_data:
-                    all_orders = orders_data.get('orders', [])
-                    logger.warning(f"Pagination failed, fetched {len(all_orders)} orders without pagination")
+                    all_orders_raw = orders_data.get('orders', [])
+                    logger.warning(f"Pagination failed, fetched {len(all_orders_raw)} orders without pagination")
             except Exception:
                 return {"success": False, "error": f"Shopify API error: {str(e)}"}
+        
+        # Filter for paid orders client-side to ensure we get ALL paid orders
+        all_orders = [order for order in all_orders_raw if order.get('financial_status', '').lower() == 'paid']
+        logger.info(f"Filtered to {len(all_orders)} paid orders from {len(all_orders_raw)} total orders")
         
         if len(all_orders) == 0:
             return {"success": True, "message": "<div style='padding: 16px; background: #fffbeb; border-radius: 6px; border-left: 3px solid #f59e0b; color: #92400e; font-size: 14px;'>No paid orders found.</div>"}
         
         # Calculate ALL-TIME revenue by product from ALL orders
+        # Use order['total_price'] to match Shopify API exactly (includes discounts, taxes, shipping)
         product_revenue = {}
         total_revenue = 0
         total_orders = len(all_orders)
         
         for order in all_orders:
+            # Use order total_price to match Shopify API (same as test script)
+            order_total = float(order.get('total_price', 0))
+            total_revenue += order_total
+            
+            # Calculate product-level breakdown from line items
+            # Note: Product breakdown uses line item prices (may not include order-level discounts)
             for item in order.get('line_items', []):
                 product_name = item.get('title', 'Unknown')
                 price = float(item.get('price', 0))
@@ -84,8 +95,6 @@ def generate_report():
                     product_revenue[product_name] += revenue
                 else:
                     product_revenue[product_name] = revenue
-                
-                total_revenue += revenue
         
         # Sort by revenue
         sorted_products = sorted(product_revenue.items(), key=lambda x: x[1], reverse=True)

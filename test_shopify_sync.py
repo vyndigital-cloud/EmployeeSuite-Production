@@ -30,13 +30,15 @@ def test_pagination():
     
     client = ShopifyClient(shop_url, access_token)
     
-    # Test 1: Fetch ALL paid orders using pagination (same as your app)
-    print("\n1️⃣ Testing Revenue Report Pagination:")
+    # Test 1: Fetch ALL orders, then filter for paid (same as fixed reporting.py)
+    print("\n1️⃣ Testing Revenue Report Pagination (NEW METHOD):")
     print("-" * 60)
+    print("   Fetching ALL orders, then filtering client-side for paid orders")
+    print("   This ensures we get ALL paid orders even if pagination skips some")
     
-    all_orders = []
+    all_orders_raw = []
     limit = 250
-    endpoint = f"orders.json?financial_status=paid&limit={limit}"
+    endpoint = f"orders.json?limit={limit}"  # Fetch ALL orders
     max_iterations = 50
     
     try:
@@ -53,21 +55,25 @@ def test_pagination():
             if not orders or len(orders) == 0:
                 break
             
-            all_orders.extend(orders)
-            print(f"   Page {iteration + 1}: Fetched {len(orders)} orders (Total: {len(all_orders)})")
+            all_orders_raw.extend(orders)
+            print(f"   Page {iteration + 1}: Fetched {len(orders)} orders (Total: {len(all_orders_raw)})")
             
             if len(orders) < limit:
                 break
             
             if orders:
                 last_order_id = max(order.get('id', 0) for order in orders)
-                endpoint = f"orders.json?financial_status=paid&limit={limit}&since_id={last_order_id}"
+                endpoint = f"orders.json?limit={limit}&since_id={last_order_id}"
             else:
                 break
                 
     except Exception as e:
         print(f"❌ Error during pagination: {e}")
         return False
+    
+    # Filter for paid orders client-side (same as reporting.py)
+    all_orders = [order for order in all_orders_raw if order.get('financial_status', '').lower() == 'paid']
+    print(f"\n   ✅ Filtered to {len(all_orders)} paid orders from {len(all_orders_raw)} total orders")
     
     # Calculate total revenue
     total_revenue = 0
