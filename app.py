@@ -666,9 +666,9 @@ def init_db():
             # Migrate shopify_stores table - add new columns
             try:
                 from migrate_shopify_store_columns import migrate_shopify_store_columns
-                migrate_shopify_store_columns()
+                migrate_shopify_store_columns(app, db)
             except Exception as e:
-                logger.warning(f"Could not migrate shopify_stores columns: {e}")
+                logger.warning(f"Could not migrate shopify_stores columns via function: {e}")
                 # Try manual migration as fallback
                 try:
                     # Check if shop_id column exists

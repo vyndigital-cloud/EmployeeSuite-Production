@@ -3,10 +3,9 @@ Database Migration: Add shop_id, charge_id, and uninstalled_at to shopify_stores
 Safe migration - adds nullable columns
 """
 import os
-from app import app, db
 from logging_config import logger
 
-def migrate_shopify_store_columns():
+def migrate_shopify_store_columns(app, db):
     """Add new columns to shopify_stores table"""
     with app.app_context():
         try:
