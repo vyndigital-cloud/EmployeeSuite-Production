@@ -662,6 +662,44 @@ def init_db():
             except Exception as e:
                 # If check fails, try to add columns anyway (might work)
                 logger.warning(f"Could not check for reset_token columns: {e}")
+            
+            # Migrate shopify_stores table - add new columns
+            try:
+                from migrate_shopify_store_columns import migrate_shopify_store_columns
+                migrate_shopify_store_columns()
+            except Exception as e:
+                logger.warning(f"Could not migrate shopify_stores columns: {e}")
+                # Try manual migration as fallback
+                try:
+                    # Check if shop_id column exists
+                    result = db.session.execute(db.text("""
+                        SELECT column_name 
+                        FROM information_schema.columns 
+                        WHERE table_name='shopify_stores' AND column_name='shop_id'
+                    """))
+                    if not result.fetchone():
+                        logger.info("Adding shop_id, charge_id, uninstalled_at columns...")
+                        db.session.execute(db.text("""
+                            ALTER TABLE shopify_stores 
+                            ADD COLUMN shop_id BIGINT
+                        """))
+                        db.session.execute(db.text("""
+                            ALTER TABLE shopify_stores 
+                            ADD COLUMN charge_id VARCHAR(255)
+                        """))
+                        db.session.execute(db.text("""
+                            ALTER TABLE shopify_stores 
+                            ADD COLUMN uninstalled_at TIMESTAMP
+                        """))
+                        db.session.commit()
+                        logger.info("✅ shopify_stores columns added successfully")
+                except Exception as migrate_error:
+                    if "already exists" in str(migrate_error).lower() or "duplicate" in str(migrate_error).lower():
+                        logger.info("✅ shopify_stores columns already exist")
+                    else:
+                        logger.warning(f"Could not add shopify_stores columns: {migrate_error}")
+                    db.session.rollback()
+            
             logger.info("Database tables initialized/verified")
         except Exception as e:
             logger.error(f"Database initialization error: {e}")
