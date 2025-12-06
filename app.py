@@ -1,8 +1,9 @@
-from flask import Flask, jsonify, render_template_string, redirect, url_for
+from flask import Flask, jsonify, render_template_string, redirect, url_for, request
 from flask_login import LoginManager, login_required, current_user
 from flask_bcrypt import Bcrypt
 from flask_session import Session
 import os
+import logging
 from datetime import datetime
 
 from models import db, User, ShopifyStore
@@ -15,12 +16,39 @@ from legal_routes import legal_bp
 from faq_routes import faq_bp
 from rate_limiter import init_limiter
 from webhook_stripe import webhook_bp
+from webhook_shopify import webhook_shopify_bp
+from gdpr_compliance import gdpr_bp
 from order_processing import process_orders
 from inventory import update_inventory
 from reporting import generate_report
 
 from logging_config import logger
 from access_control import require_access
+
+# Initialize Sentry for error monitoring (if DSN is provided)
+sentry_dsn = os.getenv('SENTRY_DSN')
+if sentry_dsn:
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
+    
+    sentry_sdk.init(
+        dsn=sentry_dsn,
+        integrations=[
+            FlaskIntegration(),
+            SqlalchemyIntegration(),
+            LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)
+        ],
+        traces_sample_rate=0.1,  # 10% of transactions for performance monitoring
+        profiles_sample_rate=0.1,  # 10% of transactions for profiling
+        environment=os.getenv('ENVIRONMENT', 'production'),
+        release=os.getenv('RELEASE_VERSION', '1.0.0'),
+        before_send=lambda event, hint: event if os.getenv('ENVIRONMENT') != 'development' else None,  # Don't send in dev
+    )
+    logger.info("Sentry error monitoring initialized")
+else:
+    logger.warning("SENTRY_DSN not set - error monitoring disabled")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -59,6 +87,8 @@ app.register_blueprint(legal_bp)
 app.register_blueprint(oauth_bp)
 app.register_blueprint(faq_bp)
 app.register_blueprint(webhook_bp)
+app.register_blueprint(webhook_shopify_bp)
+app.register_blueprint(gdpr_bp)
 
 # Initialize rate limiter with global 200 req/hour
 limiter = init_limiter(app)
@@ -495,6 +525,39 @@ def cron_trial_warnings():
         return jsonify({"success": True, "message": "Warnings sent"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/cron/database-backup', methods=['GET', 'POST'])
+def cron_database_backup():
+    """Endpoint for automated database backups via external cron service"""
+    secret = request.args.get('secret') or request.form.get('secret')
+    
+    if secret != os.getenv('CRON_SECRET'):
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        from database_backup import run_backup
+        result = run_backup()
+        
+        if result['success']:
+            logger.info(f"Automated backup completed: {result['backup_file']}")
+            return jsonify({
+                "success": True,
+                "message": "Backup completed successfully",
+                "backup_file": result['backup_file'],
+                "s3_key": result['s3_key'],
+                "timestamp": result['timestamp']
+            }), 200
+        else:
+            logger.error(f"Automated backup failed: {result.get('error')}")
+            return jsonify({
+                "success": False,
+                "error": result.get('error', 'Unknown error'),
+                "timestamp": result.get('timestamp')
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Backup cron endpoint error: {e}", exc_info=True)
+        return jsonify({"error": str(e), "success": False}), 500
 
 @app.route('/health')
 def health():

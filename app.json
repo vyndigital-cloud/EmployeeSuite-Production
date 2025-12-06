@@ -1,0 +1,60 @@
+{
+  "name": "Employee Suite",
+  "handle": "employee-suite",
+  "description": "Automate your Shopify store operations with order processing, inventory management, and revenue reporting.",
+  "icon": "https://employeesuite-production.onrender.com/static/icon.png",
+  "api_version": "2024-10",
+  "auth": {
+    "redirect_urls": [
+      "https://employeesuite-production.onrender.com/auth/callback"
+    ]
+  },
+  "embedded": true,
+  "pos": {
+    "embedded": false
+  },
+  "capabilities": {
+    "block_progress": false,
+    "network_access": true,
+    "collect_buyer_consent": {
+      "sms_marketing": false,
+      "customer_privacy": false
+    }
+  },
+  "webhooks": {
+    "api_version": "2024-10",
+    "subscriptions": [
+      {
+        "uri": "https://employeesuite-production.onrender.com/webhooks/app/uninstall",
+        "topics": ["app/uninstall"]
+      },
+      {
+        "uri": "https://employeesuite-production.onrender.com/webhooks/app_subscriptions/update",
+        "topics": ["app_subscriptions/update"]
+      },
+      {
+        "uri": "https://employeesuite-production.onrender.com/webhooks/customers/data_request",
+        "topics": ["customers/data_request"]
+      },
+      {
+        "uri": "https://employeesuite-production.onrender.com/webhooks/customers/redact",
+        "topics": ["customers/redact"]
+      },
+      {
+        "uri": "https://employeesuite-production.onrender.com/webhooks/shop/redact",
+        "topics": ["shop/redact"]
+      }
+    ]
+  },
+  "application_url": "https://employeesuite-production.onrender.com",
+  "embedded_directories": [
+    {
+      "path": "/dashboard",
+      "label": "Dashboard"
+    },
+    {
+      "path": "/settings",
+      "label": "Settings"
+    }
+  ]
+}

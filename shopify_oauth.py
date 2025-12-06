@@ -10,8 +10,9 @@ oauth_bp = Blueprint('oauth', __name__)
 
 SHOPIFY_API_KEY = os.getenv('SHOPIFY_API_KEY')
 SHOPIFY_API_SECRET = os.getenv('SHOPIFY_API_SECRET')
-SCOPES = 'read_products,read_inventory,read_orders'
-REDIRECT_URI = 'https://employeesuite-production.onrender.com/auth/callback'
+# App Store required scopes
+SCOPES = 'read_products,read_inventory,read_orders,write_orders'
+REDIRECT_URI = os.getenv('SHOPIFY_REDIRECT_URI', 'https://employeesuite-production.onrender.com/auth/callback')
 
 @oauth_bp.route('/install')
 def install():
@@ -54,7 +55,11 @@ def callback():
     if not access_token:
         return "Failed to get access token", 500
     
-    # Get or create user (for now, auto-create)
+    # Get shop information to extract shop_id
+    shop_info = get_shop_info(shop, access_token)
+    shop_id = shop_info.get('id') if shop_info else None
+    
+    # Get or create user (for App Store, use shop domain as identifier)
     user = User.query.filter_by(email=f"{shop}@shopify.com").first()
     if not user:
         from datetime import datetime, timedelta
@@ -66,15 +71,18 @@ def callback():
         db.session.add(user)
         db.session.commit()
     
-    # Store Shopify credentials
-    store = ShopifyStore.query.filter_by(user_id=user.id, shop_url=shop).first()
+    # Store Shopify credentials with shop_id
+    store = ShopifyStore.query.filter_by(shop_url=shop).first()
     if store:
         store.access_token = access_token
+        store.shop_id = shop_id
         store.is_active = True
+        store.user_id = user.id
     else:
         store = ShopifyStore(
             user_id=user.id,
             shop_url=shop,
+            shop_id=shop_id,
             access_token=access_token,
             is_active=True
         )
@@ -123,5 +131,23 @@ def exchange_code_for_token(shop, code):
     
     if response.status_code == 200:
         return response.json().get('access_token')
+    
+    return None
+
+def get_shop_info(shop, access_token):
+    """Get shop information including shop_id"""
+    url = f"https://{shop}/admin/api/2024-10/shop.json"
+    headers = {
+        'X-Shopify-Access-Token': access_token,
+        'Content-Type': 'application/json'
+    }
+    
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            return data.get('shop', {})
+    except Exception as e:
+        print(f"Failed to get shop info: {e}")
     
     return None

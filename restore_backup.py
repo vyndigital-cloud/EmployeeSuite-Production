@@ -1,0 +1,249 @@
+"""
+Database Backup Restoration Script
+Restores a PostgreSQL database from a backup stored in S3
+"""
+import os
+import sys
+import subprocess
+import boto3
+import gzip
+import tempfile
+from datetime import datetime
+from logging_config import logger
+
+class DatabaseRestore:
+    def __init__(self, backup_filename=None):
+        self.db_url = os.getenv('DATABASE_URL')
+        self.s3_bucket = os.getenv('S3_BACKUP_BUCKET')
+        self.s3_region = os.getenv('S3_BACKUP_REGION', 'us-east-1')
+        self.aws_access_key = os.getenv('AWS_ACCESS_KEY_ID')
+        self.aws_secret_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+        self.backup_filename = backup_filename
+        
+        # Validate required environment variables
+        if not self.db_url:
+            raise ValueError("DATABASE_URL environment variable is required")
+        if not self.s3_bucket:
+            raise ValueError("S3_BACKUP_BUCKET environment variable is required")
+        if not self.aws_access_key or not self.aws_secret_key:
+            raise ValueError("AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are required")
+    
+    def _parse_db_url(self):
+        """Parse DATABASE_URL to extract connection details"""
+        url = self.db_url.replace('postgres://', 'postgresql://')
+        if not url.startswith('postgresql://'):
+            raise ValueError("Invalid DATABASE_URL format")
+        
+        url = url.replace('postgresql://', '')
+        
+        if '@' in url:
+            auth, rest = url.split('@', 1)
+            if ':' in auth:
+                user, password = auth.split(':', 1)
+            else:
+                user = auth
+                password = ''
+            
+            if '/' in rest:
+                host_port, database = rest.split('/', 1)
+                if ':' in host_port:
+                    host, port = host_port.split(':')
+                else:
+                    host = host_port
+                    port = '5432'
+            else:
+                raise ValueError("Database name not found in DATABASE_URL")
+        else:
+            raise ValueError("Invalid DATABASE_URL format")
+        
+        return {
+            'user': user,
+            'password': password,
+            'host': host,
+            'port': port,
+            'database': database
+        }
+    
+    def list_backups(self):
+        """List all available backups in S3"""
+        try:
+            s3_client = boto3.client(
+                's3',
+                region_name=self.s3_region,
+                aws_access_key_id=self.aws_access_key,
+                aws_secret_access_key=self.aws_secret_key
+            )
+            
+            response = s3_client.list_objects_v2(
+                Bucket=self.s3_bucket,
+                Prefix='backups/employeesuite_backup_'
+            )
+            
+            if 'Contents' not in response:
+                return []
+            
+            backups = []
+            for obj in response['Contents']:
+                backups.append({
+                    'filename': obj['Key'].replace('backups/', ''),
+                    'size': obj['Size'],
+                    'last_modified': obj['LastModified'].isoformat()
+                })
+            
+            # Sort by date (newest first)
+            backups.sort(key=lambda x: x['last_modified'], reverse=True)
+            return backups
+            
+        except Exception as e:
+            logger.error(f"Failed to list backups: {e}")
+            raise
+    
+    def _download_from_s3(self, s3_key, local_path):
+        """Download backup file from S3"""
+        try:
+            s3_client = boto3.client(
+                's3',
+                region_name=self.s3_region,
+                aws_access_key_id=self.aws_access_key,
+                aws_secret_access_key=self.aws_secret_key
+            )
+            
+            logger.info(f"Downloading backup from S3: s3://{self.s3_bucket}/{s3_key}")
+            s3_client.download_file(self.s3_bucket, s3_key, local_path)
+            logger.info("Backup downloaded successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"S3 download failed: {e}")
+            raise
+    
+    def _decompress_backup(self, compressed_path, decompressed_path):
+        """Decompress gzipped backup file"""
+        try:
+            with gzip.open(compressed_path, 'rb') as f_in:
+                with open(decompressed_path, 'wb') as f_out:
+                    f_out.write(f_in.read())
+            logger.info("Backup decompressed successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Decompression failed: {e}")
+            raise
+    
+    def restore(self, backup_filename=None):
+        """Restore database from backup"""
+        if backup_filename:
+            self.backup_filename = backup_filename
+        
+        if not self.backup_filename:
+            raise ValueError("Backup filename is required")
+        
+        db_info = self._parse_db_url()
+        s3_key = f"backups/{self.backup_filename}"
+        
+        # Create temporary directory
+        temp_dir = tempfile.mkdtemp()
+        compressed_path = os.path.join(temp_dir, self.backup_filename)
+        decompressed_path = os.path.join(temp_dir, self.backup_filename.replace('.gz', ''))
+        
+        try:
+            # Download from S3
+            self._download_from_s3(s3_key, compressed_path)
+            
+            # Decompress
+            self._decompress_backup(compressed_path, decompressed_path)
+            
+            # Set PGPASSWORD environment variable
+            env = os.environ.copy()
+            env['PGPASSWORD'] = db_info['password']
+            
+            # Build psql command (for plain SQL format)
+            psql_cmd = [
+                'psql',
+                '-h', db_info['host'],
+                '-p', db_info['port'],
+                '-U', db_info['user'],
+                '-d', db_info['database'],
+                '-f', decompressed_path
+            ]
+            
+            logger.info(f"Restoring database from backup: {self.backup_filename}")
+            logger.warning("⚠️  This will overwrite existing data in the database!")
+            
+            result = subprocess.run(
+                psql_cmd,
+                env=env,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            
+            logger.info("Database restored successfully")
+            
+            # Clean up
+            os.remove(compressed_path)
+            os.remove(decompressed_path)
+            os.rmdir(temp_dir)
+            
+            return {
+                'success': True,
+                'backup_file': self.backup_filename,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            
+        except subprocess.CalledProcessError as e:
+            logger.error(f"pg_restore failed: {e.stderr}")
+            raise
+        except Exception as e:
+            logger.error(f"Restore failed: {e}")
+            raise
+        finally:
+            # Clean up temp files
+            for path in [compressed_path, decompressed_path]:
+                if os.path.exists(path):
+                    try:
+                        os.remove(path)
+                    except:
+                        pass
+            if os.path.exists(temp_dir):
+                try:
+                    os.rmdir(temp_dir)
+                except:
+                    pass
+
+
+if __name__ == "__main__":
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Restore database from S3 backup')
+    parser.add_argument('--list', action='store_true', help='List available backups')
+    parser.add_argument('--backup', type=str, help='Backup filename to restore')
+    
+    args = parser.parse_args()
+    
+    try:
+        restore = DatabaseRestore()
+        
+        if args.list:
+            backups = restore.list_backups()
+            print("\nAvailable backups:")
+            print("-" * 80)
+            for backup in backups:
+                size_mb = backup['size'] / (1024 * 1024)
+                print(f"{backup['filename']}")
+                print(f"  Size: {size_mb:.2f} MB")
+                print(f"  Date: {backup['last_modified']}")
+                print()
+        elif args.backup:
+            print(f"⚠️  WARNING: This will overwrite all data in the database!")
+            response = input("Type 'RESTORE' to confirm: ")
+            if response == 'RESTORE':
+                result = restore.restore(args.backup)
+                print(f"✅ Restore successful: {result['backup_file']}")
+            else:
+                print("❌ Restore cancelled")
+        else:
+            parser.print_help()
+            
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
