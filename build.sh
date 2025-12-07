@@ -9,7 +9,7 @@ echo "🔧 Installing dependencies..."
 # Upgrade pip first
 python3 -m pip install --upgrade pip setuptools wheel
 
-# Install requirements without hash checking
-python3 -m pip install --no-require-hashes -r requirements.txt
+# Install requirements - pip will skip hash checking if hashes aren't in file
+python3 -m pip install -r requirements.txt
 
 echo "✅ Dependencies installed successfully"
