@@ -31,6 +31,7 @@ from security_enhancements import (
     log_security_event,
     require_https
 )
+from performance import compress_response, clear_cache
 
 # Initialize Sentry for error monitoring (if DSN is provided)
 sentry_dsn = os.getenv('SENTRY_DSN')
@@ -68,6 +69,13 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///emp
 if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
     app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Performance optimizations
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': 5,
+    'max_overflow': 10,
+    'pool_pre_ping': True,  # Verify connections before using
+    'pool_recycle': 3600,  # Recycle connections after 1 hour
+}
 
 db.init_app(app)
 
@@ -100,11 +108,17 @@ app.register_blueprint(gdpr_bp)
 # Initialize rate limiter with global 200 req/hour
 limiter = init_limiter(app)
 
-# Apply security headers to all responses
+# Apply security headers and compression to all responses
 @app.after_request
-def security_headers(response):
-    """Add security headers to all responses"""
-    return add_security_headers(response)
+def optimize_response(response):
+    """Add security headers and compress responses"""
+    response = add_security_headers(response)
+    response = compress_response(response)
+    # Add cache headers for static assets
+    if request.endpoint == 'static':
+        response.cache_control.max_age = 31536000  # 1 year
+        response.cache_control.public = True
+    return response
 
 # Request validation before processing (optimized - fast checks only)
 @app.before_request
@@ -869,6 +883,8 @@ def api_process_orders():
 @require_access
 def api_update_inventory():
     try:
+        # Clear inventory cache to force fresh data
+        clear_cache('get_products')
         result = update_inventory()
         if isinstance(result, dict) and result.get("success"):
             return jsonify(result)

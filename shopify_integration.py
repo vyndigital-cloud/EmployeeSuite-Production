@@ -1,5 +1,6 @@
 import requests
 import os
+from performance import cache_result, CACHE_TTL_INVENTORY, CACHE_TTL_ORDERS
 
 class ShopifyClient:
     def __init__(self, shop_url, access_token):
@@ -29,6 +30,7 @@ class ShopifyClient:
         except requests.exceptions.RequestException as e:
             return {"error": str(e)}
     
+    @cache_result(ttl=CACHE_TTL_INVENTORY)
     def get_products(self):
         data = self._make_request("products.json")
         if "error" in data:
@@ -49,6 +51,7 @@ class ShopifyClient:
                 })
         return inventory
     
+    @cache_result(ttl=CACHE_TTL_ORDERS)
     def get_orders(self, status='any', limit=50):
         data = self._make_request(f"orders.json?status={status}&limit={limit}")
         if "error" in data:
