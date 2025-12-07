@@ -5,6 +5,13 @@ import requests
 
 def check_inventory():
     """Check inventory levels and return low stock alerts"""
+    # Check if current_user is available and authenticated
+    try:
+        if not current_user or not hasattr(current_user, 'id') or not current_user.is_authenticated:
+            return {"success": False, "error": "User not authenticated. Please log in."}
+    except Exception:
+        return {"success": False, "error": "User not authenticated. Please log in."}
+    
     store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
     
     if not store:
@@ -89,4 +96,17 @@ def check_inventory():
 
 def update_inventory():
     """Update inventory - wrapper for check_inventory"""
-    return check_inventory()
+    try:
+        # Try to use Flask application context if available
+        from flask import has_app_context, current_app
+        if has_app_context():
+            return check_inventory()
+        else:
+            # If no app context, return a helpful error message
+            return {"success": False, "error": "This function requires a Flask application context. Please call it from within a Flask route or with app.app_context()."}
+    except ImportError:
+        # If Flask is not available, try without context (will fail gracefully)
+        try:
+            return check_inventory()
+        except Exception as e:
+            return {"success": False, "error": f"Function requires Flask application context: {str(e)}"}

@@ -378,7 +378,15 @@ DASHBOARD_HTML = """
         <div class="page-title">Dashboard</div>
         <div class="page-subtitle">Manage your Shopify store automation</div>
         
-        {% if trial_active and not is_subscribed %}
+        {% if not has_access %}
+        <div class="banner banner-warning" style="justify-content: space-between; align-items: center;">
+            <div class="banner-content">
+                <h3>Subscription Required</h3>
+                <p>Your trial has ended. Subscribe now to continue using Employee Suite.</p>
+            </div>
+            <a href="{{ url_for('billing.subscribe') }}" class="banner-action">Subscribe Now</a>
+        </div>
+        {% elif trial_active and not is_subscribed %}
         <div class="banner banner-warning" style="justify-content: flex-start;">
             <div class="banner-content">
                 <h3>Trial Active</h3>
@@ -489,17 +497,16 @@ DASHBOARD_HTML = """
 
 @app.route('/')
 def home():
+    """Home page - redirects to dashboard if authenticated, login if not"""
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     return redirect(url_for('auth.login'))
 
 @app.route('/dashboard')
 @login_required
-@require_access
 def dashboard():
-    if not current_user.has_access():
-        return redirect(url_for('billing.subscribe'))
-    
+    """Dashboard - accessible to all authenticated users, shows subscribe prompt if no access"""
+    has_access = current_user.has_access()
     trial_active = current_user.is_trial_active()
     days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
     
@@ -507,7 +514,7 @@ def dashboard():
     from models import ShopifyStore
     has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
     
-    return render_template_string(DASHBOARD_HTML, trial_active=trial_active, days_left=days_left, is_subscribed=current_user.is_subscribed, has_shopify=has_shopify)
+    return render_template_string(DASHBOARD_HTML, trial_active=trial_active, days_left=days_left, is_subscribed=current_user.is_subscribed, has_shopify=has_shopify, has_access=has_access)
 
 
 @app.route('/cron/send-trial-warnings', methods=['GET', 'POST'])
@@ -630,35 +637,28 @@ def init_db():
         try:
             db.create_all()
             # Add reset_token columns if they don't exist (migration)
+            # SQLite-compatible: just try to add and catch errors
             try:
-                # Check if reset_token column exists
-                result = db.session.execute(db.text("""
-                    SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_name='users' AND column_name='reset_token'
-                """))
-                if not result.fetchone():
-                    logger.info("Adding reset_token columns to users table...")
-                    try:
-                        db.session.execute(db.text("""
-                            ALTER TABLE users 
-                            ADD COLUMN reset_token VARCHAR(100)
-                        """))
-                        db.session.execute(db.text("""
-                            ALTER TABLE users 
-                            ADD COLUMN reset_token_expires TIMESTAMP
-                        """))
-                        db.session.commit()
-                        logger.info("✅ reset_token columns added successfully")
-                    except Exception as alter_error:
-                        # Column might already exist (race condition or already added)
-                        if "already exists" in str(alter_error).lower() or "duplicate" in str(alter_error).lower():
-                            logger.info("✅ reset_token columns already exist")
-                        else:
-                            logger.warning(f"Could not add reset_token columns: {alter_error}")
-                        db.session.rollback()
-                else:
-                    logger.info("✅ reset_token columns already exist")
+                logger.info("Checking for reset_token columns...")
+                try:
+                    db.session.execute(db.text("""
+                        ALTER TABLE users 
+                        ADD COLUMN reset_token VARCHAR(100)
+                    """))
+                    db.session.execute(db.text("""
+                        ALTER TABLE users 
+                        ADD COLUMN reset_token_expires TIMESTAMP
+                    """))
+                    db.session.commit()
+                    logger.info("✅ reset_token columns added successfully")
+                except Exception as alter_error:
+                    error_str = str(alter_error).lower()
+                    # Column might already exist (race condition or already added)
+                    if "duplicate column" in error_str or "already exists" in error_str:
+                        logger.info("✅ reset_token columns already exist")
+                    else:
+                        logger.warning(f"Could not add reset_token columns: {alter_error}")
+                    db.session.rollback()
             except Exception as e:
                 # If check fails, try to add columns anyway (might work)
                 logger.warning(f"Could not check for reset_token columns: {e}")
@@ -669,32 +669,31 @@ def init_db():
                 migrate_shopify_store_columns(app, db)
             except Exception as e:
                 logger.warning(f"Could not migrate shopify_stores columns via function: {e}")
-                # Try manual migration as fallback
+                # Try manual migration as fallback (SQLite-compatible)
                 try:
-                    # Check if shop_id column exists
-                    result = db.session.execute(db.text("""
-                        SELECT column_name 
-                        FROM information_schema.columns 
-                        WHERE table_name='shopify_stores' AND column_name='shop_id'
-                    """))
-                    if not result.fetchone():
-                        logger.info("Adding shop_id, charge_id, uninstalled_at columns...")
-                        db.session.execute(db.text("""
-                            ALTER TABLE shopify_stores 
-                            ADD COLUMN shop_id BIGINT
-                        """))
-                        db.session.execute(db.text("""
-                            ALTER TABLE shopify_stores 
-                            ADD COLUMN charge_id VARCHAR(255)
-                        """))
-                        db.session.execute(db.text("""
-                            ALTER TABLE shopify_stores 
-                            ADD COLUMN uninstalled_at TIMESTAMP
-                        """))
-                        db.session.commit()
-                        logger.info("✅ shopify_stores columns added successfully")
+                    logger.info("Adding shop_id, charge_id, uninstalled_at columns (fallback)...")
+                    columns = [
+                        ("shop_id", "BIGINT"),
+                        ("charge_id", "VARCHAR(255)"),
+                        ("uninstalled_at", "TIMESTAMP")
+                    ]
+                    for col_name, col_type in columns:
+                        try:
+                            db.session.execute(db.text(f"""
+                                ALTER TABLE shopify_stores 
+                                ADD COLUMN {col_name} {col_type}
+                            """))
+                        except Exception as col_error:
+                            error_str = str(col_error).lower()
+                            if "duplicate column" in error_str or "already exists" in error_str:
+                                logger.info(f"✅ {col_name} column already exists")
+                            else:
+                                raise
+                    db.session.commit()
+                    logger.info("✅ shopify_stores columns added successfully")
                 except Exception as migrate_error:
-                    if "already exists" in str(migrate_error).lower() or "duplicate" in str(migrate_error).lower():
+                    error_str = str(migrate_error).lower()
+                    if "duplicate column" in error_str or "already exists" in error_str:
                         logger.info("✅ shopify_stores columns already exist")
                     else:
                         logger.warning(f"Could not add shopify_stores columns: {migrate_error}")
