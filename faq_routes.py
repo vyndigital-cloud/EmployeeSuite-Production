@@ -72,22 +72,22 @@ FAQ_HTML = '''
         
         <div class="faq-item">
             <div class="faq-question">How do I connect my Shopify store?</div>
-            <div class="faq-answer">Go to Settings → Connect Shopify Store. You'll need your store URL and Admin API access token from Shopify.</div>
+            <div class="faq-answer">Go to Settings → Connect Shopify Store. You can connect manually by entering your store URL and Admin API access token, or use the OAuth flow if installing from the Shopify App Store.</div>
         </div>
         
         <div class="faq-item">
             <div class="faq-question">Can I cancel anytime?</div>
-            <div class="faq-answer">Yes! Go to Settings → Manage Subscription → Cancel. No questions asked.</div>
+            <div class="faq-answer">Yes! Go to Settings → Subscription → Cancel Subscription. You'll retain access until the end of your current billing period. No questions asked.</div>
         </div>
         
         <div class="faq-item">
             <div class="faq-question">What happens if my payment fails?</div>
-            <div class="faq-answer">You'll receive an email notification. Your account stays active for 3 days while we retry the payment. After 3 days, access is suspended until payment succeeds.</div>
+            <div class="faq-answer">You'll receive an email notification. Your account will be suspended if payment isn't received within 3 days. Update your payment method to restore access.</div>
         </div>
         
         <div class="faq-item">
             <div class="faq-question">Do you offer refunds?</div>
-            <div class="faq-answer">Yes. If you're not satisfied within the first 7 days, email us for a full refund.</div>
+            <div class="faq-answer">Refund requests are handled on a case-by-case basis. Email us at adam@golproductions.com within 7 days of purchase to request a refund. We'll review your request and respond within 24 hours.</div>
         </div>
         
         <div class="faq-item">
