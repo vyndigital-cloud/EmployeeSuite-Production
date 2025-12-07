@@ -133,7 +133,7 @@ def validate_request_security():
         return
     
     # Skip for billing endpoints (Stripe handles security)
-    if request.path.startswith('/billing/'):
+    if request.path.startswith('/billing/') or request.path in ('/subscribe', '/create-checkout-session'):
         return
     
     # Skip for OAuth callbacks (Shopify handles security)
