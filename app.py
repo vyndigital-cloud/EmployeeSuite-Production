@@ -963,53 +963,6 @@ def rate_limit_exceeded(error):
     return jsonify({'error': 'Rate limit exceeded. Please try again later.'}), 429
 
 # CSV Export Endpoints
-@app.route('/api/export/inventory', methods=['GET'])
-@login_required
-@require_access
-def export_inventory_csv():
-    """Export inventory to CSV"""
-    try:
-        from flask import session, Response
-        import csv
-        import io
-        
-        # Get inventory data from session or regenerate
-        inventory_data = session.get('inventory_data', [])
-        
-        if not inventory_data:
-            # Regenerate if not in session
-            result = update_inventory()
-            if result.get('success'):
-                inventory_data = session.get('inventory_data', [])
-        
-        if not inventory_data:
-            return "No inventory data available. Please check inventory first.", 404
-        
-        # Create CSV
-        output = io.StringIO()
-        writer = csv.writer(output)
-        writer.writerow(['Product Name', 'SKU', 'Stock', 'Price'])
-        
-        for product in inventory_data:
-            writer.writerow([
-                product.get('product', 'N/A'),
-                product.get('sku', 'N/A'),
-                product.get('stock', 0),
-                product.get('price', 'N/A')
-            ])
-        
-        # Return CSV file
-        response = Response(
-            output.getvalue(),
-            mimetype='text/csv',
-            headers={'Content-Disposition': f'attachment; filename=inventory_{datetime.utcnow().strftime("%Y%m%d")}.csv'}
-        )
-        return response
-        
-    except Exception as e:
-        logger.error(f"Error exporting inventory CSV for user {current_user.id}: {str(e)}", exc_info=True)
-        return f"Error exporting CSV: {str(e)}", 500
-
 @app.route('/api/export/report', methods=['GET'])
 @login_required
 @require_access
