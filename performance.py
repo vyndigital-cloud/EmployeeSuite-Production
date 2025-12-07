@@ -83,46 +83,42 @@ def get_cache_stats():
     }
 
 # Response compression
-try:
-    from flask import after_request
-    import gzip
-    import io
-    
-    def compress_response(response):
-        """Compress response if client supports it"""
+import gzip
+
+def compress_response(response):
+    """Compress response if client supports it"""
+    try:
+        # Get request from response context
+        from flask import request
+        
         # Only compress if response is large enough and client accepts gzip
-        accept_encoding = response.request.headers.get('Accept-Encoding', '')
+        accept_encoding = request.headers.get('Accept-Encoding', '') if hasattr(request, 'headers') else ''
         
         if 'gzip' not in accept_encoding:
             return response
         
         # Only compress text-based responses
         content_type = response.content_type or ''
-        if not any(x in content_type for x in ['text', 'json', 'html', 'javascript', 'css']):
+        if not any(x in content_type for x in ['text', 'json', 'html', 'javascript', 'css', 'xml']):
             return response
         
         # Only compress if response is > 1KB
-        if len(response.get_data()) < 1024:
+        data = response.get_data()
+        if len(data) < 1024:
             return response
         
         # Compress
-        try:
-            data = response.get_data()
-            compressed = gzip.compress(data, compresslevel=6)  # Level 6 = good balance
-            response.set_data(compressed)
-            response.headers['Content-Encoding'] = 'gzip'
-            response.headers['Content-Length'] = len(compressed)
-            logger.debug(f"Compressed response: {len(data)} -> {len(compressed)} bytes")
-        except Exception as e:
-            logger.warning(f"Compression failed: {e}")
-        
-        return response
+        compressed = gzip.compress(data, compresslevel=6)  # Level 6 = good balance
+        response.set_data(compressed)
+        response.headers['Content-Encoding'] = 'gzip'
+        response.headers['Content-Length'] = len(compressed)
+        response.headers['Vary'] = 'Accept-Encoding'
+        logger.debug(f"Compressed response: {len(data)} -> {len(compressed)} bytes ({100*(1-len(compressed)/len(data)):.1f}% reduction)")
+    except Exception as e:
+        # If compression fails, return original response
+        logger.debug(f"Compression skipped: {e}")
     
-    COMPRESSION_AVAILABLE = True
-except ImportError:
-    COMPRESSION_AVAILABLE = False
-    def compress_response(response):
-        return response
+    return response
 
 # Database query optimization
 def optimize_query(query):
