@@ -410,21 +410,33 @@ DASHBOARD_HTML = """
                 <div class="card-icon">📦</div>
                 <div class="card-title">Orders</div>
                 <div class="card-description">Process pending Shopify orders</div>
+                {% if has_access %}
                 <button class="card-btn" onclick="processOrders()">Process Orders</button>
+                {% else %}
+                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;">Process Orders</button>
+                {% endif %}
             </div>
             
             <div class="card">
                 <div class="card-icon">📊</div>
                 <div class="card-title">Inventory</div>
                 <div class="card-description">Check stock levels and alerts</div>
+                {% if has_access %}
                 <button class="card-btn" onclick="updateInventory()">Check Inventory</button>
+                {% else %}
+                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;">Check Inventory</button>
+                {% endif %}
             </div>
             
             <div class="card">
                 <div class="card-icon">💰</div>
                 <div class="card-title">Reports</div>
                 <div class="card-description">View revenue analytics</div>
+                {% if has_access %}
                 <button class="card-btn" onclick="generateReport()">Generate Report</button>
+                {% else %}
+                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;">Generate Report</button>
+                {% endif %}
             </div>
         </div>
         
@@ -435,6 +447,16 @@ DASHBOARD_HTML = """
     </div>
     
     <script>
+        function showSubscribePrompt() {
+            document.getElementById('output').innerHTML = `
+                <div style="padding: 24px; background: #fef2f2; border-radius: 8px; border-left: 3px solid #dc2626;">
+                    <h3 style="color: #dc2626; margin-bottom: 12px;">Subscription Required</h3>
+                    <p style="color: #991b1b; margin-bottom: 16px;">Your trial has ended. Subscribe now to continue using Employee Suite features.</p>
+                    <a href="{{ url_for('billing.subscribe') }}" style="display: inline-block; background: #4a7338; color: #fff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">Subscribe Now</a>
+                </div>
+            `;
+        }
+        
         function showLoading() {
             document.getElementById('output').innerHTML = `
                 <div class="loading">
@@ -579,6 +601,7 @@ def health():
 
 @app.route('/api/process_orders', methods=['GET', 'POST'])
 @login_required
+@require_access
 def api_process_orders():
     try:
         result = process_orders()
@@ -591,6 +614,7 @@ def api_process_orders():
 
 @app.route('/api/update_inventory', methods=['GET', 'POST'])
 @login_required
+@require_access
 def api_update_inventory():
     try:
         result = update_inventory()
@@ -603,6 +627,7 @@ def api_update_inventory():
 
 @app.route('/api/generate_report', methods=['GET', 'POST'])
 @login_required
+@require_access
 def api_generate_report():
     logger.info(f"Generate report called by user {current_user.id}")
     try:
