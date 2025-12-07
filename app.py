@@ -125,6 +125,30 @@ def validate_request_security():
         log_security_event('request_validation_failed', str(issues), 'WARNING')
         return jsonify({'error': 'Invalid request'}), 400
 
+# Apply security headers to all responses
+@app.after_request
+def security_headers(response):
+    """Add security headers to all responses"""
+    return add_security_headers(response)
+
+# Request validation before processing
+@app.before_request
+def validate_request_security():
+    """Validate incoming requests for security"""
+    # Skip validation for static files and health checks
+    if request.endpoint in ('static', 'health'):
+        return
+    
+    # Check request size
+    if not check_request_size():
+        return jsonify({'error': 'Request too large'}), 413
+    
+    # Validate request
+    is_valid, issues = validate_request()
+    if not is_valid:
+        log_security_event('request_validation_failed', str(issues), 'WARNING')
+        return jsonify({'error': 'Invalid request'}), 400
+
 DASHBOARD_HTML = """
 <!DOCTYPE html>
 <html>
@@ -903,12 +927,30 @@ def api_generate_report():
         return f"<h3 class='error'>❌ Error: {str(e)}</h3>", 500
 
 @app.errorhandler(404)
-def not_found(e):
-    return jsonify({"error": "Endpoint not found", "status": 404}), 404
+def not_found(error):
+    """404 error handler - don't expose internal structure"""
+    log_security_event('404_error', f"Path: {request.path}", 'INFO')
+    return jsonify({'error': 'Not found'}), 404
 
 @app.errorhandler(500)
-def server_error(e):
-    return jsonify({"error": "Internal server error", "status": 500}), 500
+def internal_error(error):
+    """500 error handler - log but don't expose details"""
+    db.session.rollback()
+    log_security_event('500_error', f"Path: {request.path}, Error: {str(error)}", 'ERROR')
+    # Don't expose stack traces or internal errors to users
+    return jsonify({'error': 'An internal error occurred. Please try again later.'}), 500
+
+@app.errorhandler(413)
+def request_too_large(error):
+    """413 error handler for oversized requests"""
+    log_security_event('request_too_large', f"IP: {request.remote_addr}, Size: {request.content_length}", 'WARNING')
+    return jsonify({'error': 'Request too large'}), 413
+
+@app.errorhandler(429)
+def rate_limit_exceeded(error):
+    """429 error handler for rate limiting"""
+    log_security_event('rate_limit_exceeded', f"IP: {request.remote_addr}, Path: {request.path}", 'WARNING')
+    return jsonify({'error': 'Rate limit exceeded. Please try again later.'}), 429
 
 # Initialize database tables on startup (safe for production - only creates if don't exist)
 def init_db():
