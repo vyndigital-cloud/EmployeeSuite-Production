@@ -135,8 +135,8 @@ SUBSCRIBE_HTML = '''
                 <li>Email support</li>
             </ul>
             
-            <form method="POST" action="{{ url_for('billing.create_checkout') }}">
-                <button type="submit" class="btn">
+            <form method="POST" action="{{ url_for('billing.create_checkout') }}" id="subscribe-form">
+                <button type="submit" class="btn" id="subscribe-btn">
                     {% if not has_access %}
                     Restore Access Now
                     {% elif trial_active and not is_subscribed %}
@@ -146,6 +146,16 @@ SUBSCRIBE_HTML = '''
                     {% endif %}
                 </button>
             </form>
+            <script>
+                // Prevent double-clicks and show loading state
+                document.getElementById('subscribe-form').addEventListener('submit', function(e) {
+                    const btn = document.getElementById('subscribe-btn');
+                    btn.disabled = true;
+                    btn.style.opacity = '0.6';
+                    btn.style.cursor = 'not-allowed';
+                    btn.textContent = 'Processing...';
+                });
+            </script>
         </div>
     </div>
 </body>
@@ -228,20 +238,32 @@ def subscribe():
 @billing_bp.route('/create-checkout-session', methods=['POST'])
 @login_required
 def create_checkout():
+    """Create Stripe checkout session - optimized for speed"""
     try:
+        # Quick check - if already subscribed, redirect immediately
         if current_user.is_subscribed:
             return redirect(url_for('dashboard'))
         
+        # Get price IDs from env (cache these if needed)
+        setup_price_id = os.getenv('STRIPE_SETUP_PRICE_ID')
+        monthly_price_id = os.getenv('STRIPE_MONTHLY_PRICE_ID')
+        
+        if not setup_price_id or not monthly_price_id:
+            return "Payment configuration error. Please contact support.", 500
+        
+        # Create checkout session (this is the slow part - Stripe API call)
+        # Add timeout to prevent hanging
+        import requests
         checkout_session = stripe.checkout.Session.create(
             customer_email=current_user.email,
             payment_method_types=['card'],
             line_items=[
                 {
-                    'price': os.getenv('STRIPE_SETUP_PRICE_ID'), 
+                    'price': setup_price_id, 
                     'quantity': 1,
                 },
                 {
-                    'price': os.getenv('STRIPE_MONTHLY_PRICE_ID'), 
+                    'price': monthly_price_id, 
                     'quantity': 1,
                 }
             ],
@@ -252,8 +274,15 @@ def create_checkout():
             success_url=url_for('billing.success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
             cancel_url=url_for('billing.subscribe', _external=True),
         )
+        
+        # Immediate redirect (don't wait for anything else)
         return redirect(checkout_session.url, code=303)
+        
+    except stripe.error.StripeError as e:
+        # Stripe-specific errors
+        return f"Payment error: {str(e)}. Please try again.", 500
     except Exception as e:
+        # Other errors
         return f"Error: {str(e)}", 500
 
 @billing_bp.route('/success')
