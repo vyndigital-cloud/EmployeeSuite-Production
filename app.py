@@ -249,8 +249,11 @@ DASHBOARD_HTML = """
         }
         .card:hover {
             border-color: #d4d4d4;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            transform: translateY(-2px);
+        }
+        .card:active {
+            transform: translateY(0);
         }
         .card-icon {
             font-size: 28px;
@@ -286,7 +289,16 @@ DASHBOARD_HTML = """
         .card-btn:hover {
             background: #262626;
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        }
+        .card-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        .card-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
         }
         
         /* Output */
@@ -335,14 +347,28 @@ DASHBOARD_HTML = """
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
         .loading-text {
             font-size: 14px;
             color: #737373;
+            animation: pulse 2s ease-in-out infinite;
         }
         
         /* Status */
         .success { color: #16a34a; font-weight: 500; }
         .error { color: #dc2626; font-weight: 500; }
+        
+        /* Smooth transitions */
+        * {
+            transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        }
         
         /* Responsive */
         @media (max-width: 768px) {
@@ -365,7 +391,7 @@ DASHBOARD_HTML = """
 <body>
     <div class="header">
         <div class="header-content">
-            <div class="logo">Employee Suite v1</div>
+            <a href="/dashboard" style="text-decoration: none; color: inherit;" class="logo">🚀 Employee Suite</a>
             <div class="header-nav">
                 <a href="{{ url_for('shopify.shopify_settings') }}" class="nav-btn">Settings</a>
                 <a href="{{ url_for('billing.subscribe') }}" class="nav-btn nav-btn-primary">Subscribe</a>
@@ -376,7 +402,7 @@ DASHBOARD_HTML = """
     
     <div class="container">
         <div class="page-title">Dashboard</div>
-        <div class="page-subtitle">Manage your Shopify store automation</div>
+        <div class="page-subtitle">Automate your Shopify store operations with real-time inventory, order processing, and revenue insights</div>
         
         {% if not has_access %}
         <div class="banner banner-warning" style="justify-content: space-between; align-items: center;">
@@ -469,12 +495,30 @@ DASHBOARD_HTML = """
         function processOrders() {
             showLoading();
             fetch('/api/process_orders')
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) throw new Error('Network error');
+                    return r.json();
+                })
                 .then(d => {
                     const c = d.success ? 'success' : 'error';
+                    const icon = d.success ? '✅' : '❌';
                     document.getElementById('output').innerHTML = `
-                        <h3 class="${c}">${d.success ? '✓' : '✗'} ${d.success ? 'Success' : 'Error'}</h3>
-                        <p style="margin-top: 12px;">${d.message || d.error}</p>
+                        <div style="animation: fadeIn 0.3s ease-in;">
+                            <h3 class="${c}" style="display: flex; align-items: center; gap: 8px;">
+                                <span>${icon}</span>
+                                <span>${d.success ? 'Orders Processed Successfully' : 'Error Processing Orders'}</span>
+                            </h3>
+                            <p style="margin-top: 12px; line-height: 1.6;">${d.message || d.error || 'No details available'}</p>
+                            ${d.success ? '<p style="margin-top: 8px; font-size: 13px; color: #737373;">✨ Your orders have been processed and synced.</p>' : ''}
+                        </div>
+                    `;
+                })
+                .catch(err => {
+                    document.getElementById('output').innerHTML = `
+                        <div style="animation: fadeIn 0.3s ease-in;">
+                            <h3 class="error">❌ Connection Error</h3>
+                            <p style="margin-top: 12px;">Unable to connect to server. Please check your internet connection and try again.</p>
+                        </div>
                     `;
                 });
         }
@@ -482,12 +526,30 @@ DASHBOARD_HTML = """
         function updateInventory() {
             showLoading();
             fetch('/api/update_inventory')
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) throw new Error('Network error');
+                    return r.json();
+                })
                 .then(d => {
                     const c = d.success ? 'success' : 'error';
+                    const icon = d.success ? '✅' : '❌';
                     document.getElementById('output').innerHTML = `
-                        <h3 class="${c}">${d.success ? '✓' : '✗'} ${d.success ? 'Success' : 'Error'}</h3>
-                        <p style="margin-top: 12px; white-space: pre-wrap;">${d.message || d.error}</p>
+                        <div style="animation: fadeIn 0.3s ease-in;">
+                            <h3 class="${c}" style="display: flex; align-items: center; gap: 8px;">
+                                <span>${icon}</span>
+                                <span>${d.success ? 'Inventory Updated' : 'Error Updating Inventory'}</span>
+                            </h3>
+                            <div style="margin-top: 12px; white-space: pre-wrap; line-height: 1.6;">${d.message || d.error || 'No details available'}</div>
+                            ${d.success ? '<p style="margin-top: 8px; font-size: 13px; color: #737373;">🔄 Inventory data refreshed from Shopify.</p>' : ''}
+                        </div>
+                    `;
+                })
+                .catch(err => {
+                    document.getElementById('output').innerHTML = `
+                        <div style="animation: fadeIn 0.3s ease-in;">
+                            <h3 class="error">❌ Connection Error</h3>
+                            <p style="margin-top: 12px;">Unable to connect to server. Please check your internet connection and try again.</p>
+                        </div>
                     `;
                 });
         }
@@ -495,9 +557,20 @@ DASHBOARD_HTML = """
         function generateReport() {
             showLoading();
             fetch('/api/generate_report')
-                .then(r => r.text())
+                .then(r => {
+                    if (!r.ok) throw new Error('Network error');
+                    return r.text();
+                })
                 .then(html => {
-                    document.getElementById('output').innerHTML = html;
+                    document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${html}</div>`;
+                })
+                .catch(err => {
+                    document.getElementById('output').innerHTML = `
+                        <div style="animation: fadeIn 0.3s ease-in;">
+                            <h3 class="error">❌ Connection Error</h3>
+                            <p style="margin-top: 12px;">Unable to generate report. Please check your internet connection and try again.</p>
+                        </div>
+                    `;
                 });
         }
     </script>
@@ -610,7 +683,8 @@ def api_process_orders():
         else:
             return jsonify({"message": str(result), "success": True})
     except Exception as e:
-        return jsonify({"error": str(e), "success": False}), 500
+        logger.error(f"Error processing orders for user {current_user.id}: {str(e)}", exc_info=True)
+        return jsonify({"error": f"Failed to process orders: {str(e)}", "success": False}), 500
 
 @app.route('/api/update_inventory', methods=['GET', 'POST'])
 @login_required
@@ -623,7 +697,8 @@ def api_update_inventory():
         else:
             return jsonify({"success": False, "error": str(result)})
     except Exception as e:
-        return jsonify({"error": str(e), "success": False}), 500
+        logger.error(f"Error updating inventory for user {current_user.id}: {str(e)}", exc_info=True)
+        return jsonify({"error": f"Failed to update inventory: {str(e)}", "success": False}), 500
 
 @app.route('/api/generate_report', methods=['GET', 'POST'])
 @login_required

@@ -85,8 +85,26 @@ SUBSCRIBE_HTML = '''
     </div>
     
     <div class="container">
-        <h1 class="page-title">Ready to Subscribe?</h1>
-        <p class="page-subtitle">Your free trial is active. Subscribe now to ensure uninterrupted access when your trial ends.</p>
+        <h1 class="page-title">{% if not has_access %}Restore Access{% else %}Ready to Subscribe?{% endif %}</h1>
+        <p class="page-subtitle">
+            {% if not has_access %}
+            Your trial has ended. Subscribe now to restore full access to Employee Suite.
+            {% elif trial_active and not is_subscribed %}
+            Your free trial is active ({{ days_left }} day{{ 's' if days_left != 1 else '' }} remaining). Subscribe now to ensure uninterrupted access when your trial ends.
+            {% else %}
+            Get unlimited access to all Employee Suite features.
+            {% endif %}
+        </p>
+        
+        {% if not has_access %}
+        <div style="background: #fef2f2; border-left: 3px solid #dc2626; padding: 16px 20px; border-radius: 8px; margin-bottom: 24px;">
+            <p style="color: #991b1b; font-weight: 600; margin: 0;">⚠️ Your access has expired. Subscribe to continue using Employee Suite.</p>
+        </div>
+        {% elif trial_active and not is_subscribed %}
+        <div style="background: #fffbeb; border-left: 3px solid #f59e0b; padding: 16px 20px; border-radius: 8px; margin-bottom: 24px;">
+            <p style="color: #92400e; font-weight: 600; margin: 0;">⏰ {{ days_left }} day{{ 's' if days_left != 1 else '' }} left in your trial. Subscribe now to avoid interruption.</p>
+        </div>
+        {% endif %}
         
         <div class="pricing-card">
             <div class="pricing-item">
@@ -185,7 +203,16 @@ SUCCESS_HTML = '''
 @billing_bp.route('/subscribe')
 @login_required
 def subscribe():
-    return render_template_string(SUBSCRIBE_HTML)
+    """Subscribe page - shows different messaging based on trial status"""
+    trial_active = current_user.is_trial_active()
+    has_access = current_user.has_access()
+    days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+    
+    return render_template_string(SUBSCRIBE_HTML, 
+                                 trial_active=trial_active, 
+                                 has_access=has_access,
+                                 days_left=days_left,
+                                 is_subscribed=current_user.is_subscribed)
 
 @billing_bp.route('/create-checkout-session', methods=['POST'])
 @login_required

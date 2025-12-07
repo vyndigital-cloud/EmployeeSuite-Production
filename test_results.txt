@@ -1,0 +1,71 @@
+
+[94m======================================================================[0m
+[94mEmployee Suite - Comprehensive Function Testing[0m
+[94m======================================================================[0m
+
+[93mPhase 1: Testing Module Imports[0m
+
+[92m✓[0m Import: logging_config Logging configuration
+[92m✓[0m Import: models Database models
+[92m✓[0m Import: access_control Access control
+[92m✓[0m Import: input_validation Input validation
+[92m✓[0m Import: rate_limiter Rate limiter
+[92m✓[0m Import: email_service Email service
+[92m✓[0m Import: order_processing Order processing
+[92m✓[0m Import: inventory Inventory management
+[92m✓[0m Import: reporting Reporting
+[92m✓[0m Import: auth Authentication
+[92m✓[0m Import: billing Billing
+[92m✓[0m Import: shopify_oauth Shopify OAuth
+[92m✓[0m Import: shopify_routes Shopify routes
+[92m✓[0m Import: shopify_integration Shopify integration
+[92m✓[0m Import: shopify_billing Shopify billing
+[92m✓[0m Import: webhook_stripe Stripe webhooks
+[92m✓[0m Import: webhook_shopify Shopify webhooks
+[92m✓[0m Import: admin_routes Admin routes
+[92m✓[0m Import: legal_routes Legal routes
+[92m✓[0m Import: faq_routes FAQ routes
+[92m✓[0m Import: gdpr_compliance GDPR compliance
+2025-12-07 22:31:44,791 - employeesuite - WARNING - SENTRY_DSN not set - error monitoring disabled
+2025-12-07 22:31:44,804 - employeesuite - INFO - Checking for reset_token columns...
+2025-12-07 22:31:44,805 - employeesuite - INFO - ✅ reset_token columns already exist
+2025-12-07 22:31:44,805 - employeesuite - INFO - Adding shop_id column to shopify_stores table...
+2025-12-07 22:31:44,805 - employeesuite - INFO - ✅ shop_id column already exists
+2025-12-07 22:31:44,805 - employeesuite - INFO - Adding charge_id column to shopify_stores table...
+2025-12-07 22:31:44,805 - employeesuite - INFO - ✅ charge_id column already exists
+2025-12-07 22:31:44,806 - employeesuite - INFO - Adding uninstalled_at column to shopify_stores table...
+2025-12-07 22:31:44,806 - employeesuite - INFO - ✅ uninstalled_at column already exists
+2025-12-07 22:31:44,806 - employeesuite - INFO - ✅ Migration completed successfully
+2025-12-07 22:31:44,806 - employeesuite - INFO - Database tables initialized/verified
+[92m✓[0m Import: cron_jobs Cron jobs
+[92m✓[0m Import: database_backup Database backup
+
+[93mPhase 2: Testing Core Functions[0m
+
+[92m✓[0m process_orders() - returned: dict
+[92m✓[0m update_inventory() - returned: dict
+[92m✓[0m generate_report() - returned: dict
+
+[93mPhase 3: Testing Flask App Initialization[0m
+
+[92m✓[0m Flask app initialized
+[92m✓[0m Blueprints registered: auth, shopify, billing, admin, legal, oauth, faq, webhook, webhook_shopify, gdpr
+
+[93mPhase 4: Testing Utility Functions[0m
+
+[92m✓[0m email_service has 8 functions
+[92m✓[0m main.get_creds_path() - /Users/essentials/Documents/1EmployeeSuite-FIXED/creds.json
+
+[94m======================================================================[0m
+[94mTest Summary[0m
+[94m======================================================================[0m
+
+[92mPassed: 29[0m
+[91mFailed: 0[0m
+[93mSkipped: 1[0m
+
+[93mSkipped Tests (expected):[0m
+  ⚠ init_limiter() - needs Flask app context
+
+[94m======================================================================[0m
+
