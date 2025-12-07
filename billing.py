@@ -135,8 +135,8 @@ SUBSCRIBE_HTML = '''
                 <li>Email support</li>
             </ul>
             
-            <form method="POST" action="{{ url_for('billing.create_checkout') }}" id="subscribe-form">
-                <button type="submit" class="btn" id="subscribe-btn">
+            <form method="POST" action="{{ url_for('billing.create_checkout') }}">
+                <button type="submit" class="btn">
                     {% if not has_access %}
                     Restore Access Now
                     {% elif trial_active and not is_subscribed %}
@@ -146,16 +146,6 @@ SUBSCRIBE_HTML = '''
                     {% endif %}
                 </button>
             </form>
-            <script>
-                // Prevent double-clicks and show loading state
-                document.getElementById('subscribe-form').addEventListener('submit', function(e) {
-                    const btn = document.getElementById('subscribe-btn');
-                    btn.disabled = true;
-                    btn.style.opacity = '0.6';
-                    btn.style.cursor = 'not-allowed';
-                    btn.textContent = 'Processing...';
-                });
-            </script>
         </div>
     </div>
 </body>

@@ -124,12 +124,16 @@ def optimize_response(response):
 @app.before_request
 def validate_request_security():
     """Validate incoming requests for security"""
-    # Skip validation for static files, health checks, and webhooks
+    # Skip validation for static files, health checks, webhooks, and billing
     if request.endpoint in ('static', 'health') or request.endpoint is None:
         return
     
     # Skip for webhook endpoints (they have HMAC verification)
     if request.path.startswith('/webhook/'):
+        return
+    
+    # Skip for billing endpoints (Stripe handles security)
+    if request.path.startswith('/billing/') or request.endpoint and 'billing' in request.endpoint:
         return
     
     # Quick request size check only (fast)
