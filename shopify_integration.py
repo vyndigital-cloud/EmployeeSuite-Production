@@ -36,11 +36,16 @@ class ShopifyClient:
         inventory = []
         for product in data.get('products', []):
             for variant in product.get('variants', []):
+                # Handle None values - Shopify can return None for SKU
+                sku = variant.get('sku') or 'N/A'  # Use 'N/A' if SKU is None or empty
+                price_value = variant.get('price') or '0'  # Use '0' if price is None
+                price = f"${price_value}" if price_value != '0' else 'N/A'
+                
                 inventory.append({
                     'product': product['title'],
-                    'sku': variant.get('sku', 'N/A'),
-                    'stock': variant.get('inventory_quantity', 0),
-                    'price': f"${variant.get('price', '0')}"
+                    'sku': sku,
+                    'stock': variant.get('inventory_quantity', 0) or 0,  # Ensure stock is a number
+                    'price': price
                 })
         return inventory
     
