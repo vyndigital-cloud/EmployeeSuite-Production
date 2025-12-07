@@ -168,6 +168,8 @@ DASHBOARD_HTML = """
         }
         .nav-btn-primary:hover {
             background: #3a5c2a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(74, 115, 56, 0.3);
         }
         
         /* Container */
@@ -284,9 +286,10 @@ DASHBOARD_HTML = """
         .card-description {
             font-size: 15px;
             color: #737373;
-            line-height: 1.6;
+            line-height: 1.7;
             margin-bottom: 24px;
             font-weight: 400;
+            min-height: 48px;
         }
         .card-btn {
             width: 100%;
@@ -451,7 +454,7 @@ DASHBOARD_HTML = """
     
     <div class="container">
         <div class="page-title">Dashboard</div>
-        <div class="page-subtitle">Automate your Shopify store operations with real-time inventory, order processing, and revenue insights</div>
+        <div class="page-subtitle">Automate your Shopify store operations with real-time inventory management, automated order processing, and comprehensive revenue analytics</div>
         
         {% if not has_access %}
         <div class="banner banner-warning" style="justify-content: space-between; align-items: center;">
@@ -473,44 +476,44 @@ DASHBOARD_HTML = """
         {% if not has_shopify %}
         <div class="banner banner-info">
             <div class="banner-content">
-                <h3>Connect Your Store</h3>
-                <p>Connect Shopify to start automating</p>
+                <h3>🚀 Get Started</h3>
+                <p>Connect your Shopify store to unlock automated order processing, inventory management, and revenue analytics</p>
             </div>
-            <a href="{{ url_for('shopify.shopify_settings') }}" class="banner-action">Connect</a>
+            <a href="{{ url_for('shopify.shopify_settings') }}" class="banner-action">Connect Store</a>
         </div>
         {% endif %}
         
         <div class="cards-grid">
             <div class="card">
                 <div class="card-icon">📦</div>
-                <div class="card-title">Orders</div>
-                <div class="card-description">Process pending Shopify orders</div>
+                <div class="card-title">Order Processing</div>
+                <div class="card-description">Automatically process pending and unfulfilled Shopify orders. Sync order status in real-time.</div>
                 {% if has_access %}
-                <button class="card-btn" onclick="processOrders()">Process Orders</button>
+                <button class="card-btn" onclick="processOrders()">Process Orders Now</button>
                 {% else %}
-                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;">Process Orders</button>
+                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled>Process Orders</button>
                 {% endif %}
             </div>
             
             <div class="card">
                 <div class="card-icon">📊</div>
-                <div class="card-title">Inventory</div>
-                <div class="card-description">Check stock levels and alerts</div>
+                <div class="card-title">Inventory Management</div>
+                <div class="card-description">Monitor stock levels across all products. Get low-stock alerts and complete inventory visibility.</div>
                 {% if has_access %}
                 <button class="card-btn" onclick="updateInventory()">Check Inventory</button>
                 {% else %}
-                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;">Check Inventory</button>
+                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled>Check Inventory</button>
                 {% endif %}
             </div>
             
             <div class="card">
                 <div class="card-icon">💰</div>
-                <div class="card-title">Reports</div>
-                <div class="card-description">View revenue analytics</div>
+                <div class="card-title">Revenue Analytics</div>
+                <div class="card-description">Generate comprehensive revenue reports with profit calculations and product performance insights.</div>
                 {% if has_access %}
                 <button class="card-btn" onclick="generateReport()">Generate Report</button>
                 {% else %}
-                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;">Generate Report</button>
+                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled>Generate Report</button>
                 {% endif %}
             </div>
         </div>
@@ -624,15 +627,18 @@ DASHBOARD_HTML = """
         }
     </script>
 
-    <footer style="margin-top: 60px; padding: 24px; border-top: 1px solid #e5e5e5; text-align: center; background: #fff;">
-        <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; font-size: 14px;">
-            <a href="/faq" style="color: #525252; text-decoration: none; font-weight: 500;">FAQ</a>
-            <span style="color: #d4d4d4;">|</span>
-            <a href="/privacy" style="color: #525252; text-decoration: none; font-weight: 500;">Privacy Policy</a>
-            <span style="color: #d4d4d4;">|</span>
-            <a href="/terms" style="color: #525252; text-decoration: none; font-weight: 500;">Terms of Service</a>
-            <span style="color: #d4d4d4;">|</span>
-            <span style="color: #737373;">© 2025 Employee Suite</span>
+    <footer style="margin-top: 80px; padding: 32px 24px; border-top: 1px solid #e5e5e5; text-align: center; background: #fafafa;">
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; font-size: 14px; margin-bottom: 16px;">
+                <a href="/faq" style="color: #525252; text-decoration: none; font-weight: 500; transition: color 0.2s;">FAQ</a>
+                <span style="color: #d4d4d4;">|</span>
+                <a href="/privacy" style="color: #525252; text-decoration: none; font-weight: 500; transition: color 0.2s;">Privacy Policy</a>
+                <span style="color: #d4d4d4;">|</span>
+                <a href="/terms" style="color: #525252; text-decoration: none; font-weight: 500; transition: color 0.2s;">Terms of Service</a>
+            </div>
+            <div style="color: #737373; font-size: 13px;">
+                © 2025 Employee Suite. All rights reserved.
+            </div>
         </div>
     </footer>
 </body>
