@@ -94,7 +94,6 @@ def check_inventory():
                 </div>
                 <div style='text-align: right; margin-left: 16px;'>
                     <div style='font-weight: 600; color: {alert_color}; font-size: 13px;'>{inventory}</div>
-                    <div style='color: #a3a3a3; font-size: 10px; margin-top: 1px;'>units</div>
                 </div>
             </div>
             """
