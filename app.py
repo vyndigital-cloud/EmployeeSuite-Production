@@ -303,6 +303,10 @@ DASHBOARD_HTML = """
             cursor: pointer;
             transition: all 0.2s ease;
             letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         .card-btn:hover {
             background: #262626;
@@ -391,7 +395,20 @@ DASHBOARD_HTML = """
         
         /* Smooth transitions */
         * {
-            transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+            transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+        }
+        
+        /* Focus states for accessibility */
+        button:focus-visible,
+        a:focus-visible {
+            outline: 2px solid #4a7338;
+            outline-offset: 2px;
+        }
+        
+        /* Print styles */
+        @media print {
+            .header, .banner, .card-btn, footer { display: none; }
+            .card { break-inside: avoid; }
         }
         
         /* Responsive - Mobile First */
@@ -489,9 +506,12 @@ DASHBOARD_HTML = """
                 <div class="card-title">Order Processing</div>
                 <div class="card-description">Automatically process pending and unfulfilled Shopify orders. Sync order status in real-time.</div>
                 {% if has_access %}
-                <button class="card-btn" onclick="processOrders()">Process Orders Now</button>
+                <button class="card-btn" onclick="processOrders()" aria-label="Process pending orders">
+                    Process Orders Now
+                    <span style="font-size: 12px; opacity: 0.7; margin-left: 8px;">⌘1</span>
+                </button>
                 {% else %}
-                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled>Process Orders</button>
+                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to process orders">Process Orders</button>
                 {% endif %}
             </div>
             
@@ -500,9 +520,12 @@ DASHBOARD_HTML = """
                 <div class="card-title">Inventory Management</div>
                 <div class="card-description">Monitor stock levels across all products. Get low-stock alerts and complete inventory visibility.</div>
                 {% if has_access %}
-                <button class="card-btn" onclick="updateInventory()">Check Inventory</button>
+                <button class="card-btn" onclick="updateInventory()" aria-label="Check inventory levels">
+                    Check Inventory
+                    <span style="font-size: 12px; opacity: 0.7; margin-left: 8px;">⌘2</span>
+                </button>
                 {% else %}
-                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled>Check Inventory</button>
+                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to check inventory">Check Inventory</button>
                 {% endif %}
             </div>
             
@@ -511,9 +534,12 @@ DASHBOARD_HTML = """
                 <div class="card-title">Revenue Analytics</div>
                 <div class="card-description">Generate comprehensive revenue reports with profit calculations and product performance insights.</div>
                 {% if has_access %}
-                <button class="card-btn" onclick="generateReport()">Generate Report</button>
+                <button class="card-btn" onclick="generateReport()" aria-label="Generate revenue report">
+                    Generate Report
+                    <span style="font-size: 12px; opacity: 0.7; margin-left: 8px;">⌘3</span>
+                </button>
                 {% else %}
-                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled>Generate Report</button>
+                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to generate reports">Generate Report</button>
                 {% endif %}
             </div>
         </div>
@@ -624,6 +650,45 @@ DASHBOARD_HTML = """
                         </div>
                     `;
                 });
+        }
+        
+        // Keyboard shortcuts for power users
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + 1 = Process Orders
+            if ((e.ctrlKey || e.metaKey) && e.key === '1') {
+                e.preventDefault();
+                {% if has_access %}
+                processOrders();
+                {% else %}
+                showSubscribePrompt();
+                {% endif %}
+            }
+            // Ctrl/Cmd + 2 = Check Inventory
+            if ((e.ctrlKey || e.metaKey) && e.key === '2') {
+                e.preventDefault();
+                {% if has_access %}
+                updateInventory();
+                {% else %}
+                showSubscribePrompt();
+                {% endif %}
+            }
+            // Ctrl/Cmd + 3 = Generate Report
+            if ((e.ctrlKey || e.metaKey) && e.key === '3') {
+                e.preventDefault();
+                {% if has_access %}
+                generateReport();
+                {% else %}
+                showSubscribePrompt();
+                {% endif %}
+            }
+        });
+        
+        // Track page views (if analytics is set up)
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'page_view', {
+                'page_title': 'Dashboard',
+                'page_location': window.location.href
+            });
         }
     </script>
 
