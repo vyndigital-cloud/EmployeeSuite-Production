@@ -508,7 +508,7 @@ DASHBOARD_HTML = """
     </script>
     
     <!-- Meta tags for better SEO and sharing -->
-    <meta name="description" content="Automate your Shopify store operations with real-time order processing, inventory management, and revenue analytics.">
+    <meta name="description" content="Monitor your Shopify store operations with order tracking, inventory management, and revenue analytics.">
     <meta name="keywords" content="shopify, automation, inventory, orders, analytics, ecommerce">
     <meta property="og:title" content="Employee Suite - Shopify Automation Platform">
     <meta property="og:description" content="Automate order processing, inventory management, and revenue reporting for your Shopify store.">
@@ -531,7 +531,7 @@ DASHBOARD_HTML = """
     
     <div class="container">
         <div class="page-title">Dashboard</div>
-        <div class="page-subtitle">Automate your Shopify store operations with real-time inventory management, automated order processing, and comprehensive revenue analytics</div>
+        <div class="page-subtitle">Monitor your Shopify store operations with inventory tracking, order monitoring, and comprehensive revenue analytics</div>
         
         {% if not has_access %}
         <div class="banner banner-warning" style="justify-content: space-between; align-items: center;">
@@ -554,7 +554,7 @@ DASHBOARD_HTML = """
         <div class="banner banner-info">
             <div class="banner-content">
                 <h3>🚀 Get Started</h3>
-                <p>Connect your Shopify store to unlock automated order processing, inventory management, and revenue analytics</p>
+                <p>Connect your Shopify store to unlock order monitoring, inventory management, and revenue analytics</p>
             </div>
             <a href="{{ url_for('shopify.shopify_settings') }}" class="banner-action">Connect Store</a>
         </div>
@@ -564,10 +564,10 @@ DASHBOARD_HTML = """
             <div class="card">
                 <div class="card-icon">📦</div>
                 <div class="card-title">Order Processing</div>
-                <div class="card-description">Automatically process pending and unfulfilled Shopify orders. Sync order status in real-time.</div>
+                <div class="card-description">View pending and unfulfilled Shopify orders. Monitor order status and payment information.</div>
                 {% if has_access %}
-                <button class="card-btn" onclick="processOrders()" aria-label="Process pending orders">
-                    Process Orders Now
+                <button class="card-btn" onclick="processOrders()" aria-label="View pending orders">
+                    View Orders
                 </button>
                 {% else %}
                 <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to process orders">Process Orders</button>
@@ -590,7 +590,7 @@ DASHBOARD_HTML = """
             <div class="card">
                 <div class="card-icon">💰</div>
                 <div class="card-title">Revenue Analytics</div>
-                <div class="card-description">Generate comprehensive revenue reports with profit calculations and product performance insights.</div>
+                <div class="card-description">Generate comprehensive revenue reports with product-level breakdown and performance insights.</div>
                 {% if has_access %}
                 <button class="card-btn" onclick="generateReport()" aria-label="Generate revenue report">
                     Generate Report
@@ -641,10 +641,10 @@ DASHBOARD_HTML = """
                         <div style="animation: fadeIn 0.3s ease-in;">
                             <h3 class="${c}" style="display: flex; align-items: center; gap: 8px;">
                                 <span>${icon}</span>
-                                <span>${d.success ? 'Orders Processed Successfully' : 'Error Processing Orders'}</span>
+                                <span>${d.success ? 'Orders Loaded' : 'Error Loading Orders'}</span>
                             </h3>
                             <p style="margin-top: 12px; line-height: 1.6;">${d.message || d.error || 'No details available'}</p>
-                            ${d.success ? '<p style="margin-top: 8px; font-size: 13px; color: #737373;">✨ Your orders have been processed and synced.</p>' : ''}
+                            ${d.success ? '<p style="margin-top: 8px; font-size: 13px; color: #737373;">✨ Showing pending and unfulfilled orders from your store.</p>' : ''}
                         </div>
                     `;
                 })

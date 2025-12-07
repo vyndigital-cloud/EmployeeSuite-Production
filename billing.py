@@ -127,10 +127,11 @@ SUBSCRIBE_HTML = '''
             </div>
             
             <ul class="features-list">
-                <li>Real-time inventory monitoring</li>
-                <li>Low-stock alerts (set your own threshold)</li>
-                <li>Order tracking and status updates</li>
+                <li>Inventory monitoring (updated frequently)</li>
+                <li>Low-stock alerts (10 unit threshold)</li>
+                <li>Order tracking and status monitoring</li>
                 <li>Revenue reports by product</li>
+                <li>CSV export for revenue data</li>
                 <li>Shopify API integration</li>
                 <li>Email support</li>
             </ul>

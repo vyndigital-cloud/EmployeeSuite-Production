@@ -5,32 +5,32 @@
 
 ## Short Description (80 characters max)
 ```
-Automate order processing, inventory management, and revenue reporting for Shopify stores.
+Monitor orders, inventory, and revenue analytics for your Shopify store.
 ```
 
 ## Long Description
 
-**Employee Suite** is a comprehensive automation platform designed to help Shopify store owners streamline their operations and focus on growing their business.
+**Employee Suite** is a monitoring and analytics platform designed to help Shopify store owners track their operations and make data-driven decisions.
 
 ### 🚀 Key Features
 
-**📦 Automated Order Processing**
-- Process pending and unfulfilled orders automatically
-- Real-time order status synchronization
-- Batch processing capabilities
-- Error handling and retry logic
+**📦 Order Monitoring**
+- View pending and unfulfilled orders from your Shopify store
+- Monitor order status and payment information
+- Track orders that require action
+- Updated frequently (30-60 second refresh)
 
-**📊 Real-Time Inventory Management**
+**📊 Inventory Management**
 - Monitor stock levels across all products
-- Low-stock alerts with customizable thresholds
+- Low-stock alerts (10 unit threshold)
 - Complete inventory visibility
-- Automated inventory tracking
+- Products sorted by priority (lowest stock first)
 
 **💰 Revenue Analytics & Reporting**
 - All-time revenue analytics
-- Profit calculations by product
-- Detailed financial reports
-- Export capabilities for accounting
+- Revenue breakdown by product
+- Top 10 products by revenue
+- Export revenue reports as CSV
 
 **🔒 Enterprise-Grade Security**
 - Secure OAuth authentication
@@ -40,26 +40,26 @@ Automate order processing, inventory management, and revenue reporting for Shopi
 - HMAC signature verification
 
 **⚡ Performance & Reliability**
-- 99.9% uptime guarantee
-- Real-time data synchronization
+- High availability infrastructure
+- Frequently updated data synchronization
 - Optimized for high-volume stores
-- Scalable infrastructure
+- Scalable architecture
 
 ### ✨ Why Choose Employee Suite?
 
-- **Save Hours Daily** - Automate repetitive tasks and focus on growth
-- **Reduce Errors** - Eliminate manual data entry mistakes
-- **Real-Time Insights** - Make data-driven decisions instantly
-- **Scale Effortlessly** - Handle growth without hiring more staff
+- **Save Time** - Monitor all store operations from one dashboard
+- **Stay Informed** - Get alerts when inventory runs low
+- **Data-Driven Decisions** - Access revenue analytics instantly
+- **Easy to Use** - Simple, clean interface
 - **2-Day Free Trial** - Try risk-free, no credit card required
 
 ### 🎯 Perfect For
 
-- E-commerce store owners managing high order volumes
-- Businesses looking to automate inventory management
+- E-commerce store owners who want visibility into their operations
+- Businesses looking to monitor inventory levels
 - Stores needing detailed revenue analytics
-- Merchants wanting to reduce manual work
-- Growing businesses scaling operations
+- Merchants wanting a centralized dashboard
+- Growing businesses tracking their performance
 
 ### 💰 Pricing
 
@@ -109,7 +109,7 @@ Automate order processing, inventory management, and revenue reporting for Shopi
 
 ### Screenshot 4: Revenue Reports
 **Size:** 1280x720px minimum  
-**Content:** Revenue analytics and profit reports
+**Content:** Revenue analytics and product revenue breakdown
 
 ### Screenshot 5: Settings
 **Size:** 1280x720px minimum  
@@ -131,13 +131,13 @@ Automate order processing, inventory management, and revenue reporting for Shopi
 - Inventory Management
 - Order Management
 - Analytics & Reporting
-- Automation
+- Store Management
 
 ---
 
 ## Tags
 
-- automation
+- monitoring
 - inventory
 - orders
 - analytics

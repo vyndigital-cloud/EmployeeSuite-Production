@@ -59,8 +59,8 @@ def send_trial_expiry_warning(user_email, days_left):
             <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px 0;">
                 <p style="color: #92400e; font-weight: 600;">Don't lose access to:</p>
                 <ul style="color: #92400e;">
-                    <li>Real-time inventory tracking</li>
-                    <li>Low-stock alerts</li>
+                    <li>Inventory monitoring</li>
+                    <li>Low-stock alerts (10 unit threshold)</li>
                     <li>Revenue reports</li>
                 </ul>
             </div>
@@ -100,8 +100,8 @@ def send_payment_success(user_email):
             <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
                 <p style="color: #166534; font-weight: 600;">You now have unlimited access to:</p>
                 <ul style="color: #166534;">
-                    <li>Real-time inventory tracking</li>
-                    <li>Automated low-stock alerts</li>
+                    <li>Inventory monitoring</li>
+                    <li>Low-stock alerts (10 unit threshold)</li>
                     <li>Revenue analytics & reports</li>
                     <li>Priority support</li>
                 </ul>

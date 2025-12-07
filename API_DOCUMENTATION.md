@@ -90,7 +90,7 @@ Updates and displays inventory levels from Shopify.
 ### Reports
 
 #### `POST /api/generate_report`
-Generates revenue and profit reports.
+Generates revenue reports with product-level breakdown.
 
 **Authentication:** Required  
 **Access:** Subscribed users or active trial users
