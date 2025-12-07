@@ -136,7 +136,15 @@ SUBSCRIBE_HTML = '''
             </ul>
             
             <form method="POST" action="{{ url_for('billing.create_checkout') }}">
-                <button type="submit" class="btn">Subscribe Now</button>
+                <button type="submit" class="btn">
+                    {% if not has_access %}
+                    Restore Access Now
+                    {% elif trial_active and not is_subscribed %}
+                    Subscribe Now ({{ days_left }} day{{ 's' if days_left != 1 else '' }} left)
+                    {% else %}
+                    Subscribe Now
+                    {% endif %}
+                </button>
             </form>
         </div>
     </div>
