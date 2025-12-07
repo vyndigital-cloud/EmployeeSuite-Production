@@ -37,25 +37,26 @@ def check_inventory():
         if not products or len(products) == 0:
             return {"success": True, "message": "<div style='padding: 16px; background: #fffbeb; border-radius: 6px; border-left: 3px solid #f59e0b; color: #92400e; font-size: 14px;'>⚠️ No products found in your store.</div>"}
         
-        # Sort products by stock level (lowest first)
+        # Sort products by stock level (lowest first = highest priority)
         sorted_products = sorted(products, key=lambda x: x.get('stock', 0))
         
         threshold = 10
         low_stock_count = sum(1 for p in products if p.get('stock', 0) < threshold)
         
-        # Build complete inventory report with real-time timestamp
+        # Build minimalistic inventory report with unified style
         from datetime import datetime
-        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
         
-        message = f"<div style='margin: 16px 0;'><h4 style='font-size: 15px; font-weight: 600; color: #171717; margin-bottom: 12px;'>Complete Inventory ({len(products)} products)</h4>"
-        message += f"<div style='font-size: 12px; color: #737373; margin-bottom: 12px; font-style: italic;'>🔄 Live data fetched: {timestamp}</div>"
+        # Unified minimalistic style
+        message = f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'>"
+        message += f"<div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Inventory ({len(products)} products)</div>"
         
         if low_stock_count > 0:
-            message += f"<div style='padding: 12px; background: #fef2f2; border-radius: 6px; border-left: 3px solid #dc2626; margin-bottom: 16px; font-size: 14px; color: #991b1b;'>⚠️ {low_stock_count} product(s) below {threshold} units</div>"
+            message += f"<div style='padding: 8px 12px; background: #fef2f2; border-left: 2px solid #dc2626; border-radius: 4px; margin-bottom: 12px; font-size: 12px; color: #991b1b;'>{low_stock_count} below {threshold} units</div>"
         else:
-            message += f"<div style='padding: 12px; background: #f0fdf4; border-radius: 6px; border-left: 3px solid #16a34a; margin-bottom: 16px; font-size: 14px; color: #166534;'>✅ All products have sufficient stock</div>"
+            message += f"<div style='padding: 8px 12px; background: #f0fdf4; border-left: 2px solid #16a34a; border-radius: 4px; margin-bottom: 12px; font-size: 12px; color: #166534;'>All products in stock</div>"
         
-        # Show all products with stock levels
+        # Show all products - lowest stock first (highest priority)
         for product in sorted_products:
             inventory = product.get('stock', 0)
             product_name = product.get('product', 'Unknown Product')
@@ -65,29 +66,29 @@ def check_inventory():
             # Determine color based on stock level
             if inventory == 0:
                 alert_color = '#dc2626'
-                stock_status = 'OUT OF STOCK'
+                border_color = '#dc2626'
             elif inventory < threshold:
                 alert_color = '#f59e0b'
-                stock_status = 'LOW STOCK'
+                border_color = '#f59e0b'
             else:
                 alert_color = '#16a34a'
-                stock_status = 'IN STOCK'
+                border_color = '#16a34a'
             
+            # Minimalistic compact style
             message += f"""
-            <div style='padding: 12px; margin: 8px 0; background: #fafafa; border-radius: 6px; border-left: 3px solid {alert_color};'>
-                <div style='display: flex; justify-content: space-between; align-items: center;'>
-                    <div>
-                        <div style='font-weight: 500; color: #171717; font-size: 14px;'>{product_name}</div>
-                        <div style='color: #737373; margin-top: 4px; font-size: 13px;'>SKU: {sku} • {price}</div>
-                    </div>
-                    <div style='text-align: right;'>
-                        <div style='font-weight: 600; color: {alert_color}; font-size: 14px;'>{inventory} units</div>
-                        <div style='color: #737373; font-size: 12px; margin-top: 2px;'>{stock_status}</div>
-                    </div>
+            <div style='padding: 10px 12px; margin: 6px 0; background: #fff; border-left: 2px solid {border_color}; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;'>
+                <div style='flex: 1;'>
+                    <div style='font-weight: 500; color: #171717; font-size: 13px;'>{product_name}</div>
+                    <div style='color: #737373; margin-top: 2px; font-size: 11px;'>{sku} • {price}</div>
+                </div>
+                <div style='text-align: right; margin-left: 16px;'>
+                    <div style='font-weight: 600; color: {alert_color}; font-size: 13px;'>{inventory}</div>
+                    <div style='color: #a3a3a3; font-size: 10px; margin-top: 1px;'>units</div>
                 </div>
             </div>
             """
         
+        message += f"<div style='color: #a3a3a3; font-size: 10px; margin-top: 12px; text-align: right;'>Updated: {timestamp}</div>"
         message += "</div>"
         return {"success": True, "message": message}
     

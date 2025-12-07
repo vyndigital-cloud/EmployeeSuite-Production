@@ -46,16 +46,20 @@ def process_orders(creds_path='creds.json'):
                     order_ids.add(order.get('id'))
         
         if len(all_orders) == 0:
-            return {"success": True, "message": "<div style='padding: 16px; background: #f0fdf4; border-radius: 6px; border-left: 3px solid #16a34a; color: #166534; font-size: 14px;'>✅ No pending orders. All caught up!</div>"}
+            return {"success": True, "message": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 8px 12px; background: #f0fdf4; border-left: 2px solid #16a34a; border-radius: 4px; font-size: 12px; color: #166534;'>✅ No pending orders</div>"}
         
-        # Build clean HTML output with real-time timestamp
+        # Build minimalistic HTML output with unified style (same as inventory/reports)
         from datetime import datetime
-        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
         
-        html = f"<div style='margin: 16px 0;'><h4 style='font-size: 15px; font-weight: 600; color: #171717; margin-bottom: 12px;'>Pending Orders ({len(all_orders)})</h4>"
-        html += "<div style='font-size: 13px; color: #737373; margin-bottom: 12px;'>Showing orders that need action: pending payment or unfulfilled</div>"
-        html += f"<div style='font-size: 12px; color: #737373; margin-bottom: 12px; font-style: italic;'>🔄 Live data fetched: {timestamp}</div>"
+        # Unified minimalistic style
+        html = f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'>"
+        html += f"<div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Pending Orders ({len(all_orders)})</div>"
         
+        # Summary box - minimalistic
+        html += f"<div style='padding: 8px 12px; background: #fffbeb; border-left: 2px solid #f59e0b; border-radius: 4px; margin-bottom: 12px; font-size: 11px; color: #92400e;'>Requires action</div>"
+        
+        # Show orders - minimalistic, same style as inventory/reports
         for order in all_orders[:50]:  # Show up to 50 orders
             order_name = order.get('name', 'N/A')
             total = order.get('total_price', '0')
@@ -64,22 +68,28 @@ def process_orders(creds_path='creds.json'):
             
             # Determine status and color
             if financial_status == 'pending':
-                status_text = "Pending Payment"
-                status_color = '#f59e0b'
+                status_text = "Pending"
+                border_color = '#f59e0b'
             elif fulfillment_status == 'unfulfilled':
                 status_text = "Unfulfilled"
-                status_color = '#dc2626'
+                border_color = '#dc2626'
             else:
-                status_text = "Needs Action"
-                status_color = '#f59e0b'
+                status_text = "Action needed"
+                border_color = '#f59e0b'
             
             html += f"""
-            <div style='padding: 14px; margin: 8px 0; background: #fafafa; border-radius: 6px; border-left: 3px solid {status_color};'>
-                <div style='font-weight: 500; color: #171717; font-size: 14px;'>Order {order_name}</div>
-                <div style='color: #737373; margin-top: 4px; font-size: 13px;'>Total: ${total} • {status_text}</div>
+            <div style='padding: 10px 12px; margin: 6px 0; background: #fff; border-left: 2px solid {border_color}; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;'>
+                <div style='flex: 1;'>
+                    <div style='font-weight: 500; color: #171717; font-size: 13px;'>{order_name}</div>
+                    <div style='color: #737373; margin-top: 2px; font-size: 11px;'>{status_text}</div>
+                </div>
+                <div style='text-align: right; margin-left: 16px;'>
+                    <div style='font-weight: 600; color: #171717; font-size: 13px;'>${total}</div>
+                </div>
             </div>
             """
         
+        html += f"<div style='color: #a3a3a3; font-size: 10px; margin-top: 12px; text-align: right;'>Updated: {timestamp}</div>"
         html += "</div>"
         
         return {"success": True, "message": html}
