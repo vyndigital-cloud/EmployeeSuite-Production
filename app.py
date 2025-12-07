@@ -570,7 +570,7 @@ DASHBOARD_HTML = """
                     View Orders
                 </button>
                 {% else %}
-                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to process orders">Process Orders</button>
+                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to view orders">View Orders</button>
                 {% endif %}
             </div>
             
