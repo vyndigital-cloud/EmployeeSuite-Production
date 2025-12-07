@@ -50,7 +50,7 @@ if sentry_dsn:
 else:
     logger.warning("SENTRY_DSN not set - error monitoring disabled")
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', template_folder='templates')
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['SESSION_COOKIE_SECURE'] = True  # Secure cookies over HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -102,6 +102,8 @@ DASHBOARD_HTML = """
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Shopify Polaris CSS for better design consistency -->
+    <link rel="stylesheet" href="https://cdn.shopify.com/shopifycloud/app-bridge.css">
     <style>
         * {
             margin: 0;
@@ -110,10 +112,11 @@ DASHBOARD_HTML = """
         }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: #f5f5f5;
             color: #171717;
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         
         /* Header */
@@ -370,15 +373,33 @@ DASHBOARD_HTML = """
             transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
         }
         
-        /* Responsive */
+        /* Responsive - Mobile First */
         @media (max-width: 768px) {
-            .container { padding: 32px 16px; }
+            .container { padding: 24px 16px; }
+            .page-title { font-size: 28px; }
+            .page-subtitle { font-size: 15px; }
+            .cards-grid { grid-template-columns: 1fr; gap: 16px; }
+            .banner { flex-direction: column; gap: 16px; text-align: center; padding: 16px 20px; }
+            .banner-action { width: 100%; text-align: center; }
+            .header-content { padding: 0 16px; }
+            .header-nav { gap: 4px; }
+            .nav-btn { padding: 6px 10px; font-size: 13px; }
+            .card { padding: 20px; }
+            .card-icon { font-size: 24px; }
+            .card-title { font-size: 18px; }
+            .card-description { font-size: 14px; }
+            #output { padding: 16px; min-height: 150px; font-size: 13px; }
+        }
+        @media (max-width: 480px) {
             .page-title { font-size: 24px; }
-            .cards-grid { grid-template-columns: 1fr; }
-            .banner { flex-direction: column; gap: 16px; text-align: center; }
+            .logo { font-size: 16px; }
+            .header-nav { flex-wrap: wrap; }
         }
     </style>
 
+    <!-- Shopify App Bridge (for embedded apps) -->
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3"></script>
     <script>
@@ -387,6 +408,13 @@ DASHBOARD_HTML = """
         gtag('js', new Date());
         gtag('config', 'G-RBBQ4X7FJ3');
     </script>
+    
+    <!-- Meta tags for better SEO and sharing -->
+    <meta name="description" content="Automate your Shopify store operations with real-time order processing, inventory management, and revenue analytics.">
+    <meta name="keywords" content="shopify, automation, inventory, orders, analytics, ecommerce">
+    <meta property="og:title" content="Employee Suite - Shopify Automation Platform">
+    <meta property="og:description" content="Automate order processing, inventory management, and revenue reporting for your Shopify store.">
+    <meta property="og:type" content="website">
     </head>
 <body>
     <div class="header">
@@ -597,6 +625,20 @@ def home():
         return redirect(url_for('dashboard'))
     return redirect(url_for('auth.login'))
 
+@app.route('/static/icon.png')
+def app_icon():
+    """Serve app icon - fallback if PNG doesn't exist, serves SVG"""
+    from flask import send_file
+    import os
+    icon_path = os.path.join(app.static_folder, 'icon.png')
+    if os.path.exists(icon_path):
+        return send_file(icon_path, mimetype='image/png')
+    # Fallback to SVG if PNG doesn't exist yet
+    svg_path = os.path.join(app.static_folder, 'icon.svg')
+    if os.path.exists(svg_path):
+        return send_file(svg_path, mimetype='image/svg+xml')
+    return jsonify({"error": "Icon not found"}), 404
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -667,10 +709,21 @@ def health():
     try:
         # Quick DB connectivity check
         db.session.execute(db.text('SELECT 1'))
-        return jsonify({"status": "healthy", "service": "Employee Suite", "version": "2.0", "database": "connected"}), 200
+        return jsonify({
+            "status": "healthy", 
+            "service": "Employee Suite", 
+            "version": "2.0", 
+            "database": "connected",
+            "timestamp": datetime.utcnow().isoformat()
+        }), 200
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return jsonify({"status": "unhealthy", "error": str(e)}), 500
+
+@app.route('/api/docs')
+def api_docs():
+    """API documentation endpoint"""
+    return redirect('https://github.com/vyndigital-cloud/EmployeeSuite-Production/blob/main/API_DOCUMENTATION.md')
 
 @app.route('/api/process_orders', methods=['GET', 'POST'])
 @login_required

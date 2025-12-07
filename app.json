@@ -1,7 +1,7 @@
 {
   "name": "Employee Suite",
   "handle": "employee-suite",
-  "description": "Automate your Shopify store operations with order processing, inventory management, and revenue reporting.",
+  "description": "Automate your Shopify store operations with real-time order processing, inventory management, and revenue analytics. Save hours daily with automated workflows.",
   "icon": "https://employeesuite-production.onrender.com/static/icon.png",
   "api_version": "2024-10",
   "auth": {

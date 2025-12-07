@@ -1,0 +1,22 @@
+<svg width="1200" height="1200" viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a7338;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#72b05e;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="1200" fill="url(#grad)" rx="240"/>
+  <g transform="translate(300, 300)">
+    <!-- Rocket Icon -->
+    <path d="M 300 200 L 300 100 L 200 150 L 200 250 Z" fill="#fff" opacity="0.9"/>
+    <path d="M 200 150 L 300 100 L 400 150 L 300 200 Z" fill="#fff" opacity="0.95"/>
+    <rect x="250" y="200" width="100" height="200" fill="#fff" opacity="0.9" rx="10"/>
+    <circle cx="300" cy="350" r="30" fill="#fff" opacity="0.8"/>
+    <circle cx="280" cy="330" r="8" fill="#4a7338"/>
+    <circle cx="320" cy="330" r="8" fill="#4a7338"/>
+    <!-- Automation Lines -->
+    <path d="M 100 250 Q 150 200 200 250" stroke="#fff" stroke-width="8" fill="none" opacity="0.6"/>
+    <path d="M 400 250 Q 450 200 500 250" stroke="#fff" stroke-width="8" fill="none" opacity="0.6"/>
+  </g>
+  <text x="600" y="900" font-family="Inter, sans-serif" font-size="120" font-weight="700" fill="#fff" text-anchor="middle" opacity="0.95">ES</text>
+</svg>
