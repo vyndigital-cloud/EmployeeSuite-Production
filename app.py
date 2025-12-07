@@ -24,6 +24,14 @@ from reporting import generate_report
 
 from logging_config import logger
 from access_control import require_access
+from security_enhancements import (
+    add_security_headers, 
+    check_request_size, 
+    sanitize_input_enhanced,
+    validate_request,
+    log_security_event,
+    require_https
+)
 
 # Initialize Sentry for error monitoring (if DSN is provided)
 sentry_dsn = os.getenv('SENTRY_DSN')
@@ -92,6 +100,30 @@ app.register_blueprint(gdpr_bp)
 
 # Initialize rate limiter with global 200 req/hour
 limiter = init_limiter(app)
+
+# Apply security headers to all responses
+@app.after_request
+def security_headers(response):
+    """Add security headers to all responses"""
+    return add_security_headers(response)
+
+# Request validation before processing
+@app.before_request
+def validate_request_security():
+    """Validate incoming requests for security"""
+    # Skip validation for static files and health checks
+    if request.endpoint in ('static', 'health'):
+        return
+    
+    # Check request size
+    if not check_request_size():
+        return jsonify({'error': 'Request too large'}), 413
+    
+    # Validate request
+    is_valid, issues = validate_request()
+    if not is_valid:
+        log_security_event('request_validation_failed', str(issues), 'WARNING')
+        return jsonify({'error': 'Invalid request'}), 400
 
 DASHBOARD_HTML = """
 <!DOCTYPE html>
