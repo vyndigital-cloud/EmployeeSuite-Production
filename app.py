@@ -137,6 +137,10 @@ DASHBOARD_HTML = """
             font-size: 18px;
             font-weight: 600;
             color: #171717;
+            transition: opacity 0.2s;
+        }
+        .logo:hover {
+            opacity: 0.8;
         }
         .header-nav {
             display: flex;
@@ -186,6 +190,8 @@ DASHBOARD_HTML = """
             color: #737373;
             margin-bottom: 48px;
             font-weight: 400;
+            line-height: 1.6;
+            max-width: 800px;
         }
         
         /* Trial Banner */
@@ -259,8 +265,14 @@ DASHBOARD_HTML = """
             transform: translateY(0);
         }
         .card-icon {
-            font-size: 28px;
+            font-size: 32px;
             margin-bottom: 16px;
+            line-height: 1;
+            filter: grayscale(0%);
+            transition: transform 0.2s ease;
+        }
+        .card:hover .card-icon {
+            transform: scale(1.1);
         }
         .card-title {
             font-size: 20px;
@@ -331,6 +343,12 @@ DASHBOARD_HTML = """
         #output:empty:before {
             content: 'Results will appear here...';
             color: #a3a3a3;
+            font-style: italic;
+        }
+        #output:empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         /* Loading */
@@ -419,7 +437,10 @@ DASHBOARD_HTML = """
 <body>
     <div class="header">
         <div class="header-content">
-            <a href="/dashboard" style="text-decoration: none; color: inherit;" class="logo">🚀 Employee Suite</a>
+            <a href="/dashboard" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 10px; font-weight: 600;" class="logo">
+                <span style="font-size: 20px;">🚀</span>
+                <span>Employee Suite</span>
+            </a>
             <div class="header-nav">
                 <a href="{{ url_for('shopify.shopify_settings') }}" class="nav-btn">Settings</a>
                 <a href="{{ url_for('billing.subscribe') }}" class="nav-btn nav-btn-primary">Subscribe</a>
@@ -625,19 +646,7 @@ def home():
         return redirect(url_for('dashboard'))
     return redirect(url_for('auth.login'))
 
-@app.route('/static/icon.png')
-def app_icon():
-    """Serve app icon - fallback if PNG doesn't exist, serves SVG"""
-    from flask import send_file
-    import os
-    icon_path = os.path.join(app.static_folder, 'icon.png')
-    if os.path.exists(icon_path):
-        return send_file(icon_path, mimetype='image/png')
-    # Fallback to SVG if PNG doesn't exist yet
-    svg_path = os.path.join(app.static_folder, 'icon.svg')
-    if os.path.exists(svg_path):
-        return send_file(svg_path, mimetype='image/svg+xml')
-    return jsonify({"error": "Icon not found"}), 404
+# Icon is served via Flask static file serving automatically
 
 @app.route('/dashboard')
 @login_required
@@ -651,7 +660,25 @@ def dashboard():
     from models import ShopifyStore
     has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
     
-    return render_template_string(DASHBOARD_HTML, trial_active=trial_active, days_left=days_left, is_subscribed=current_user.is_subscribed, has_shopify=has_shopify, has_access=has_access)
+    # Get some stats for better UX (if has access)
+    stats = {}
+    if has_access and has_shopify:
+        try:
+            store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+            if store:
+                from shopify_integration import ShopifyClient
+                client = ShopifyClient(store.shop_url, store.access_token)
+                # Quick stats (non-blocking, won't fail if API is slow)
+                stats['has_data'] = True
+        except:
+            stats['has_data'] = False
+    
+    return render_template_string(DASHBOARD_HTML, 
+                                 trial_active=trial_active, 
+                                 days_left=days_left, 
+                                 is_subscribed=current_user.is_subscribed, 
+                                 has_shopify=has_shopify, 
+                                 has_access=has_access)
 
 
 @app.route('/cron/send-trial-warnings', methods=['GET', 'POST'])
