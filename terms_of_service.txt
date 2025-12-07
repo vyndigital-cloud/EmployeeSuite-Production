@@ -37,7 +37,14 @@ Payment terms:
 
 REFUND POLICY
 
-Setup fees are non-refundable. Monthly subscriptions can be cancelled anytime, with no refund for the current billing period.
+All sales are final. Setup fees ($1,000) are non-refundable. Monthly subscription fees ($500) are non-refundable. No refunds will be provided for any reason, including but not limited to:
+- Change of mind
+- Non-use of the Service
+- Technical issues
+- Dissatisfaction with features
+- Account cancellation
+
+By subscribing, you acknowledge that you have read and agree to this no-refund policy. All payments are final and non-refundable.
 
 USER RESPONSIBILITIES
 

@@ -87,7 +87,7 @@ FAQ_HTML = '''
         
         <div class="faq-item">
             <div class="faq-question">Do you offer refunds?</div>
-            <div class="faq-answer">Refund requests are handled on a case-by-case basis. Email us at adam@golproductions.com within 7 days of purchase to request a refund. We'll review your request and respond within 24 hours.</div>
+            <div class="faq-answer"><strong>No refunds policy:</strong> All sales are final. Setup fees ($1,000) and monthly subscriptions ($500) are non-refundable. No refunds will be provided for any reason, including change of mind, non-use, technical issues, or dissatisfaction. By subscribing, you agree to this policy. We offer a 2-day free trial so you can test the platform before committing.</div>
         </div>
         
         <div class="faq-item">
