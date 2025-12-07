@@ -9,8 +9,8 @@ import hashlib
 import hmac
 import os
 import logging
+import secrets
 from datetime import datetime, timedelta
-from werkzeug.security import safe_str_cmp
 
 logger = logging.getLogger(__name__)
 
@@ -185,8 +185,8 @@ def validate_password_strength(password):
 
 # Secure comparison (timing-safe)
 def secure_compare(a, b):
-    """Timing-safe string comparison"""
-    return safe_str_cmp(str(a), str(b))
+    """Timing-safe string comparison using secrets.compare_digest"""
+    return secrets.compare_digest(str(a), str(b))
 
 # Log security events
 def log_security_event(event_type, details, severity='INFO'):
