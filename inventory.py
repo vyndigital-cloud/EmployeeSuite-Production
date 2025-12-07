@@ -85,18 +85,8 @@ def check_inventory():
                 alert_color = '#16a34a'
                 border_color = '#16a34a'
             
-            # Minimalistic compact style
-            message += f"""
-            <div style='padding: 10px 12px; margin: 6px 0; background: #fff; border-left: 2px solid {border_color}; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;'>
-                <div style='flex: 1;'>
-                    <div style='font-weight: 500; color: #171717; font-size: 13px;'>{product_name}</div>
-                    <div style='color: #737373; margin-top: 2px; font-size: 11px;'>{sku} • {price}</div>
-                </div>
-                <div style='text-align: right; margin-left: 16px;'>
-                    <div style='font-weight: 600; color: {alert_color}; font-size: 13px;'>{inventory}</div>
-                </div>
-            </div>
-            """
+            # Minimalistic compact style - EXACT match to orders/revenue
+            message += f"<div style='padding: 10px 12px; margin: 6px 0; background: #fff; border-left: 2px solid {border_color}; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;'><div style='flex: 1;'><div style='font-weight: 500; color: #171717; font-size: 13px;'>{product_name}</div><div style='color: #737373; margin-top: 2px; font-size: 11px;'>{sku} • {price}</div></div><div style='text-align: right; margin-left: 16px;'><div style='font-weight: 600; color: {alert_color}; font-size: 13px;'>{inventory}</div></div></div>"
         
         message += f"<div style='color: #a3a3a3; font-size: 10px; margin-top: 12px; text-align: right;'>Updated: {timestamp}</div>"
         message += "</div>"

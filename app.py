@@ -508,7 +508,6 @@ DASHBOARD_HTML = """
                 {% if has_access %}
                 <button class="card-btn" onclick="processOrders()" aria-label="Process pending orders">
                     Process Orders Now
-                    <span style="font-size: 12px; opacity: 0.7; margin-left: 8px;">⌘1</span>
                 </button>
                 {% else %}
                 <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to process orders">Process Orders</button>
@@ -522,7 +521,6 @@ DASHBOARD_HTML = """
                 {% if has_access %}
                 <button class="card-btn" onclick="updateInventory()" aria-label="Check inventory levels">
                     Check Inventory
-                    <span style="font-size: 12px; opacity: 0.7; margin-left: 8px;">⌘2</span>
                 </button>
                 {% else %}
                 <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to check inventory">Check Inventory</button>
@@ -536,7 +534,6 @@ DASHBOARD_HTML = """
                 {% if has_access %}
                 <button class="card-btn" onclick="generateReport()" aria-label="Generate revenue report">
                     Generate Report
-                    <span style="font-size: 12px; opacity: 0.7; margin-left: 8px;">⌘3</span>
                 </button>
                 {% else %}
                 <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to generate reports">Generate Report</button>
