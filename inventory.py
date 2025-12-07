@@ -64,13 +64,24 @@ def check_inventory():
             price = product.get('price', 'N/A')
             
             # Determine color based on stock level
-            if inventory == 0:
+            # Negative stock (oversold) = RED (critical)
+            # 0 stock = RED (critical, out of stock)
+            # 1-9 stock (below threshold) = ORANGE (warning, low stock)
+            # 10+ stock = GREEN (good, in stock)
+            if inventory < 0:
+                # Negative stock = oversold, critical
+                alert_color = '#dc2626'
+                border_color = '#dc2626'
+            elif inventory == 0:
+                # Zero stock = out of stock, critical
                 alert_color = '#dc2626'
                 border_color = '#dc2626'
             elif inventory < threshold:
+                # Low stock (1-9) = warning
                 alert_color = '#f59e0b'
                 border_color = '#f59e0b'
             else:
+                # Good stock (10+) = healthy
                 alert_color = '#16a34a'
                 border_color = '#16a34a'
             
