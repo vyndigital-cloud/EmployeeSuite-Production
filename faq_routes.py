@@ -87,7 +87,7 @@ FAQ_HTML = '''
         
         <div class="faq-item">
             <div class="faq-question">Do you offer refunds?</div>
-            <div class="faq-answer"><strong>No refunds policy:</strong> All sales are final. Setup fees ($1,000) and monthly subscriptions ($500) are non-refundable. No refunds will be provided for any reason, including change of mind, non-use, technical issues, or dissatisfaction. By subscribing, you agree to this policy. We offer a 2-day free trial so you can test the platform before committing.</div>
+            <div class="faq-answer"><strong>7-Day Refund Policy:</strong> Monthly subscription fees ($500) are refundable if requested within 7 days of payment, provided you have not used the platform features (order processing, inventory management, or revenue reports) after subscribing. Setup fees ($1,000) are non-refundable. To prevent abuse, refunds are limited to one per customer account. Email adam@golproductions.com within 7 days to request a refund. All refund requests are subject to verification.</div>
         </div>
         
         <div class="faq-item">
