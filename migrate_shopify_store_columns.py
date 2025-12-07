@@ -120,38 +120,38 @@ def migrate_shopify_store_columns(app, db):
                         logger.info("✅ uninstalled_at column already exists")
                 except Exception as e:
                     logger.warning(f"Could not check for uninstalled_at column: {e}")
-            
-            # Add indexes for new columns (PostgreSQL only - SQLite handles indexes differently)
-            if dialect != 'sqlite':
-                try:
-                    # Check if shop_id index exists
-                    result = db.session.execute(db.text("""
-                        SELECT indexname 
-                        FROM pg_indexes 
-                        WHERE tablename='shopify_stores' AND indexname='ix_shopify_stores_shop_id'
-                    """))
-                    if not result.fetchone():
-                        logger.info("Adding index for shop_id...")
-                        db.session.execute(db.text("""
-                            CREATE INDEX ix_shopify_stores_shop_id ON shopify_stores(shop_id)
+                
+                # Add indexes for new columns (PostgreSQL only - SQLite handles indexes differently)
+                if dialect != 'sqlite':
+                    try:
+                        # Check if shop_id index exists
+                        result = db.session.execute(db.text("""
+                            SELECT indexname 
+                            FROM pg_indexes 
+                            WHERE tablename='shopify_stores' AND indexname='ix_shopify_stores_shop_id'
                         """))
-                        logger.info("✅ shop_id index added")
-                    
-                    # Check if charge_id index exists
-                    result = db.session.execute(db.text("""
-                        SELECT indexname 
-                        FROM pg_indexes 
-                        WHERE tablename='shopify_stores' AND indexname='ix_shopify_stores_charge_id'
-                    """))
-                    if not result.fetchone():
-                        logger.info("Adding index for charge_id...")
-                        db.session.execute(db.text("""
-                            CREATE INDEX ix_shopify_stores_charge_id ON shopify_stores(charge_id)
+                        if not result.fetchone():
+                            logger.info("Adding index for shop_id...")
+                            db.session.execute(db.text("""
+                                CREATE INDEX ix_shopify_stores_shop_id ON shopify_stores(shop_id)
+                            """))
+                            logger.info("✅ shop_id index added")
+                        
+                        # Check if charge_id index exists
+                        result = db.session.execute(db.text("""
+                            SELECT indexname 
+                            FROM pg_indexes 
+                            WHERE tablename='shopify_stores' AND indexname='ix_shopify_stores_charge_id'
                         """))
-                        logger.info("✅ charge_id index added")
-                except Exception as e:
-                    logger.warning(f"Could not add indexes: {e}")
-                    # Don't rollback - indexes are optional
+                        if not result.fetchone():
+                            logger.info("Adding index for charge_id...")
+                            db.session.execute(db.text("""
+                                CREATE INDEX ix_shopify_stores_charge_id ON shopify_stores(charge_id)
+                            """))
+                            logger.info("✅ charge_id index added")
+                    except Exception as e:
+                        logger.warning(f"Could not add indexes: {e}")
+                        # Don't rollback - indexes are optional
             
             db.session.commit()
             logger.info("✅ Migration completed successfully")
