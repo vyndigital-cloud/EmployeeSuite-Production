@@ -71,8 +71,8 @@ if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Performance optimizations
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_size': 5,
-    'max_overflow': 10,
+    'pool_size': 10,  # Increased for 50-100 clients
+    'max_overflow': 20,  # Increased for traffic spikes
     'pool_pre_ping': True,  # Verify connections before using
     'pool_recycle': 3600,  # Recycle connections after 1 hour
 }
