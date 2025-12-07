@@ -135,7 +135,7 @@ SUBSCRIBE_HTML = '''
                 <li>Email support</li>
             </ul>
             
-            <form method="POST" action="/billing/create-checkout-session">
+            <form method="POST" action="/create-checkout-session">
                 <button type="submit" class="btn">
                     {% if not has_access %}
                     Restore Access Now
