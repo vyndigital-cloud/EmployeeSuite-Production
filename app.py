@@ -123,8 +123,8 @@ def optimize_response(response):
 # Request validation before processing (optimized - fast checks only)
 @app.before_request
 def validate_request_security():
-    """Validate incoming requests for security"""
-    # Skip validation for static files, health checks, webhooks, and billing
+    """Validate incoming requests for security - minimal checks only"""
+    # Skip validation for static files, health checks
     if request.endpoint in ('static', 'health') or request.endpoint is None:
         return
     
@@ -133,11 +133,19 @@ def validate_request_security():
         return
     
     # Skip for billing endpoints (Stripe handles security)
-    if request.path.startswith('/billing/') or request.endpoint and 'billing' in request.endpoint:
+    if request.path.startswith('/billing/'):
         return
     
-    # Quick request size check only (fast)
-    if request.content_length and request.content_length > MAX_REQUEST_SIZE:
+    # Skip for OAuth callbacks (Shopify handles security)
+    if request.path.startswith('/auth/callback') or request.path.startswith('/install'):
+        return
+    
+    # Skip for API endpoints (they have their own auth)
+    if request.path.startswith('/api/'):
+        return
+    
+    # Only check request size for POST/PUT requests (not GET)
+    if request.method in ('POST', 'PUT') and request.content_length and request.content_length > MAX_REQUEST_SIZE:
         log_security_event('request_too_large', f"IP: {request.remote_addr}, Size: {request.content_length}", 'WARNING')
         return jsonify({'error': 'Request too large'}), 413
 
