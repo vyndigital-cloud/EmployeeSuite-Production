@@ -26,17 +26,18 @@ def add_security_headers(response):
     # Enable XSS protection (legacy browsers)
     response.headers['X-XSS-Protection'] = '1; mode=block'
     
-    # Content Security Policy - strict policy
+    # Content Security Policy - strict policy (allows Stripe checkout)
     csp = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://cdn.shopify.com; "
+        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://cdn.shopify.com https://js.stripe.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.shopify.com; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: https:; "
         "connect-src 'self' https://api.stripe.com https://*.myshopify.com https://www.google-analytics.com; "
         "frame-ancestors 'none'; "
+        "frame-src https://checkout.stripe.com https://js.stripe.com; "
         "base-uri 'self'; "
-        "form-action 'self';"
+        "form-action 'self' https://checkout.stripe.com;"
     )
     response.headers['Content-Security-Policy'] = csp
     
