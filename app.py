@@ -106,47 +106,22 @@ def security_headers(response):
     """Add security headers to all responses"""
     return add_security_headers(response)
 
-# Request validation before processing
+# Request validation before processing (optimized - fast checks only)
 @app.before_request
 def validate_request_security():
     """Validate incoming requests for security"""
-    # Skip validation for static files and health checks
-    if request.endpoint in ('static', 'health'):
+    # Skip validation for static files, health checks, and webhooks
+    if request.endpoint in ('static', 'health') or request.endpoint is None:
         return
     
-    # Check request size
-    if not check_request_size():
-        return jsonify({'error': 'Request too large'}), 413
-    
-    # Validate request
-    is_valid, issues = validate_request()
-    if not is_valid:
-        log_security_event('request_validation_failed', str(issues), 'WARNING')
-        return jsonify({'error': 'Invalid request'}), 400
-
-# Apply security headers to all responses
-@app.after_request
-def security_headers(response):
-    """Add security headers to all responses"""
-    return add_security_headers(response)
-
-# Request validation before processing
-@app.before_request
-def validate_request_security():
-    """Validate incoming requests for security"""
-    # Skip validation for static files and health checks
-    if request.endpoint in ('static', 'health'):
+    # Skip for webhook endpoints (they have HMAC verification)
+    if request.path.startswith('/webhook/'):
         return
     
-    # Check request size
-    if not check_request_size():
+    # Quick request size check only (fast)
+    if request.content_length and request.content_length > MAX_REQUEST_SIZE:
+        log_security_event('request_too_large', f"IP: {request.remote_addr}, Size: {request.content_length}", 'WARNING')
         return jsonify({'error': 'Request too large'}), 413
-    
-    # Validate request
-    is_valid, issues = validate_request()
-    if not is_valid:
-        log_security_event('request_validation_failed', str(issues), 'WARNING')
-        return jsonify({'error': 'Invalid request'}), 400
 
 DASHBOARD_HTML = """
 <!DOCTYPE html>
