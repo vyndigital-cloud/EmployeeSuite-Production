@@ -252,8 +252,6 @@ def create_checkout():
             return "Payment configuration error. Please contact support.", 500
         
         # Create checkout session (this is the slow part - Stripe API call)
-        # Add timeout to prevent hanging
-        import requests
         checkout_session = stripe.checkout.Session.create(
             customer_email=current_user.email,
             payment_method_types=['card'],
