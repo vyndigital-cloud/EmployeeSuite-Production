@@ -773,17 +773,9 @@ def dashboard():
     has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
     
     # Get some stats for better UX (if has access)
-    stats = {}
-    if has_access and has_shopify:
-        try:
-            store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
-            if store:
-                from shopify_integration import ShopifyClient
-                client = ShopifyClient(store.shop_url, store.access_token)
-                # Quick stats (non-blocking, won't fail if API is slow)
-                stats['has_data'] = True
-        except:
-            stats['has_data'] = False
+    # Optimized: Don't make API calls on dashboard load (too slow)
+    # Stats will be fetched when user clicks buttons
+    stats = {'has_data': has_shopify}  # Just check if Shopify is connected
     
     return render_template_string(DASHBOARD_HTML, 
                                  trial_active=trial_active, 
