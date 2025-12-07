@@ -143,7 +143,14 @@ def generate_report():
         html += f"<div style='color: #a3a3a3; font-size: 10px; margin-top: 12px; text-align: right;'>Updated: {timestamp}</div>"
         html += "</div>"
         
-        return {"success": True, "message": html}
+        # Store report data for CSV export
+        report_data = {
+            'total_revenue': total_revenue,
+            'total_orders': total_orders,
+            'products': sorted_products
+        }
+        
+        return {"success": True, "message": html, "report_data": report_data}
         
     except Exception as e:
         return {"success": False, "error": f"Unexpected error: {str(e)}"}

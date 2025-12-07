@@ -85,11 +85,55 @@ def check_inventory():
                 alert_color = '#16a34a'
                 border_color = '#16a34a'
             
-            # Minimalistic compact style - EXACT match to orders/revenue
-            message += f"<div style='padding: 10px 12px; margin: 6px 0; background: #fff; border-left: 2px solid {border_color}; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;'><div style='flex: 1;'><div style='font-weight: 500; color: #171717; font-size: 13px;'>{product_name}</div><div style='color: #737373; margin-top: 2px; font-size: 11px;'>{sku} • {price}</div></div><div style='text-align: right; margin-left: 16px;'><div style='font-weight: 600; color: {alert_color}; font-size: 13px;'>{inventory}</div></div></div>"
+            # Minimalistic compact style - EXACT match to orders/revenue (with data-stock for filtering)
+            message += f"<div data-stock='{inventory}' style='padding: 10px 12px; margin: 6px 0; background: #fff; border-left: 2px solid {border_color}; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;'><div style='flex: 1;'><div style='font-weight: 500; color: #171717; font-size: 13px;'>{product_name}</div><div style='color: #737373; margin-top: 2px; font-size: 11px;'>{sku} • {price}</div></div><div style='text-align: right; margin-left: 16px;'><div style='font-weight: 600; color: {alert_color}; font-size: 13px;'>{inventory}</div></div></div>"
+        
+        # Wrap products in container with ID for filtering
+        message = message.replace(
+            '<div style=\'font-family:',
+            '<div id="inventory-list" style=\'font-family:'
+        )
+        
+        # Add search/filter UI and export button
+        message += f"""
+        <div style='margin-top: 16px; padding: 12px; background: #fafafa; border-radius: 6px; border: 1px solid #e5e5e5;'>
+            <div style='display: flex; gap: 12px; align-items: center; flex-wrap: wrap;'>
+                <input type='text' id='inventory-search' placeholder='Search products...' style='flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid #d4d4d4; border-radius: 6px; font-size: 13px;' onkeyup='filterInventory()'>
+                <select id='inventory-filter' onchange='filterInventory()' style='padding: 8px 12px; border: 1px solid #d4d4d4; border-radius: 6px; font-size: 13px; background: #fff;'>
+                    <option value='all'>All Stock Levels</option>
+                    <option value='critical'>Critical (≤0)</option>
+                    <option value='low'>Low Stock (1-9)</option>
+                    <option value='good'>Good Stock (10+)</option>
+                </select>
+                <a href='/api/export/inventory' style='padding: 8px 16px; background: #4a7338; color: #fff; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; white-space: nowrap;' onclick='event.stopPropagation();'>📥 Export CSV</a>
+            </div>
+        </div>
+        <script>
+            function filterInventory() {{
+                const search = document.getElementById('inventory-search')?.value.toLowerCase() || '';
+                const filter = document.getElementById('inventory-filter')?.value || 'all';
+                const items = document.querySelectorAll('#inventory-list > div[data-stock]');
+                items.forEach(item => {{
+                    const text = item.textContent.toLowerCase();
+                    const stock = parseInt(item.getAttribute('data-stock') || '0');
+                    const matchesSearch = !search || text.includes(search);
+                    let matchesFilter = true;
+                    if (filter === 'critical') matchesFilter = stock <= 0;
+                    else if (filter === 'low') matchesFilter = stock > 0 && stock < 10;
+                    else if (filter === 'good') matchesFilter = stock >= 10;
+                    item.style.display = (matchesSearch && matchesFilter) ? 'flex' : 'none';
+                }});
+            }}
+        </script>
+        """
         
         message += f"<div style='color: #a3a3a3; font-size: 10px; margin-top: 12px; text-align: right;'>Updated: {timestamp}</div>"
         message += "</div>"
+        
+        # Store products data for CSV export (in session)
+        from flask import session
+        session['inventory_data'] = sorted_products
+        
         return {"success": True, "message": message}
     
     except Exception as e:

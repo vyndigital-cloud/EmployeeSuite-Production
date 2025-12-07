@@ -144,6 +144,10 @@ def validate_request_security():
     if request.path.startswith('/api/'):
         return
     
+    # Skip for export endpoints (they have their own auth)
+    if request.path.startswith('/api/export/'):
+        return
+    
     # Only check request size for POST/PUT requests (not GET)
     if request.method in ('POST', 'PUT') and request.content_length and request.content_length > MAX_REQUEST_SIZE:
         log_security_event('request_too_large', f"IP: {request.remote_addr}, Size: {request.content_length}", 'WARNING')
@@ -915,7 +919,19 @@ def api_generate_report():
             logger.warning(f"Generate report returned no message for user {current_user.id}")
             return '<h3 class="error">❌ No report data available</h3>', 500
         
-        return data.get('message', '<h3 class="error">❌ No report data available</h3>')
+        # Add export button to report
+        html = data.get('message', '<h3 class="error">❌ No report data available</h3>')
+        if data.get('success') and 'Revenue Report' in html:
+            # Add export button before closing div
+            export_btn = '<div style="margin-top: 12px; text-align: right;"><a href="/api/export/report" style="padding: 8px 16px; background: #4a7338; color: #fff; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500;">📥 Export CSV</a></div>'
+            html = html.replace('</div>', export_btn + '</div>', 1)
+        
+        # Store report data for CSV export
+        from flask import session
+        if 'report_data' in data:
+            session['report_data'] = data['report_data']
+        
+        return html
     except Exception as e:
         logger.error(f"Generate report exception for user {current_user.id}: {str(e)}", exc_info=True)
         return f"<h3 class='error'>❌ Error: {str(e)}</h3>", 500
@@ -945,6 +961,107 @@ def rate_limit_exceeded(error):
     """429 error handler for rate limiting"""
     log_security_event('rate_limit_exceeded', f"IP: {request.remote_addr}, Path: {request.path}", 'WARNING')
     return jsonify({'error': 'Rate limit exceeded. Please try again later.'}), 429
+
+# CSV Export Endpoints
+@app.route('/api/export/inventory', methods=['GET'])
+@login_required
+@require_access
+def export_inventory_csv():
+    """Export inventory to CSV"""
+    try:
+        from flask import session, Response
+        import csv
+        import io
+        
+        # Get inventory data from session or regenerate
+        inventory_data = session.get('inventory_data', [])
+        
+        if not inventory_data:
+            # Regenerate if not in session
+            result = update_inventory()
+            if result.get('success'):
+                inventory_data = session.get('inventory_data', [])
+        
+        if not inventory_data:
+            return "No inventory data available. Please check inventory first.", 404
+        
+        # Create CSV
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['Product Name', 'SKU', 'Stock', 'Price'])
+        
+        for product in inventory_data:
+            writer.writerow([
+                product.get('product', 'N/A'),
+                product.get('sku', 'N/A'),
+                product.get('stock', 0),
+                product.get('price', 'N/A')
+            ])
+        
+        # Return CSV file
+        response = Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename=inventory_{datetime.utcnow().strftime("%Y%m%d")}.csv'}
+        )
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error exporting inventory CSV for user {current_user.id}: {str(e)}", exc_info=True)
+        return f"Error exporting CSV: {str(e)}", 500
+
+@app.route('/api/export/report', methods=['GET'])
+@login_required
+@require_access
+def export_report_csv():
+    """Export revenue report to CSV"""
+    try:
+        from flask import session, Response
+        from reporting import generate_report
+        import csv
+        import io
+        
+        # Get report data from session or regenerate
+        report_data = session.get('report_data', {})
+        
+        if not report_data:
+            # Regenerate if not in session
+            data = generate_report()
+            if data.get('success') and 'report_data' in data:
+                report_data = data['report_data']
+        
+        if not report_data or 'products' not in report_data:
+            return "No report data available. Please generate report first.", 404
+        
+        # Create CSV
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['Product', 'Revenue', 'Percentage', 'Total Revenue', 'Total Orders'])
+        
+        total_revenue = report_data.get('total_revenue', 0)
+        total_orders = report_data.get('total_orders', 0)
+        
+        for product, revenue in report_data.get('products', [])[:10]:
+            percentage = (revenue / total_revenue * 100) if total_revenue > 0 else 0
+            writer.writerow([
+                product,
+                f"${revenue:,.2f}",
+                f"{percentage:.1f}%",
+                f"${total_revenue:,.2f}",
+                total_orders
+            ])
+        
+        # Return CSV file
+        response = Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename=revenue_report_{datetime.utcnow().strftime("%Y%m%d")}.csv'}
+        )
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error exporting report CSV for user {current_user.id}: {str(e)}", exc_info=True)
+        return f"Error exporting CSV: {str(e)}", 500
 
 # Initialize database tables on startup (safe for production - only creates if don't exist)
 def init_db():
