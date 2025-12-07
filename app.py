@@ -26,9 +26,8 @@ from logging_config import logger
 from access_control import require_access
 from security_enhancements import (
     add_security_headers, 
-    check_request_size, 
+    MAX_REQUEST_SIZE,
     sanitize_input_enhanced,
-    validate_request,
     log_security_event,
     require_https
 )
