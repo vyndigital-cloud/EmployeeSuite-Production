@@ -34,6 +34,17 @@ ADMIN_LOGIN_HTML = '''
         .btn { width: 100%; padding: 12px; background: #171717; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
         .btn:hover { background: #262626; }
         .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body { padding: 16px; }
+            .card { padding: 24px; }
+            .logo { font-size: 20px; }
+        }
+        @media (max-width: 480px) {
+            .card { padding: 20px; }
+            .card-title { font-size: 18px; }
+        }
     </style>
 </head>
 <body>
@@ -100,6 +111,22 @@ ADMIN_DASHBOARD_HTML = '''
         .badge-success { background: #dcfce7; color: #166534; }
         .badge-warning { background: #fef3c7; color: #92400e; }
         .badge-error { background: #fee2e2; color: #991b1b; }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .container { padding: 32px 16px; }
+            .page-title { font-size: 26px; }
+            .page-subtitle { font-size: 15px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .header-content { padding: 0 16px; }
+            .table-card { overflow-x: auto; }
+            table { min-width: 600px; }
+        }
+        @media (max-width: 480px) {
+            .page-title { font-size: 24px; }
+            .stat-card { padding: 20px; }
+            .stat-value { font-size: 28px; }
+        }
     </style>
 </head>
 <body>

@@ -191,6 +191,23 @@ SETTINGS_HTML = '''
             font-size: 14px;
             color: #991b1b;
         }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .container { padding: 32px 16px; }
+            .page-title { font-size: 26px; }
+            .page-subtitle { font-size: 15px; }
+            .card { padding: 24px; }
+            .card-title { font-size: 16px; }
+            .header-content { padding: 0 16px; }
+            .nav-btn { padding: 6px 10px; font-size: 13px; }
+            .info-row { flex-direction: column; gap: 4px; }
+        }
+        @media (max-width: 480px) {
+            .page-title { font-size: 24px; }
+            .card { padding: 20px; }
+            .btn { padding: 10px 16px; font-size: 13px; }
+        }
     </style>
 </head>
 <body>
