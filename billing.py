@@ -74,6 +74,23 @@ SUBSCRIBE_HTML = '''
             cursor: pointer;
         }
         .btn:hover { background: #3a5c2a; }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .container { padding: 32px 16px; }
+            .page-title { font-size: 26px; }
+            .page-subtitle { font-size: 15px; }
+            .pricing-card { padding: 24px; }
+            .pricing-value { font-size: 20px; }
+            .header-content { padding: 0 16px; }
+            .logo { font-size: 16px; }
+            .nav-btn { padding: 6px 10px; font-size: 13px; }
+        }
+        @media (max-width: 480px) {
+            .page-title { font-size: 24px; }
+            .pricing-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .pricing-value { font-size: 18px; }
+        }
     </style>
 </head>
 <body>

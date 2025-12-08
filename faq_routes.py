@@ -47,6 +47,21 @@ FAQ_HTML = '''
             color: #525252;
             line-height: 1.7;
         }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .container { padding: 32px 16px; }
+            .page-title { font-size: 26px; }
+            .page-subtitle { font-size: 15px; }
+            .faq-item { padding: 20px; }
+            .faq-question { font-size: 16px; }
+            .faq-answer { font-size: 14px; }
+            .header-content { padding: 0 16px; }
+        }
+        @media (max-width: 480px) {
+            .page-title { font-size: 24px; }
+            .faq-item { padding: 18px; }
+        }
     </style>
 </head>
 <body>

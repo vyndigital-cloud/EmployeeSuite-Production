@@ -48,6 +48,18 @@ LOGIN_HTML = '''
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
         .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
         .footer-link a:hover { text-decoration: underline; }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body { padding: 16px; padding-top: 3vh; }
+            .card { padding: 32px 24px; }
+            .logo { font-size: 20px; }
+        }
+        @media (max-width: 480px) {
+            .card { padding: 28px 20px; }
+            .card-title { font-size: 18px; }
+            img { width: 120px !important; height: 120px !important; }
+        }
 
     </style>
 </head>
@@ -140,6 +152,19 @@ REGISTER_HTML = '''
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
         .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
         .footer-link a:hover { text-decoration: underline; }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body { padding: 16px; padding-top: 3vh; }
+            .card { padding: 32px 24px; }
+            .logo { font-size: 20px; }
+            .card-subtitle { font-size: 13px; }
+        }
+        @media (max-width: 480px) {
+            .card { padding: 28px 20px; }
+            .card-title { font-size: 18px; }
+            img { width: 120px !important; height: 120px !important; }
+        }
 
     </style>
 </head>
@@ -306,6 +331,16 @@ FORGOT_PASSWORD_HTML = '''
         .banner-success { background: #f0fdf4; border: 1px solid #86efac; border-left: 3px solid #16a34a; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #166534; }
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
         .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body { padding: 16px; padding-top: 3vh; }
+            .card { padding: 32px 24px; }
+        }
+        @media (max-width: 480px) {
+            .card { padding: 28px 20px; }
+            .card-title { font-size: 18px; }
+        }
     </style>
 </head>
 <body>
@@ -368,6 +403,16 @@ RESET_PASSWORD_HTML = '''
         .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
         .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body { padding: 16px; padding-top: 3vh; }
+            .card { padding: 32px 24px; }
+        }
+        @media (max-width: 480px) {
+            .card { padding: 28px 20px; }
+            .card-title { font-size: 18px; }
+        }
     </style>
 </head>
 <body>

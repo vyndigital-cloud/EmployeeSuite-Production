@@ -36,6 +36,20 @@ LEGAL_HTML = """
         .content { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 32px; line-height: 1.8; }
         h2 { font-size: 20px; font-weight: 600; color: #171717; margin: 32px 0 16px; }
         p { margin: 16px 0; color: #525252; font-size: 15px; }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .container { padding: 32px 16px; }
+            .page-title { font-size: 26px; }
+            .content { padding: 24px; }
+            h2 { font-size: 18px; }
+            p { font-size: 14px; }
+            .header-content { padding: 0 16px; }
+        }
+        @media (max-width: 480px) {
+            .page-title { font-size: 24px; }
+            .content { padding: 20px; }
+        }
     </style>
 </head>
 <body>
