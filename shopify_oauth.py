@@ -66,7 +66,7 @@ def callback():
         user = User(
             email=f"{shop}@shopify.com",
             password_hash='',  # OAuth users don't have passwords
-            trial_ends_at=datetime.utcnow() + timedelta(days=2)
+            trial_ends_at=datetime.utcnow() + timedelta(days=7)
         )
         db.session.add(user)
         db.session.commit()
