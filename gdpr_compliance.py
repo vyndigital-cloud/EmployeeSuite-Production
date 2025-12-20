@@ -5,6 +5,7 @@ Handles customer data requests and deletion
 from flask import Blueprint, request, jsonify
 import hmac
 import hashlib
+import base64
 import os
 from models import db, User, ShopifyStore
 from logging_config import logger
@@ -14,15 +15,22 @@ gdpr_bp = Blueprint('gdpr', __name__)
 SHOPIFY_API_SECRET = os.getenv('SHOPIFY_API_SECRET')
 
 def verify_shopify_webhook(data, hmac_header):
-    """Verify Shopify webhook HMAC signature"""
-    if not hmac_header:
+    """Verify Shopify webhook HMAC signature - Shopify uses BASE64 encoded HMAC"""
+    if not hmac_header or not SHOPIFY_API_SECRET:
         return False
     
-    calculated_hmac = hmac.new(
-        SHOPIFY_API_SECRET.encode('utf-8'),
-        data.encode('utf-8'),
-        hashlib.sha256
-    ).hexdigest()
+    # Shopify sends HMAC as base64, so we need to compute base64 too
+    # data should be raw bytes, not decoded string
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    
+    calculated_hmac = base64.b64encode(
+        hmac.new(
+            SHOPIFY_API_SECRET.encode('utf-8'),
+            data,
+            hashlib.sha256
+        ).digest()
+    ).decode('utf-8')
     
     return hmac.compare_digest(calculated_hmac, hmac_header)
 
@@ -34,7 +42,9 @@ def customers_data_request():
     """
     try:
         hmac_header = request.headers.get('X-Shopify-Hmac-Sha256')
-        if not verify_shopify_webhook(request.data.decode('utf-8'), hmac_header):
+        # Get raw bytes for HMAC verification (not decoded string)
+        raw_data = request.get_data(as_text=False)
+        if not verify_shopify_webhook(raw_data, hmac_header):
             logger.warning("Invalid webhook signature for customers/data_request")
             return jsonify({'error': 'Invalid signature'}), 401
         
@@ -81,7 +91,9 @@ def customers_redact():
     """
     try:
         hmac_header = request.headers.get('X-Shopify-Hmac-Sha256')
-        if not verify_shopify_webhook(request.data.decode('utf-8'), hmac_header):
+        # Get raw bytes for HMAC verification (not decoded string)
+        raw_data = request.get_data(as_text=False)
+        if not verify_shopify_webhook(raw_data, hmac_header):
             logger.warning("Invalid webhook signature for customers/redact")
             return jsonify({'error': 'Invalid signature'}), 401
         
@@ -122,7 +134,9 @@ def shop_redact():
     """
     try:
         hmac_header = request.headers.get('X-Shopify-Hmac-Sha256')
-        if not verify_shopify_webhook(request.data.decode('utf-8'), hmac_header):
+        # Get raw bytes for HMAC verification (not decoded string)
+        raw_data = request.get_data(as_text=False)
+        if not verify_shopify_webhook(raw_data, hmac_header):
             logger.warning("Invalid webhook signature for shop/redact")
             return jsonify({'error': 'Invalid signature'}), 401
         
