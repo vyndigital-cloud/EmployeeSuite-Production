@@ -196,7 +196,7 @@ REGISTER_HTML = '''
         
         <div class="card">
             <h1 class="card-title">Start Free Trial</h1>
-            <p class="card-subtitle">Your 2-day trial begins immediately</p>
+            <p class="card-subtitle">Your 7-day trial begins immediately</p>
             {% if error %}
             <div class="banner-error">{{ error }}</div>
             {% endif %}

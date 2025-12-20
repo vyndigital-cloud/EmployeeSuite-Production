@@ -11,7 +11,7 @@ def send_welcome_email(user_email):
         html_content=f'''
         <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto;">
             <h1 style="color: #171717;">Welcome to Employee Suite!</h1>
-            <p style="font-size: 16px; color: #525252; line-height: 1.6;">Your 2-day free trial has started.</p>
+            <p style="font-size: 16px; color: #525252; line-height: 1.6;">Your 7-day free trial has started.</p>
             
             <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
                 <h2 style="font-size: 18px; color: #171717;">Quick Start:</h2>
@@ -72,7 +72,7 @@ def send_trial_expiry_warning(user_email, days_left):
             </a>
             
             <p style="font-size: 13px; color: #737373; margin-top: 30px;">
-                $1,000 setup fee + $500/month after trial
+                $500/month after trial - No setup fees
             </p>
         </div>
         '''

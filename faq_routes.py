@@ -77,12 +77,17 @@ FAQ_HTML = '''
         
         <div class="faq-item">
             <div class="faq-question">How does the free trial work?</div>
-            <div class="faq-answer">You get 2 days of free access starting immediately when you sign up. No credit card required during trial. After 2 days, you need to subscribe to continue using the platform.</div>
+            <div class="faq-answer">You get 7 days of free access starting immediately when you sign up. No credit card required during trial. After 7 days, you need to subscribe to continue using the platform.</div>
         </div>
         
         <div class="faq-item">
             <div class="faq-question">How much does it cost?</div>
-            <div class="faq-answer">$1,000 one-time setup fee + $500/month subscription. Cancel anytime.</div>
+            <div class="faq-answer"><strong>Premium Plan:</strong> $500 AUD/month. No setup fees. Cancel anytime.</div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="faq-question">What is the maximum capacity?</div>
+            <div class="faq-answer">Our current infrastructure can comfortably support 50-100 active users. We're continuously scaling to accommodate growth and will expand capacity as needed to serve all customers.</div>
         </div>
         
         <div class="faq-item">
@@ -102,7 +107,7 @@ FAQ_HTML = '''
         
         <div class="faq-item">
             <div class="faq-question">Do you offer refunds?</div>
-            <div class="faq-answer"><strong>7-Day Refund Policy:</strong> Monthly subscription fees ($500) are refundable if requested within 7 days of payment, provided you have not used the platform features (order processing, inventory management, or revenue reports) after subscribing. Setup fees ($1,000) are non-refundable. To prevent abuse, refunds are limited to one per customer account. Email adam@golproductions.com within 7 days to request a refund. All refund requests are subject to verification.</div>
+            <div class="faq-answer"><strong>7-Day Refund Policy:</strong> Monthly subscription fees ($500 AUD) are refundable if requested within 7 days of payment, provided you have not used the platform features (order processing, inventory management, or revenue reports) after subscribing. To prevent abuse, refunds are limited to one per customer account. Email adam@golproductions.com within 7 days to request a refund. All refund requests are subject to verification.</div>
         </div>
         
         <div class="faq-item">

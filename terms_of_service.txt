@@ -39,12 +39,12 @@ You may not:
 SUBSCRIPTION AND BILLING
 
 Pricing:
-- Setup fee: $1,000 AUD (one-time, non-refundable)
 - Monthly subscription: $500 AUD per month
+- No setup fees
 - All prices are in Australian Dollars (AUD) unless otherwise stated
 
 Free Trial:
-- New users receive a 2-day free trial
+- New users receive a 7-day free trial
 - No credit card required during trial period
 - Trial begins immediately upon account creation
 - Subscription automatically begins after trial expires unless cancelled
@@ -62,12 +62,8 @@ Cancellation:
 - Cancellation takes effect at the end of your current billing period
 - You will retain access until the end of your paid billing period
 - No partial refunds for unused portions of billing periods
-- Setup fees are non-refundable regardless of cancellation
 
 REFUND POLICY
-
-Setup Fees:
-Setup fees ($1,000 AUD) are non-refundable under any circumstances.
 
 Monthly Subscription Refunds:
 Monthly subscription fees ($500 AUD) may be refunded if ALL of the following conditions are met:

@@ -531,7 +531,7 @@ DASHBOARD_HTML = """
     
     <div class="container">
         <div class="page-title">Dashboard</div>
-        <div class="page-subtitle">Monitor your Shopify store operations with inventory tracking, order monitoring, and comprehensive revenue analytics</div>
+        <div class="page-subtitle">Monitor your Shopify store operations with inventory tracking, order monitoring, and comprehensive revenue analytics. 7-day free trial, no setup fees.</div>
         
         {% if not has_access %}
         <div class="banner banner-warning" style="justify-content: space-between; align-items: center;">
