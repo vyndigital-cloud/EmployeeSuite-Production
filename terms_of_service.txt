@@ -39,9 +39,9 @@ You may not:
 SUBSCRIPTION AND BILLING
 
 Pricing:
-- Monthly subscription: $500 AUD per month
+- Monthly subscription: $29 USD per month
 - No setup fees
-- All prices are in Australian Dollars (AUD) unless otherwise stated
+- All prices are in US Dollars (USD) unless otherwise stated
 
 Free Trial:
 - New users receive a 7-day free trial
@@ -66,7 +66,7 @@ Cancellation:
 REFUND POLICY
 
 Monthly Subscription Refunds:
-Monthly subscription fees ($500 AUD) may be refunded if ALL of the following conditions are met:
+Monthly subscription fees ($29 USD) may be refunded if ALL of the following conditions are met:
 1. Refund request is made within 7 days of the payment date
 2. You have not used any Service features (order processing, inventory management, or revenue reports) after the payment date
 3. This is your first refund request for this account

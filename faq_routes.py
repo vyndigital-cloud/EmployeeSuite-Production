@@ -82,7 +82,7 @@ FAQ_HTML = '''
         
         <div class="faq-item">
             <div class="faq-question">How much does it cost?</div>
-            <div class="faq-answer"><strong>Premium Plan:</strong> $500 AUD/month. No setup fees. Cancel anytime.</div>
+            <div class="faq-answer"><strong>Plan:</strong> $29 USD/month. No setup fees. Cancel anytime.</div>
         </div>
         
         <div class="faq-item">
@@ -107,7 +107,7 @@ FAQ_HTML = '''
         
         <div class="faq-item">
             <div class="faq-question">Do you offer refunds?</div>
-            <div class="faq-answer"><strong>7-Day Refund Policy:</strong> Monthly subscription fees ($500 AUD) are refundable if requested within 7 days of payment, provided you have not used the platform features (order processing, inventory management, or revenue reports) after subscribing. To prevent abuse, refunds are limited to one per customer account. Email adam@golproductions.com within 7 days to request a refund. All refund requests are subject to verification.</div>
+            <div class="faq-answer"><strong>7-Day Refund Policy:</strong> Monthly subscription fees ($29 USD) are refundable if requested within 7 days of payment, provided you have not used the platform features (order processing, inventory management, or revenue reports) after subscribing. To prevent abuse, refunds are limited to one per customer account. Email adam@golproductions.com within 7 days to request a refund. All refund requests are subject to verification.</div>
         </div>
         
         <div class="faq-item">

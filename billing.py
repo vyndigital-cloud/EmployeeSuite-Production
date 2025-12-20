@@ -128,8 +128,8 @@ SUBSCRIBE_HTML = '''
         
         <div class="pricing-card">
             <div style="background: linear-gradient(135deg, #171717 0%, #262626 100%); color: #fff; padding: 24px; border-radius: 12px; margin-bottom: 24px; text-align: center;">
-                <div style="font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; margin-bottom: 8px;">Premium Plan</div>
-                <div style="font-size: 48px; font-weight: 700; margin-bottom: 4px;">$500<span style="font-size: 20px; font-weight: 500;">/month</span></div>
+                <div style="font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; margin-bottom: 8px;">Simple Pricing</div>
+                <div style="font-size: 48px; font-weight: 700; margin-bottom: 4px;">$29<span style="font-size: 20px; font-weight: 500;">/month</span></div>
                 <div style="font-size: 14px; opacity: 0.8;">7-day free trial • No setup fees • Cancel anytime</div>
             </div>
             
@@ -242,13 +242,13 @@ def create_checkout():
         if current_user.is_subscribed:
             return redirect(url_for('dashboard'))
         
-        # Get price ID from env - Premium $500/month plan
+        # Get price ID from env - $29/month plan
         monthly_price_id = os.getenv('STRIPE_MONTHLY_PRICE_ID')
         
         if not monthly_price_id:
             return "Payment configuration error. Please contact support.", 500
         
-        # Create checkout session - Premium $500/month subscription
+        # Create checkout session - $29/month subscription
         checkout_session = stripe.checkout.Session.create(
             customer_email=current_user.email,
             payment_method_types=['card'],
@@ -260,7 +260,7 @@ def create_checkout():
             ],
             mode='subscription',
             subscription_data={
-                'description': 'Employee Suite Premium - Shopify Inventory Automation'
+                'description': 'Employee Suite - Shopify Inventory Automation'
             },
             allow_promotion_codes=True,
             success_url=url_for('billing.success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',

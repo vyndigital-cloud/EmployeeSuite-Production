@@ -117,10 +117,10 @@ def create_shopify_subscription(shop_url, access_token, user_id):
     """
     billing = ShopifyBilling(shop_url, access_token)
     
-    # Create recurring charge: $500/month with 7-day trial
+    # Create recurring charge: $29/month with 7-day trial
     result = billing.create_recurring_charge(
-        name="Employee Suite Pro",
-        price=500.00,
+        name="Employee Suite",
+        price=29.00,
         trial_days=7
     )
     

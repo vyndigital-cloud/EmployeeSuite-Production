@@ -68,11 +68,11 @@ def send_trial_expiry_warning(user_email, days_left):
             <a href="https://employeesuite-production.onrender.com/subscribe" 
                style="display: inline-block; background: #171717; color: white; padding: 14px 28px; 
                       text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600;">
-                Subscribe Now - $500/month
+                Subscribe Now - $29/month
             </a>
             
             <p style="font-size: 13px; color: #737373; margin-top: 30px;">
-                $500/month after trial - No setup fees
+                $29/month after trial - No setup fees
             </p>
         </div>
         '''
