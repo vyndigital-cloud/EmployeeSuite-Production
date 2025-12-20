@@ -260,7 +260,7 @@ def create_checkout():
             ],
             mode='subscription',
             subscription_data={
-                'description': 'Employee Suite - Shopify Inventory Automation'
+                'description': 'Employee Suite - Shopify Store Monitoring & Analytics'
             },
             allow_promotion_codes=True,
             success_url=url_for('billing.success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
