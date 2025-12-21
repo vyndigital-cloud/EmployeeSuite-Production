@@ -72,11 +72,9 @@ def add_security_headers(response):
     # X-Frame-Options is too rigid and causes issues with embedded apps
     # CSP frame-ancestors is more flexible and works better
     if is_embedded:
-        # For embedded apps: Allow iframe embedding from Shopify domains
-        # TESTING: Temporarily allow all HTTPS origins to diagnose if CSP syntax is the issue
-        # DO NOT set X-Frame-Options - let CSP handle it
-        # This will be tightened to specific Shopify domains once confirmed working
-        frame_ancestors = "frame-ancestors https:; "
+        # For embedded apps: Allow iframe embedding from Shopify domains only
+        # Standard Shopify configuration - allows admin.shopify.com and all myshopify.com stores
+        frame_ancestors = "frame-ancestors https://admin.shopify.com https://*.myshopify.com; "
         
         # Log for debugging
         logger.info(f"🔓 ALLOWING IFRAME: path={request.path}, shop={has_shop_param}, host={has_host_param}, referer={referer[:50] if referer else 'none'}, origin={origin[:50] if origin else 'none'}")
@@ -92,20 +90,36 @@ def add_security_headers(response):
     # Enable XSS protection (legacy browsers)
     response.headers['X-XSS-Protection'] = '1; mode=block'
     
-    # Content Security Policy - permissive for embedded apps (allows Stripe checkout and Shopify embedding)
-    # Note: 'unsafe-eval' is required for App Bridge and some Shopify scripts
-    csp = (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://cdn.shopify.com https://js.stripe.com https://admin.shopify.com; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.shopify.com https://admin.shopify.com; "
-        "font-src 'self' https://fonts.gstatic.com data:; "
-        "img-src 'self' data: https:; "
-        "connect-src 'self' https://api.stripe.com https://*.myshopify.com https://www.google-analytics.com https://admin.shopify.com wss://*.myshopify.com; "
-        + frame_ancestors +
-        "frame-src https://checkout.stripe.com https://js.stripe.com https://admin.shopify.com https://*.myshopify.com; "
-        "base-uri 'self'; "
-        "form-action 'self' https://checkout.stripe.com;"
-    )
+    # Content Security Policy - Standard Shopify embedded app configuration
+    # Based on Shopify's official recommendations for embedded apps
+    if is_embedded:
+        # Embedded app CSP - allows Shopify resources and App Bridge
+        csp = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com https://js.stripe.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.shopify.com; "
+            "font-src 'self' https://fonts.gstatic.com data:; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' https://api.stripe.com https://*.myshopify.com https://admin.shopify.com; "
+            + frame_ancestors +
+            "frame-src https://checkout.stripe.com https://js.stripe.com; "
+            "base-uri 'self'; "
+            "form-action 'self' https://checkout.stripe.com;"
+        )
+    else:
+        # Regular page CSP - stricter security
+        csp = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://js.stripe.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' https://api.stripe.com https://*.myshopify.com https://www.google-analytics.com; "
+            + frame_ancestors +
+            "frame-src https://checkout.stripe.com https://js.stripe.com; "
+            "base-uri 'self'; "
+            "form-action 'self' https://checkout.stripe.com;"
+        )
     response.headers['Content-Security-Policy'] = csp
     
     # Referrer Policy
