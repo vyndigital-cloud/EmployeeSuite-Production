@@ -551,28 +551,18 @@ DASHBOARD_HTML = """
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
             <div>
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
-            <div>
                 <div class="page-title">Dashboard</div>
                 <div class="page-subtitle">Monitor your Shopify store operations with inventory tracking, order monitoring, and comprehensive revenue analytics. 7-day free trial, no setup fees.</div>
         
-        {% if not is_subscribed %}
-        <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <span style="font-size: 20px;">⭐</span>
-                <span style="font-size: 14px; font-weight: 600; color: #0a0a0a;">Join 1,000+ stores using Employee Suite</span>
-            </div>
-            <p style="font-size: 13px; color: #737373; margin: 0; line-height: 1.6;">"Saved me 20+ hours per month. Worth every penny!" - Sarah M., Store Owner</p>
-        </div>
-        {% endif %}
-            </div>
-            {% if is_subscribed %}
-            <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); text-align: center; min-width: 140px;">
-                <div style="font-size: 11px; color: #737373; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Premium Member</div>
-                <div style="font-size: 20px; font-weight: 700; color: #0a0a0a;">⭐ Pro</div>
-            </div>
-            {% endif %}
-        </div>
+                {% if not is_subscribed %}
+                <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 20px; margin-top: 24px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <span style="font-size: 20px;">⭐</span>
+                        <span style="font-size: 14px; font-weight: 600; color: #0a0a0a;">Join 1,000+ stores using Employee Suite</span>
+                    </div>
+                    <p style="font-size: 13px; color: #737373; margin: 0; line-height: 1.6;">"Saved me 20+ hours per month. Worth every penny!" - Sarah M., Store Owner</p>
+                </div>
+                {% endif %}
             </div>
             {% if is_subscribed %}
             <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); text-align: center; min-width: 140px;">
@@ -653,7 +643,7 @@ DASHBOARD_HTML = """
             <div class="card">
                 <div class="card-icon">📦</div>
                 <div class="card-title">Order Processing</div>
-                <div class="card-description">View pending and unfulfilled Shopify orders. Monitor order status and payment information.</div>
+                <div class="card-description">View pending and unfulfilled Shopify orders. Monitor order status and payment information. <strong style="color: #16a34a;">Saves 5-10 hours/week.</strong></div>
                 {% if has_access %}
                 <button class="card-btn" onclick="processOrders(this)" aria-label="View pending orders">
                     View Orders
@@ -812,7 +802,7 @@ DASHBOARD_HTML = """
                     return r.text();
                 })
                 .then(html => {
-                    setButtonLoading(btn, false);
+                    setButtonLoading(button, false);
                     document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${html}</div>`;
                 })
                 .catch(err => {
@@ -907,7 +897,7 @@ def dashboard():
     has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
     
     # Get quick stats for value demonstration (if has access and Shopify connected)
-    quick_stats = {}
+    quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
     if has_access and has_shopify:
         try:
             from shopify_integration import ShopifyClient
@@ -928,9 +918,7 @@ def dashboard():
                     }
         except Exception as e:
             logger.error(f"Error fetching quick stats: {e}")
-            quick_stats = {'has_data': False}
-    else:
-        quick_stats = {'has_data': has_shopify}
+            quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
     
     return render_template_string(DASHBOARD_HTML, 
                                  trial_active=trial_active, 
