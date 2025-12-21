@@ -1036,10 +1036,26 @@ def home():
                                          shop_domain=shop_domain,
                                          SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''))
         else:
-            # Not logged in - redirect to OAuth install (preserve embedded params)
-            logger.info(f"Store not connected for embedded app: {shop}, redirecting to install")
+            # Not logged in - for embedded apps, render a simple page that redirects via JavaScript
+            # This prevents iframe breaking from server-side redirects
+            logger.info(f"Store not connected for embedded app: {shop}, showing install page")
             install_url = url_for('oauth.install', shop=shop, embedded='1', host=host)
-            return redirect(install_url)
+            return f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>Connect Store - Employee Suite</title>
+                <script>
+                    // Redirect via JavaScript to preserve iframe context
+                    window.top.location.href = '{install_url}';
+                </script>
+            </head>
+            <body>
+                <p>Redirecting to connect your store...</p>
+            </body>
+            </html>
+            """
     
     # Regular (non-embedded) request handling
     if current_user.is_authenticated:
