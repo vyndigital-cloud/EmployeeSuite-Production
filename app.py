@@ -1055,12 +1055,8 @@ def api_generate_report():
             logger.warning(f"Generate report returned no message for user {current_user.id}")
             return '<h3 class="error">❌ No report data available</h3>', 500
         
-        # Add export button to report
+        # Export button is now included directly in the report HTML from reporting.py
         html = data.get('message', '<h3 class="error">❌ No report data available</h3>')
-        if data.get('success') and 'Revenue Report' in html:
-            # Add export button before closing div
-            export_btn = '<div style="margin-top: 12px; text-align: right;"><a href="/api/export/report" style="padding: 8px 16px; background: #4a7338; color: #fff; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500;">📥 Export CSV</a></div>'
-            html = html.replace('</div>', export_btn + '</div>', 1)
         
         # Store report data for CSV export
         from flask import session

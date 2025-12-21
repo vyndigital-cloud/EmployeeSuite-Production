@@ -117,9 +117,13 @@ def generate_report():
         
         # Unified minimalistic style (matches inventory)
         html = f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'>"
-        html += f"<div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Revenue Report (Top {min(10, len(sorted_products))} Products)</div>"
+        # Title row with export button in top right - aligned with title
+        html += f"<div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; width: 100%;'>"
+        html += f"<div style='font-size: 13px; font-weight: 600; color: #171717; flex: 1;'>Revenue Report (Top {min(10, len(sorted_products))} Products)</div>"
+        html += f"<a href='/api/export/report' style='padding: 6px 12px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 500; white-space: nowrap; transition: background 0.15s; margin-left: 16px; flex-shrink: 0;'>📥 Export CSV</a>"
+        html += f"</div>"
         
-        # Summary box - minimalistic
+        # Summary box - minimalistic (NO button here)
         html += f"<div style='padding: 8px 12px; background: #f0fdf4; border-left: 2px solid #16a34a; border-radius: 4px; margin-bottom: 12px;'>"
         html += f"<div style='font-weight: 600; color: #166534; font-size: 12px;'>${total_revenue:,.2f}</div>"
         html += f"<div style='color: #166534; font-size: 11px; margin-top: 2px;'>{total_orders} orders</div>"
