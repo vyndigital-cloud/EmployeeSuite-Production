@@ -117,12 +117,12 @@ SUBSCRIBE_HTML = '''
     
     <div class="container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <h1 class="page-title" style="margin-bottom: 12px;">{% if not has_access %}Restore Full Access{% else %}Unlock All Features{% endif %}</h1>
+            <h1 class="page-title" style="margin-bottom: 12px;">{% if not has_access %}Restore Full Access{% else %}Premium Plan{% endif %}</h1>
             <p class="page-subtitle" style="max-width: 600px; margin: 0 auto;">
                 {% if not has_access %}
                 Your trial has ended. Subscribe now to restore full access to all Employee Suite features.
                 {% elif trial_active and not is_subscribed %}
-                Your free trial is active ({{ days_left }} day{{ 's' if days_left != 1 else '' }} remaining). Subscribe now to ensure uninterrupted access when your trial ends.
+                Subscribe now to ensure uninterrupted access when your trial ends.
                 {% else %}
                 Get unlimited access to all Employee Suite features for just $29/month.
                 {% endif %}

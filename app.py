@@ -735,7 +735,7 @@ DASHBOARD_HTML = """
                         <div style="animation: fadeIn 0.3s ease-in;">
                             <h3 class="${c}" style="display: flex; align-items: center; gap: 8px;">
                                 <span>${icon}</span>
-                                <span>${d.success ? 'Inventory Updated' : 'Error Updating Inventory'}</span>
+                                <span>${d.success ? 'Inventory Updated' : 'Error Loading inventory'}</span>
                             </h3>
                             <div style="margin-top: 12px; white-space: pre-wrap; line-height: 1.6;">${d.message || d.error || 'No details available'}</div>
                             ${d.success ? '<div style="margin-top: 16px; padding: 16px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #16a34a; border-radius: 10px; animation: fadeIn 0.3s ease-in;"><div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 20px;">✅</span><p style="margin: 0; font-size: 14px; color: #166534; font-weight: 600;">Inventory synced! Products sorted by priority (lowest stock first).</p></div></div>' : ''}
@@ -779,7 +779,7 @@ DASHBOARD_HTML = """
                     setButtonLoading(button, false);
                     document.getElementById('output').innerHTML = `
                         <div style="animation: fadeIn 0.3s ease-in;">
-                            <h3 class="error">❌ Connection Error</h3>
+                            <h3 class="error">❌ Error Loading revenue</h3>
                             <p style="margin-top: 12px;">Unable to generate report. Please check your internet connection and try again.</p>
                         </div>
                     `;

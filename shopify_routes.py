@@ -314,16 +314,18 @@ SETTINGS_HTML = '''
                     <h3 style="font-size: 18px; font-weight: 600; color: #171717; margin: 0;">Quick Connect (Recommended)</h3>
                 </div>
                 <p style="font-size: 14px; color: #525252; margin-bottom: 20px; line-height: 1.6;">Connect your store in seconds with one click. No need to copy tokens manually. We'll redirect you to Shopify to authorize the connection.</p>
-                <form method="GET" action="/install" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 250px;">
-                        <label for="shop_oauth" style="display: block; font-size: 14px; font-weight: 500; color: #171717; margin-bottom: 8px;">Enter your store domain</label>
-                        <input type="text" id="shop_oauth" name="shop" class="form-input" placeholder="yourstore.myshopify.com" required style="width: 100%; font-size: 15px; padding: 12px;">
-                        <p style="font-size: 12px; color: #737373; margin-top: 6px;">Enter your store domain (e.g., mystore.myshopify.com)</p>
-                    </div>
-                    <div style="display: flex; flex-direction: column; justify-content: flex-end;">
-                        <button type="submit" class="btn btn-primary" style="white-space: nowrap; padding: 12px 24px; font-size: 15px; font-weight: 600; background: #0ea5e9; border: none; height: fit-content;">Connect with Shopify</button>
-                    </div>
-                </form>
+                <div>
+                    <label for="shop_oauth" style="display: block; font-size: 14px; font-weight: 500; color: #171717; margin-bottom: 8px;">Enter your store domain</label>
+                    <form method="GET" action="/install" style="display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 250px;">
+                            <input type="text" id="shop_oauth" name="shop" class="form-input" placeholder="yourstore.myshopify.com" required style="width: 100%; font-size: 15px; padding: 12px;">
+                            <p style="font-size: 12px; color: #737373; margin-top: 6px;">Enter your store domain (e.g., mystore.myshopify.com)</p>
+                        </div>
+                        <div style="display: flex; align-items: flex-start;">
+                            <button type="submit" class="btn btn-primary" style="white-space: nowrap; padding: 12px 24px; font-size: 15px; font-weight: 600; background: #0ea5e9; border: none; height: 44px;">Connect with Shopify</button>
+                        </div>
+                    </form>
+                </div>
                 <div style="margin-top: 16px; padding: 12px; background: rgba(255,255,255,0.7); border-radius: 8px;">
                     <p style="font-size: 13px; color: #166534; margin: 0; display: flex; align-items: center; gap: 8px;">
                         <span>✓</span>
