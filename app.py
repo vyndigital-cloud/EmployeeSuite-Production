@@ -115,6 +115,13 @@ def optimize_response(response):
     """Add security headers and compress responses"""
     response = add_security_headers(response)
     response = compress_response(response)
+    
+    # Enable Keep-Alive for webhook endpoints (Shopify requirement)
+    # This allows Shopify to reuse connections, reducing latency
+    if request.path.startswith('/webhooks/'):
+        response.headers['Connection'] = 'keep-alive'
+        response.headers['Keep-Alive'] = 'timeout=5, max=1000'
+    
     # Add cache headers for static assets
     if request.endpoint == 'static':
         response.cache_control.max_age = 31536000  # 1 year
