@@ -694,18 +694,21 @@ DASHBOARD_HTML = """
                 })
                 .then(d => {
                     setButtonLoading(button, false);
-                    const c = d.success ? 'success' : 'error';
-                    const icon = d.success ? '✅' : '❌';
-                    document.getElementById('output').innerHTML = `
-                        <div style="animation: fadeIn 0.3s ease-in;">
-                            <h3 class="${c}" style="display: flex; align-items: center; gap: 8px;">
-                                <span>${icon}</span>
-                                <span>${d.success ? 'Orders Loaded' : 'Error Loading Orders'}</span>
-                            </h3>
-                            <div style="margin-top: 12px; line-height: 1.6;">${d.message || d.error || 'No details available'}</div>
-                            ${d.success ? '<div style="margin-top: 16px; padding: 16px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #16a34a; border-radius: 10px; animation: fadeIn 0.3s ease-in;"><div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 20px;">✨</span><p style="margin: 0; font-size: 14px; color: #166534; font-weight: 600;">Great! Here are your orders that need attention.</p></div></div>' : ''}
-                        </div>
-                    `;
+                    if (d.success) {
+                        const icon = '✅';
+                        document.getElementById('output').innerHTML = `
+                            <div style="animation: fadeIn 0.3s ease-in;">
+                                <h3 class="success" style="display: flex; align-items: center; gap: 8px;">
+                                    <span>${icon}</span>
+                                    <span>Orders Loaded</span>
+                                </h3>
+                                <div style="margin-top: 12px; line-height: 1.6;">${d.message || d.error || 'No details available'}</div>
+                            </div>
+                        `;
+                    } else {
+                        // For errors, display the backend HTML directly (it already has the title and banner)
+                        document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${d.error || d.message || 'No details available'}</div>`;
+                    }
                 })
                 .catch(err => {
                     setButtonLoading(button, false);
@@ -729,18 +732,21 @@ DASHBOARD_HTML = """
                 })
                 .then(d => {
                     setButtonLoading(button, false);
-                    const c = d.success ? 'success' : 'error';
-                    const icon = d.success ? '✅' : '❌';
-                    document.getElementById('output').innerHTML = `
-                        <div style="animation: fadeIn 0.3s ease-in;">
-                            <h3 class="${c}" style="display: flex; align-items: center; gap: 8px;">
-                                <span>${icon}</span>
-                                <span>${d.success ? 'Inventory Updated' : 'Error Loading inventory'}</span>
-                            </h3>
-                            <div style="margin-top: 12px; white-space: pre-wrap; line-height: 1.6;">${d.message || d.error || 'No details available'}</div>
-                            ${d.success ? '<div style="margin-top: 16px; padding: 16px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #16a34a; border-radius: 10px; animation: fadeIn 0.3s ease-in;"><div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 20px;">✅</span><p style="margin: 0; font-size: 14px; color: #166534; font-weight: 600;">Inventory synced! Products sorted by priority (lowest stock first).</p></div></div>' : ''}
-                        </div>
-                    `;
+                    if (d.success) {
+                        const icon = '✅';
+                        document.getElementById('output').innerHTML = `
+                            <div style="animation: fadeIn 0.3s ease-in;">
+                                <h3 class="success" style="display: flex; align-items: center; gap: 8px;">
+                                    <span>${icon}</span>
+                                    <span>Inventory Updated</span>
+                                </h3>
+                                <div style="margin-top: 12px; white-space: pre-wrap; line-height: 1.6;">${d.message || d.error || 'No details available'}</div>
+                            </div>
+                        `;
+                    } else {
+                        // For errors, display the backend HTML directly (it already has the title and banner)
+                        document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${d.error || d.message || 'No details available'}</div>`;
+                    }
                 })
                 .catch(err => {
                     setButtonLoading(button, false);
@@ -759,30 +765,48 @@ DASHBOARD_HTML = """
             showLoading();
             fetch('/api/generate_report')
                 .then(r => {
-                    if (!r.ok) throw new Error('Network error');
+                    if (!r.ok) {
+                        // If error response, try to get error HTML
+                        return r.text().then(html => {
+                            throw new Error(html);
+                        });
+                    }
                     return r.text();
                 })
                 .then(html => {
                     setButtonLoading(button, false);
-                    document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${html}</div>`;
-                    // Add success celebration for reports
-                    if (html.includes('Revenue') || html.includes('Total')) {
-                        setTimeout(() => {
-                            const successMsg = document.createElement('div');
-                            successMsg.style.cssText = 'margin-top: 12px; padding: 12px; background: #f0fdf4; border-left: 3px solid #16a34a; border-radius: 8px; animation: fadeIn 0.3s ease-in;';
-                            successMsg.innerHTML = '<p style="margin: 0; font-size: 14px; color: #166534; font-weight: 500;">📊 Report generated! Export as CSV for accounting or analysis.</p>';
-                            document.getElementById('output').appendChild(successMsg);
-                        }, 100);
+                    // Check if the HTML contains an error message (from backend)
+                    if (html.includes('Error Loading revenue') || html.includes('No Shopify store connected')) {
+                        // Backend already formatted the error, display directly
+                        document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${html}</div>`;
+                    } else {
+                        // Success - display with title
+                        document.getElementById('output').innerHTML = `
+                            <div style="animation: fadeIn 0.3s ease-in;">
+                                <h3 class="success" style="display: flex; align-items: center; gap: 8px;">
+                                    <span>✅</span>
+                                    <span>Revenue Report Generated</span>
+                                </h3>
+                                <div style="margin-top: 12px; line-height: 1.6;">${html}</div>
+                            </div>
+                        `;
                     }
                 })
                 .catch(err => {
                     setButtonLoading(button, false);
-                    document.getElementById('output').innerHTML = `
-                        <div style="animation: fadeIn 0.3s ease-in;">
-                            <h3 class="error">❌ Error Loading revenue</h3>
-                            <p style="margin-top: 12px;">Unable to generate report. Please check your internet connection and try again.</p>
-                        </div>
-                    `;
+                    // Check if error message is HTML (from backend) or plain text (network error)
+                    if (err.message && err.message.includes('Error Loading revenue')) {
+                        // Backend error HTML
+                        document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${err.message}</div>`;
+                    } else {
+                        // Network error
+                        document.getElementById('output').innerHTML = `
+                            <div style="animation: fadeIn 0.3s ease-in;">
+                                <h3 class="error">❌ Error Loading revenue</h3>
+                                <p style="margin-top: 12px;">Unable to generate report. Please check your internet connection and try again.</p>
+                            </div>
+                        `;
+                    }
                 });
         }
         
@@ -1010,7 +1034,8 @@ def api_generate_report():
         data = generate_report()
         if data.get('error') and data['error'] is not None:
             logger.error(f"Generate report error for user {current_user.id}: {data['error']}")
-            return f"<h3 class='error'>❌ Error: {data['error']}</h3>", 500
+            # Return the formatted error HTML directly (it already has the title and banner)
+            return data['error'], 500
         
         # Report HTML is already in data['message']
         if not data.get('message'):
