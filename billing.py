@@ -176,11 +176,6 @@ SUBSCRIBE_HTML = '''
                 </div>
             </div>
             
-            <div style="background: linear-gradient(135deg, #e3fcef 0%, #d1fae5 100%); border: 1px solid #86efac; border-radius: 8px; padding: 24px; margin-bottom: 24px; text-align: center;">
-                <div style="font-size: 16px; font-weight: 600; color: #008060; margin-bottom: 8px; letter-spacing: -0.2px;">7-Day Money-Back Guarantee</div>
-                <div style="font-size: 14px; color: #006e52; line-height: 1.5;">Try it risk-free. If Employee Suite doesn't meet your needs, we'll refund your payment—no questions asked.</div>
-            </div>
-            
             <form method="POST" action="/create-checkout-session">
                 <button type="submit" class="btn">
                     {% if not has_access %}
