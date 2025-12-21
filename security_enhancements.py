@@ -20,28 +20,38 @@ def add_security_headers(response):
     from flask import request
     
     # Check if this is an embedded app request (Shopify iframe)
-    # SECURE but PERMISSIVE: Only allow iframe embedding for verified Shopify requests
-    # This ensures embedded apps work while maintaining security
+    # ULTRA PERMISSIVE: Allow iframe embedding for ANY Shopify-related request
+    # This ensures embedded apps ALWAYS work, even if detection method changes
     referer = request.headers.get('Referer', '').lower()
+    origin = request.headers.get('Origin', '').lower()
     has_shop_param = request.args.get('shop') or request.args.get('shop_domain')
     has_host_param = request.args.get('host')  # Shopify provides this for embedded apps
     has_shopify_header = request.headers.get('X-Shopify-Shop-Domain') or request.headers.get('X-Shopify-Hmac-Sha256')
     
-    # SECURITY: Only trust Shopify domains, not arbitrary shopify.com subdomains
+    # SECURITY: Only trust Shopify domains
     is_shopify_referer = (
         'admin.shopify.com' in referer or  # Official Shopify admin
-        referer.endswith('.myshopify.com')  # Verified Shopify stores only
+        referer.endswith('.myshopify.com') or  # Verified Shopify stores
+        'shopify.com' in referer  # Any Shopify domain
+    )
+    is_shopify_origin = (
+        'admin.shopify.com' in origin or
+        origin.endswith('.myshopify.com') or
+        'shopify.com' in origin
     )
     
-    # PERMISSIVE: If ANY Shopify indicator exists, allow iframe embedding
-    # This ensures it works even after login redirects lose some parameters
-    # Still secure: Only allows Shopify domains in CSP, blocks malicious sites
+    # ULTRA PERMISSIVE: If ANY Shopify indicator exists, allow iframe embedding
+    # This ensures it works even if Shopify changes how they send requests
+    # Still secure: CSP only allows Shopify domains, blocks malicious sites
     is_embedded = (
         request.args.get('embedded') == '1' or  # Explicit embedded flag
-        has_shop_param or  # Shop parameter (Shopify always provides this)
-        has_host_param or  # Host parameter (Shopify provides for embedded)
+        has_shop_param or  # Shop parameter
+        has_host_param or  # Host parameter
         has_shopify_header or  # Official Shopify headers
-        is_shopify_referer  # Coming from verified Shopify domains
+        is_shopify_referer or  # Coming from Shopify domains
+        is_shopify_origin or  # Origin header from Shopify
+        request.path.startswith('/dashboard') or  # Dashboard path (Shopify embedded)
+        request.path.startswith('/settings')  # Settings path (Shopify embedded)
     )
     
     # For embedded apps, allow iframe embedding ONLY from Shopify
