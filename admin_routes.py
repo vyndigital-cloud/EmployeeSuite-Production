@@ -206,8 +206,14 @@ ADMIN_DASHBOARD_HTML = '''
 def login():
     if request.method == 'POST':
         import os
-        password = request.form.get('password')
-        if password == os.getenv('ADMIN_PASSWORD'):
+        admin_password = os.getenv('ADMIN_PASSWORD')
+        
+        # Enforce password protection - require ADMIN_PASSWORD to be set
+        if not admin_password:
+            return render_template_string(ADMIN_LOGIN_HTML, error="Admin access is disabled. ADMIN_PASSWORD environment variable is not set.")
+        
+        password = request.form.get('password', '')
+        if password and password == admin_password:
             session['admin_logged_in'] = True
             return redirect(url_for('admin.dashboard'))
         return render_template_string(ADMIN_LOGIN_HTML, error="Invalid password")
@@ -220,6 +226,12 @@ def logout():
 
 @admin_bp.route('/')
 def dashboard():
+    import os
+    # Enforce password protection - require ADMIN_PASSWORD to be set
+    admin_password = os.getenv('ADMIN_PASSWORD')
+    if not admin_password:
+        return "Admin access is disabled. ADMIN_PASSWORD environment variable is not set.", 403
+    
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin.login'))
     
@@ -241,6 +253,12 @@ def dashboard():
 @admin_bp.route('/delete-user/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
     """Delete a user and their associated data"""
+    import os
+    # Enforce password protection - require ADMIN_PASSWORD to be set
+    admin_password = os.getenv('ADMIN_PASSWORD')
+    if not admin_password:
+        return "Admin access is disabled. ADMIN_PASSWORD environment variable is not set.", 403
+    
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin.login'))
     
