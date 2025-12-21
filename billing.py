@@ -159,7 +159,6 @@ SUBSCRIBE_HTML = '''
             <div style="background: #fafafa; border: 1px solid #e5e5e5; border-radius: 12px; padding: 20px; margin: 24px 0;">
                 <div style="font-size: 15px; font-weight: 600; color: #0a0a0a; margin-bottom: 12px;">💡 What You Get:</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px; color: #525252;">
-                    <div>• 20+ hours saved/month</div>
                     <div>• Prevent stockouts</div>
                     <div>• Track all orders</div>
                     <div>• Revenue insights</div>

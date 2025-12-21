@@ -597,11 +597,6 @@ DASHBOARD_HTML = """
                 <div style="font-size: 32px; font-weight: 700; color: {% if quick_stats.low_stock_items > 0 %}#dc2626{% else %}#16a34a{% endif %};">{{ quick_stats.low_stock_items or 0 }}</div>
                 <div style="font-size: 12px; color: #737373; margin-top: 4px;">Need restocking</div>
             </div>
-            <div style="background: linear-gradient(135deg, #0a0a0a 0%, #262626 100%); border-radius: 16px; padding: 20px; color: #fff;">
-                <div style="font-size: 13px; opacity: 0.8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Time Saved</div>
-                <div style="font-size: 32px; font-weight: 700; line-height: 1;">20+ hrs</div>
-                <div style="font-size: 12px; opacity: 0.7; margin-top: 4px;">Per month</div>
-            </div>
         </div>
         {% endif %}
         
