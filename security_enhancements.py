@@ -17,8 +17,21 @@ logger = logging.getLogger(__name__)
 # Security headers middleware
 def add_security_headers(response):
     """Add comprehensive security headers to all responses"""
-    # Prevent clickjacking
-    response.headers['X-Frame-Options'] = 'DENY'
+    from flask import request
+    
+    # Check if this is an embedded app request (Shopify iframe)
+    is_embedded = request.args.get('embedded') == '1' or request.headers.get('X-Shopify-Shop-Domain')
+    
+    # For embedded apps, allow iframe embedding from Shopify
+    # For regular pages, prevent clickjacking
+    if is_embedded:
+        # Don't set X-Frame-Options for embedded apps (let CSP handle it)
+        # This allows Shopify to embed the app in an iframe
+        frame_ancestors = "frame-ancestors https://admin.shopify.com https://*.myshopify.com; "
+    else:
+        # Regular pages - prevent clickjacking
+        response.headers['X-Frame-Options'] = 'DENY'
+        frame_ancestors = "frame-ancestors 'none'; "
     
     # Prevent MIME type sniffing
     response.headers['X-Content-Type-Options'] = 'nosniff'
@@ -26,7 +39,7 @@ def add_security_headers(response):
     # Enable XSS protection (legacy browsers)
     response.headers['X-XSS-Protection'] = '1; mode=block'
     
-    # Content Security Policy - strict policy (allows Stripe checkout)
+    # Content Security Policy - strict policy (allows Stripe checkout and Shopify embedding)
     csp = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://cdn.shopify.com https://js.stripe.com; "
@@ -34,7 +47,7 @@ def add_security_headers(response):
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: https:; "
         "connect-src 'self' https://api.stripe.com https://*.myshopify.com https://www.google-analytics.com; "
-        "frame-ancestors 'none'; "
+        + frame_ancestors +
         "frame-src https://checkout.stripe.com https://js.stripe.com; "
         "base-uri 'self'; "
         "form-action 'self' https://checkout.stripe.com;"
