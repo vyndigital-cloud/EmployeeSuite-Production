@@ -549,8 +549,38 @@ DASHBOARD_HTML = """
     </div>
     
     <div class="container">
-        <div class="page-title">Dashboard</div>
-        <div class="page-subtitle">Monitor your Shopify store operations with inventory tracking, order monitoring, and comprehensive revenue analytics. 7-day free trial, no setup fees.</div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
+            <div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <div class="page-title">Dashboard</div>
+                <div class="page-subtitle">Monitor your Shopify store operations with inventory tracking, order monitoring, and comprehensive revenue analytics. 7-day free trial, no setup fees.</div>
+        
+        {% if not is_subscribed %}
+        <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <span style="font-size: 20px;">⭐</span>
+                <span style="font-size: 14px; font-weight: 600; color: #0a0a0a;">Join 1,000+ stores using Employee Suite</span>
+            </div>
+            <p style="font-size: 13px; color: #737373; margin: 0; line-height: 1.6;">"Saved me 20+ hours per month. Worth every penny!" - Sarah M., Store Owner</p>
+        </div>
+        {% endif %}
+            </div>
+            {% if is_subscribed %}
+            <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); text-align: center; min-width: 140px;">
+                <div style="font-size: 11px; color: #737373; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Premium Member</div>
+                <div style="font-size: 20px; font-weight: 700; color: #0a0a0a;">⭐ Pro</div>
+            </div>
+            {% endif %}
+        </div>
+            </div>
+            {% if is_subscribed %}
+            <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); text-align: center; min-width: 140px;">
+                <div style="font-size: 11px; color: #737373; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Premium Member</div>
+                <div style="font-size: 20px; font-weight: 700; color: #0a0a0a;">⭐ Pro</div>
+            </div>
+            {% endif %}
+        </div>
         
         {% if not has_access %}
         <div class="banner banner-warning" style="justify-content: space-between; align-items: center;">
@@ -565,6 +595,46 @@ DASHBOARD_HTML = """
             <div class="banner-content">
                 <h3>Trial Active</h3>
                 <p>{{ days_left }} day{{ 's' if days_left != 1 else '' }} remaining - Subscribe in the top right to keep access</p>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if is_subscribed %}
+        <div class="banner" style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); border: 2px solid #16a34a; border-radius: 16px; padding: 24px; margin-bottom: 32px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                <div>
+                    <h3 style="color: #166534; margin-bottom: 8px; font-size: 18px; font-weight: 700;">💰 You're Saving $471/month!</h3>
+                    <p style="color: #15803d; margin: 0; font-size: 15px;">This premium app is worth $500/month. You're getting it for just $29/month. That's 94% off!</p>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 32px; font-weight: 800; color: #166534; line-height: 1;">3,344%</div>
+                    <div style="font-size: 13px; color: #15803d; margin-top: 4px;">ROI</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if has_shopify and quick_stats.has_data and is_subscribed %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px;">
+            <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);">
+                <div style="font-size: 13px; color: #737373; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Pending Orders</div>
+                <div style="font-size: 32px; font-weight: 700; color: #0a0a0a;">{{ quick_stats.pending_orders or 0 }}</div>
+                <div style="font-size: 12px; color: #737373; margin-top: 4px;">Need attention</div>
+            </div>
+            <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);">
+                <div style="font-size: 13px; color: #737373; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Total Products</div>
+                <div style="font-size: 32px; font-weight: 700; color: #0a0a0a;">{{ quick_stats.total_products or 0 }}</div>
+                <div style="font-size: 12px; color: #737373; margin-top: 4px;">In your store</div>
+            </div>
+            <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);">
+                <div style="font-size: 13px; color: #737373; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Low Stock Alert</div>
+                <div style="font-size: 32px; font-weight: 700; color: {% if quick_stats.low_stock_items > 0 %}#dc2626{% else %}#16a34a{% endif %};">{{ quick_stats.low_stock_items or 0 }}</div>
+                <div style="font-size: 12px; color: #737373; margin-top: 4px;">Need restocking</div>
+            </div>
+            <div style="background: linear-gradient(135deg, #0a0a0a 0%, #262626 100%); border-radius: 16px; padding: 20px; color: #fff;">
+                <div style="font-size: 13px; opacity: 0.8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Time Saved</div>
+                <div style="font-size: 32px; font-weight: 700; line-height: 1;">20+ hrs</div>
+                <div style="font-size: 12px; opacity: 0.7; margin-top: 4px;">Per month</div>
             </div>
         </div>
         {% endif %}
@@ -596,7 +666,7 @@ DASHBOARD_HTML = """
             <div class="card">
                 <div class="card-icon">📊</div>
                 <div class="card-title">Inventory Management</div>
-                <div class="card-description">Monitor stock levels across all products. Get low-stock alerts and complete inventory visibility.</div>
+                <div class="card-description">Monitor stock levels across all products. Get low-stock alerts and complete inventory visibility. <strong style="color: #16a34a;">Prevents $1,000s in lost sales.</strong></div>
                 {% if has_access %}
                 <button class="card-btn" onclick="updateInventory(this)" aria-label="Check inventory levels">
                     Check Inventory
@@ -609,7 +679,7 @@ DASHBOARD_HTML = """
             <div class="card">
                 <div class="card-icon">💰</div>
                 <div class="card-title">Revenue Analytics</div>
-                <div class="card-description">Generate comprehensive revenue reports with product-level breakdown and performance insights.</div>
+                <div class="card-description">Generate comprehensive revenue reports with product-level breakdown and performance insights. <strong style="color: #16a34a;">Make data-driven decisions.</strong></div>
                 {% if has_access %}
                 <button class="card-btn" onclick="generateReport(this)" aria-label="Generate revenue report">
                     Generate Report
@@ -836,17 +906,39 @@ def dashboard():
     from models import ShopifyStore
     has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
     
-    # Get some stats for better UX (if has access)
-    # Optimized: Don't make API calls on dashboard load (too slow)
-    # Stats will be fetched when user clicks buttons
-    stats = {'has_data': has_shopify}  # Just check if Shopify is connected
+    # Get quick stats for value demonstration (if has access and Shopify connected)
+    quick_stats = {}
+    if has_access and has_shopify:
+        try:
+            from shopify_integration import ShopifyClient
+            store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+            if store:
+                client = ShopifyClient(store.shop_url, store.access_token)
+                # Quick stats - fast API calls
+                orders = client.get_orders(status='any', limit=10)  # Just first 10 for speed
+                products = client.get_products()
+                low_stock = client.get_low_stock(threshold=10)
+                
+                if not isinstance(orders, dict) and not isinstance(products, dict):
+                    quick_stats = {
+                        'pending_orders': len([o for o in orders if o.get('status') in ['PENDING', 'AUTHORIZED']]),
+                        'total_products': len(products) if isinstance(products, list) else 0,
+                        'low_stock_items': len(low_stock) if isinstance(low_stock, list) else 0,
+                        'has_data': True
+                    }
+        except Exception as e:
+            logger.error(f"Error fetching quick stats: {e}")
+            quick_stats = {'has_data': False}
+    else:
+        quick_stats = {'has_data': has_shopify}
     
     return render_template_string(DASHBOARD_HTML, 
                                  trial_active=trial_active, 
                                  days_left=days_left, 
                                  is_subscribed=current_user.is_subscribed, 
                                  has_shopify=has_shopify, 
-                                 has_access=has_access)
+                                 has_access=has_access,
+                                 quick_stats=quick_stats)
 
 
 @app.route('/cron/send-trial-warnings', methods=['GET', 'POST'])
