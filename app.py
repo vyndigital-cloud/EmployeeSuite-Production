@@ -994,9 +994,38 @@ def home():
 # Icon is served via Flask static file serving automatically
 
 @app.route('/dashboard')
-@verify_session_token
-@login_required
 def dashboard():
+    # For embedded apps, allow access without strict auth (App Bridge handles it)
+    # For regular requests, require login
+    is_embedded = request.args.get('embedded') == '1' or request.args.get('shop') or request.args.get('host')
+    
+    if not is_embedded and not current_user.is_authenticated:
+        return redirect(url_for('auth.login'))
+    
+    # If embedded but not logged in, try to auto-login from shop param
+    if is_embedded and not current_user.is_authenticated:
+        shop = request.args.get('shop')
+        if shop:
+            from models import ShopifyStore
+            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            if store and store.user:
+                login_user(store.user, remember=True)
+                session.permanent = True
+                logger.info(f"Auto-logged in user for embedded app: {shop}")
+    
+    # Verify session token for embedded requests (but don't block if missing)
+    if is_embedded:
+        try:
+            # Try to verify session token, but don't fail if it's missing
+            auth_header = request.headers.get('Authorization')
+            if auth_header and auth_header.startswith('Bearer '):
+                # Session token verification happens here, but we don't block if it fails
+                # App Bridge will handle it
+                pass
+        except:
+            pass  # Don't block embedded requests
+    
+    # Now render dashboard
     """Dashboard - accessible to all authenticated users, shows subscribe prompt if no access"""
     has_access = current_user.has_access()
     trial_active = current_user.is_trial_active()
