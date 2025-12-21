@@ -65,14 +65,13 @@ def add_security_headers(response):
     # CSP frame-ancestors is more flexible and works better
     if is_embedded:
         # For embedded apps: Allow iframe embedding from Shopify domains
-        # CSP frame-ancestors: Use wildcard pattern for myshopify.com subdomains
+        # TESTING: Temporarily allow all HTTPS origins to diagnose if CSP syntax is the issue
         # DO NOT set X-Frame-Options - let CSP handle it
-        # Allow admin.shopify.com and all myshopify.com subdomains
-        # Note: CSP wildcards work at the subdomain level
-        frame_ancestors = "frame-ancestors https://admin.shopify.com https://*.myshopify.com; "
+        # This will be tightened to specific Shopify domains once confirmed working
+        frame_ancestors = "frame-ancestors https:; "
         
-        # Log for debugging (remove in production if needed)
-        logger.debug(f"Allowing iframe embedding for embedded request: path={request.path}, shop={has_shop_param}, host={has_host_param}, referer={referer[:50] if referer else 'none'}")
+        # Log for debugging
+        logger.info(f"🔓 ALLOWING IFRAME: path={request.path}, shop={has_shop_param}, host={has_host_param}, referer={referer[:50] if referer else 'none'}, origin={origin[:50] if origin else 'none'}")
     else:
         # Regular pages - prevent ALL iframe embedding via CSP
         frame_ancestors = "frame-ancestors 'none'; "
