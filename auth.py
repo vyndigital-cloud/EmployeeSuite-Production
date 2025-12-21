@@ -35,10 +35,10 @@ LOGIN_HTML = '''
         .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 24px; }
         .form-group { margin-bottom: 20px; }
         .form-label { display: block; font-size: 14px; font-weight: 600; color: #0a0a0a; margin-bottom: 10px; letter-spacing: 0.2px; }
-        .form-input { width: 100%; padding: 13px 16px; border: 1.5px solid #d4d4d4; border-radius: 8px; font-size: 15px; font-family: inherit; background: #fafafa; transition: all 0.2s; }
-        .form-input:focus { outline: none; border-color: #72b05e; box-shadow: 0 0 0 3px rgba(114, 176, 94, 0.1); background: #fff; }
-        .btn { width: 100%; padding: 14px; background: #4a7338; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; letter-spacing: 0.3px; }
-        .btn:hover { background: #3a5c2a; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(74, 115, 56, 0.4); } .btn { transition: all 0.2s ease; }
+        .form-input { width: 100%; padding: 13px 16px; border: 1px solid #e5e5e5; border-radius: 8px; font-size: 15px; font-family: inherit; background: #fff; transition: all 0.2s; }
+        .form-input:focus { outline: none; border-color: #0a0a0a; box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.05); }
+        .btn { width: 100%; padding: 14px; background: #0a0a0a; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; transition: all 0.2s ease; }
+        .btn:hover { background: #262626; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
         .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
         .footer-link a { color: #0a0a0a; text-decoration: none; font-weight: 600; }
@@ -53,7 +53,6 @@ LOGIN_HTML = '''
         @media (max-width: 480px) {
             .card { padding: 28px 20px; }
             .card-title { font-size: 18px; }
-            img { width: 120px !important; height: 120px !important; }
         }
 
     </style>
@@ -129,15 +128,15 @@ REGISTER_HTML = '''
         }
         .register-container { width: 100%; max-width: 440px; }
         .logo { text-align: center; font-size: 24px; font-weight: 700; color: #171717; margin-bottom: 16px; }
-        .card { background: #fff; border: 1px solid #d4d4d4; border-radius: 12px; padding: 44px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+        .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 8px; }
         .card-subtitle { font-size: 14px; color: #737373; margin-bottom: 24px; }
         .form-group { margin-bottom: 20px; }
         .form-label { display: block; font-size: 14px; font-weight: 600; color: #0a0a0a; margin-bottom: 10px; letter-spacing: 0.2px; }
-        .form-input { width: 100%; padding: 13px 16px; border: 1.5px solid #d4d4d4; border-radius: 8px; font-size: 15px; font-family: inherit; background: #fafafa; transition: all 0.2s; }
-        .form-input:focus { outline: none; border-color: #72b05e; box-shadow: 0 0 0 3px rgba(114, 176, 94, 0.1); background: #fff; }
-        .btn { width: 100%; padding: 14px; background: #4a7338; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; letter-spacing: 0.3px; }
-        .btn:hover { background: #3a5c2a; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(74, 115, 56, 0.4); } .btn { transition: all 0.2s ease; }
+        .form-input { width: 100%; padding: 13px 16px; border: 1px solid #e5e5e5; border-radius: 8px; font-size: 15px; font-family: inherit; background: #fff; transition: all 0.2s; }
+        .form-input:focus { outline: none; border-color: #0a0a0a; box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.05); }
+        .btn { width: 100%; padding: 14px; background: #0a0a0a; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; transition: all 0.2s ease; }
+        .btn:hover { background: #262626; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
         .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
         .footer-link a { color: #0a0a0a; text-decoration: none; font-weight: 600; }
@@ -153,37 +152,18 @@ REGISTER_HTML = '''
         @media (max-width: 480px) {
             .card { padding: 28px 20px; }
             .card-title { font-size: 18px; }
-            img { width: 120px !important; height: 120px !important; }
         }
 
     </style>
 </head>
 <body>
     <div class="register-container">
-        <div style="text-align: center; margin-bottom: 24px;">
-            <a href="/" style="display: inline-block; text-decoration: none;">
-                <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 160px; height: 160px; filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(114, 176, 94, 0.8)); animation: pulse-glow 3s ease-in-out infinite; cursor: pointer;">
+        <div style="text-align: center; margin-bottom: 32px;">
+            <a href="/" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 10px; font-weight: 600;">
+                <span style="font-size: 24px;">🚀</span>
+                <span style="font-size: 20px;">Employee Suite</span>
             </a>
         </div>
-        <style>
-            @keyframes pulse-glow {
-                0%, 100% { 
-                    filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(114, 176, 94, 0.8));
-                    transform: scale(1);
-                }
-                50% { 
-                    filter: drop-shadow(0 0 60px rgba(255, 255, 255, 1)) drop-shadow(0 0 30px rgba(114, 176, 94, 1));
-                    transform: scale(1.05);
-                }
-            }
-        </style>
-        <style>
-            @keyframes float {
-                0%, 100% { transform: translateY(0px); }
-                50% { transform: translateY(-10px); }
-            }
-        </style>
-        
         <div class="card">
             <h1 class="card-title">Start Free Trial</h1>
             <p class="card-subtitle">Your 7-day trial begins immediately</p>
@@ -308,7 +288,7 @@ FORGOT_PASSWORD_HTML = '''
             padding: 24px;
         }
         .container { width: 100%; max-width: 440px; }
-        .card { background: #fff; border: 1px solid #d4d4d4; border-radius: 12px; padding: 44px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+        .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 24px; }
         .form-group { margin-bottom: 20px; }
         .form-label { display: block; font-size: 14px; font-weight: 600; color: #0a0a0a; margin-bottom: 10px; }
@@ -380,7 +360,7 @@ RESET_PASSWORD_HTML = '''
             padding: 24px;
         }
         .container { width: 100%; max-width: 440px; }
-        .card { background: #fff; border: 1px solid #d4d4d4; border-radius: 12px; padding: 44px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+        .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 24px; }
         .form-group { margin-bottom: 20px; }
         .form-label { display: block; font-size: 14px; font-weight: 600; color: #0a0a0a; margin-bottom: 10px; }

@@ -25,7 +25,7 @@ FAQ_HTML = '''
             display: flex;
             align-items: center;
         }
-        .logo { font-size: 18px; font-weight: 600; color: #171717; text-decoration: none; }
+        .logo { font-size: 18px; font-weight: 600; color: #171717; text-decoration: none; display: flex; align-items: center; gap: 10px; }
         .container { max-width: 800px; margin: 0 auto; padding: 48px 24px; }
         .page-title { font-size: 32px; font-weight: 700; color: #171717; margin-bottom: 8px; }
         .page-subtitle { font-size: 16px; color: #737373; margin-bottom: 40px; }
@@ -68,7 +68,10 @@ FAQ_HTML = '''
 <body>
     <div class="header">
         <div class="header-content">
-            <a href="/" class="logo">Employee Suite v1</a>
+            <a href="/" class="logo">
+                <span style="font-size: 20px;">🚀</span>
+                <span>Employee Suite</span>
+            </a>
         </div>
     </div>
     

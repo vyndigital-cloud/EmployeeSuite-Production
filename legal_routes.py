@@ -14,7 +14,8 @@ LEGAL_HTML = """
 <head>
     <title>{{ title }} - Employee Suite</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -30,9 +31,10 @@ LEGAL_HTML = """
             display: flex;
             align-items: center;
         }
-        .logo { font-size: 18px; font-weight: 600; color: #171717; text-decoration: none; }
+        .logo { font-size: 18px; font-weight: 600; color: #171717; text-decoration: none; display: flex; align-items: center; gap: 10px; }
         .container { max-width: 800px; margin: 0 auto; padding: 48px 24px; }
-        .page-title { font-size: 32px; font-weight: 700; color: #171717; margin-bottom: 32px; }
+        .page-title { font-size: 32px; font-weight: 700; color: #171717; margin-bottom: 8px; }
+        .page-subtitle { font-size: 16px; color: #737373; margin-bottom: 32px; }
         .content { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 32px; line-height: 1.8; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
         h2 { font-size: 20px; font-weight: 600; color: #171717; margin: 32px 0 16px; }
         p { margin: 16px 0; color: #525252; font-size: 15px; }
@@ -53,10 +55,17 @@ LEGAL_HTML = """
     </style>
 </head>
 <body>
+    <div class="header">
+        <div class="header-content">
+            <a href="/" class="logo">
+                <span style="font-size: 20px;">🚀</span>
+                <span>Employee Suite</span>
+            </a>
+        </div>
+    </div>
     <div class="container">
-        <a href="/" class="back">← Back to Home</a>
-        <h1>{{ title }}</h1>
-        <div>{{ content|safe }}</div>
+        <h1 class="page-title">{{ title }}</h1>
+        <div class="content">{{ content|safe }}</div>
     </div>
 </body>
 </html>

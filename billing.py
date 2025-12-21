@@ -135,39 +135,33 @@ SUBSCRIBE_HTML = '''
         {% endif %}
         
         <div class="pricing-card">
-            <div style="background: linear-gradient(135deg, #0a0a0a 0%, #262626 100%); color: #fff; padding: 32px; border-radius: 16px; margin-bottom: 32px; text-align: center; position: relative; overflow: hidden;">
-                <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255, 255, 255, 0.05); border-radius: 50%;"></div>
-                <div style="position: relative; z-index: 1;">
-                    <div style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.9; margin-bottom: 12px;">Monthly Subscription</div>
-                    <div style="font-size: 56px; font-weight: 800; margin-bottom: 8px; line-height: 1;">$29<span style="font-size: 24px; font-weight: 500; opacity: 0.8;">/month</span></div>
-                    <div style="font-size: 15px; opacity: 0.8; margin-bottom: 16px;">7-day free trial • No setup fees • Cancel anytime</div>
-                </div>
+            <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 32px; margin-bottom: 24px; text-align: center;">
+                <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #737373; margin-bottom: 12px;">Monthly Subscription</div>
+                <div style="font-size: 48px; font-weight: 700; color: #0a0a0a; margin-bottom: 8px; line-height: 1;">$29<span style="font-size: 20px; font-weight: 500; color: #737373;">/month</span></div>
+                <div style="font-size: 15px; color: #737373; margin-bottom: 24px;">7-day free trial • No setup fees • Cancel anytime</div>
             </div>
             
-            <div style="background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%); border: 1px solid #e5e5e5; border-radius: 16px; padding: 32px; margin-bottom: 32px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);">
-                <div style="font-size: 18px; font-weight: 700; color: #0a0a0a; margin-bottom: 20px; text-align: center;">Everything you need to manage your store</div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
-                    <div style="padding: 16px; background: #fff; border-radius: 12px; border: 1px solid #f5f5f5;">
-                        <div style="font-size: 24px; margin-bottom: 8px;">📦</div>
-                        <div style="font-weight: 600; color: #0a0a0a; margin-bottom: 4px;">Order Tracking</div>
-                        <div style="font-size: 13px; color: #737373;">Monitor pending and unfulfilled orders</div>
+            <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
+                <div style="font-size: 16px; font-weight: 600; color: #0a0a0a; margin-bottom: 20px;">What's included:</div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 12px; font-size: 14px; color: #525252;">
+                        <span style="color: #16a34a; font-weight: 700;">✓</span>
+                        <span>Order monitoring and tracking</span>
                     </div>
-                    <div style="padding: 16px; background: #fff; border-radius: 12px; border: 1px solid #f5f5f5;">
-                        <div style="font-size: 24px; margin-bottom: 8px;">📊</div>
-                        <div style="font-weight: 600; color: #0a0a0a; margin-bottom: 4px;">Inventory Management</div>
-                        <div style="font-size: 13px; color: #737373;">Low-stock alerts and full visibility</div>
+                    <div style="display: flex; align-items: center; gap: 12px; font-size: 14px; color: #525252;">
+                        <span style="color: #16a34a; font-weight: 700;">✓</span>
+                        <span>Inventory management with low-stock alerts</span>
                     </div>
-                    <div style="padding: 16px; background: #fff; border-radius: 12px; border: 1px solid #f5f5f5;">
-                        <div style="font-size: 24px; margin-bottom: 8px;">💰</div>
-                        <div style="font-weight: 600; color: #0a0a0a; margin-bottom: 4px;">Revenue Analytics</div>
-                        <div style="font-size: 13px; color: #737373;">Product-level insights and reports</div>
+                    <div style="display: flex; align-items: center; gap: 12px; font-size: 14px; color: #525252;">
+                        <span style="color: #16a34a; font-weight: 700;">✓</span>
+                        <span>Revenue analytics and reporting</span>
                     </div>
                 </div>
             </div>
             
-            <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #16a34a; border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center;">
-                <div style="font-size: 15px; font-weight: 600; color: #166534; margin-bottom: 8px;">✓ 7-Day Money-Back Guarantee</div>
-                <div style="font-size: 14px; color: #15803d;">Try it risk-free. If it's not for you, we'll refund your payment.</div>
+            <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: center;">
+                <div style="font-size: 14px; font-weight: 600; color: #166534; margin-bottom: 4px;">✓ 7-Day Money-Back Guarantee</div>
+                <div style="font-size: 13px; color: #15803d;">Try it risk-free. If it's not for you, we'll refund your payment.</div>
             </div>
             
             <form method="POST" action="/create-checkout-session">
