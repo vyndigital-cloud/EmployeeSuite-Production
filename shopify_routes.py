@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from models import db, ShopifyStore
 from access_control import require_access
 from input_validation import validate_url, sanitize_input
+from session_token_verification import verify_session_token
 
 shopify_bp = Blueprint('shopify', __name__)
 
@@ -303,6 +304,7 @@ SETTINGS_HTML = '''
 '''
 
 @shopify_bp.route('/settings/shopify')
+@verify_session_token
 @login_required
 @require_access
 def shopify_settings():
@@ -310,6 +312,7 @@ def shopify_settings():
     return render_template_string(SETTINGS_HTML, store=store, success=request.args.get('success'), error=request.args.get('error'))
 
 @shopify_bp.route('/settings/shopify/connect', methods=['POST'])
+@verify_session_token
 @login_required
 def connect_store():
     shop_url = request.form.get('shop_url', '').strip()

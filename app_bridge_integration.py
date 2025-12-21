@@ -32,6 +32,38 @@ def get_app_bridge_script():
         
         // Make app available globally
         window.shopifyApp = app;
+        
+        // MANDATORY: Fetch and send session tokens for all API requests (January 2025 requirement)
+        var sessionToken = '';
+        app.getSessionToken().then(function(token) {{
+            sessionToken = token;
+            // Set default Authorization header for all fetch requests
+            var originalFetch = window.fetch;
+            window.fetch = function(url, options) {{
+                options = options || {{}};
+                options.headers = options.headers || {{}};
+                if (!options.headers['Authorization'] && sessionToken) {{
+                    options.headers['Authorization'] = 'Bearer ' + sessionToken;
+                }}
+                return originalFetch(url, options);
+            }};
+            
+            // Also set for XMLHttpRequest
+            var originalOpen = XMLHttpRequest.prototype.open;
+            var originalSend = XMLHttpRequest.prototype.send;
+            XMLHttpRequest.prototype.open = function(method, url, async, user, password) {{
+                this._url = url;
+                return originalOpen.apply(this, arguments);
+            }};
+            XMLHttpRequest.prototype.send = function(data) {{
+                if (sessionToken && this._url && !this.getRequestHeader('Authorization')) {{
+                    this.setRequestHeader('Authorization', 'Bearer ' + sessionToken);
+                }}
+                return originalSend.apply(this, arguments);
+            }};
+        }}).catch(function(error) {{
+            console.error('Failed to get session token:', error);
+        }});
     </script>
     """
 

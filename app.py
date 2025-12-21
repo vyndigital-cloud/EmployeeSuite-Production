@@ -18,6 +18,7 @@ from rate_limiter import init_limiter
 from webhook_stripe import webhook_bp
 from webhook_shopify import webhook_shopify_bp
 from gdpr_compliance import gdpr_bp
+from session_token_verification import verify_session_token
 from order_processing import process_orders
 from inventory import update_inventory
 from reporting import generate_report
@@ -777,6 +778,7 @@ def home():
 # Icon is served via Flask static file serving automatically
 
 @app.route('/dashboard')
+@verify_session_token
 @login_required
 def dashboard():
     """Dashboard - accessible to all authenticated users, shows subscribe prompt if no access"""
