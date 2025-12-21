@@ -137,7 +137,8 @@ def validate_request_security():
         return
     
     # Skip for webhook endpoints (they have HMAC verification)
-    if request.path.startswith('/webhook/'):
+    # Note: Both /webhook/ (singular) and /webhooks/ (plural) are used
+    if request.path.startswith('/webhook/') or request.path.startswith('/webhooks/'):
         return
     
     # Skip for billing endpoints (Stripe handles security)
