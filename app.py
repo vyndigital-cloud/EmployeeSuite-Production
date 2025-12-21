@@ -60,7 +60,15 @@ else:
     logger.warning("SENTRY_DSN not set - error monitoring disabled")
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+# SECRET_KEY is REQUIRED in production - fail fast if missing
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    if os.getenv('ENVIRONMENT') == 'production' or os.getenv('FLASK_ENV') == 'production':
+        raise ValueError("SECRET_KEY environment variable is REQUIRED in production. Set it in your deployment platform.")
+    # Only allow dev secret in non-production environments
+    SECRET_KEY = 'dev-secret-key-change-in-production'
+    logger.warning("Using default SECRET_KEY - THIS IS INSECURE. Set SECRET_KEY environment variable.")
+app.config['SECRET_KEY'] = SECRET_KEY
 app.config['SESSION_COOKIE_SECURE'] = True  # Secure cookies over HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -575,7 +583,7 @@ DASHBOARD_HTML = """
                 <div class="card-title">Order Processing</div>
                 <div class="card-description">View pending and unfulfilled Shopify orders. Monitor order status and payment information.</div>
                 {% if has_access %}
-                <button class="card-btn" onclick="processOrders()" aria-label="View pending orders">
+                <button class="card-btn" onclick="processOrders(this)" aria-label="View pending orders">
                     View Orders
                 </button>
                 {% else %}
@@ -588,7 +596,7 @@ DASHBOARD_HTML = """
                 <div class="card-title">Inventory Management</div>
                 <div class="card-description">Monitor stock levels across all products. Get low-stock alerts and complete inventory visibility.</div>
                 {% if has_access %}
-                <button class="card-btn" onclick="updateInventory()" aria-label="Check inventory levels">
+                <button class="card-btn" onclick="updateInventory(this)" aria-label="Check inventory levels">
                     Check Inventory
                 </button>
                 {% else %}
@@ -601,7 +609,7 @@ DASHBOARD_HTML = """
                 <div class="card-title">Revenue Analytics</div>
                 <div class="card-description">Generate comprehensive revenue reports with product-level breakdown and performance insights.</div>
                 {% if has_access %}
-                <button class="card-btn" onclick="generateReport()" aria-label="Generate revenue report">
+                <button class="card-btn" onclick="generateReport(this)" aria-label="Generate revenue report">
                     Generate Report
                 </button>
                 {% else %}
@@ -636,7 +644,28 @@ DASHBOARD_HTML = """
             `;
         }
         
-        function processOrders() {
+        function setButtonLoading(button, isLoading) {
+            if (isLoading) {
+                button.disabled = true;
+                button.style.opacity = '0.7';
+                button.style.cursor = 'wait';
+                const originalText = button.innerHTML;
+                button.dataset.originalText = originalText;
+                button.innerHTML = '<span style="display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 8px;"></span>Loading...';
+            } else {
+                button.disabled = false;
+                button.style.opacity = '1';
+                button.style.cursor = 'pointer';
+                if (button.dataset.originalText) {
+                    button.innerHTML = button.dataset.originalText;
+                    delete button.dataset.originalText;
+                }
+            }
+        }
+        
+        function processOrders(button) {
+            const btn = button;
+            setButtonLoading(btn, true);
             showLoading();
             fetch('/api/process_orders')
                 .then(r => {
@@ -644,6 +673,7 @@ DASHBOARD_HTML = """
                     return r.json();
                 })
                 .then(d => {
+                    setButtonLoading(btn, false);
                     const c = d.success ? 'success' : 'error';
                     const icon = d.success ? '✅' : '❌';
                     document.getElementById('output').innerHTML = `
@@ -658,6 +688,7 @@ DASHBOARD_HTML = """
                     `;
                 })
                 .catch(err => {
+                    setButtonLoading(btn, false);
                     document.getElementById('output').innerHTML = `
                         <div style="animation: fadeIn 0.3s ease-in;">
                             <h3 class="error">❌ Connection Error</h3>
@@ -667,7 +698,9 @@ DASHBOARD_HTML = """
                 });
         }
         
-        function updateInventory() {
+        function updateInventory(button) {
+            const btn = button;
+            setButtonLoading(btn, true);
             showLoading();
             fetch('/api/update_inventory')
                 .then(r => {
@@ -675,6 +708,7 @@ DASHBOARD_HTML = """
                     return r.json();
                 })
                 .then(d => {
+                    setButtonLoading(btn, false);
                     const c = d.success ? 'success' : 'error';
                     const icon = d.success ? '✅' : '❌';
                     document.getElementById('output').innerHTML = `
@@ -689,6 +723,7 @@ DASHBOARD_HTML = """
                     `;
                 })
                 .catch(err => {
+                    setButtonLoading(btn, false);
                     document.getElementById('output').innerHTML = `
                         <div style="animation: fadeIn 0.3s ease-in;">
                             <h3 class="error">❌ Connection Error</h3>
@@ -698,7 +733,9 @@ DASHBOARD_HTML = """
                 });
         }
         
-        function generateReport() {
+        function generateReport(button) {
+            const btn = button;
+            setButtonLoading(btn, true);
             showLoading();
             fetch('/api/generate_report')
                 .then(r => {
@@ -706,9 +743,11 @@ DASHBOARD_HTML = """
                     return r.text();
                 })
                 .then(html => {
+                    setButtonLoading(btn, false);
                     document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${html}</div>`;
                 })
                 .catch(err => {
+                    setButtonLoading(btn, false);
                     document.getElementById('output').innerHTML = `
                         <div style="animation: fadeIn 0.3s ease-in;">
                             <h3 class="error">❌ Connection Error</h3>
@@ -948,17 +987,208 @@ def api_generate_report():
 
 @app.errorhandler(404)
 def not_found(error):
-    """404 error handler - don't expose internal structure"""
+    """404 error handler - professional error page"""
     log_security_event('404_error', f"Path: {request.path}", 'INFO')
-    return jsonify({'error': 'Not found'}), 404
+    
+    # Return JSON for API requests, HTML for browser requests
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Not found'}), 404
+    
+    error_html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Page Not Found - Employee Suite</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                background: linear-gradient(135deg, #f5f5f5 0%, #fafafa 100%);
+                color: #171717;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                padding: 24px;
+            }
+            .error-container {
+                text-align: center;
+                max-width: 500px;
+            }
+            .error-code {
+                font-size: 120px;
+                font-weight: 700;
+                color: #4a7338;
+                line-height: 1;
+                margin-bottom: 16px;
+            }
+            .error-title {
+                font-size: 28px;
+                font-weight: 600;
+                color: #0a0a0a;
+                margin-bottom: 12px;
+            }
+            .error-message {
+                font-size: 16px;
+                color: #737373;
+                margin-bottom: 32px;
+                line-height: 1.6;
+            }
+            .error-actions {
+                display: flex;
+                gap: 12px;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .btn {
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-size: 15px;
+                font-weight: 500;
+                text-decoration: none;
+                transition: all 0.2s;
+                border: none;
+                cursor: pointer;
+            }
+            .btn-primary {
+                background: #4a7338;
+                color: #fff;
+            }
+            .btn-primary:hover {
+                background: #3a5c2a;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(74, 115, 56, 0.3);
+            }
+            .btn-secondary {
+                background: #fff;
+                color: #525252;
+                border: 1px solid #e5e5e5;
+            }
+            .btn-secondary:hover {
+                background: #fafafa;
+                border-color: #d4d4d4;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="error-container">
+            <div class="error-code">404</div>
+            <h1 class="error-title">Page Not Found</h1>
+            <p class="error-message">The page you're looking for doesn't exist or has been moved.</p>
+            <div class="error-actions">
+                <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+                <a href="/" class="btn btn-secondary">Home</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return error_html, 404
 
 @app.errorhandler(500)
 def internal_error(error):
-    """500 error handler - log but don't expose details"""
+    """500 error handler - professional error page"""
     db.session.rollback()
     log_security_event('500_error', f"Path: {request.path}, Error: {str(error)}", 'ERROR')
-    # Don't expose stack traces or internal errors to users
-    return jsonify({'error': 'An internal error occurred. Please try again later.'}), 500
+    
+    # Return JSON for API requests, HTML for browser requests
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'An internal error occurred. Please try again later.'}), 500
+    
+    error_html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Server Error - Employee Suite</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                background: linear-gradient(135deg, #f5f5f5 0%, #fafafa 100%);
+                color: #171717;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                padding: 24px;
+            }
+            .error-container {
+                text-align: center;
+                max-width: 500px;
+            }
+            .error-code {
+                font-size: 120px;
+                font-weight: 700;
+                color: #dc2626;
+                line-height: 1;
+                margin-bottom: 16px;
+            }
+            .error-title {
+                font-size: 28px;
+                font-weight: 600;
+                color: #0a0a0a;
+                margin-bottom: 12px;
+            }
+            .error-message {
+                font-size: 16px;
+                color: #737373;
+                margin-bottom: 32px;
+                line-height: 1.6;
+            }
+            .error-actions {
+                display: flex;
+                gap: 12px;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .btn {
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-size: 15px;
+                font-weight: 500;
+                text-decoration: none;
+                transition: all 0.2s;
+                border: none;
+                cursor: pointer;
+            }
+            .btn-primary {
+                background: #4a7338;
+                color: #fff;
+            }
+            .btn-primary:hover {
+                background: #3a5c2a;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(74, 115, 56, 0.3);
+            }
+            .btn-secondary {
+                background: #fff;
+                color: #525252;
+                border: 1px solid #e5e5e5;
+            }
+            .btn-secondary:hover {
+                background: #fafafa;
+                border-color: #d4d4d4;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="error-container">
+            <div class="error-code">500</div>
+            <h1 class="error-title">Server Error</h1>
+            <p class="error-message">Something went wrong on our end. We've been notified and are working on a fix.</p>
+            <div class="error-actions">
+                <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+                <a href="javascript:location.reload()" class="btn btn-secondary">Try Again</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return error_html, 500
 
 @app.errorhandler(413)
 def request_too_large(error):

@@ -12,12 +12,22 @@
 
 ## 🚀 Final Step: Deploy Webhooks
 
+### ⚡ EASIEST OPTION (No CLI needed!):
+
+**Just install your app in a test shop** - webhooks register automatically!
+
+OR manually add via Partners Dashboard (see below)
+
+---
+
+### 📦 CLI Option (Only if you want):
+
 **Run these commands in your terminal:**
 
 ```bash
 cd /Users/essentials/Documents/1EmployeeSuite-FIXED
 
-# 1. Login to Shopify (opens browser)
+# 1. Login to Shopify Partners (opens browser - same account as Partners Dashboard)
 shopify auth login
 
 # 2. Link your app (when prompted, select your app from the list)
@@ -27,23 +37,17 @@ shopify app link
 shopify app deploy --no-release
 ```
 
+**What you're logging into:** Your Shopify Partners account (the same one you use to access partners.shopify.com)
+
 ---
 
-## 📝 Step-by-Step Explanation:
+### 🌐 Manual Option (No CLI):
 
-### Step 1: Login
-- This opens your browser
-- Log in to your Shopify Partners account
-- Authorize the CLI
-
-### Step 2: Link App
-- Select "Employee Suite" from the list of your apps
-- This links the CLI to your specific app
-
-### Step 3: Deploy
-- This uploads `shopify.app.toml` to Shopify
-- Registers all 3 compliance webhooks
-- Takes ~30 seconds
+1. Go to **Shopify Partners Dashboard** → Your App → **Configuration** → **Webhooks**
+2. Manually add these 3 webhooks:
+   - `customers/data_request` → `https://employeesuite-production.onrender.com/webhooks/customers/data_request`
+   - `customers/redact` → `https://employeesuite-production.onrender.com/webhooks/customers/redact`
+   - `shop/redact` → `https://employeesuite-production.onrender.com/webhooks/shop/redact`
 
 ---
 

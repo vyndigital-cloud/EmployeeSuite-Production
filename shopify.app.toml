@@ -1,14 +1,14 @@
-# Shopify App Configuration
-# This file configures mandatory compliance webhooks
-# Note: Compliance webhooks MUST be configured in shopify.app.toml (not app.json)
-# 
-# IMPORTANT: This file must be deployed using Shopify CLI: shopify app deploy
-# OR if using app.json, ensure compliance webhooks are properly configured there
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "396cbab849f7c25996232ea4feda696a"
+name = "Employee Suite"
+application_url = "https://employeesuite-production.onrender.com"
+embedded = true
 
 [webhooks]
 api_version = "2024-10"
 
-# Mandatory compliance webhooks - separate endpoints matching our code
+# Mandatory compliance webhooks for App Store submission
 [[webhooks.subscriptions]]
 compliance_topics = ["customers/data_request"]
 uri = "https://employeesuite-production.onrender.com/webhooks/customers/data_request"
@@ -20,3 +20,14 @@ uri = "https://employeesuite-production.onrender.com/webhooks/customers/redact"
 [[webhooks.subscriptions]]
 compliance_topics = ["shop/redact"]
 uri = "https://employeesuite-production.onrender.com/webhooks/shop/redact"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_inventory,read_orders,read_products"
+optional_scopes = [ ]
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [
+  "https://employeesuite-production.onrender.com/auth/callback"
+]
