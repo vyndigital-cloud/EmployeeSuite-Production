@@ -12,16 +12,14 @@ FAQ_HTML = '''
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f0f4f8 100%);
-            background-attachment: fixed;
-            color: #171717;
-            line-height: 1.6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f6f6f7;
+            color: #202223;
+            line-height: 1.5;
         }
         .header { 
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            background: #ffffff;
+            border-bottom: 1px solid #e1e3e5;
             position: sticky;
             top: 0;
             z-index: 100;
@@ -29,53 +27,49 @@ FAQ_HTML = '''
         .header-content {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 32px;
-            height: 72px;
+            padding: 0 24px;
+            height: 64px;
             display: flex;
             align-items: center;
         }
-        .logo { font-size: 18px; font-weight: 600; color: #0a0a0a; text-decoration: none; display: flex; align-items: center; gap: 10px; letter-spacing: -0.4px; }
-        .container { max-width: 800px; margin: 0 auto; padding: 80px 32px; }
-        .page-title { font-size: 48px; font-weight: 700; color: #0a0a0a; margin-bottom: 12px; letter-spacing: -1px; line-height: 1.1; }
-        .page-subtitle { font-size: 18px; color: #64748b; margin-bottom: 56px; }
+        .logo { font-size: 16px; font-weight: 600; color: #202223; text-decoration: none; display: flex; align-items: center; gap: 10px; letter-spacing: -0.2px; }
+        .container { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
+        .page-title { font-size: 28px; font-weight: 600; color: #202223; margin-bottom: 8px; letter-spacing: -0.3px; }
+        .page-subtitle { font-size: 15px; color: #6d7175; margin-bottom: 32px; }
         .faq-item {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 1) 100%);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            border-radius: 20px;
-            padding: 32px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-            transition: all 0.2s ease;
+            background: #ffffff;
+            border: 1px solid #e1e3e5;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 16px;
+            transition: box-shadow 0.15s;
         }
         .faq-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
         .faq-question {
-            font-size: 20px;
-            font-weight: 700;
-            color: #0a0a0a;
-            margin-bottom: 16px;
-            letter-spacing: -0.3px;
+            font-size: 17px;
+            font-weight: 600;
+            color: #202223;
+            margin-bottom: 12px;
         }
         .faq-answer {
-            font-size: 15px;
-            color: #475569;
-            line-height: 1.7;
+            font-size: 14px;
+            color: #6d7175;
+            line-height: 1.6;
         }
         
         /* Mobile */
         @media (max-width: 768px) {
-            .container { padding: 48px 24px; }
-            .page-title { font-size: 36px; }
-            .faq-item { padding: 28px 24px; }
-            .header-content { padding: 0 24px; height: 64px; }
+            .container { padding: 24px 16px; }
+            .page-title { font-size: 24px; }
+            .faq-item { padding: 20px; }
+            .header-content { padding: 0 16px; height: 56px; }
         }
         @media (max-width: 480px) {
-            .container { padding: 40px 20px; }
-            .page-title { font-size: 28px; }
-            .faq-item { padding: 24px 20px; }
+            .container { padding: 20px 12px; }
+            .page-title { font-size: 20px; }
+            .faq-item { padding: 16px; }
         }
     </style>
 </head>

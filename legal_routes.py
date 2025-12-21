@@ -18,16 +18,14 @@ LEGAL_HTML = """
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f0f4f8 100%);
-            background-attachment: fixed;
-            color: #171717;
-            line-height: 1.6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f6f6f7;
+            color: #202223;
+            line-height: 1.5;
         }
         .header { 
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            background: #ffffff;
+            border-bottom: 1px solid #e1e3e5;
             position: sticky;
             top: 0;
             z-index: 100;
@@ -35,39 +33,37 @@ LEGAL_HTML = """
         .header-content {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 32px;
-            height: 72px;
+            padding: 0 24px;
+            height: 64px;
             display: flex;
             align-items: center;
         }
-        .logo { font-size: 18px; font-weight: 600; color: #0a0a0a; text-decoration: none; display: flex; align-items: center; gap: 10px; letter-spacing: -0.4px; }
-        .container { max-width: 800px; margin: 0 auto; padding: 80px 32px; }
-        .page-title { font-size: 48px; font-weight: 700; color: #0a0a0a; margin-bottom: 12px; letter-spacing: -1px; line-height: 1.1; }
-        .page-subtitle { font-size: 18px; color: #64748b; margin-bottom: 56px; }
+        .logo { font-size: 16px; font-weight: 600; color: #202223; text-decoration: none; display: flex; align-items: center; gap: 10px; letter-spacing: -0.2px; }
+        .container { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
+        .page-title { font-size: 28px; font-weight: 600; color: #202223; margin-bottom: 8px; letter-spacing: -0.3px; }
+        .page-subtitle { font-size: 15px; color: #6d7175; margin-bottom: 32px; }
         .content { 
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 1) 100%);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            border-radius: 20px;
-            padding: 48px;
-            line-height: 1.8;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            background: #ffffff;
+            border: 1px solid #e1e3e5;
+            border-radius: 8px;
+            padding: 32px;
+            line-height: 1.6;
         }
-        h2 { font-size: 24px; font-weight: 700; color: #0a0a0a; margin: 48px 0 20px; letter-spacing: -0.4px; }
-        p { margin: 20px 0; color: #475569; font-size: 15px; }
+        h2 { font-size: 20px; font-weight: 600; color: #202223; margin: 32px 0 16px; }
+        p { margin: 16px 0; color: #6d7175; font-size: 14px; }
         
         /* Mobile */
         @media (max-width: 768px) {
-            .container { padding: 48px 24px; }
-            .page-title { font-size: 36px; }
-            .content { padding: 40px 32px; }
-            h2 { font-size: 20px; }
-            .header-content { padding: 0 24px; height: 64px; }
+            .container { padding: 24px 16px; }
+            .page-title { font-size: 24px; }
+            .content { padding: 24px; }
+            h2 { font-size: 18px; }
+            .header-content { padding: 0 16px; height: 56px; }
         }
         @media (max-width: 480px) {
-            .container { padding: 40px 20px; }
-            .page-title { font-size: 28px; }
-            .content { padding: 32px 24px; }
+            .container { padding: 20px 12px; }
+            .page-title { font-size: 20px; }
+            .content { padding: 20px; }
         }
     </style>
 </head>

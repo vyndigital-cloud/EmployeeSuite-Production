@@ -835,16 +835,16 @@ DASHBOARD_HTML = """
         }
     </script>
 
-    <footer style="margin-top: 80px; padding: 32px 24px; border-top: 1px solid #e5e5e5; text-align: center; background: #fafafa;">
+    <footer style="margin-top: 64px; padding: 32px 24px; border-top: 1px solid #e1e3e5; text-align: center; background: #ffffff;">
         <div style="max-width: 1200px; margin: 0 auto;">
-            <div style="display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; font-size: 14px; margin-bottom: 20px;">
-                <a href="/faq" style="color: #64748b; text-decoration: none; font-weight: 500; transition: color 0.2s;">FAQ</a>
-                <span style="color: #cbd5e1;">|</span>
-                <a href="/privacy" style="color: #64748b; text-decoration: none; font-weight: 500; transition: color 0.2s;">Privacy Policy</a>
-                <span style="color: #cbd5e1;">|</span>
-                <a href="/terms" style="color: #64748b; text-decoration: none; font-weight: 500; transition: color 0.2s;">Terms of Service</a>
+            <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; font-size: 14px; margin-bottom: 16px;">
+                <a href="/faq" style="color: #6d7175; text-decoration: none; font-weight: 400; transition: color 0.15s;">FAQ</a>
+                <span style="color: #e1e3e5;">|</span>
+                <a href="/privacy" style="color: #6d7175; text-decoration: none; font-weight: 400; transition: color 0.15s;">Privacy Policy</a>
+                <span style="color: #e1e3e5;">|</span>
+                <a href="/terms" style="color: #6d7175; text-decoration: none; font-weight: 400; transition: color 0.15s;">Terms of Service</a>
             </div>
-            <div style="color: #94a3b8; font-size: 13px; font-weight: 400;">
+            <div style="color: #8c9196; font-size: 13px; font-weight: 400;">
                 © 2025 Employee Suite. All rights reserved.
             </div>
         </div>
