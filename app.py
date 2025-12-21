@@ -255,7 +255,6 @@ DASHBOARD_HTML = """
             color: #008060;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 128, 96, 0.4);
-            border: 1px solid #008060;
         }
         .nav-btn-primary:active {
             transform: translateY(0);
