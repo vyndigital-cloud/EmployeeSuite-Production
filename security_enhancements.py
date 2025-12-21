@@ -20,29 +20,33 @@ def add_security_headers(response):
     from flask import request
     
     # Check if this is an embedded app request (Shopify iframe)
-    # Multiple ways to detect embedded requests:
-    # 1. embedded=1 query parameter
-    # 2. X-Shopify-Shop-Domain header
-    # 3. Referer header from admin.shopify.com
-    # 4. Host parameter in query (Shopify provides this)
-    # 5. Any request to /dashboard or /settings (Shopify embedded directories)
+    # SUPER PERMISSIVE: If ANY Shopify indicator exists, allow iframe embedding
+    # This ensures embedded apps always work, even if detection method changes
     referer = request.headers.get('Referer', '')
+    has_shop_param = request.args.get('shop') or request.args.get('shop_domain')
+    has_host_param = request.args.get('host')
+    has_shopify_header = request.headers.get('X-Shopify-Shop-Domain') or request.headers.get('X-Shopify-Hmac-Sha256')
+    is_shopify_referer = 'shopify.com' in referer or 'myshopify.com' in referer
+    is_embedded_path = request.path.startswith('/dashboard') or request.path.startswith('/settings') or request.path == '/'
+    
+    # If ANY Shopify indicator exists, treat as embedded
     is_embedded = (
         request.args.get('embedded') == '1' or 
-        request.headers.get('X-Shopify-Shop-Domain') or
-        request.args.get('host') or
-        'admin.shopify.com' in referer or
-        request.path in ['/dashboard', '/settings/shopify']  # Shopify embedded directories
+        has_shop_param or
+        has_host_param or
+        has_shopify_header or
+        is_shopify_referer or
+        is_embedded_path
     )
     
     # For embedded apps, allow iframe embedding from Shopify
     # For regular pages, prevent clickjacking
     if is_embedded:
-        # For embedded apps: Remove X-Frame-Options entirely (CSP will handle it)
-        # This is critical - X-Frame-Options takes precedence over CSP
-        # Don't set it at all for embedded apps
-        # Allow all Shopify admin domains and any myshopify.com subdomain
-        frame_ancestors = "frame-ancestors https://admin.shopify.com https://*.myshopify.com https://*.myshopify.com/* https://admin.shopify.com/*; "
+        # For embedded apps: DO NOT set X-Frame-Options (let CSP handle it)
+        # X-Frame-Options takes precedence over CSP, so we must not set it
+        # Allow ALL Shopify domains (admin.shopify.com and any myshopify.com store)
+        # Use explicit domains - CSP frame-ancestors doesn't support wildcards well
+        frame_ancestors = "frame-ancestors https://admin.shopify.com https://admin.shopify.com/* https://*.myshopify.com https://*.myshopify.com/*; "
     else:
         # Regular pages - prevent clickjacking
         response.headers['X-Frame-Options'] = 'DENY'
