@@ -19,11 +19,19 @@ LEGAL_HTML = """
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #ffffff;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f0f4f8 100%);
+            background-attachment: fixed;
             color: #171717;
-            line-height: 1.5;
+            line-height: 1.6;
         }
-        .header { background: #fff; border-bottom: 1px solid #f0f0f0; }
+        .header { 
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
         .header-content {
             max-width: 1200px;
             margin: 0 auto;
@@ -32,26 +40,34 @@ LEGAL_HTML = """
             display: flex;
             align-items: center;
         }
-        .logo { font-size: 17px; font-weight: 500; color: #171717; text-decoration: none; display: flex; align-items: center; gap: 10px; letter-spacing: -0.3px; }
-        .container { max-width: 800px; margin: 0 auto; padding: 64px 32px; }
-        .page-title { font-size: 32px; font-weight: 600; color: #0a0a0a; margin-bottom: 8px; letter-spacing: -0.5px; }
-        .page-subtitle { font-size: 16px; color: #737373; margin-bottom: 40px; }
-        .content { background: #fff; border: 1px solid #f0f0f0; border-radius: 12px; padding: 40px; line-height: 1.7; }
-        h2 { font-size: 20px; font-weight: 600; color: #0a0a0a; margin: 40px 0 16px; }
-        p { margin: 16px 0; color: #525252; font-size: 15px; }
+        .logo { font-size: 18px; font-weight: 600; color: #0a0a0a; text-decoration: none; display: flex; align-items: center; gap: 10px; letter-spacing: -0.4px; }
+        .container { max-width: 800px; margin: 0 auto; padding: 80px 32px; }
+        .page-title { font-size: 48px; font-weight: 700; color: #0a0a0a; margin-bottom: 12px; letter-spacing: -1px; line-height: 1.1; }
+        .page-subtitle { font-size: 18px; color: #64748b; margin-bottom: 56px; }
+        .content { 
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 1) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: 20px;
+            padding: 48px;
+            line-height: 1.8;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        }
+        h2 { font-size: 24px; font-weight: 700; color: #0a0a0a; margin: 48px 0 20px; letter-spacing: -0.4px; }
+        p { margin: 20px 0; color: #475569; font-size: 15px; }
         
         /* Mobile */
         @media (max-width: 768px) {
-            .container { padding: 40px 24px; }
-            .page-title { font-size: 26px; }
-            .content { padding: 32px 24px; }
-            h2 { font-size: 18px; }
+            .container { padding: 48px 24px; }
+            .page-title { font-size: 36px; }
+            .content { padding: 40px 32px; }
+            h2 { font-size: 20px; }
             .header-content { padding: 0 24px; height: 64px; }
         }
         @media (max-width: 480px) {
-            .container { padding: 32px 20px; }
-            .page-title { font-size: 24px; }
-            .content { padding: 24px 20px; }
+            .container { padding: 40px 20px; }
+            .page-title { font-size: 28px; }
+            .content { padding: 32px 24px; }
         }
     </style>
 </head>
