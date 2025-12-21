@@ -969,6 +969,8 @@ def home():
     referer = request.headers.get('Referer', '')
     is_from_shopify_admin = 'admin.shopify.com' in referer
     
+    # CRITICAL: For embedded apps, ALWAYS render something - never redirect
+    # Even if user isn't authenticated, show a page that handles it
     if embedded == '1' or shop or host or is_from_shopify_admin:
         # For embedded apps, check if store is connected
         from models import ShopifyStore
@@ -1040,23 +1042,70 @@ def home():
                                          shop_domain=shop_domain,
                                          SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''))
         else:
-            # Not logged in - for embedded apps, render a simple page that redirects via JavaScript
-            # This prevents iframe breaking from server-side redirects
-            logger.info(f"Store not connected for embedded app: {shop}, showing install page")
+            # Not logged in - for embedded apps, render a page that initiates OAuth
+            # Use App Bridge Redirect if available, otherwise use window.top
+            logger.info(f"Store not connected for embedded app: {shop}, showing connect page")
             install_url = url_for('oauth.install', shop=shop, embedded='1', host=host)
+            
+            # Render a proper HTML page that uses App Bridge to redirect
             return f"""
             <!DOCTYPE html>
             <html>
             <head>
                 <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
                 <title>Connect Store - Employee Suite</title>
-                <script>
-                    // Redirect via JavaScript to preserve iframe context
-                    window.top.location.href = '{install_url}';
-                </script>
+                <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+                <style>
+                    body {{
+                        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        min-height: 100vh;
+                        margin: 0;
+                        background: #f6f6f7;
+                    }}
+                    .container {{
+                        text-align: center;
+                        padding: 40px;
+                        background: white;
+                        border-radius: 8px;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    }}
+                </style>
             </head>
             <body>
-                <p>Redirecting to connect your store...</p>
+                <div class="container">
+                    <h1>Connect Your Store</h1>
+                    <p>Please connect your Shopify store to continue.</p>
+                    <button id="connectBtn" style="padding: 12px 24px; background: #008060; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer;">Connect Store</button>
+                </div>
+                <script>
+                    document.getElementById('connectBtn').addEventListener('click', function() {{
+                        // Try App Bridge redirect first
+                        if (window['app-bridge']) {{
+                            try {{
+                                var app = window['app-bridge'].default.createApp({{
+                                    apiKey: '{os.getenv("SHOPIFY_API_KEY", "")}',
+                                    host: '{host or ""}',
+                                    shop: '{shop or ""}'
+                                }});
+                                var Redirect = window['app-bridge'].actions.Redirect;
+                                app.dispatch(Redirect.create(Redirect.Action.APP, '{install_url}'));
+                            }} catch(e) {{
+                                window.top.location.href = '{install_url}';
+                            }}
+                        }} else {{
+                            window.top.location.href = '{install_url}';
+                        }}
+                    }});
+                    
+                    // Auto-redirect after 1 second
+                    setTimeout(function() {{
+                        document.getElementById('connectBtn').click();
+                    }}, 1000);
+                </script>
             </body>
             </html>
             """
