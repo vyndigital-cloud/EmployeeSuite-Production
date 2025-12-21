@@ -74,7 +74,8 @@ def add_security_headers(response):
     if is_embedded:
         # For embedded apps: Allow iframe embedding from Shopify domains only
         # Standard Shopify configuration - allows admin.shopify.com and all myshopify.com stores
-        frame_ancestors = "frame-ancestors https://admin.shopify.com https://*.myshopify.com; "
+        # CRITICAL: Must allow both with and without trailing slashes
+        frame_ancestors = "frame-ancestors https://admin.shopify.com https://admin.shopify.com/* https://*.myshopify.com https://*.myshopify.com/*; "
         
         # Log for debugging
         logger.info(f"🔓 ALLOWING IFRAME: path={request.path}, shop={has_shop_param}, host={has_host_param}, referer={referer[:50] if referer else 'none'}, origin={origin[:50] if origin else 'none'}")

@@ -965,7 +965,11 @@ def home():
     
     # If embedded app request, DON'T redirect - render dashboard directly to avoid breaking iframe
     # Redirects in iframes can cause "refused to connect" errors
-    if embedded == '1' or shop or host:
+    # Also check Referer header as Shopify sends requests from admin.shopify.com
+    referer = request.headers.get('Referer', '')
+    is_from_shopify_admin = 'admin.shopify.com' in referer
+    
+    if embedded == '1' or shop or host or is_from_shopify_admin:
         # For embedded apps, check if store is connected
         from models import ShopifyStore
         store = None
