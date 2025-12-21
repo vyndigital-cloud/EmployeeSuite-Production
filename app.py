@@ -480,8 +480,8 @@ DASHBOARD_HTML = """
         }
     </style>
 
-    <!-- Shopify App Bridge (for embedded apps) -->
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <!-- Shopify App Bridge (for embedded apps) - Latest version -->
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge/3.7.0/app-bridge.js"></script>
     
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3"></script>
