@@ -903,15 +903,21 @@ def dashboard():
                 products = client.get_products()
                 low_stock = client.get_low_stock(threshold=10)
                 
-                if not isinstance(orders, dict) and not isinstance(products, dict):
-                    quick_stats = {
-                        'pending_orders': len([o for o in orders if o.get('status') in ['PENDING', 'AUTHORIZED']]),
-                        'total_products': len(products) if isinstance(products, list) else 0,
-                        'low_stock_items': len(low_stock) if isinstance(low_stock, list) else 0,
-                        'has_data': True
-                    }
+                # Handle None values and error dicts properly
+                if orders is not None and not isinstance(orders, dict) and isinstance(orders, list):
+                    quick_stats['pending_orders'] = len([o for o in orders if o and isinstance(o, dict) and o.get('status') in ['PENDING', 'AUTHORIZED']])
+                
+                if products is not None and not isinstance(products, dict) and isinstance(products, list):
+                    quick_stats['total_products'] = len(products)
+                
+                if low_stock is not None and not isinstance(low_stock, dict) and isinstance(low_stock, list):
+                    quick_stats['low_stock_items'] = len(low_stock)
+                
+                # Only set has_data if we got valid data
+                if quick_stats['pending_orders'] > 0 or quick_stats['total_products'] > 0:
+                    quick_stats['has_data'] = True
         except Exception as e:
-            logger.error(f"Error fetching quick stats: {e}")
+            logger.warning(f"Error fetching quick stats: {e}")
             quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
     
     return render_template_string(DASHBOARD_HTML, 
@@ -1033,9 +1039,14 @@ def api_generate_report():
         from reporting import generate_report
         data = generate_report()
         if data.get('error') and data['error'] is not None:
-            logger.error(f"Generate report error for user {current_user.id}: {data['error']}")
+            # Don't log expected errors (like "No Shopify store connected") as ERROR level
+            error_msg = data['error']
+            if 'No Shopify store connected' in error_msg:
+                logger.info(f"Generate report: No store connected for user {current_user.id}")
+            else:
+                logger.error(f"Generate report error for user {current_user.id}: {error_msg}")
             # Return the formatted error HTML directly (it already has the title and banner)
-            return data['error'], 500
+            return error_msg, 500
         
         # Report HTML is already in data['message']
         if not data.get('message'):
