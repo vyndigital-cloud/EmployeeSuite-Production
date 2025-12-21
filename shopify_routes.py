@@ -281,21 +281,56 @@ SETTINGS_HTML = '''
         <div class="card">
             <div class="card-header">
                 <h2 class="card-title">Connect Shopify Store</h2>
-                <p class="card-subtitle">Connect your store to start automating</p>
+                <p class="card-subtitle">Connect your store to start monitoring your operations</p>
             </div>
-            <form method="POST" action="{{ url_for('shopify.connect_store') }}">
-                <div class="form-group">
-                    <label class="form-label">Store URL</label>
-                    <input type="text" name="shop_url" placeholder="yourstore.myshopify.com" class="form-input" required>
-                    <p class="form-help">Your Shopify store URL</p>
+            
+            <!-- OAuth Quick Connect (1-2 clicks) -->
+            <div style="margin-bottom: 24px; padding: 24px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #0ea5e9; border-radius: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <span style="font-size: 24px;">✨</span>
+                    <h3 style="font-size: 18px; font-weight: 600; color: #171717; margin: 0;">Quick Connect (Recommended)</h3>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Admin API Access Token</label>
-                    <input type="password" name="access_token" class="form-input" required>
-                    <p class="form-help">Get this from Shopify Admin → Settings → Apps → Develop apps</p>
+                <p style="font-size: 14px; color: #525252; margin-bottom: 20px; line-height: 1.6;">Connect your store in seconds with one click. No need to copy tokens manually. We'll redirect you to Shopify to authorize the connection.</p>
+                <form method="GET" action="/install" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <label for="shop_oauth" style="display: block; font-size: 14px; font-weight: 500; color: #171717; margin-bottom: 8px;">Enter your store domain</label>
+                        <input type="text" id="shop_oauth" name="shop" class="form-input" placeholder="yourstore.myshopify.com" required style="width: 100%; font-size: 15px; padding: 12px;">
+                        <p style="font-size: 12px; color: #737373; margin-top: 6px;">Enter your store domain (e.g., mystore.myshopify.com)</p>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="white-space: nowrap; padding: 12px 24px; font-size: 15px; font-weight: 600; background: #0ea5e9; border: none;">Connect with Shopify</button>
+                </form>
+                <div style="margin-top: 16px; padding: 12px; background: rgba(255,255,255,0.7); border-radius: 8px;">
+                    <p style="font-size: 13px; color: #166534; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <span>✓</span>
+                        <span>Secure OAuth connection. You'll be redirected to Shopify to approve access.</span>
+                    </p>
                 </div>
-                <button type="submit" class="btn btn-primary">Connect Store</button>
-            </form>
+            </div>
+            
+            <!-- Manual Connection (Advanced/Fallback) -->
+            <details style="margin-top: 24px;">
+                <summary style="font-size: 14px; font-weight: 500; color: #525252; cursor: pointer; padding: 14px; background: #fafafa; border-radius: 8px; border: 1px solid #e5e5e5; user-select: none;">
+                    🔧 Advanced: Connect with Access Token (Manual Method)
+                </summary>
+                <div style="margin-top: 20px; padding: 20px; background: #fafafa; border-radius: 8px; border: 1px solid #e5e5e5;">
+                    <p style="font-size: 13px; color: #737373; margin-bottom: 20px; line-height: 1.6;">
+                        <strong>When to use this:</strong> Only if you need to connect a development store, custom app, or if the Quick Connect above doesn't work for your setup.
+                    </p>
+                    <form method="POST" action="{{ url_for('shopify.connect_store') }}">
+                        <div class="form-group">
+                            <label class="form-label">Store URL</label>
+                            <input type="text" name="shop_url" placeholder="yourstore.myshopify.com" class="form-input" required>
+                            <p class="form-help">Your Shopify store URL</p>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Admin API Access Token</label>
+                            <input type="password" name="access_token" class="form-input" placeholder="shpat_xxxxxxxxxxxx" required>
+                            <p class="form-help">Get this from: <strong>Shopify Admin → Settings → Apps and sales channels → Develop apps → Create app → Admin API access token</strong></p>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Connect Store</button>
+                    </form>
+                </div>
+            </details>
         </div>
         {% endif %}
     </div>

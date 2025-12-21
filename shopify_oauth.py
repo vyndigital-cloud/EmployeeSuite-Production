@@ -12,16 +12,21 @@ oauth_bp = Blueprint('oauth', __name__)
 SHOPIFY_API_KEY = os.getenv('SHOPIFY_API_KEY')
 SHOPIFY_API_SECRET = os.getenv('SHOPIFY_API_SECRET')
 # App Store required scopes
-SCOPES = 'read_products,read_inventory,read_orders,write_orders'
+SCOPES = 'read_products,read_inventory,read_orders'
 REDIRECT_URI = os.getenv('SHOPIFY_REDIRECT_URI', 'https://employeesuite-production.onrender.com/auth/callback')
 
 @oauth_bp.route('/install')
 def install():
     """Initiate Shopify OAuth"""
-    shop = request.args.get('shop')
+    shop = request.args.get('shop', '').strip()
     
     if not shop:
         return "Missing shop parameter", 400
+    
+    # Normalize shop domain - add .myshopify.com if not present
+    shop = shop.replace('https://', '').replace('http://', '').replace('www.', '')
+    if not shop.endswith('.myshopify.com'):
+        shop = f"{shop}.myshopify.com"
     
     # Build authorization URL
     auth_url = f"https://{shop}/admin/oauth/authorize"
