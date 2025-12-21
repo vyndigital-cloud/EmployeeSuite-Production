@@ -110,6 +110,13 @@ def callback():
     login_user(user, remember=True)
     session.permanent = True
     
+    # Preserve embedded params if this is an embedded app request
+    embedded = request.args.get('embedded')
+    if embedded == '1':
+        from flask import url_for
+        dashboard_url = url_for('dashboard', shop=shop, embedded='1', host=request.args.get('host'))
+        return redirect(dashboard_url)
+    
     return redirect('/dashboard')
 
 def verify_hmac(params):

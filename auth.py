@@ -309,6 +309,13 @@ def login():
         if user and bcrypt.check_password_hash(user.password_hash, password):
             login_user(user, remember=True)
             session.permanent = True
+            # Preserve embedded params if this is an embedded app request
+            shop = request.args.get('shop')
+            embedded = request.args.get('embedded')
+            host = request.args.get('host')
+            if embedded == '1' and shop:
+                dashboard_url = url_for('dashboard', shop=shop, embedded='1', host=host)
+                return redirect(dashboard_url)
             return redirect(url_for('dashboard'))
         
         return render_template_string(LOGIN_HTML, error="Invalid email or password")

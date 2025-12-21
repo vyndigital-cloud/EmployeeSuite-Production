@@ -33,11 +33,13 @@ def add_security_headers(response):
         referer.endswith('.myshopify.com')  # Verified Shopify stores only
     )
     
-    # Only treat as embedded if we have STRONG indicators (not just any path)
-    # This prevents malicious sites from embedding our pages
+    # PERMISSIVE: If ANY Shopify indicator exists, allow iframe embedding
+    # This ensures it works even after login redirects lose some parameters
+    # Still secure: Only allows Shopify domains in CSP, blocks malicious sites
     is_embedded = (
         request.args.get('embedded') == '1' or  # Explicit embedded flag
-        (has_shop_param and has_host_param) or  # Both shop AND host (Shopify requirement)
+        has_shop_param or  # Shop parameter (Shopify always provides this)
+        has_host_param or  # Host parameter (Shopify provides for embedded)
         has_shopify_header or  # Official Shopify headers
         is_shopify_referer  # Coming from verified Shopify domains
     )
