@@ -144,30 +144,21 @@ SUBSCRIBE_HTML = '''
                 </div>
             </div>
             
-            <ul class="features-list">
-                <li>✅ Real-time inventory monitoring (prevents stockouts)</li>
-                <li>✅ Low-stock alerts (prevent stockouts)</li>
-                <li>✅ Order tracking & status monitoring</li>
-                <li>✅ Revenue reports by product (data-driven decisions)</li>
-                <li>✅ CSV export for revenue data (accounting ready)</li>
-                <li>✅ Shopify API integration (seamless sync)</li>
-                <li>✅ Email support (we're here to help)</li>
-                <li>✅ Mobile responsive (work from anywhere)</li>
-                <li>✅ 7-day free trial (no credit card required)</li>
-            </ul>
-            
-            <div style="background: #fafafa; border: 1px solid #e5e5e5; border-radius: 12px; padding: 20px; margin: 24px 0;">
-                <div style="font-size: 15px; font-weight: 600; color: #0a0a0a; margin-bottom: 12px;">💡 What You Get:</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px; color: #525252;">
-                    <div>• Prevent stockouts</div>
-                    <div>• Track all orders</div>
-                    <div>• Revenue insights</div>
-                </div>
+            <div style="background: #fafafa; border: 1px solid #e5e5e5; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+                <div style="font-size: 16px; font-weight: 600; color: #0a0a0a; margin-bottom: 16px;">Everything you need to manage your store:</div>
+                <ul class="features-list" style="margin: 0;">
+                    <li>✅ Monitor inventory levels across all products</li>
+                    <li>✅ Get alerts when stock runs low</li>
+                    <li>✅ Track pending and unfulfilled orders</li>
+                    <li>✅ View revenue analytics by product</li>
+                    <li>✅ Export reports as CSV</li>
+                    <li>✅ Email support included</li>
+                </ul>
             </div>
             
-            <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #0ea5e9; border-radius: 12px; padding: 16px; margin: 24px 0; text-align: center;">
-                <div style="font-size: 13px; font-weight: 700; color: #0c4a6e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Refund Policy</div>
-                <div style="font-size: 14px; color: #075985;">Not satisfied? Email us within 7 days for a refund. Subject to our refund policy.</div>
+            <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #16a34a; border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center;">
+                <div style="font-size: 15px; font-weight: 600; color: #166534; margin-bottom: 8px;">✓ 7-Day Money-Back Guarantee</div>
+                <div style="font-size: 14px; color: #15803d;">Try it risk-free. If it's not for you, we'll refund your payment.</div>
             </div>
             
             <form method="POST" action="/create-checkout-session">
