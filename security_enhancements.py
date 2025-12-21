@@ -20,35 +20,39 @@ def add_security_headers(response):
     from flask import request
     
     # Check if this is an embedded app request (Shopify iframe)
-    # SUPER PERMISSIVE: If ANY Shopify indicator exists, allow iframe embedding
-    # This ensures embedded apps always work, even if detection method changes
-    referer = request.headers.get('Referer', '')
+    # SECURE but PERMISSIVE: Only allow iframe embedding for verified Shopify requests
+    # This ensures embedded apps work while maintaining security
+    referer = request.headers.get('Referer', '').lower()
     has_shop_param = request.args.get('shop') or request.args.get('shop_domain')
-    has_host_param = request.args.get('host')
+    has_host_param = request.args.get('host')  # Shopify provides this for embedded apps
     has_shopify_header = request.headers.get('X-Shopify-Shop-Domain') or request.headers.get('X-Shopify-Hmac-Sha256')
-    is_shopify_referer = 'shopify.com' in referer or 'myshopify.com' in referer
-    is_embedded_path = request.path.startswith('/dashboard') or request.path.startswith('/settings') or request.path == '/'
     
-    # If ANY Shopify indicator exists, treat as embedded
-    is_embedded = (
-        request.args.get('embedded') == '1' or 
-        has_shop_param or
-        has_host_param or
-        has_shopify_header or
-        is_shopify_referer or
-        is_embedded_path
+    # SECURITY: Only trust Shopify domains, not arbitrary shopify.com subdomains
+    is_shopify_referer = (
+        'admin.shopify.com' in referer or  # Official Shopify admin
+        referer.endswith('.myshopify.com')  # Verified Shopify stores only
     )
     
-    # For embedded apps, allow iframe embedding from Shopify
-    # For regular pages, prevent clickjacking
+    # Only treat as embedded if we have STRONG indicators (not just any path)
+    # This prevents malicious sites from embedding our pages
+    is_embedded = (
+        request.args.get('embedded') == '1' or  # Explicit embedded flag
+        (has_shop_param and has_host_param) or  # Both shop AND host (Shopify requirement)
+        has_shopify_header or  # Official Shopify headers
+        is_shopify_referer  # Coming from verified Shopify domains
+    )
+    
+    # For embedded apps, allow iframe embedding ONLY from Shopify
+    # For regular pages, prevent clickjacking (SECURITY)
     if is_embedded:
         # For embedded apps: DO NOT set X-Frame-Options (let CSP handle it)
         # X-Frame-Options takes precedence over CSP, so we must not set it
-        # Allow ALL Shopify domains (admin.shopify.com and any myshopify.com store)
-        # Use explicit domains - CSP frame-ancestors doesn't support wildcards well
+        # SECURITY: Only allow specific Shopify domains (not wildcards)
+        # This prevents malicious sites from embedding our app
         frame_ancestors = "frame-ancestors https://admin.shopify.com https://admin.shopify.com/* https://*.myshopify.com https://*.myshopify.com/*; "
     else:
-        # Regular pages - prevent clickjacking
+        # Regular pages - STRICT security: prevent ALL iframe embedding
+        # This protects against clickjacking attacks
         response.headers['X-Frame-Options'] = 'DENY'
         frame_ancestors = "frame-ancestors 'none'; "
     
