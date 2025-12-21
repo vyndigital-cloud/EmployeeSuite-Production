@@ -21,22 +21,17 @@ LOGIN_HTML = '''
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f5f5f5;
+            background: #fafafa;
             color: #171717;
             display: flex;
-            align-items: flex-start;
-            padding-top: 5vh;
+            align-items: center;
             justify-content: center;
             min-height: 100vh;
             padding: 24px;
         }
-        .login-container { width: 100%; max-width: 440px; }
-        .logo { text-align: center; font-size: 24px; font-weight: 700; color: #171717; margin-bottom: 16px; }
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-        }
-        .card { background: #fff; border: 1px solid #d4d4d4; border-radius: 12px; padding: 44px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+        .login-container { width: 100%; max-width: 420px; }
+        .logo { text-align: center; font-size: 24px; font-weight: 700; color: #171717; margin-bottom: 32px; }
+        .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 24px; }
         .form-group { margin-bottom: 20px; }
         .form-label { display: block; font-size: 14px; font-weight: 600; color: #0a0a0a; margin-bottom: 10px; letter-spacing: 0.2px; }
@@ -46,7 +41,7 @@ LOGIN_HTML = '''
         .btn:hover { background: #3a5c2a; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(74, 115, 56, 0.4); } .btn { transition: all 0.2s ease; }
         .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
-        .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
+        .footer-link a { color: #0a0a0a; text-decoration: none; font-weight: 600; }
         .footer-link a:hover { text-decoration: underline; }
         
         /* Mobile Responsive */
@@ -124,21 +119,16 @@ REGISTER_HTML = '''
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f5f5f5;
+            background: #fafafa;
             color: #171717;
             display: flex;
-            align-items: flex-start;
-            padding-top: 5vh;
+            align-items: center;
             justify-content: center;
             min-height: 100vh;
             padding: 24px;
         }
         .register-container { width: 100%; max-width: 440px; }
         .logo { text-align: center; font-size: 24px; font-weight: 700; color: #171717; margin-bottom: 16px; }
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-        }
         .card { background: #fff; border: 1px solid #d4d4d4; border-radius: 12px; padding: 44px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
         .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 8px; }
         .card-subtitle { font-size: 14px; color: #737373; margin-bottom: 24px; }
@@ -150,7 +140,7 @@ REGISTER_HTML = '''
         .btn:hover { background: #3a5c2a; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(74, 115, 56, 0.4); } .btn { transition: all 0.2s ease; }
         .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
-        .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
+        .footer-link a { color: #0a0a0a; text-decoration: none; font-weight: 600; }
         .footer-link a:hover { text-decoration: underline; }
         
         /* Mobile Responsive */
@@ -309,11 +299,10 @@ FORGOT_PASSWORD_HTML = '''
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f5f5f5;
+            background: #fafafa;
             color: #171717;
             display: flex;
-            align-items: flex-start;
-            padding-top: 5vh;
+            align-items: center;
             justify-content: center;
             min-height: 100vh;
             padding: 24px;
@@ -330,7 +319,7 @@ FORGOT_PASSWORD_HTML = '''
         .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
         .banner-success { background: #f0fdf4; border: 1px solid #86efac; border-left: 3px solid #16a34a; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #166534; }
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
-        .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
+        .footer-link a { color: #0a0a0a; text-decoration: none; font-weight: 600; }
         
         /* Mobile Responsive */
         @media (max-width: 768px) {
@@ -382,11 +371,10 @@ RESET_PASSWORD_HTML = '''
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f5f5f5;
+            background: #fafafa;
             color: #171717;
             display: flex;
-            align-items: flex-start;
-            padding-top: 5vh;
+            align-items: center;
             justify-content: center;
             min-height: 100vh;
             padding: 24px;
@@ -402,7 +390,7 @@ RESET_PASSWORD_HTML = '''
         .btn:hover { background: #3a5c2a; }
         .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
         .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
-        .footer-link a { color: #72b05e; text-decoration: none; font-weight: 600; }
+        .footer-link a { color: #0a0a0a; text-decoration: none; font-weight: 600; }
         
         /* Mobile Responsive */
         @media (max-width: 768px) {

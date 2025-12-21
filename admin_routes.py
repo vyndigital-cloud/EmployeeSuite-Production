@@ -25,14 +25,14 @@ ADMIN_LOGIN_HTML = '''
         }
         .login-container { width: 100%; max-width: 400px; }
         .logo { text-align: center; font-size: 24px; font-weight: 700; color: #171717; margin-bottom: 32px; }
-        .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 32px; }
+        .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 40px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
         .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 24px; }
         .form-group { margin-bottom: 20px; }
         .form-label { display: block; font-size: 14px; font-weight: 500; color: #171717; margin-bottom: 8px; }
-        .form-input { width: 100%; padding: 12px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 14px; font-family: inherit; }
-        .form-input:focus { outline: none; border-color: #171717; }
-        .btn { width: 100%; padding: 12px; background: #171717; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
-        .btn:hover { background: #262626; }
+        .form-input { width: 100%; padding: 12px 16px; border: 1px solid #e5e5e5; border-radius: 10px; font-size: 15px; font-family: inherit; background: #fff; transition: all 0.2s; }
+        .form-input:focus { outline: none; border-color: #0a0a0a; box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.05); }
+        .btn { width: 100%; padding: 14px; background: #0a0a0a; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+        .btn:hover { background: #262626; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
         .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
         
         /* Mobile Responsive */
@@ -93,16 +93,16 @@ ADMIN_DASHBOARD_HTML = '''
             align-items: center;
         }
         .logo { font-size: 18px; font-weight: 600; color: #171717; }
-        .nav-btn { padding: 8px 14px; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none; background: #171717; color: #fff; }
-        .nav-btn:hover { background: #262626; }
+        .nav-btn { padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; background: #0a0a0a; color: #fff; transition: all 0.2s ease; }
+        .nav-btn:hover { background: #262626; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
         .container { max-width: 1400px; margin: 0 auto; padding: 48px 24px; }
         .page-title { font-size: 32px; font-weight: 700; color: #171717; margin-bottom: 8px; }
         .page-subtitle { font-size: 16px; color: #737373; margin-bottom: 32px; }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px; }
-        .stat-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 24px; }
+        .stat-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 24px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
         .stat-label { font-size: 13px; color: #737373; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
         .stat-value { font-size: 32px; font-weight: 700; color: #171717; }
-        .table-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden; }
+        .table-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
         .table-header { padding: 20px 24px; border-bottom: 1px solid #e5e5e5; font-size: 16px; font-weight: 600; color: #171717; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 16px 24px; font-size: 13px; font-weight: 600; color: #737373; background: #fafafa; text-transform: uppercase; letter-spacing: 0.5px; }

@@ -32,9 +32,10 @@ FAQ_HTML = '''
         .faq-item {
             background: #fff;
             border: 1px solid #e5e5e5;
-            border-radius: 12px;
+            border-radius: 16px;
             padding: 24px;
             margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
         .faq-question {
             font-size: 18px;

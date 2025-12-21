@@ -72,9 +72,10 @@ SETTINGS_HTML = '''
         .card {
             background: #fff;
             border: 1px solid #e5e5e5;
-            border-radius: 12px;
+            border-radius: 16px;
             padding: 32px;
             margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
         .card-header {
             margin-bottom: 20px;
@@ -160,11 +161,15 @@ SETTINGS_HTML = '''
             display: inline-block;
         }
         .btn-primary {
-            background: #171717;
+            background: #0a0a0a;
             color: #fff;
+            border-radius: 10px;
+            transition: all 0.2s ease;
         }
         .btn-primary:hover {
             background: #262626;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         .btn-danger {
             background: #dc2626;
@@ -286,7 +291,7 @@ SETTINGS_HTML = '''
             </div>
             
             <!-- OAuth Quick Connect (1-2 clicks) -->
-            <div style="margin-bottom: 24px; padding: 24px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #0ea5e9; border-radius: 12px;">
+            <div style="margin-bottom: 24px; padding: 24px; background: #fafafa; border: 1px solid #e5e5e5; border-radius: 16px;">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
                     <span style="font-size: 24px;">✨</span>
                     <h3 style="font-size: 18px; font-weight: 600; color: #171717; margin: 0;">Quick Connect (Recommended)</h3>

@@ -33,7 +33,7 @@ LEGAL_HTML = """
         .logo { font-size: 18px; font-weight: 600; color: #171717; text-decoration: none; }
         .container { max-width: 800px; margin: 0 auto; padding: 48px 24px; }
         .page-title { font-size: 32px; font-weight: 700; color: #171717; margin-bottom: 32px; }
-        .content { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 32px; line-height: 1.8; }
+        .content { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 32px; line-height: 1.8; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
         h2 { font-size: 20px; font-weight: 600; color: #171717; margin: 32px 0 16px; }
         p { margin: 16px 0; color: #525252; font-size: 15px; }
         

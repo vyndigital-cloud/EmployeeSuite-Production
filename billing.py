@@ -40,7 +40,7 @@ SUBSCRIBE_HTML = '''
         .container { max-width: 600px; margin: 0 auto; padding: 48px 24px; }
         .page-title { font-size: 32px; font-weight: 700; color: #171717; margin-bottom: 8px; }
         .page-subtitle { font-size: 16px; color: #737373; margin-bottom: 32px; }
-        .pricing-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 32px; }
+        .pricing-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
         .pricing-item {
             padding: 20px 0;
             border-bottom: 1px solid #f5f5f5;
@@ -65,15 +65,20 @@ SUBSCRIBE_HTML = '''
         .btn {
             width: 100%;
             padding: 14px;
-            background: #4a7338;
+            background: #0a0a0a;
             color: #fff;
             border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s ease;
         }
-        .btn:hover { background: #3a5c2a; }
+        .btn:hover { 
+            background: #262626; 
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
         
         /* Mobile Responsive */
         @media (max-width: 768px) {
