@@ -506,21 +506,61 @@ DASHBOARD_HTML = """
                     // Make app available globally
                     window.shopifyApp = app;
                     
-                    // Fetch and send session tokens for all API requests (MANDATORY as of Jan 2025)
-                    app.getSessionToken().then(function(token) {
-                        // Set default Authorization header for all fetch requests
-                        var originalFetch = window.fetch;
-                        window.fetch = function(url, options) {
-                            options = options || {};
-                            options.headers = options.headers || {};
-                            if (!options.headers['Authorization'] && token) {
-                                options.headers['Authorization'] = 'Bearer ' + token;
-                            }
-                            return originalFetch(url, options);
-                        };
-                    }).catch(function(error) {
-                        console.warn('Failed to get session token:', error);
-                    });
+                    // CRITICAL: Fetch session token for ALL API requests (MANDATORY as of Jan 2025)
+                    // Wrap fetch to automatically add session token to every request
+                    var originalFetch = window.fetch;
+                    window.fetch = function(url, options) {
+                        options = options || {};
+                        options.headers = options.headers || {};
+                        
+                        // Always fetch fresh session token for each request (tokens expire quickly)
+                        // Only add token for requests to our own domain (not external APIs)
+                        var isInternalRequest = typeof url === 'string' && (url.startsWith('/') || url.includes(window.location.hostname));
+                        
+                        if (isInternalRequest && !options.headers['Authorization']) {
+                            // Get fresh session token for this request
+                            return app.getSessionToken().then(function(token) {
+                                if (token) {
+                                    options.headers['Authorization'] = 'Bearer ' + token;
+                                }
+                                return originalFetch(url, options);
+                            }).catch(function(error) {
+                                console.warn('Failed to get session token, proceeding without it:', error);
+                                return originalFetch(url, options);
+                            });
+                        }
+                        
+                        return originalFetch(url, options);
+                    };
+                    
+                    // Also wrap XMLHttpRequest for compatibility
+                    var originalXHROpen = XMLHttpRequest.prototype.open;
+                    var originalXHRSend = XMLHttpRequest.prototype.send;
+                    XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
+                        this._method = method;
+                        this._url = url;
+                        this._async = async;
+                        return originalXHROpen.apply(this, arguments);
+                    };
+                    XMLHttpRequest.prototype.send = function(data) {
+                        var xhr = this;
+                        var url = this._url;
+                        var isInternalRequest = url && (url.startsWith('/') || url.includes(window.location.hostname));
+                        
+                        if (isInternalRequest && !this.getRequestHeader('Authorization')) {
+                            app.getSessionToken().then(function(token) {
+                                if (token) {
+                                    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+                                }
+                                originalXHRSend.call(xhr, data);
+                            }).catch(function(error) {
+                                console.warn('Failed to get session token for XHR:', error);
+                                originalXHRSend.call(xhr, data);
+                            });
+                        } else {
+                            originalXHRSend.call(this, data);
+                        }
+                    };
                 } catch (e) {
                     console.warn('App Bridge initialization failed:', e);
                 }
