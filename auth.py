@@ -159,40 +159,81 @@ REGISTER_HTML = '''
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #fafafa;
-            color: #171717;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f6f6f7;
+            color: #202223;
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
             padding: 24px;
+            line-height: 1.5;
         }
-        .register-container { width: 100%; max-width: 440px; }
-        .logo { text-align: center; font-size: 24px; font-weight: 700; color: #171717; margin-bottom: 16px; }
-        .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 8px; }
-        .card-subtitle { font-size: 14px; color: #737373; margin-bottom: 32px; }
+        .register-container { width: 100%; max-width: 400px; }
+        .logo { text-align: center; font-size: 18px; font-weight: 600; color: #202223; margin-bottom: 40px; letter-spacing: -0.2px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .card { 
+            background: #ffffff;
+            border: 1px solid #e1e3e5;
+            border-radius: 8px;
+            padding: 32px;
+        }
+        .card-title { font-size: 24px; font-weight: 600; color: #202223; margin-bottom: 8px; letter-spacing: -0.3px; }
+        .card-subtitle { font-size: 14px; color: #6d7175; margin-bottom: 24px; font-weight: 400; }
         .form-group { margin-bottom: 20px; }
-        .form-label { display: block; font-size: 14px; font-weight: 600; color: #0a0a0a; margin-bottom: 10px; letter-spacing: 0.2px; }
-        .form-input { width: 100%; padding: 13px 16px; border: 1px solid #e5e5e5; border-radius: 8px; font-size: 15px; font-family: inherit; background: #fff; transition: all 0.2s; }
-        .form-input:focus { outline: none; border-color: #0a0a0a; box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.05); }
-        .btn { width: 100%; padding: 14px; background: #0a0a0a; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; transition: all 0.2s ease; }
-        .btn:hover { background: #262626; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
-        .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
-        .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
-        .footer-link a { color: #0a0a0a; text-decoration: none; font-weight: 600; }
+        .form-label { display: block; font-size: 13px; font-weight: 500; color: #202223; margin-bottom: 6px; }
+        .form-input { 
+            width: 100%; 
+            padding: 10px 12px; 
+            border: 1px solid #e1e3e5; 
+            border-radius: 6px; 
+            font-size: 14px; 
+            font-family: inherit; 
+            background: #ffffff;
+            transition: border-color 0.15s;
+        }
+        .form-input:focus { 
+            outline: none; 
+            border-color: #008060;
+            box-shadow: 0 0 0 1px #008060;
+        }
+        .btn { 
+            width: 100%; 
+            padding: 10px 16px; 
+            background: #008060;
+            color: #fff; 
+            border: none; 
+            border-radius: 6px; 
+            font-size: 14px; 
+            font-weight: 500; 
+            cursor: pointer; 
+            margin-top: 8px; 
+            transition: background 0.15s;
+        }
+        .btn:hover { 
+            background: #006e52;
+        }
+        .banner-error { 
+            background: #fff4f4;
+            border: 1px solid #fecaca;
+            padding: 12px 16px; 
+            border-radius: 6px; 
+            margin-bottom: 20px; 
+            font-size: 14px; 
+            color: #d72c0d;
+            font-weight: 400;
+        }
+        .footer-link { text-align: center; margin-top: 24px; font-size: 14px; color: #6d7175; }
+        .footer-link a { color: #008060; text-decoration: none; font-weight: 500; }
         .footer-link a:hover { text-decoration: underline; }
         
-        /* Mobile Responsive */
+        /* Mobile */
         @media (max-width: 768px) {
-            body { padding: 16px; padding-top: 3vh; }
-            .card { padding: 32px 24px; }
-            .logo { font-size: 20px; }
-            .card-subtitle { font-size: 13px; }
+            body { padding: 20px; }
+            .card { padding: 24px; }
+            .card-title { font-size: 20px; }
         }
         @media (max-width: 480px) {
-            .card { padding: 28px 20px; }
+            .card { padding: 20px; }
             .card-title { font-size: 18px; }
         }
 
@@ -200,11 +241,23 @@ REGISTER_HTML = '''
 </head>
 <body>
     <div class="register-container">
-        <div style="text-align: center; margin-bottom: 32px;">
-            <a href="/" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 10px; font-weight: 600;">
-                <span style="font-size: 20px;">Employee Suite</span>
+        <div style="text-align: center; margin-bottom: 24px;">
+            <a href="/" style="display: inline-block; text-decoration: none;">
+                <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 160px; height: 160px; filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(114, 176, 94, 0.8)); animation: pulse-glow 3s ease-in-out infinite; cursor: pointer;">
             </a>
         </div>
+        <style>
+            @keyframes pulse-glow {
+                0%, 100% { 
+                    filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(114, 176, 94, 0.8));
+                    transform: scale(1);
+                }
+                50% { 
+                    filter: drop-shadow(0 0 60px rgba(255, 255, 255, 1)) drop-shadow(0 0 30px rgba(114, 176, 94, 1));
+                    transform: scale(1.05);
+                }
+            }
+        </style>
         <div class="card">
             <h1 class="card-title">Start Free Trial</h1>
             <p class="card-subtitle">Your 7-day trial begins immediately</p>
@@ -231,7 +284,7 @@ REGISTER_HTML = '''
             Already have an account? <a href="{{ url_for('auth.login') }}">Login</a>
         </div>
         <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
-            By signing up, you agree to our <a href="/terms" style="color: #171717;">Terms</a> and <a href="/privacy" style="color: #171717;">Privacy Policy</a>
+            <a href="/terms" style="color: #999;">Terms</a> • <a href="/privacy" style="color: #999;">Privacy</a>
         </div>
     </div>
 </body>
