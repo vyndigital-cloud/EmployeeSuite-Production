@@ -138,7 +138,7 @@ SUBSCRIBE_HTML = '''
             <div style="background: linear-gradient(135deg, #0a0a0a 0%, #262626 100%); color: #fff; padding: 32px; border-radius: 16px; margin-bottom: 32px; text-align: center; position: relative; overflow: hidden;">
                 <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255, 255, 255, 0.05); border-radius: 50%;"></div>
                 <div style="position: relative; z-index: 1;">
-                    <div style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.9; margin-bottom: 12px;">Premium Plan</div>
+                    <div style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.9; margin-bottom: 12px;">Monthly Subscription</div>
                     <div style="font-size: 56px; font-weight: 800; margin-bottom: 8px; line-height: 1;">$29<span style="font-size: 24px; font-weight: 500; opacity: 0.8;">/month</span></div>
                     <div style="font-size: 15px; opacity: 0.8; margin-bottom: 16px;">7-day free trial • No setup fees • Cancel anytime</div>
                 </div>
