@@ -20,14 +20,25 @@ def add_security_headers(response):
     from flask import request
     
     # Check if this is an embedded app request (Shopify iframe)
-    is_embedded = request.args.get('embedded') == '1' or request.headers.get('X-Shopify-Shop-Domain')
+    # Multiple ways to detect embedded requests:
+    # 1. embedded=1 query parameter
+    # 2. X-Shopify-Shop-Domain header
+    # 3. Referer header from admin.shopify.com
+    # 4. Host parameter in query (Shopify provides this)
+    is_embedded = (
+        request.args.get('embedded') == '1' or 
+        request.headers.get('X-Shopify-Shop-Domain') or
+        request.args.get('host') or
+        (request.headers.get('Referer') and 'admin.shopify.com' in request.headers.get('Referer', ''))
+    )
     
     # For embedded apps, allow iframe embedding from Shopify
     # For regular pages, prevent clickjacking
     if is_embedded:
         # Don't set X-Frame-Options for embedded apps (let CSP handle it)
         # This allows Shopify to embed the app in an iframe
-        frame_ancestors = "frame-ancestors https://admin.shopify.com https://*.myshopify.com; "
+        # Allow all Shopify admin domains
+        frame_ancestors = "frame-ancestors https://admin.shopify.com https://*.myshopify.com https://*.myshopify.com/*; "
     else:
         # Regular pages - prevent clickjacking
         response.headers['X-Frame-Options'] = 'DENY'
