@@ -246,10 +246,10 @@ DASHBOARD_HTML = """
         .nav-btn-primary {
             background: #008060;
             color: #fff;
-            position: relative;
         }
         .nav-btn-primary:hover {
-            background: #006e52;
+            background: #f6f6f7;
+            color: #202223;
         }
         
         /* Container - Shopify Spacing */
