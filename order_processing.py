@@ -95,4 +95,4 @@ def process_orders(creds_path='creds.json'):
         return {"success": True, "message": html}
         
     except Exception as e:
-        return {"success": False, "error": f"Unexpected error: {str(e)}"}
+        return {"success": False, "error": f"<div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Unexpected error</div><div>{str(e)}</div><div style='margin-top: 12px; font-size: 13px;'>If this persists, check your store connection in <a href='/settings/shopify' style='color: #008060; text-decoration: underline;'>Settings</a>.</div></div>"}
