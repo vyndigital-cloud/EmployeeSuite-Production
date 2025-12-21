@@ -251,9 +251,11 @@ DASHBOARD_HTML = """
             box-shadow: 0 2px 4px rgba(0, 128, 96, 0.2);
         }
         .nav-btn-primary:hover {
-            background: #006e52;
+            background: #ffffff;
+            color: #008060;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 128, 96, 0.4);
+            border: 1px solid #008060;
         }
         .nav-btn-primary:active {
             transform: translateY(0);
@@ -1031,13 +1033,13 @@ def api_update_inventory():
         # Clear inventory cache to force fresh data
         clear_cache('get_products')
         result = update_inventory()
-        if isinstance(result, dict) and result.get("success"):
+        if isinstance(result, dict):
             return jsonify(result)
         else:
             return jsonify({"success": False, "error": str(result)})
     except Exception as e:
         logger.error(f"Error updating inventory for user {current_user.id}: {str(e)}", exc_info=True)
-        return jsonify({"error": f"Failed to update inventory: {str(e)}", "success": False}), 500
+        return jsonify({"success": False, "error": f"Failed to update inventory: {str(e)}"}), 500
 
 @app.route('/api/generate_report', methods=['GET', 'POST'])
 @login_required
