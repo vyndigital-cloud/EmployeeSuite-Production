@@ -921,29 +921,70 @@ def home():
     # Check if this is an embedded app request from Shopify
     shop = request.args.get('shop')
     embedded = request.args.get('embedded')
+    host = request.args.get('host')
     
-    # If embedded app request, handle it (id_token is for App Bridge, not strict verification)
-    if embedded == '1' and shop:
+    # If embedded app request, DON'T redirect - render dashboard directly to avoid breaking iframe
+    # Redirects in iframes can cause "refused to connect" errors
+    if embedded == '1' or shop or host:
         # For embedded apps, check if store is connected
-        # Don't strictly verify id_token - App Bridge handles session tokens via Authorization header
         from models import ShopifyStore
-        store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+        store = None
+        if shop:
+            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
         
         if store:
             # Store is connected - auto-login the user
             user = store.user
-            if user:
+            if user and not current_user.is_authenticated:
                 login_user(user, remember=True)
                 session.permanent = True
                 logger.info(f"Auto-logged in user for embedded app: {shop}")
-                # Preserve embedded params when redirecting to dashboard
-                dashboard_url = url_for('dashboard', shop=shop, embedded='1', host=request.args.get('host'))
-                return redirect(dashboard_url)
         
-        # Store not connected - redirect to OAuth install (preserve embedded params)
-        logger.info(f"Store not connected for embedded app: {shop}, redirecting to install")
-        install_url = url_for('oauth.install', shop=shop, embedded='1', host=request.args.get('host'))
-        return redirect(install_url)
+        # For embedded apps, render dashboard directly instead of redirecting
+        # This prevents iframe connection issues
+        if current_user.is_authenticated:
+            # Import dashboard function logic to render directly
+            from flask import render_template_string
+            has_access = current_user.has_access()
+            trial_active = current_user.is_trial_active()
+            days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+            
+            from models import ShopifyStore
+            has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
+            
+            quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
+            if has_access and has_shopify:
+                try:
+                    from shopify_integration import ShopifyClient
+                    store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+                    if store:
+                        client = ShopifyClient(store.shop_url, store.access_token)
+                        stats = client.get_quick_stats()
+                        if stats and isinstance(stats, dict):
+                            quick_stats = stats
+                except Exception as e:
+                    logger.warning(f"Error fetching quick stats: {e}")
+            
+            shop_domain = ''
+            if has_shopify:
+                store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+                if store:
+                    shop_domain = store.shop_url
+            
+            return render_template_string(DASHBOARD_HTML, 
+                                         trial_active=trial_active, 
+                                         days_left=days_left, 
+                                         is_subscribed=current_user.is_subscribed, 
+                                         has_shopify=has_shopify, 
+                                         has_access=has_access,
+                                         quick_stats=quick_stats,
+                                         shop_domain=shop_domain,
+                                         SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''))
+        else:
+            # Not logged in - redirect to OAuth install (preserve embedded params)
+            logger.info(f"Store not connected for embedded app: {shop}, redirecting to install")
+            install_url = url_for('oauth.install', shop=shop, embedded='1', host=host)
+            return redirect(install_url)
     
     # Regular (non-embedded) request handling
     if current_user.is_authenticated:
