@@ -31,8 +31,22 @@
 
 ### Option 1: Deploy shopify.app.toml via Shopify CLI (BEST)
 
+**Quick Deploy Script (Installs CLI if needed):**
 ```bash
-shopify app deploy
+cd /Users/essentials/Documents/1EmployeeSuite-FIXED
+./DEPLOY_WEBHOOKS.sh
+```
+
+**Or Manual Install & Deploy:**
+```bash
+# 1. Install Shopify CLI
+npm install -g @shopify/cli @shopify/theme
+
+# 2. Navigate to project
+cd /Users/essentials/Documents/1EmployeeSuite-FIXED
+
+# 3. Deploy
+shopify app deploy --no-release
 ```
 
 This will register the webhooks from the TOML file.
