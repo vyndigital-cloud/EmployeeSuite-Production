@@ -34,15 +34,15 @@
       },
       {
         "uri": "https://employeesuite-production.onrender.com/webhooks/customers/data_request",
-        "topics": ["customers/data_request"]
+        "compliance_topics": ["customers/data_request"]
       },
       {
         "uri": "https://employeesuite-production.onrender.com/webhooks/customers/redact",
-        "topics": ["customers/redact"]
+        "compliance_topics": ["customers/redact"]
       },
       {
         "uri": "https://employeesuite-production.onrender.com/webhooks/shop/redact",
-        "topics": ["shop/redact"]
+        "compliance_topics": ["shop/redact"]
       }
     ]
   },
