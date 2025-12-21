@@ -1046,6 +1046,7 @@ def home():
             # Use App Bridge Redirect if available, otherwise use window.top
             logger.info(f"Store not connected for embedded app: {shop}, showing connect page")
             install_url = url_for('oauth.install', shop=shop, embedded='1', host=host)
+            api_key = os.getenv('SHOPIFY_API_KEY', '')
             
             # Render a proper HTML page that uses App Bridge to redirect
             return f"""
@@ -1086,14 +1087,17 @@ def home():
                         // Try App Bridge redirect first
                         if (window['app-bridge']) {{
                             try {{
-                                var app = window['app-bridge'].default.createApp({{
-                                    apiKey: '{os.getenv("SHOPIFY_API_KEY", "")}',
+                                var AppBridge = window['app-bridge'];
+                                var createApp = AppBridge.default;
+                                var app = createApp({{
+                                    apiKey: '{api_key}',
                                     host: '{host or ""}',
                                     shop: '{shop or ""}'
                                 }});
-                                var Redirect = window['app-bridge'].actions.Redirect;
+                                var Redirect = AppBridge.actions.Redirect;
                                 app.dispatch(Redirect.create(Redirect.Action.APP, '{install_url}'));
                             }} catch(e) {{
+                                console.error('App Bridge redirect failed:', e);
                                 window.top.location.href = '{install_url}';
                             }}
                         }} else {{
