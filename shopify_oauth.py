@@ -37,6 +37,13 @@ def install():
         'state': shop  # Use shop as state for simplicity
     }
     
+    # For embedded apps, add embedded parameter to redirect URI so callback knows it's embedded
+    embedded = request.args.get('embedded')
+    if embedded == '1':
+        # Append embedded param to redirect URI so callback preserves it
+        redirect_uri_with_embedded = f"{REDIRECT_URI}?embedded=1"
+        params['redirect_uri'] = redirect_uri_with_embedded
+    
     query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
     return redirect(f"{auth_url}?{query_string}")
 

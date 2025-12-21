@@ -936,11 +936,14 @@ def home():
                 login_user(user, remember=True)
                 session.permanent = True
                 logger.info(f"Auto-logged in user for embedded app: {shop}")
-                return redirect(url_for('dashboard'))
+                # Preserve embedded params when redirecting to dashboard
+                dashboard_url = url_for('dashboard', shop=shop, embedded='1', host=request.args.get('host'))
+                return redirect(dashboard_url)
         
-        # Store not connected - redirect to OAuth install
+        # Store not connected - redirect to OAuth install (preserve embedded params)
         logger.info(f"Store not connected for embedded app: {shop}, redirecting to install")
-        return redirect(url_for('oauth.install', shop=shop))
+        install_url = url_for('oauth.install', shop=shop, embedded='1', host=request.args.get('host'))
+        return redirect(install_url)
     
     # Regular (non-embedded) request handling
     if current_user.is_authenticated:
