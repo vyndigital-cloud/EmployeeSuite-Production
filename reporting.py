@@ -7,7 +7,7 @@ def generate_report():
     """Generate revenue report from Shopify data"""
     try:
         if not current_user.is_authenticated:
-            return {"success": False, "error": "Not authenticated"}
+            return {"success": False, "error": "<div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Authentication required</div><div>Please log in to access this feature.</div></div>"}
         
         store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
         
