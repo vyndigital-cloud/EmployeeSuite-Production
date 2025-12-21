@@ -246,9 +246,18 @@ DASHBOARD_HTML = """
         .nav-btn-primary {
             background: #008060;
             color: #fff;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0, 128, 96, 0.2);
         }
         .nav-btn-primary:hover {
             background: #006e52;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 128, 96, 0.4);
+        }
+        .nav-btn-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 128, 96, 0.2);
         }
         
         /* Container - Shopify Spacing */
