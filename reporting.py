@@ -12,7 +12,7 @@ def generate_report():
         store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
         
         if not store:
-            return {"success": False, "error": "No Shopify store connected. <a href='/settings' style='color: #3b82f6; text-decoration: underline;'>Connect your store in Settings</a> to generate reports."}
+            return {"success": False, "error": "<div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>No Shopify store connected</div><div style='margin-bottom: 12px;'>Connect your store to generate revenue reports and analytics.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Connect Store →</a></div>"}
         
         client = ShopifyClient(store.shop_url, store.access_token)
         
@@ -32,7 +32,7 @@ def generate_report():
                 if "error" in orders_data:
                     # If error on first request, return error
                     if iteration == 0:
-                        return {"success": False, "error": f"Shopify error: {orders_data['error']}"}
+                        return {"success": False, "error": f"<div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div>{orders_data['error']}</div><div style='margin-top: 12px; font-size: 13px;'>Verify your store connection in <a href='/settings/shopify' style='color: #008060; text-decoration: underline;'>Settings</a>.</div></div>"}
                     # Otherwise, we've fetched all available orders
                     break
                 
@@ -64,7 +64,7 @@ def generate_report():
                     all_orders_raw = orders_data.get('orders', [])
                     logger.warning(f"Pagination failed, fetched {len(all_orders_raw)} orders without pagination")
             except Exception:
-                return {"success": False, "error": f"Shopify API error: {str(e)}"}
+                return {"success": False, "error": f"<div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify API error</div><div>{str(e)}</div><div style='margin-top: 12px; font-size: 13px;'>Verify your store connection in <a href='/settings/shopify' style='color: #008060; text-decoration: underline;'>Settings</a>.</div></div>"}
         
         # Filter for paid orders client-side to ensure we get ALL paid orders
         # Debug: Log all financial_status values to see what we're getting
@@ -153,4 +153,4 @@ def generate_report():
         return {"success": True, "message": html, "report_data": report_data}
         
     except Exception as e:
-        return {"success": False, "error": f"Unexpected error: {str(e)}"}
+        return {"success": False, "error": f"<div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Unexpected error</div><div>{str(e)}</div><div style='margin-top: 12px; font-size: 13px;'>If this persists, check your store connection in <a href='/settings/shopify' style='color: #008060; text-decoration: underline;'>Settings</a>.</div></div>"}

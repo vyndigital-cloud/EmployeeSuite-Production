@@ -15,7 +15,7 @@ def check_inventory():
     store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
     
     if not store:
-        return {"success": False, "error": "No Shopify store connected. <a href='/settings' style='color: #3b82f6; text-decoration: underline;'>Connect your store in Settings</a> to check inventory."}
+        return {"success": False, "error": "<div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>No Shopify store connected</div><div style='margin-bottom: 12px;'>Connect your store to check inventory levels and get low-stock alerts.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Connect Store →</a></div>"}
     
     try:
         client = ShopifyClient(store.shop_url, store.access_token)
@@ -24,11 +24,11 @@ def check_inventory():
         try:
             products = client.get_products()
         except requests.exceptions.Timeout:
-            return {"success": False, "error": "Shopify API timeout. Please try again in a moment."}
+            return {"success": False, "error": "<div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Connection timeout</div><div>Shopify API is taking too long to respond. Please try again in a moment.</div></div>"}
         except requests.exceptions.ConnectionError:
-            return {"success": False, "error": "Cannot connect to Shopify. Check your internet connection."}
+            return {"success": False, "error": "<div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Connection error</div><div>Cannot connect to Shopify. Check your internet connection and verify your store is connected in <a href='/settings/shopify' style='color: #008060; text-decoration: underline;'>Settings</a>.</div></div>"}
         except Exception as e:
-            return {"success": False, "error": f"Shopify API error: {str(e)}"}
+            return {"success": False, "error": f"<div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify API error</div><div>{str(e)}</div><div style='margin-top: 12px; font-size: 13px;'>Verify your store connection in <a href='/settings/shopify' style='color: #008060; text-decoration: underline;'>Settings</a>.</div></div>"}
         
         # Check if products returned an error
         if isinstance(products, dict) and "error" in products:

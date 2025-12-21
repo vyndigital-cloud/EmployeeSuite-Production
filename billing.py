@@ -20,16 +20,14 @@ SUBSCRIBE_HTML = '''
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f0f4f8 100%);
-            background-attachment: fixed;
-            color: #171717;
-            line-height: 1.6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f6f6f7;
+            color: #202223;
+            line-height: 1.5;
         }
         .header { 
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            background: #ffffff;
+            border-bottom: 1px solid #e1e3e5;
             position: sticky;
             top: 0;
             z-index: 100;
@@ -37,76 +35,72 @@ SUBSCRIBE_HTML = '''
         .header-content {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 32px;
-            height: 72px;
+            padding: 0 24px;
+            height: 64px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .logo { font-size: 18px; font-weight: 600; color: #0a0a0a; text-decoration: none; letter-spacing: -0.4px; display: flex; align-items: center; gap: 10px; }
-        .nav-btn { padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; color: #525252; transition: all 0.2s ease; }
-        .nav-btn:hover { background: rgba(0, 0, 0, 0.04); color: #0a0a0a; }
-        .container { max-width: 640px; margin: 0 auto; padding: 80px 32px; }
-        .page-title { font-size: 48px; font-weight: 700; color: #0a0a0a; margin-bottom: 12px; letter-spacing: -1px; line-height: 1.1; }
-        .page-subtitle { font-size: 18px; color: #64748b; margin-bottom: 64px; }
+        .logo { font-size: 16px; font-weight: 600; color: #202223; text-decoration: none; letter-spacing: -0.2px; display: flex; align-items: center; gap: 10px; }
+        .nav-btn { padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none; color: #6d7175; transition: background 0.15s; }
+        .nav-btn:hover { background: #f6f6f7; color: #202223; }
+        .container { max-width: 600px; margin: 0 auto; padding: 32px 24px; }
+        .page-title { font-size: 28px; font-weight: 600; color: #202223; margin-bottom: 8px; letter-spacing: -0.3px; }
+        .page-subtitle { font-size: 15px; color: #6d7175; margin-bottom: 32px; }
         .pricing-card { 
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 1) 100%);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            border-radius: 24px;
-            padding: 48px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            background: #ffffff;
+            border: 1px solid #e1e3e5;
+            border-radius: 8px;
+            padding: 32px;
         }
         .pricing-item {
-            padding: 28px 0;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            padding: 20px 0;
+            border-bottom: 1px solid #e1e3e5;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .pricing-item:last-child { border-bottom: none; }
-        .pricing-label { font-size: 16px; font-weight: 600; color: #0a0a0a; }
-        .pricing-detail { font-size: 14px; color: #64748b; margin-top: 6px; }
-        .pricing-value { font-size: 32px; font-weight: 700; color: #0a0a0a; letter-spacing: -0.5px; }
-        .features-list { list-style: none; margin: 40px 0; padding: 40px 0; border-top: 1px solid rgba(0, 0, 0, 0.06); }
+        .pricing-label { font-size: 15px; font-weight: 500; color: #202223; }
+        .pricing-detail { font-size: 13px; color: #6d7175; margin-top: 4px; }
+        .pricing-value { font-size: 24px; font-weight: 600; color: #202223; }
+        .features-list { list-style: none; margin: 24px 0; padding: 24px 0; border-top: 1px solid #e1e3e5; }
         .features-list li {
-            padding: 16px 0;
-            font-size: 15px;
-            color: #475569;
+            padding: 12px 0;
+            font-size: 14px;
+            color: #6d7175;
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
         }
-        .features-list li:before { content: '✓'; color: #10b981; font-weight: 700; font-size: 16px; }
+        .features-list li:before { content: '✓'; color: #008060; font-weight: 600; font-size: 14px; }
         .btn {
             width: 100%;
-            padding: 16px 24px;
-            background: linear-gradient(135deg, #0a0a0a 0%, #262626 100%);
+            padding: 10px 16px;
+            background: #008060;
             color: #fff;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s ease;
-            margin-top: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: background 0.15s;
+            margin-top: 8px;
         }
         .btn:hover { 
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            background: #006e52;
         }
         
         /* Mobile */
         @media (max-width: 768px) {
-            .container { padding: 48px 24px; }
-            .page-title { font-size: 36px; }
-            .pricing-card { padding: 40px 32px; }
-            .header-content { padding: 0 24px; height: 64px; }
+            .container { padding: 24px 16px; }
+            .page-title { font-size: 24px; }
+            .pricing-card { padding: 24px; }
+            .header-content { padding: 0 16px; height: 56px; }
         }
         @media (max-width: 480px) {
-            .container { padding: 40px 20px; }
-            .page-title { font-size: 28px; }
+            .container { padding: 20px 12px; }
+            .page-title { font-size: 20px; }
             .pricing-item { flex-direction: column; align-items: flex-start; gap: 8px; }
         }
     </style>

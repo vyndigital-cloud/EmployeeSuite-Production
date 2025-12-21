@@ -189,21 +189,19 @@ DASHBOARD_HTML = """
         }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f0f4f8 100%);
-            background-attachment: fixed;
-            color: #171717;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f6f6f7;
+            color: #202223;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             min-height: 100vh;
-            line-height: 1.6;
+            line-height: 1.5;
         }
         
-        /* Header - Professional */
+        /* Header - Shopify Style */
         .header {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            background: #ffffff;
+            border-bottom: 1px solid #e1e3e5;
             position: sticky;
             top: 0;
             z-index: 100;
@@ -211,254 +209,214 @@ DASHBOARD_HTML = """
         .header-content {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 32px;
-            height: 72px;
+            padding: 0 24px;
+            height: 64px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .logo {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
-            color: #0a0a0a;
+            color: #202223;
             text-decoration: none;
-            letter-spacing: -0.4px;
+            letter-spacing: -0.2px;
             display: flex;
             align-items: center;
             gap: 10px;
         }
         .header-nav {
             display: flex;
-            gap: 8px;
+            gap: 4px;
             align-items: center;
         }
         .nav-btn {
-            padding: 10px 18px;
-            border-radius: 8px;
+            padding: 8px 16px;
+            border-radius: 6px;
             font-size: 14px;
             font-weight: 500;
             text-decoration: none;
-            color: #525252;
-            transition: all 0.2s ease;
+            color: #6d7175;
+            transition: background 0.15s;
         }
         .nav-btn:hover {
-            background: rgba(0, 0, 0, 0.04);
-            color: #0a0a0a;
+            background: #f6f6f7;
+            color: #202223;
         }
         .nav-btn-primary {
-            background: linear-gradient(135deg, #0a0a0a 0%, #262626 100%);
+            background: #008060;
             color: #fff;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         .nav-btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            background: #006e52;
         }
         
-        /* Container - Professional Spacing */
+        /* Container - Shopify Spacing */
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 80px 32px;
+            padding: 32px 24px;
         }
         
-        /* Page Title - Professional Typography */
+        /* Page Title - Shopify Typography */
         .page-title {
-            font-size: 48px;
-            font-weight: 700;
-            color: #0a0a0a;
-            margin-bottom: 12px;
-            letter-spacing: -1px;
-            line-height: 1.1;
+            font-size: 28px;
+            font-weight: 600;
+            color: #202223;
+            margin-bottom: 8px;
+            letter-spacing: -0.3px;
+            line-height: 1.2;
         }
         .page-subtitle {
-            font-size: 18px;
-            color: #64748b;
-            margin-bottom: 64px;
+            font-size: 15px;
+            color: #6d7175;
+            margin-bottom: 32px;
             font-weight: 400;
-            line-height: 1.6;
-            max-width: 700px;
+            line-height: 1.5;
+            max-width: 600px;
         }
         
-        /* Banner - Modern */
+        /* Banner - Shopify Style */
         .banner {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.95) 100%);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            border-radius: 16px;
-            padding: 24px 32px;
-            margin-bottom: 48px;
+            background: #ffffff;
+            border: 1px solid #e1e3e5;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
         }
         .banner-warning {
-            background: linear-gradient(135deg, #fffbf0 0%, #fef3c7 100%);
-            border-color: rgba(245, 158, 11, 0.2);
+            background: #fffbf0;
+            border-color: #fef3c7;
         }
         .banner-info {
-            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-            border-color: rgba(59, 130, 246, 0.2);
+            background: #f0f4ff;
+            border-color: #dbeafe;
         }
         .banner-content h3 {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
-            color: #0a0a0a;
-            margin-bottom: 6px;
-            letter-spacing: -0.2px;
+            color: #202223;
+            margin-bottom: 4px;
         }
         .banner-content p {
-            font-size: 15px;
-            color: #64748b;
+            font-size: 14px;
+            color: #6d7175;
             font-weight: 400;
         }
         .banner-action {
-            background: linear-gradient(135deg, #0a0a0a 0%, #262626 100%);
+            background: #008060;
             color: #fff;
-            padding: 12px 24px;
-            border-radius: 10px;
+            padding: 8px 16px;
+            border-radius: 6px;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 500;
             text-decoration: none;
             white-space: nowrap;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: background 0.15s;
         }
         .banner-action:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            background: #006e52;
         }
         
-        /* Cards Grid - Dribbble Quality */
+        /* Cards Grid - Shopify Style */
         .cards-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-            gap: 28px;
-            margin-bottom: 56px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
         }
         .card {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 1) 100%);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            border-radius: 20px;
-            padding: 40px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            background: #ffffff;
+            border: 1px solid #e1e3e5;
+            border-radius: 8px;
+            padding: 24px;
+            transition: box-shadow 0.15s;
         }
         
         .card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-            border-color: rgba(0, 0, 0, 0.1);
-        }
-        
-        .card:hover::before {
-            opacity: 1;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
         
         .card-icon {
-            font-size: 48px;
-            margin-bottom: 24px;
+            font-size: 32px;
+            margin-bottom: 16px;
             line-height: 1;
             display: inline-block;
-            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.08));
         }
         
         .card-title {
-            font-size: 22px;
-            font-weight: 700;
-            color: #0a0a0a;
-            margin-bottom: 12px;
-            letter-spacing: -0.4px;
-            line-height: 1.3;
+            font-size: 17px;
+            font-weight: 600;
+            color: #202223;
+            margin-bottom: 8px;
+            letter-spacing: -0.2px;
         }
         .card-description {
-            font-size: 15px;
-            color: #64748b;
-            line-height: 1.7;
-            margin-bottom: 32px;
+            font-size: 14px;
+            color: #6d7175;
+            line-height: 1.5;
+            margin-bottom: 20px;
             font-weight: 400;
         }
         .card-btn {
             width: 100%;
-            background: linear-gradient(135deg, #0a0a0a 0%, #262626 100%);
+            background: #008060;
             color: #fff;
             border: none;
-            padding: 14px 24px;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 600;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background 0.15s;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         
         .card-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-        }
-        
-        .card-btn:active {
-            transform: translateY(0);
+            background: #006e52;
         }
         
         .card-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            transform: none !important;
+            background: #6d7175;
         }
         
-        /* Output - Professional */
+        /* Output - Shopify Style */
         .output-container {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 1) 100%);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            border-radius: 20px;
+            background: #ffffff;
+            border: 1px solid #e1e3e5;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
         }
         .output-header {
-            padding: 20px 32px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-            font-size: 15px;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e1e3e5;
+            font-size: 14px;
             font-weight: 600;
-            color: #0a0a0a;
-            background: rgba(248, 250, 252, 0.5);
-            letter-spacing: -0.2px;
+            color: #202223;
+            background: #f6f6f7;
         }
         #output {
-            padding: 32px;
-            min-height: 240px;
+            padding: 20px;
+            min-height: 200px;
             font-size: 14px;
-            line-height: 1.8;
-            color: #475569;
+            line-height: 1.6;
+            color: #6d7175;
             font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
         }
         #output:empty:before {
             content: 'Click any button above to get started. Your results will appear here.';
-            color: #94a3b8;
+            color: #8c9196;
             font-style: italic;
             text-align: center;
-            padding: 60px 20px;
+            padding: 40px 20px;
             display: block;
         }
         #output:empty {
@@ -467,57 +425,56 @@ DASHBOARD_HTML = """
             justify-content: center;
         }
         
-        /* Loading - Professional */
+        /* Loading - Shopify Style */
         .loading {
             text-align: center;
-            padding: 64px 40px;
+            padding: 48px 40px;
         }
         .spinner {
-            width: 32px;
-            height: 32px;
-            border: 3px solid rgba(0, 0, 0, 0.06);
-            border-top: 3px solid #0a0a0a;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #e1e3e5;
+            border-top: 2px solid #008060;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
-            margin: 0 auto 16px;
+            margin: 0 auto 12px;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
         .loading-text {
-            font-size: 15px;
-            font-weight: 500;
-            color: #64748b;
+            font-size: 14px;
+            font-weight: 400;
+            color: #6d7175;
         }
         
         /* Status */
-        .success { color: #10b981; font-weight: 600; }
-        .error { color: #ef4444; font-weight: 600; }
+        .success { color: #008060; font-weight: 500; }
+        .error { color: #d72c0d; font-weight: 500; }
         
         /* Focus states */
         button:focus-visible,
         a:focus-visible {
-            outline: 2px solid #3b82f6;
+            outline: 2px solid #008060;
             outline-offset: 2px;
         }
         
         /* Responsive */
         @media (max-width: 768px) {
-            .container { padding: 48px 24px; }
-            .page-title { font-size: 36px; }
-            .page-subtitle { font-size: 16px; margin-bottom: 48px; }
-            .cards-grid { grid-template-columns: 1fr; gap: 24px; }
-            .banner { flex-direction: column; gap: 20px; padding: 24px; }
+            .container { padding: 24px 16px; }
+            .page-title { font-size: 24px; }
+            .page-subtitle { font-size: 14px; margin-bottom: 24px; }
+            .cards-grid { grid-template-columns: 1fr; gap: 16px; }
+            .banner { flex-direction: column; gap: 16px; padding: 16px; }
             .banner-action { width: 100%; }
-            .header-content { padding: 0 24px; height: 64px; }
-            .card { padding: 32px; }
-            #output { padding: 24px; }
+            .header-content { padding: 0 16px; height: 56px; }
+            .card { padding: 20px; }
+            #output { padding: 16px; }
         }
         @media (max-width: 480px) {
-            .container { padding: 40px 20px; }
-            .page-title { font-size: 28px; }
-            .header-content { padding: 0 20px; }
-            .card { padding: 24px; }
+            .container { padding: 20px 12px; }
+            .page-title { font-size: 20px; }
+            .header-content { padding: 0 12px; }
         }
     </style>
 
@@ -548,7 +505,7 @@ DASHBOARD_HTML = """
                 <span>Employee Suite</span>
             </a>
             <div class="header-nav">
-                <a href="{{ url_for('shopify.shopify_settings') }}" class="nav-btn">Settings</a>
+                <a href="/settings/shopify" class="nav-btn">Settings</a>
                 <a href="{{ url_for('billing.subscribe') }}" class="nav-btn nav-btn-primary">Subscribe</a>
                 <a href="/logout" class="nav-btn">Logout</a>
             </div>
