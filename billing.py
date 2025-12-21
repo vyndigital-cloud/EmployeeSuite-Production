@@ -136,9 +136,9 @@ SUBSCRIBE_HTML = '''
             <div>Subscribe to continue using Employee Suite and restore access to all features.</div>
         </div>
         {% elif trial_active and not is_subscribed %}
-        <div style="padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6; margin-bottom: 12px;">
-            <div style="font-weight: 600; color: #202223; margin-bottom: 8px;">{{ days_left }} day{{ 's' if days_left != 1 else '' }} left in your trial</div>
-            <div>Subscribe now to avoid interruption and maintain access to all features.</div>
+        <div style="padding: 16px; background: linear-gradient(135deg, #f0fdf4 0%, #e3fcef 100%); border-radius: 8px; border-left: 3px solid #008060; color: #006e52; font-size: 14px; line-height: 1.6; margin-bottom: 12px;">
+            <div style="font-weight: 600; color: #008060; margin-bottom: 8px;">{{ days_left }} day{{ 's' if days_left != 1 else '' }} left in your trial</div>
+            <div style="color: #006e52;">Subscribe now to avoid interruption and maintain access to all features.</div>
         </div>
         {% endif %}
         
@@ -176,17 +176,15 @@ SUBSCRIBE_HTML = '''
                 </div>
             </div>
             
-            <div style="background: #e3fcef; border: 1px solid #b2f5d1; border-radius: 8px; padding: 20px; margin-bottom: 24px; text-align: center;">
-                <div style="font-size: 15px; font-weight: 600; color: #008060; margin-bottom: 6px;">7-Day Money-Back Guarantee</div>
-                <div style="font-size: 13px; color: #006e52;">Try it risk-free. If Employee Suite doesn't meet your needs, we'll refund your payment—no questions asked.</div>
+            <div style="background: linear-gradient(135deg, #e3fcef 0%, #d1fae5 100%); border: 1px solid #86efac; border-radius: 8px; padding: 24px; margin-bottom: 24px; text-align: center;">
+                <div style="font-size: 16px; font-weight: 600; color: #008060; margin-bottom: 8px; letter-spacing: -0.2px;">7-Day Money-Back Guarantee</div>
+                <div style="font-size: 14px; color: #006e52; line-height: 1.5;">Try it risk-free. If Employee Suite doesn't meet your needs, we'll refund your payment—no questions asked.</div>
             </div>
             
             <form method="POST" action="/create-checkout-session">
                 <button type="submit" class="btn">
                     {% if not has_access %}
                     Restore Access Now
-                    {% elif trial_active and not is_subscribed %}
-                    Subscribe Now ({{ days_left }} day{{ 's' if days_left != 1 else '' }} left)
                     {% else %}
                     Subscribe Now
                     {% endif %}

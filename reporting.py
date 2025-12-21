@@ -82,7 +82,7 @@ def generate_report():
             logger.info(f"Sum of paid orders: ${sum(order_totals):,.2f}")
         
         if len(all_orders) == 0:
-            return {"success": True, "message": "<div style='padding: 16px; background: #fffbeb; border-radius: 6px; border-left: 3px solid #f59e0b; color: #92400e; font-size: 14px;'>No paid orders found.</div>"}
+            return {"success": True, "message": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 8px 12px; background: #f0fdf4; border-left: 2px solid #16a34a; border-radius: 4px; font-size: 12px; color: #166534;'>✅ No paid orders found.</div>"}
         
         # Calculate ALL-TIME revenue by product from ALL orders
         # Use order['total_price'] to match Shopify API exactly (includes discounts, taxes, shipping)

@@ -35,7 +35,7 @@ def check_inventory():
             return {"success": False, "error": f"Shopify returned an error: {products['error']}"}
         
         if not products or len(products) == 0:
-            return {"success": True, "message": "<div style='padding: 16px; background: #fffbeb; border-radius: 6px; border-left: 3px solid #f59e0b; color: #92400e; font-size: 14px;'>⚠️ No products found in your store.</div>"}
+            return {"success": True, "message": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 8px 12px; background: #f0fdf4; border-left: 2px solid #16a34a; border-radius: 4px; font-size: 12px; color: #166534;'>✅ No products found in your store.</div>"}
         
         # Sort products by stock level (lowest first = highest priority)
         sorted_products = sorted(products, key=lambda x: x.get('stock', 0))
