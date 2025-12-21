@@ -553,16 +553,6 @@ DASHBOARD_HTML = """
             <div>
                 <div class="page-title">Dashboard</div>
                 <div class="page-subtitle">Monitor your Shopify store operations with inventory tracking, order monitoring, and comprehensive revenue analytics. 7-day free trial, no setup fees.</div>
-        
-                {% if not is_subscribed %}
-                <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 20px; margin-top: 24px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);">
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                        <span style="font-size: 20px;">⭐</span>
-                        <span style="font-size: 14px; font-weight: 600; color: #0a0a0a;">Join 1,000+ stores using Employee Suite</span>
-                    </div>
-                    <p style="font-size: 13px; color: #737373; margin: 0; line-height: 1.6;">"Saved me 20+ hours per month. Worth every penny!" - Sarah M., Store Owner</p>
-                </div>
-                {% endif %}
             </div>
             {% if is_subscribed %}
             <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); text-align: center; min-width: 140px;">
@@ -589,20 +579,6 @@ DASHBOARD_HTML = """
         </div>
         {% endif %}
         
-        {% if is_subscribed %}
-        <div class="banner" style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); border: 2px solid #16a34a; border-radius: 16px; padding: 24px; margin-bottom: 32px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-                <div>
-                    <h3 style="color: #166534; margin-bottom: 8px; font-size: 18px; font-weight: 700;">💰 You're Saving $471/month!</h3>
-                    <p style="color: #15803d; margin: 0; font-size: 15px;">This premium app is worth $500/month. You're getting it for just $29/month. That's 94% off!</p>
-                </div>
-                <div style="text-align: right;">
-                    <div style="font-size: 32px; font-weight: 800; color: #166534; line-height: 1;">3,344%</div>
-                    <div style="font-size: 13px; color: #15803d; margin-top: 4px;">ROI</div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
         
         {% if has_shopify and quick_stats.has_data and is_subscribed %}
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px;">
