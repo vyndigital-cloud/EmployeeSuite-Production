@@ -2,6 +2,7 @@ from models import db, User
 from email_service import send_trial_expiry_warning
 from datetime import datetime, timedelta
 from app import app
+from logging_config import logger
 
 def send_trial_warnings():
     """Run daily - send warning emails to users 1 day before trial expires"""
@@ -20,11 +21,11 @@ def send_trial_warnings():
             try:
                 days_left = (user.trial_ends_at - datetime.utcnow()).days
                 send_trial_expiry_warning(user.email, days_left)
-                print(f"Sent warning to {user.email}")
+                logger.info(f"Sent trial warning email to {user.email}")
             except Exception as e:
-                print(f"Failed to send to {user.email}: {e}")
+                logger.error(f"Failed to send trial warning to {user.email}: {e}")
         
-        print(f"Sent {len(users)} trial warning emails")
+        logger.info(f"Sent {len(users)} trial warning emails")
 
 if __name__ == "__main__":
     send_trial_warnings()
