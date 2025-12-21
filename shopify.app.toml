@@ -1,11 +1,14 @@
 # Shopify App Configuration
 # This file configures mandatory compliance webhooks
 # Note: Compliance webhooks MUST be configured in shopify.app.toml (not app.json)
+# 
+# IMPORTANT: This file must be deployed using Shopify CLI: shopify app deploy
+# OR if using app.json, ensure compliance webhooks are properly configured there
 
 [webhooks]
 api_version = "2024-10"
 
-# Mandatory compliance webhooks - each with its own endpoint
+# Mandatory compliance webhooks - separate endpoints matching our code
 [[webhooks.subscriptions]]
 compliance_topics = ["customers/data_request"]
 uri = "https://employeesuite-production.onrender.com/webhooks/customers/data_request"
