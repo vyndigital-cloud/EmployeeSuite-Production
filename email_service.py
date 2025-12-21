@@ -1,6 +1,7 @@
 import os
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
+from logging_config import logger
 
 def send_welcome_email(user_email):
     """Send welcome email when user signs up"""
@@ -40,7 +41,7 @@ def send_welcome_email(user_email):
         sg.send(message)
         return True
     except Exception as e:
-        print(f"Email error: {e}")
+        logger.error(f"Email error: {e}")
         return False
 
 def send_trial_expiry_warning(user_email, days_left):
@@ -83,7 +84,7 @@ def send_trial_expiry_warning(user_email, days_left):
         sg.send(message)
         return True
     except Exception as e:
-        print(f"Email error: {e}")
+        logger.error(f"Email error: {e}")
         return False
 
 def send_payment_success(user_email):
@@ -121,7 +122,7 @@ def send_payment_success(user_email):
         sg.send(message)
         return True
     except Exception as e:
-        print(f"Email error: {e}")
+        logger.error(f"Email error: {e}")
         return False
 
 def send_payment_failed(user_email):
@@ -155,7 +156,7 @@ def send_payment_failed(user_email):
         sg.send(message)
         return True
     except Exception as e:
-        print(f"Email error: {e}")
+        logger.error(f"Email error: {e}")
         return False
 # Force redeploy
 
@@ -197,7 +198,7 @@ def send_cancellation_email(user_email):
         sg.send(message)
         return True
     except Exception as e:
-        print(f"Email error: {e}")
+        logger.error(f"Email error: {e}")
         return False
 
 def send_password_reset_email(user_email, reset_token):
@@ -236,5 +237,5 @@ def send_password_reset_email(user_email, reset_token):
         sg.send(message)
         return True
     except Exception as e:
-        print(f"Email error: {e}")
+        logger.error(f"Email error: {e}")
         return False

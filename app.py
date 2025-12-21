@@ -664,8 +664,7 @@ DASHBOARD_HTML = """
         }
         
         function processOrders(button) {
-            const btn = button;
-            setButtonLoading(btn, true);
+            setButtonLoading(button, true);
             showLoading();
             fetch('/api/process_orders')
                 .then(r => {
@@ -673,7 +672,7 @@ DASHBOARD_HTML = """
                     return r.json();
                 })
                 .then(d => {
-                    setButtonLoading(btn, false);
+                    setButtonLoading(button, false);
                     const c = d.success ? 'success' : 'error';
                     const icon = d.success ? '✅' : '❌';
                     document.getElementById('output').innerHTML = `
@@ -688,7 +687,7 @@ DASHBOARD_HTML = """
                     `;
                 })
                 .catch(err => {
-                    setButtonLoading(btn, false);
+                    setButtonLoading(button, false);
                     document.getElementById('output').innerHTML = `
                         <div style="animation: fadeIn 0.3s ease-in;">
                             <h3 class="error">❌ Connection Error</h3>
@@ -699,8 +698,7 @@ DASHBOARD_HTML = """
         }
         
         function updateInventory(button) {
-            const btn = button;
-            setButtonLoading(btn, true);
+            setButtonLoading(button, true);
             showLoading();
             fetch('/api/update_inventory')
                 .then(r => {
@@ -708,7 +706,7 @@ DASHBOARD_HTML = """
                     return r.json();
                 })
                 .then(d => {
-                    setButtonLoading(btn, false);
+                    setButtonLoading(button, false);
                     const c = d.success ? 'success' : 'error';
                     const icon = d.success ? '✅' : '❌';
                     document.getElementById('output').innerHTML = `
@@ -723,7 +721,7 @@ DASHBOARD_HTML = """
                     `;
                 })
                 .catch(err => {
-                    setButtonLoading(btn, false);
+                    setButtonLoading(button, false);
                     document.getElementById('output').innerHTML = `
                         <div style="animation: fadeIn 0.3s ease-in;">
                             <h3 class="error">❌ Connection Error</h3>
@@ -734,8 +732,7 @@ DASHBOARD_HTML = """
         }
         
         function generateReport(button) {
-            const btn = button;
-            setButtonLoading(btn, true);
+            setButtonLoading(button, true);
             showLoading();
             fetch('/api/generate_report')
                 .then(r => {
@@ -747,7 +744,7 @@ DASHBOARD_HTML = """
                     document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${html}</div>`;
                 })
                 .catch(err => {
-                    setButtonLoading(btn, false);
+                    setButtonLoading(button, false);
                     document.getElementById('output').innerHTML = `
                         <div style="animation: fadeIn 0.3s ease-in;">
                             <h3 class="error">❌ Connection Error</h3>

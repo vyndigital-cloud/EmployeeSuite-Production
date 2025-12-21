@@ -157,7 +157,7 @@ def get_shop_info(shop, access_token):
             data = response.json()
             return data.get('shop', {})
     except Exception as e:
-        print(f"Failed to get shop info: {e}")
+        logger.error(f"Failed to get shop info: {e}")
     
     return None
 

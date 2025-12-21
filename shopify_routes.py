@@ -4,6 +4,7 @@ from models import db, ShopifyStore
 from access_control import require_access
 from input_validation import validate_url, sanitize_input
 from session_token_verification import verify_session_token
+from logging_config import logger
 
 shopify_bp = Blueprint('shopify', __name__)
 
@@ -436,13 +437,13 @@ def cancel_subscription():
             from email_service import send_cancellation_email
             send_cancellation_email(current_user.email)
         except Exception as e:
-            print(f"Failed to send cancellation email: {e}")
+            logger.error(f"Failed to send cancellation email: {e}")
         
         return redirect(url_for('shopify.shopify_settings', success='Subscription cancelled successfully. You will retain access until the end of your billing period.'))
         
     except stripe.error.StripeError as e:
-        print(f"Stripe error during cancellation: {e}")
+        logger.error(f"Stripe error during cancellation: {e}")
         return redirect(url_for('shopify.shopify_settings', error=f'Failed to cancel subscription: {str(e)}'))
     except Exception as e:
-        print(f"Unexpected error during cancellation: {e}")
+        logger.error(f"Unexpected error during cancellation: {e}")
         return redirect(url_for('shopify.shopify_settings', error='An unexpected error occurred. Please contact support.'))
