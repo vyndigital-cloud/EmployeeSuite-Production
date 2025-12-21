@@ -247,6 +247,9 @@ DASHBOARD_HTML = """
             background: #008060;
             color: #fff;
         }
+        .nav-btn-primary:hover {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
         
         /* Container - Shopify Spacing */
         .container {
