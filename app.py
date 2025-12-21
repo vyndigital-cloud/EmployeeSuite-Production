@@ -501,7 +501,6 @@ DASHBOARD_HTML = """
     <div class="header">
         <div class="header-content">
             <a href="/dashboard" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 10px; font-weight: 600;" class="logo">
-                <span style="font-size: 20px;">🚀</span>
                 <span>Employee Suite</span>
             </a>
             <div class="header-nav">
@@ -575,29 +574,12 @@ DASHBOARD_HTML = """
         {% endif %}
         
         {% if not has_shopify %}
-        <div class="banner banner-info" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-left: 4px solid #3b82f6; animation: slideIn 0.5s ease-in;">
+        <div class="banner banner-info" style="background: #ffffff; border: 1px solid #e1e3e5; border-left: 3px solid #008060;">
             <div class="banner-content" style="flex: 1;">
-                <h3 style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                    <span style="font-size: 28px;">🚀</span>
-                    <span>Welcome! Let's get you started</span>
-                </h3>
-                <p style="margin-bottom: 12px; font-size: 15px; color: #171717;">Connect your Shopify store in 30 seconds to unlock:</p>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 16px;">
-                    <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #525252;">
-                        <span>✓</span>
-                        <span>Order monitoring and tracking</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #525252;">
-                        <span>✓</span>
-                        <span>Inventory management with alerts</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #525252;">
-                        <span>✓</span>
-                        <span>Revenue analytics and reporting</span>
-                    </div>
-                </div>
+                <h3 style="margin-bottom: 8px; font-size: 16px; font-weight: 600; color: #202223;">Connect your Shopify store</h3>
+                <p style="margin-bottom: 0; font-size: 14px; color: #6d7175;">Get started in 30 seconds. Connect your store to unlock order monitoring, inventory management, and revenue analytics.</p>
             </div>
-            <a href="{{ url_for('shopify.shopify_settings') }}" class="banner-action" style="white-space: nowrap; font-size: 15px; padding: 12px 24px;">Connect Store →</a>
+            <a href="/settings/shopify" class="banner-action">Connect Store →</a>
         </div>
         {% endif %}
         
@@ -612,7 +594,10 @@ DASHBOARD_HTML = """
                     <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
                 {% else %}
-                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to view orders">View Orders</button>
+                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to view orders">
+                    <span>View Orders</span>
+                    <span style="font-size: 12px; opacity: 0.8;">→</span>
+                </button>
                 {% endif %}
             </div>
             
@@ -626,7 +611,10 @@ DASHBOARD_HTML = """
                     <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
                 {% else %}
-                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to check inventory">Check Inventory</button>
+                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to check inventory">
+                    <span>Check Inventory</span>
+                    <span style="font-size: 12px; opacity: 0.8;">→</span>
+                </button>
                 {% endif %}
             </div>
             
@@ -640,7 +628,10 @@ DASHBOARD_HTML = """
                     <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
                 {% else %}
-                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to generate reports">Generate Report</button>
+                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to generate reports">
+                    <span>Generate Report</span>
+                    <span style="font-size: 12px; opacity: 0.8;">→</span>
+                </button>
                 {% endif %}
             </div>
         </div>

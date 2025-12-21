@@ -71,7 +71,6 @@ LEGAL_HTML = """
     <div class="header">
         <div class="header-content">
             <a href="/" class="logo">
-                <span style="font-size: 20px;">🚀</span>
                 <span>Employee Suite</span>
             </a>
         </div>

@@ -109,7 +109,6 @@ SUBSCRIBE_HTML = '''
     <div class="header">
         <div class="header-content">
             <a href="/dashboard" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 10px; font-weight: 600;" class="logo">
-                <span style="font-size: 20px;">🚀</span>
                 <span>Employee Suite</span>
             </a>
             <a href="/dashboard" class="nav-btn">Back to Dashboard</a>
@@ -118,57 +117,68 @@ SUBSCRIBE_HTML = '''
     
     <div class="container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <h1 class="page-title" style="margin-bottom: 12px;">{% if not has_access %}Restore Access{% else %}Ready to Subscribe?{% endif %}</h1>
+            <h1 class="page-title" style="margin-bottom: 12px;">{% if not has_access %}Restore Full Access{% else %}Unlock All Features{% endif %}</h1>
             <p class="page-subtitle" style="max-width: 600px; margin: 0 auto;">
                 {% if not has_access %}
-                Your trial has ended. Subscribe now to restore full access to Employee Suite.
+                Your trial has ended. Subscribe now to restore full access to all Employee Suite features.
                 {% elif trial_active and not is_subscribed %}
                 Your free trial is active ({{ days_left }} day{{ 's' if days_left != 1 else '' }} remaining). Subscribe now to ensure uninterrupted access when your trial ends.
                 {% else %}
-                Get unlimited access to all Employee Suite features.
+                Get unlimited access to all Employee Suite features for just $29/month.
                 {% endif %}
             </p>
         </div>
         
         
         {% if not has_access %}
-        <div style="background: #fef2f2; border-left: 3px solid #dc2626; padding: 16px 20px; border-radius: 8px; margin-bottom: 24px;">
-            <p style="color: #991b1b; font-weight: 600; margin: 0;">⚠️ Your access has expired. Subscribe to continue using Employee Suite.</p>
+        <div style="padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+            <div style="font-weight: 600; color: #202223; margin-bottom: 8px;">Your access has expired</div>
+            <div>Subscribe to continue using Employee Suite and restore access to all features.</div>
         </div>
         {% elif trial_active and not is_subscribed %}
-        <div style="background: #fffbeb; border-left: 3px solid #f59e0b; padding: 16px 20px; border-radius: 8px; margin-bottom: 24px;">
-            <p style="color: #92400e; font-weight: 600; margin: 0;">⏰ {{ days_left }} day{{ 's' if days_left != 1 else '' }} left in your trial. Subscribe now to avoid interruption.</p>
+        <div style="padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+            <div style="font-weight: 600; color: #202223; margin-bottom: 8px;">{{ days_left }} day{{ 's' if days_left != 1 else '' }} left in your trial</div>
+            <div>Subscribe now to avoid interruption and maintain access to all features.</div>
         </div>
         {% endif %}
         
         <div class="pricing-card">
-            <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 32px; margin-bottom: 24px; text-align: center;">
-                <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #737373; margin-bottom: 12px;">Monthly Subscription</div>
-                <div style="font-size: 48px; font-weight: 700; color: #0a0a0a; margin-bottom: 8px; line-height: 1;">$29<span style="font-size: 20px; font-weight: 500; color: #737373;">/month</span></div>
-                <div style="font-size: 15px; color: #737373; margin-bottom: 24px;">7-day free trial • No setup fees • Cancel anytime</div>
+            <div style="background: #ffffff; border: 1px solid #e1e3e5; border-radius: 8px; padding: 32px; margin-bottom: 24px; text-align: center;">
+                <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #6d7175; margin-bottom: 12px;">Monthly Subscription</div>
+                <div style="font-size: 48px; font-weight: 700; color: #202223; margin-bottom: 8px; line-height: 1;">$29<span style="font-size: 20px; font-weight: 500; color: #6d7175;">/month</span></div>
+                <div style="font-size: 14px; color: #6d7175; margin-bottom: 24px;">7-day free trial • No setup fees • Cancel anytime</div>
             </div>
             
-            <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
-                <div style="font-size: 16px; font-weight: 600; color: #0a0a0a; margin-bottom: 20px;">What's included:</div>
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <div style="display: flex; align-items: center; gap: 12px; font-size: 14px; color: #525252;">
-                        <span style="color: #16a34a; font-weight: 700;">✓</span>
-                        <span>Order monitoring and tracking</span>
+            <div style="background: #ffffff; border: 1px solid #e1e3e5; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+                <div style="font-size: 16px; font-weight: 600; color: #202223; margin-bottom: 20px;">Everything you need to manage your store:</div>
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div style="display: flex; align-items: start; gap: 12px;">
+                        <span style="color: #008060; font-weight: 600; font-size: 16px; margin-top: 2px;">✓</span>
+                        <div>
+                            <div style="font-size: 15px; font-weight: 500; color: #202223; margin-bottom: 4px;">Order Monitoring & Tracking</div>
+                            <div style="font-size: 13px; color: #6d7175;">Track pending orders, monitor fulfillment status, and never miss an order that needs attention.</div>
+                        </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 12px; font-size: 14px; color: #525252;">
-                        <span style="color: #16a34a; font-weight: 700;">✓</span>
-                        <span>Inventory management with low-stock alerts</span>
+                    <div style="display: flex; align-items: start; gap: 12px;">
+                        <span style="color: #008060; font-weight: 600; font-size: 16px; margin-top: 2px;">✓</span>
+                        <div>
+                            <div style="font-size: 15px; font-weight: 500; color: #202223; margin-bottom: 4px;">Inventory Management with Alerts</div>
+                            <div style="font-size: 13px; color: #6d7175;">Monitor stock levels across all products. Get instant alerts when inventory runs low.</div>
+                        </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 12px; font-size: 14px; color: #525252;">
-                        <span style="color: #16a34a; font-weight: 700;">✓</span>
-                        <span>Revenue analytics and reporting</span>
+                    <div style="display: flex; align-items: start; gap: 12px;">
+                        <span style="color: #008060; font-weight: 600; font-size: 16px; margin-top: 2px;">✓</span>
+                        <div>
+                            <div style="font-size: 15px; font-weight: 500; color: #202223; margin-bottom: 4px;">Revenue Analytics & Reporting</div>
+                            <div style="font-size: 13px; color: #6d7175;">Generate comprehensive revenue reports with product-level breakdown and performance insights.</div>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: center;">
-                <div style="font-size: 14px; font-weight: 600; color: #166534; margin-bottom: 4px;">✓ 7-Day Money-Back Guarantee</div>
-                <div style="font-size: 13px; color: #15803d;">Try it risk-free. If it's not for you, we'll refund your payment.</div>
+            <div style="background: #e3fcef; border: 1px solid #b2f5d1; border-radius: 8px; padding: 20px; margin-bottom: 24px; text-align: center;">
+                <div style="font-size: 15px; font-weight: 600; color: #008060; margin-bottom: 6px;">7-Day Money-Back Guarantee</div>
+                <div style="font-size: 13px; color: #006e52;">Try it risk-free. If Employee Suite doesn't meet your needs, we'll refund your payment—no questions asked.</div>
             </div>
             
             <form method="POST" action="/create-checkout-session">

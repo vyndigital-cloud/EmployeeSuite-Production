@@ -202,7 +202,6 @@ REGISTER_HTML = '''
     <div class="register-container">
         <div style="text-align: center; margin-bottom: 32px;">
             <a href="/" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 10px; font-weight: 600;">
-                <span style="font-size: 24px;">🚀</span>
                 <span style="font-size: 20px;">Employee Suite</span>
             </a>
         </div>

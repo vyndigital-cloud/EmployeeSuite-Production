@@ -228,7 +228,6 @@ SETTINGS_HTML = '''
     <div class="header">
         <div class="header-content">
             <a href="/dashboard" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 10px; font-weight: 600;" class="logo">
-                <span style="font-size: 20px;">🚀</span>
                 <span>Employee Suite</span>
             </a>
             <a href="/dashboard" class="nav-btn">Back to Dashboard</a>
