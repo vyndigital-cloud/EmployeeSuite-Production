@@ -621,7 +621,7 @@ DASHBOARD_HTML = """
             <div class="card">
                 <div class="card-icon">💰</div>
                 <div class="card-title">Revenue Analytics</div>
-                <div class="card-description">Generate comprehensive revenue reports with product-level breakdown and performance insights.</div>
+                <div class="card-description">Generate revenue reports with product-level breakdown and insights.</div>
                 {% if has_access %}
                 <button class="card-btn" onclick="generateReport(this)" aria-label="Generate revenue report">
                     <span>Generate Report</span>

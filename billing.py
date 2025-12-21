@@ -136,7 +136,7 @@ SUBSCRIBE_HTML = '''
             <div>Subscribe to continue using Employee Suite and restore access to all features.</div>
         </div>
         {% elif trial_active and not is_subscribed %}
-        <div style="padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+        <div style="padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6; margin-bottom: 12px;">
             <div style="font-weight: 600; color: #202223; margin-bottom: 8px;">{{ days_left }} day{{ 's' if days_left != 1 else '' }} left in your trial</div>
             <div>Subscribe now to avoid interruption and maintain access to all features.</div>
         </div>
