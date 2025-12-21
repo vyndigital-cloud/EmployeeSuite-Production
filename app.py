@@ -1123,10 +1123,13 @@ def home():
 
 @app.route('/dashboard')
 def dashboard():
+    # Check if this is an embedded request (from Referer or params)
+    referer = request.headers.get('Referer', '')
+    is_from_shopify_admin = 'admin.shopify.com' in referer
+    is_embedded = request.args.get('embedded') == '1' or request.args.get('shop') or request.args.get('host') or is_from_shopify_admin
+    
     # For embedded apps, allow access without strict auth (App Bridge handles it)
     # For regular requests, require login
-    is_embedded = request.args.get('embedded') == '1' or request.args.get('shop') or request.args.get('host')
-    
     if not is_embedded and not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
     
@@ -1141,19 +1144,8 @@ def dashboard():
                 session.permanent = True
                 logger.info(f"Auto-logged in user for embedded app: {shop}")
     
-    # Verify session token for embedded requests (but don't block if missing)
-    if is_embedded:
-        try:
-            # Try to verify session token, but don't fail if it's missing
-            auth_header = request.headers.get('Authorization')
-            if auth_header and auth_header.startswith('Bearer '):
-                # Session token verification happens here, but we don't block if it fails
-                # App Bridge will handle it
-                pass
-        except:
-            pass  # Don't block embedded requests
-    
-    # Now render dashboard
+    # For embedded requests, always render - never redirect
+    # This prevents iframe breaking
     """Dashboard - accessible to all authenticated users, shows subscribe prompt if no access"""
     has_access = current_user.has_access()
     trial_active = current_user.is_trial_active()
