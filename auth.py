@@ -21,38 +21,38 @@ LOGIN_HTML = '''
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #fafafa;
+            background: #ffffff;
             color: #171717;
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
             padding: 24px;
+            line-height: 1.5;
         }
-        .login-container { width: 100%; max-width: 420px; }
-        .logo { text-align: center; font-size: 24px; font-weight: 700; color: #171717; margin-bottom: 32px; }
-        .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 24px; }
-        .form-group { margin-bottom: 20px; }
-        .form-label { display: block; font-size: 14px; font-weight: 600; color: #0a0a0a; margin-bottom: 10px; letter-spacing: 0.2px; }
-        .form-input { width: 100%; padding: 13px 16px; border: 1px solid #e5e5e5; border-radius: 8px; font-size: 15px; font-family: inherit; background: #fff; transition: all 0.2s; }
-        .form-input:focus { outline: none; border-color: #0a0a0a; box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.05); }
-        .btn { width: 100%; padding: 14px; background: #0a0a0a; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; transition: all 0.2s ease; }
-        .btn:hover { background: #262626; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
-        .banner-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #991b1b; }
-        .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #737373; }
-        .footer-link a { color: #0a0a0a; text-decoration: none; font-weight: 600; }
+        .login-container { width: 100%; max-width: 400px; }
+        .logo { text-align: center; font-size: 17px; font-weight: 500; color: #171717; margin-bottom: 48px; letter-spacing: -0.3px; }
+        .card { background: #fff; border: 1px solid #f0f0f0; border-radius: 12px; padding: 40px; }
+        .card-title { font-size: 24px; font-weight: 600; color: #0a0a0a; margin-bottom: 32px; letter-spacing: -0.3px; }
+        .form-group { margin-bottom: 24px; }
+        .form-label { display: block; font-size: 13px; font-weight: 500; color: #171717; margin-bottom: 8px; }
+        .form-input { width: 100%; padding: 12px 16px; border: 1px solid #f0f0f0; border-radius: 6px; font-size: 15px; font-family: inherit; background: #fff; transition: border-color 0.15s; }
+        .form-input:focus { outline: none; border-color: #0a0a0a; }
+        .btn { width: 100%; padding: 12px; background: #0a0a0a; color: #fff; border: none; border-radius: 6px; font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 8px; transition: background 0.15s; }
+        .btn:hover { background: #171717; }
+        .banner-error { background: #fef2f2; border: 1px solid #fecaca; padding: 12px 16px; border-radius: 6px; margin-bottom: 24px; font-size: 14px; color: #991b1b; }
+        .footer-link { text-align: center; margin-top: 24px; font-size: 14px; color: #737373; }
+        .footer-link a { color: #0a0a0a; text-decoration: none; font-weight: 500; }
         .footer-link a:hover { text-decoration: underline; }
         
-        /* Mobile Responsive */
+        /* Mobile */
         @media (max-width: 768px) {
-            body { padding: 16px; padding-top: 3vh; }
+            body { padding: 20px; }
             .card { padding: 32px 24px; }
-            .logo { font-size: 20px; }
         }
         @media (max-width: 480px) {
             .card { padding: 28px 20px; }
-            .card-title { font-size: 18px; }
+            .card-title { font-size: 20px; }
         }
 
     </style>
@@ -130,7 +130,7 @@ REGISTER_HTML = '''
         .logo { text-align: center; font-size: 24px; font-weight: 700; color: #171717; margin-bottom: 16px; }
         .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .card-title { font-size: 20px; font-weight: 600; color: #171717; margin-bottom: 8px; }
-        .card-subtitle { font-size: 14px; color: #737373; margin-bottom: 24px; }
+        .card-subtitle { font-size: 14px; color: #737373; margin-bottom: 32px; }
         .form-group { margin-bottom: 20px; }
         .form-label { display: block; font-size: 14px; font-weight: 600; color: #0a0a0a; margin-bottom: 10px; letter-spacing: 0.2px; }
         .form-input { width: 100%; padding: 13px 16px; border: 1px solid #e5e5e5; border-radius: 8px; font-size: 15px; font-family: inherit; background: #fff; transition: all 0.2s; }

@@ -13,55 +13,52 @@ FAQ_HTML = '''
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #fafafa;
+            background: #ffffff;
             color: #171717;
+            line-height: 1.5;
         }
-        .header { background: #fff; border-bottom: 1px solid #e5e5e5; }
+        .header { background: #fff; border-bottom: 1px solid #f0f0f0; }
         .header-content {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 24px;
-            height: 64px;
+            padding: 0 32px;
+            height: 72px;
             display: flex;
             align-items: center;
         }
-        .logo { font-size: 18px; font-weight: 600; color: #171717; text-decoration: none; display: flex; align-items: center; gap: 10px; }
-        .container { max-width: 800px; margin: 0 auto; padding: 48px 24px; }
-        .page-title { font-size: 32px; font-weight: 700; color: #171717; margin-bottom: 8px; }
-        .page-subtitle { font-size: 16px; color: #737373; margin-bottom: 40px; }
+        .logo { font-size: 17px; font-weight: 500; color: #171717; text-decoration: none; display: flex; align-items: center; gap: 10px; letter-spacing: -0.3px; }
+        .container { max-width: 800px; margin: 0 auto; padding: 64px 32px; }
+        .page-title { font-size: 32px; font-weight: 600; color: #0a0a0a; margin-bottom: 8px; letter-spacing: -0.5px; }
+        .page-subtitle { font-size: 16px; color: #737373; margin-bottom: 48px; }
         .faq-item {
             background: #fff;
-            border: 1px solid #e5e5e5;
-            border-radius: 16px;
+            border: 1px solid #f0f0f0;
+            border-radius: 12px;
             padding: 24px;
             margin-bottom: 16px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
         .faq-question {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 600;
-            color: #171717;
+            color: #0a0a0a;
             margin-bottom: 12px;
         }
         .faq-answer {
             font-size: 15px;
             color: #525252;
-            line-height: 1.7;
+            line-height: 1.6;
         }
         
-        /* Mobile Responsive */
+        /* Mobile */
         @media (max-width: 768px) {
-            .container { padding: 32px 16px; }
+            .container { padding: 40px 24px; }
             .page-title { font-size: 26px; }
-            .page-subtitle { font-size: 15px; }
             .faq-item { padding: 20px; }
-            .faq-question { font-size: 16px; }
-            .faq-answer { font-size: 14px; }
-            .header-content { padding: 0 16px; }
+            .header-content { padding: 0 24px; height: 64px; }
         }
         @media (max-width: 480px) {
+            .container { padding: 32px 20px; }
             .page-title { font-size: 24px; }
-            .faq-item { padding: 18px; }
         }
     </style>
 </head>

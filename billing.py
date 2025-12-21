@@ -21,80 +21,76 @@ SUBSCRIBE_HTML = '''
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #fafafa;
+            background: #ffffff;
             color: #171717;
+            line-height: 1.5;
         }
-        .header { background: #fff; border-bottom: 1px solid #e5e5e5; }
+        .header { background: #fff; border-bottom: 1px solid #f0f0f0; }
         .header-content {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 24px;
-            height: 64px;
+            padding: 0 32px;
+            height: 72px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .logo { font-size: 18px; font-weight: 500; color: #171717; text-decoration: none; }
-        .nav-btn { padding: 8px 14px; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none; color: #525252; }
-        .nav-btn:hover { background: #f5f5f5; }
-        .container { max-width: 600px; margin: 0 auto; padding: 48px 24px; }
-        .page-title { font-size: 32px; font-weight: 700; color: #171717; margin-bottom: 8px; }
-        .page-subtitle { font-size: 16px; color: #737373; margin-bottom: 32px; }
-        .pricing-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
+        .logo { font-size: 17px; font-weight: 500; color: #171717; text-decoration: none; letter-spacing: -0.3px; }
+        .nav-btn { padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 400; text-decoration: none; color: #525252; transition: background 0.15s; }
+        .nav-btn:hover { background: #fafafa; color: #171717; }
+        .container { max-width: 600px; margin: 0 auto; padding: 64px 32px; }
+        .page-title { font-size: 32px; font-weight: 600; color: #0a0a0a; margin-bottom: 8px; letter-spacing: -0.5px; }
+        .page-subtitle { font-size: 16px; color: #737373; margin-bottom: 48px; }
+        .pricing-card { background: #fff; border: 1px solid #f0f0f0; border-radius: 12px; padding: 40px; }
         .pricing-item {
-            padding: 20px 0;
-            border-bottom: 1px solid #f5f5f5;
+            padding: 24px 0;
+            border-bottom: 1px solid #f0f0f0;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .pricing-item:last-child { border-bottom: none; }
-        .pricing-label { font-size: 16px; font-weight: 500; color: #171717; }
+        .pricing-label { font-size: 15px; font-weight: 500; color: #171717; }
         .pricing-detail { font-size: 13px; color: #737373; margin-top: 4px; }
-        .pricing-value { font-size: 24px; font-weight: 700; color: #171717; }
-        .features-list { list-style: none; margin: 24px 0; padding: 24px 0; border-top: 1px solid #f5f5f5; }
+        .pricing-value { font-size: 24px; font-weight: 600; color: #0a0a0a; }
+        .features-list { list-style: none; margin: 32px 0; padding: 32px 0; border-top: 1px solid #f0f0f0; }
         .features-list li {
-            padding: 10px 0;
+            padding: 12px 0;
             font-size: 14px;
             color: #525252;
             display: flex;
             align-items: center;
             gap: 12px;
         }
-        .features-list li:before { content: '✓'; color: #16a34a; font-weight: 700; font-size: 16px; }
+        .features-list li:before { content: '✓'; color: #16a34a; font-weight: 600; font-size: 14px; }
         .btn {
             width: 100%;
-            padding: 14px;
+            padding: 12px;
             background: #0a0a0a;
             color: #fff;
             border: none;
-            border-radius: 10px;
+            border-radius: 6px;
             font-size: 15px;
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background 0.15s;
+            margin-top: 8px;
         }
         .btn:hover { 
-            background: #262626; 
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            background: #171717;
         }
         
-        /* Mobile Responsive */
+        /* Mobile */
         @media (max-width: 768px) {
-            .container { padding: 32px 16px; }
+            .container { padding: 40px 24px; }
             .page-title { font-size: 26px; }
-            .page-subtitle { font-size: 15px; }
-            .pricing-card { padding: 24px; }
-            .pricing-value { font-size: 20px; }
-            .header-content { padding: 0 16px; }
-            .logo { font-size: 16px; }
-            .nav-btn { padding: 6px 10px; font-size: 13px; }
+            .pricing-card { padding: 32px 24px; }
+            .header-content { padding: 0 24px; height: 64px; }
         }
         @media (max-width: 480px) {
+            .container { padding: 32px 20px; }
             .page-title { font-size: 24px; }
             .pricing-item { flex-direction: column; align-items: flex-start; gap: 8px; }
-            .pricing-value { font-size: 18px; }
         }
     </style>
 </head>
