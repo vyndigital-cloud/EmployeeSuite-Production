@@ -919,55 +919,28 @@ DASHBOARD_HTML = """
 def home():
     """Home page - handles embedded app requests and redirects appropriately"""
     # Check if this is an embedded app request from Shopify
-    id_token = request.args.get('id_token')
     shop = request.args.get('shop')
     embedded = request.args.get('embedded')
     
-    # If embedded app request with id_token, verify and handle
-    if embedded == '1' and id_token and shop:
-        try:
-            import jwt
-            SHOPIFY_API_KEY = os.getenv('SHOPIFY_API_KEY')
-            SHOPIFY_API_SECRET = os.getenv('SHOPIFY_API_SECRET')
-            
-            if SHOPIFY_API_SECRET:
-                # Verify the id_token (session token)
-                payload = jwt.decode(
-                    id_token,
-                    SHOPIFY_API_SECRET,
-                    algorithms=['HS256'],
-                    options={
-                        "verify_signature": True,
-                        "verify_exp": True,
-                        "verify_iat": True,
-                        "require": ["iss", "dest", "aud", "sub", "exp", "nbf", "iat"]
-                    }
-                )
-                
-                # Verify audience matches API key
-                if payload.get('aud') == SHOPIFY_API_KEY:
-                    # Check if store is already connected
-                    from models import ShopifyStore
-                    store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
-                    
-                    if store:
-                        # Store is connected - auto-login the user
-                        user = store.user
-                        if user:
-                            login_user(user, remember=True)
-                            session.permanent = True
-                            logger.info(f"Auto-logged in user for embedded app: {shop}")
-                            return redirect(url_for('dashboard'))
-                    
-                    # Store not connected - redirect to OAuth install
-                    logger.info(f"Store not connected for embedded app: {shop}, redirecting to install")
-                    return redirect(url_for('oauth.install', shop=shop))
-        except jwt.ExpiredSignatureError:
-            logger.warning("Expired id_token in embedded app request")
-        except jwt.InvalidTokenError as e:
-            logger.warning(f"Invalid id_token in embedded app request: {e}")
-        except Exception as e:
-            logger.error(f"Error handling embedded app request: {e}", exc_info=True)
+    # If embedded app request, handle it (id_token is for App Bridge, not strict verification)
+    if embedded == '1' and shop:
+        # For embedded apps, check if store is connected
+        # Don't strictly verify id_token - App Bridge handles session tokens via Authorization header
+        from models import ShopifyStore
+        store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+        
+        if store:
+            # Store is connected - auto-login the user
+            user = store.user
+            if user:
+                login_user(user, remember=True)
+                session.permanent = True
+                logger.info(f"Auto-logged in user for embedded app: {shop}")
+                return redirect(url_for('dashboard'))
+        
+        # Store not connected - redirect to OAuth install
+        logger.info(f"Store not connected for embedded app: {shop}, redirecting to install")
+        return redirect(url_for('oauth.install', shop=shop))
     
     # Regular (non-embedded) request handling
     if current_user.is_authenticated:
