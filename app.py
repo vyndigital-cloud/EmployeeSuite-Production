@@ -556,8 +556,8 @@ DASHBOARD_HTML = """
             </div>
             {% if is_subscribed %}
             <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); text-align: center; min-width: 140px;">
-                <div style="font-size: 11px; color: #737373; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Premium Member</div>
-                <div style="font-size: 20px; font-weight: 700; color: #0a0a0a;">⭐ Pro</div>
+                <div style="font-size: 11px; color: #737373; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Subscribed</div>
+                <div style="font-size: 20px; font-weight: 700; color: #0a0a0a;">✓ Active</div>
             </div>
             {% endif %}
         </div>
@@ -867,7 +867,7 @@ def dashboard():
     from models import ShopifyStore
     has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
     
-    # Get quick stats for value demonstration (if has access and Shopify connected)
+    # Get quick stats for dashboard (if has access and Shopify connected)
     quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
     if has_access and has_shopify:
         try:

@@ -147,7 +147,7 @@ SUBSCRIBE_HTML = '''
             <ul class="features-list">
                 <li>✅ Real-time inventory monitoring (prevents stockouts)</li>
                 <li>✅ Low-stock alerts (prevent stockouts)</li>
-                <li>✅ Order tracking & status monitoring (save 10+ hrs/week)</li>
+                <li>✅ Order tracking & status monitoring</li>
                 <li>✅ Revenue reports by product (data-driven decisions)</li>
                 <li>✅ CSV export for revenue data (accounting ready)</li>
                 <li>✅ Shopify API integration (seamless sync)</li>
@@ -166,8 +166,8 @@ SUBSCRIBE_HTML = '''
             </div>
             
             <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #0ea5e9; border-radius: 12px; padding: 16px; margin: 24px 0; text-align: center;">
-                <div style="font-size: 13px; font-weight: 700; color: #0c4a6e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Money-Back Guarantee</div>
-                <div style="font-size: 14px; color: #075985;">Not satisfied? Get a full refund within 7 days. No questions asked.</div>
+                <div style="font-size: 13px; font-weight: 700; color: #0c4a6e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Refund Policy</div>
+                <div style="font-size: 14px; color: #075985;">Not satisfied? Email us within 7 days for a refund. Subject to our refund policy.</div>
             </div>
             
             <form method="POST" action="/create-checkout-session">
