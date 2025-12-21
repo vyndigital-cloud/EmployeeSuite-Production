@@ -90,6 +90,9 @@ def callback():
     
     db.session.commit()
     
+    # Register mandatory compliance webhooks (Shopify requirement)
+    register_compliance_webhooks(shop, access_token)
+    
     # Log user in
     login_user(user, remember=True)
     session.permanent = True
@@ -151,3 +154,60 @@ def get_shop_info(shop, access_token):
         print(f"Failed to get shop info: {e}")
     
     return None
+
+def register_compliance_webhooks(shop, access_token):
+    """
+    Register mandatory compliance webhooks via Admin API
+    This ensures webhooks are registered even if shopify.app.toml isn't deployed via CLI
+    """
+    app_url = os.getenv('SHOPIFY_APP_URL', 'https://employeesuite-production.onrender.com')
+    api_version = "2024-10"
+    
+    # Mandatory compliance webhooks
+    webhooks = [
+        {
+            'topic': 'customers/data_request',
+            'address': f'{app_url}/webhooks/customers/data_request',
+            'format': 'json'
+        },
+        {
+            'topic': 'customers/redact',
+            'address': f'{app_url}/webhooks/customers/redact',
+            'format': 'json'
+        },
+        {
+            'topic': 'shop/redact',
+            'address': f'{app_url}/webhooks/shop/redact',
+            'format': 'json'
+        }
+    ]
+    
+    headers = {
+        'X-Shopify-Access-Token': access_token,
+        'Content-Type': 'application/json'
+    }
+    
+    for webhook in webhooks:
+        url = f"https://{shop}/admin/api/{api_version}/webhooks.json"
+        payload = {'webhook': webhook}
+        
+        try:
+            # Check if webhook already exists
+            list_url = f"https://{shop}/admin/api/{api_version}/webhooks.json?topic={webhook['topic']}"
+            list_response = requests.get(list_url, headers=headers, timeout=10)
+            
+            if list_response.status_code == 200:
+                existing = list_response.json().get('webhooks', [])
+                # Check if webhook with this address already exists
+                exists = any(w.get('address') == webhook['address'] for w in existing)
+                if exists:
+                    continue  # Already registered, skip
+            
+            # Create webhook
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            if response.status_code in [200, 201]:
+                print(f"Registered webhook: {webhook['topic']}")
+            else:
+                print(f"Failed to register webhook {webhook['topic']}: {response.status_code} - {response.text}")
+        except Exception as e:
+            print(f"Error registering webhook {webhook['topic']}: {e}")
