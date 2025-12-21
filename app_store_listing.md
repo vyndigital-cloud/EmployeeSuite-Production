@@ -10,15 +10,15 @@ Monitor orders, inventory, and revenue analytics for your Shopify store.
 
 ## Long Description
 
-**Employee Suite** is a monitoring and analytics platform designed to help Shopify store owners track their operations and make data-driven decisions.
+**Employee Suite** helps Shopify store owners monitor their operations and make data-driven decisions. Track everything from one clean dashboard.
 
 ### 🚀 Key Features
 
 **📦 Order Monitoring**
-- View pending and unfulfilled orders from your Shopify store
+- View pending and unfulfilled orders that need your attention
 - Monitor order status and payment information
-- Track orders that require action
-- Updated frequently (30-60 second refresh)
+- Track orders requiring fulfillment
+- Real-time data sync from your Shopify store
 
 **📊 Inventory Management**
 - Monitor stock levels across all products
@@ -29,29 +29,22 @@ Monitor orders, inventory, and revenue analytics for your Shopify store.
 **💰 Revenue Analytics & Reporting**
 - All-time revenue analytics
 - Revenue breakdown by product
-- Top 10 products by revenue
+- Top products by revenue
 - Export revenue reports as CSV
 
-**🔒 Enterprise-Grade Security**
+**🔒 Security & Privacy**
 - Secure OAuth authentication
 - GDPR compliant data handling
 - Encrypted data storage
-- Automated daily backups
 - HMAC signature verification
-
-**⚡ Performance & Reliability**
-- High availability infrastructure
-- Frequently updated data synchronization
-- Optimized for high-volume stores
-- Scalable architecture
 
 ### ✨ Why Choose Employee Suite?
 
-- **Save Time** - Monitor all store operations from one dashboard
+- **One Dashboard** - Monitor all store operations from a single view
 - **Stay Informed** - Get alerts when inventory runs low
 - **Data-Driven Decisions** - Access revenue analytics instantly
 - **Easy to Use** - Simple, clean interface
-- **2-Day Free Trial** - Try risk-free, no credit card required
+- **7-Day Free Trial** - Try risk-free, no credit card required
 
 ### 🎯 Perfect For
 
@@ -63,9 +56,9 @@ Monitor orders, inventory, and revenue analytics for your Shopify store.
 
 ### 💰 Pricing
 
-- **Setup Fee:** $1,000 (one-time)
-- **Monthly Subscription:** $500/month
-- **Free Trial:** 2 days (no credit card required)
+- **Monthly Subscription:** $29 USD/month
+- **Free Trial:** 7 days (no credit card required)
+- **No Setup Fees** - Start immediately
 
 ### 🔧 Technical Details
 
@@ -73,13 +66,12 @@ Monitor orders, inventory, and revenue analytics for your Shopify store.
 - **Embedded App:** Yes
 - **GDPR Compliant:** Yes
 - **Webhook Support:** Full
-- **Multi-Store:** Supported
 
 ### 📞 Support
 
-- Email: support@employeesuite.com
+- Email: adam@golproductions.com
 - Response Time: < 24 hours
-- Documentation: Available in-app
+- FAQ: Available in-app
 
 ---
 
@@ -88,8 +80,8 @@ Monitor orders, inventory, and revenue analytics for your Shopify store.
 **File:** `static/icon.png`  
 **Size:** 1200x1200px  
 **Format:** PNG  
-**Background:** Gradient green (#4a7338 to #72b05e)  
-**Content:** Rocket icon with "ES" text
+**Background:** Clean, professional  
+**Content:** App logo/branding
 
 ---
 
@@ -101,11 +93,11 @@ Monitor orders, inventory, and revenue analytics for your Shopify store.
 
 ### Screenshot 2: Order Processing
 **Size:** 1280x720px minimum  
-**Content:** Order processing interface with results
+**Content:** Order processing interface with results showing pending orders
 
 ### Screenshot 3: Inventory Management
 **Size:** 1280x720px minimum  
-**Content:** Inventory dashboard showing stock levels and alerts
+**Content:** Inventory dashboard showing stock levels and low-stock alerts
 
 ### Screenshot 4: Revenue Reports
 **Size:** 1280x720px minimum  
@@ -119,7 +111,7 @@ Monitor orders, inventory, and revenue analytics for your Shopify store.
 
 ## Support Information
 
-**Support Email:** support@employeesuite.com  
+**Support Email:** adam@golproductions.com  
 **Privacy Policy:** https://employeesuite-production.onrender.com/privacy  
 **Terms of Service:** https://employeesuite-production.onrender.com/terms  
 **FAQ:** https://employeesuite-production.onrender.com/faq

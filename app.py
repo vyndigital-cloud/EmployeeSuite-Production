@@ -335,23 +335,43 @@ DASHBOARD_HTML = """
             border-radius: 16px;
             padding: 32px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 16px;
+            opacity: 0;
+            background: linear-gradient(135deg, rgba(10, 10, 10, 0.02) 0%, rgba(38, 38, 38, 0.02) 100%);
+            transition: opacity 0.3s ease;
+            pointer-events: none;
         }
         
         .card:hover {
             border-color: #d4d4d4;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            transform: translateY(-4px);
+        }
+        
+        .card:hover::after {
+            opacity: 1;
         }
         .card-icon {
-            font-size: 36px;
+            font-size: 40px;
             margin-bottom: 20px;
             line-height: 1;
-            transition: transform 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-block;
         }
         
         .card:hover .card-icon {
-            transform: scale(1.05);
+            transform: scale(1.1) rotate(5deg);
         }
         .card-title {
             font-size: 20px;
@@ -384,16 +404,41 @@ DASHBOARD_HTML = """
             align-items: center;
             justify-content: center;
             gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .card-btn:hover::before {
+            width: 300px;
+            height: 300px;
         }
         
         .card-btn:hover {
             background: #262626;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
         }
         
         .card-btn:active {
             transform: translateY(0);
+        }
+        
+        .card-btn span {
+            position: relative;
+            z-index: 1;
         }
         .card-btn:disabled {
             opacity: 0.6;
@@ -426,9 +471,12 @@ DASHBOARD_HTML = """
             font-family: 'SF Mono', monospace;
         }
         #output:empty:before {
-            content: 'Results will appear here...';
+            content: 'Click any button above to get started. Your results will appear here.';
             color: #a3a3a3;
             font-style: italic;
+            text-align: center;
+            padding: 40px 20px;
+            display: block;
         }
         #output:empty {
             display: flex;
@@ -571,42 +619,69 @@ DASHBOARD_HTML = """
             <a href="{{ url_for('billing.subscribe') }}" class="banner-action">Subscribe Now</a>
         </div>
         {% elif trial_active and not is_subscribed %}
-        <div class="banner banner-warning" style="justify-content: flex-start;">
+        <div class="banner banner-warning" style="justify-content: space-between; align-items: center;">
             <div class="banner-content">
-                <h3>Trial Active</h3>
-                <p>{{ days_left }} day{{ 's' if days_left != 1 else '' }} remaining - Subscribe in the top right to keep access</p>
+                <h3>⏰ Trial Active - {{ days_left }} day{{ 's' if days_left != 1 else '' }} remaining</h3>
+                <p>Subscribe now to keep access when your trial ends. No credit card required until trial ends.</p>
             </div>
+            <a href="{{ url_for('billing.subscribe') }}" class="banner-action">Subscribe Now →</a>
         </div>
         {% endif %}
         
         
         {% if has_shopify and quick_stats.has_data and is_subscribed %}
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px;">
-            <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);">
-                <div style="font-size: 13px; color: #737373; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Pending Orders</div>
-                <div style="font-size: 32px; font-weight: 700; color: #0a0a0a;">{{ quick_stats.pending_orders or 0 }}</div>
-                <div style="font-size: 12px; color: #737373; margin-top: 4px;">Need attention</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; animation: fadeIn 0.5s ease-in;">
+            <div style="background: linear-gradient(135deg, #fff 0%, #fafafa 100%); border: 1px solid #e5e5e5; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); transition: all 0.3s ease;">
+                <div style="font-size: 13px; color: #737373; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                    <span>📦</span>
+                    <span>Pending Orders</span>
+                </div>
+                <div style="font-size: 40px; font-weight: 800; color: #0a0a0a; line-height: 1; margin-bottom: 8px;">{{ quick_stats.pending_orders or 0 }}</div>
+                <div style="font-size: 13px; color: #737373;">Need your attention</div>
             </div>
-            <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);">
-                <div style="font-size: 13px; color: #737373; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Total Products</div>
-                <div style="font-size: 32px; font-weight: 700; color: #0a0a0a;">{{ quick_stats.total_products or 0 }}</div>
-                <div style="font-size: 12px; color: #737373; margin-top: 4px;">In your store</div>
+            <div style="background: linear-gradient(135deg, #fff 0%, #fafafa 100%); border: 1px solid #e5e5e5; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); transition: all 0.3s ease;">
+                <div style="font-size: 13px; color: #737373; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                    <span>📊</span>
+                    <span>Total Products</span>
+                </div>
+                <div style="font-size: 40px; font-weight: 800; color: #0a0a0a; line-height: 1; margin-bottom: 8px;">{{ quick_stats.total_products or 0 }}</div>
+                <div style="font-size: 13px; color: #737373;">In your store</div>
             </div>
-            <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);">
-                <div style="font-size: 13px; color: #737373; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Low Stock Alert</div>
-                <div style="font-size: 32px; font-weight: 700; color: {% if quick_stats.low_stock_items > 0 %}#dc2626{% else %}#16a34a{% endif %};">{{ quick_stats.low_stock_items or 0 }}</div>
-                <div style="font-size: 12px; color: #737373; margin-top: 4px;">Need restocking</div>
+            <div style="background: linear-gradient(135deg, #fff 0%, #fafafa 100%); border: 1px solid #e5e5e5; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); transition: all 0.3s ease;">
+                <div style="font-size: 13px; color: #737373; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                    <span>⚠️</span>
+                    <span>Low Stock</span>
+                </div>
+                <div style="font-size: 40px; font-weight: 800; color: {% if quick_stats.low_stock_items > 0 %}#dc2626{% else %}#16a34a{% endif %}; line-height: 1; margin-bottom: 8px;">{{ quick_stats.low_stock_items or 0 }}</div>
+                <div style="font-size: 13px; color: #737373;">{% if quick_stats.low_stock_items > 0 %}Need restocking{% else %}All good{% endif %}</div>
             </div>
         </div>
         {% endif %}
         
         {% if not has_shopify %}
-        <div class="banner banner-info">
-            <div class="banner-content">
-                <h3>🚀 Get Started</h3>
-                <p>Connect your Shopify store to unlock order monitoring, inventory management, and revenue analytics</p>
+        <div class="banner banner-info" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-left: 4px solid #3b82f6; animation: slideIn 0.5s ease-in;">
+            <div class="banner-content" style="flex: 1;">
+                <h3 style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                    <span style="font-size: 28px;">🚀</span>
+                    <span>Welcome! Let's get you started</span>
+                </h3>
+                <p style="margin-bottom: 12px; font-size: 15px; color: #171717;">Connect your Shopify store in 30 seconds to unlock:</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 16px;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #525252;">
+                        <span>✓</span>
+                        <span>Order monitoring and tracking</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #525252;">
+                        <span>✓</span>
+                        <span>Inventory management with alerts</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #525252;">
+                        <span>✓</span>
+                        <span>Revenue analytics and reporting</span>
+                    </div>
+                </div>
             </div>
-            <a href="{{ url_for('shopify.shopify_settings') }}" class="banner-action">Connect Store</a>
+            <a href="{{ url_for('shopify.shopify_settings') }}" class="banner-action" style="white-space: nowrap; font-size: 15px; padding: 12px 24px;">Connect Store →</a>
         </div>
         {% endif %}
         
@@ -617,7 +692,8 @@ DASHBOARD_HTML = """
                 <div class="card-description">View pending and unfulfilled Shopify orders. Monitor order status and payment information.</div>
                 {% if has_access %}
                 <button class="card-btn" onclick="processOrders(this)" aria-label="View pending orders">
-                    View Orders
+                    <span>View Orders</span>
+                    <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
                 {% else %}
                 <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to view orders">View Orders</button>
@@ -630,7 +706,8 @@ DASHBOARD_HTML = """
                 <div class="card-description">Monitor stock levels across all products. Get low-stock alerts and complete inventory visibility.</div>
                 {% if has_access %}
                 <button class="card-btn" onclick="updateInventory(this)" aria-label="Check inventory levels">
-                    Check Inventory
+                    <span>Check Inventory</span>
+                    <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
                 {% else %}
                 <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to check inventory">Check Inventory</button>
@@ -643,7 +720,8 @@ DASHBOARD_HTML = """
                 <div class="card-description">Generate comprehensive revenue reports with product-level breakdown and performance insights.</div>
                 {% if has_access %}
                 <button class="card-btn" onclick="generateReport(this)" aria-label="Generate revenue report">
-                    Generate Report
+                    <span>Generate Report</span>
+                    <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
                 {% else %}
                 <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to generate reports">Generate Report</button>
@@ -660,10 +738,13 @@ DASHBOARD_HTML = """
     <script>
         function showSubscribePrompt() {
             document.getElementById('output').innerHTML = `
-                <div style="padding: 24px; background: #fef2f2; border-radius: 8px; border-left: 3px solid #dc2626;">
-                    <h3 style="color: #dc2626; margin-bottom: 12px;">Subscription Required</h3>
-                    <p style="color: #991b1b; margin-bottom: 16px;">Your trial has ended. Subscribe now to continue using Employee Suite features.</p>
-                    <a href="{{ url_for('billing.subscribe') }}" style="display: inline-block; background: #4a7338; color: #fff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">Subscribe Now</a>
+                <div style="padding: 32px; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-radius: 16px; border: 2px solid #dc2626; text-align: center; animation: fadeIn 0.3s ease-in;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">🔒</div>
+                    <h3 style="color: #dc2626; margin-bottom: 12px; font-size: 20px;">Subscription Required</h3>
+                    <p style="color: #991b1b; margin-bottom: 8px; font-size: 15px;">Your trial has ended.</p>
+                    <p style="color: #737373; margin-bottom: 24px; font-size: 14px;">Subscribe now to continue using all Employee Suite features.</p>
+                    <a href="{{ url_for('billing.subscribe') }}" style="display: inline-block; background: #0a0a0a; color: #fff; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.2s;">Subscribe Now →</a>
+                    <p style="color: #737373; margin-top: 16px; font-size: 13px;">$29/month • 7-day money-back guarantee</p>
                 </div>
             `;
         }
@@ -714,8 +795,8 @@ DASHBOARD_HTML = """
                                 <span>${icon}</span>
                                 <span>${d.success ? 'Orders Loaded' : 'Error Loading Orders'}</span>
                             </h3>
-                            <p style="margin-top: 12px; line-height: 1.6;">${d.message || d.error || 'No details available'}</p>
-                            ${d.success ? '<p style="margin-top: 8px; font-size: 13px; color: #737373;">✨ Showing pending and unfulfilled orders from your store.</p>' : ''}
+                            <div style="margin-top: 12px; line-height: 1.6;">${d.message || d.error || 'No details available'}</div>
+                            ${d.success ? '<div style="margin-top: 16px; padding: 16px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #16a34a; border-radius: 10px; animation: fadeIn 0.3s ease-in;"><div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 20px;">✨</span><p style="margin: 0; font-size: 14px; color: #166534; font-weight: 600;">Great! Here are your orders that need attention.</p></div></div>' : ''}
                         </div>
                     `;
                 })
@@ -725,6 +806,7 @@ DASHBOARD_HTML = """
                         <div style="animation: fadeIn 0.3s ease-in;">
                             <h3 class="error">❌ Connection Error</h3>
                             <p style="margin-top: 12px;">Unable to connect to server. Please check your internet connection and try again.</p>
+                            <p style="margin-top: 8px; font-size: 13px; color: #737373;">💡 Tip: If this persists, go to Settings and verify your Shopify store is connected.</p>
                         </div>
                     `;
                 });
@@ -749,7 +831,7 @@ DASHBOARD_HTML = """
                                 <span>${d.success ? 'Inventory Updated' : 'Error Updating Inventory'}</span>
                             </h3>
                             <div style="margin-top: 12px; white-space: pre-wrap; line-height: 1.6;">${d.message || d.error || 'No details available'}</div>
-                            ${d.success ? '<p style="margin-top: 8px; font-size: 13px; color: #737373;">🔄 Inventory data refreshed from Shopify.</p>' : ''}
+                            ${d.success ? '<div style="margin-top: 16px; padding: 16px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #16a34a; border-radius: 10px; animation: fadeIn 0.3s ease-in;"><div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 20px;">✅</span><p style="margin: 0; font-size: 14px; color: #166534; font-weight: 600;">Inventory synced! Products sorted by priority (lowest stock first).</p></div></div>' : ''}
                         </div>
                     `;
                 })
@@ -759,6 +841,7 @@ DASHBOARD_HTML = """
                         <div style="animation: fadeIn 0.3s ease-in;">
                             <h3 class="error">❌ Connection Error</h3>
                             <p style="margin-top: 12px;">Unable to connect to server. Please check your internet connection and try again.</p>
+                            <p style="margin-top: 8px; font-size: 13px; color: #737373;">💡 Tip: If this persists, go to Settings and verify your Shopify store is connected.</p>
                         </div>
                     `;
                 });
@@ -775,6 +858,15 @@ DASHBOARD_HTML = """
                 .then(html => {
                     setButtonLoading(button, false);
                     document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${html}</div>`;
+                    // Add success celebration for reports
+                    if (html.includes('Revenue') || html.includes('Total')) {
+                        setTimeout(() => {
+                            const successMsg = document.createElement('div');
+                            successMsg.style.cssText = 'margin-top: 12px; padding: 12px; background: #f0fdf4; border-left: 3px solid #16a34a; border-radius: 8px; animation: fadeIn 0.3s ease-in;';
+                            successMsg.innerHTML = '<p style="margin: 0; font-size: 14px; color: #166534; font-weight: 500;">📊 Report generated! Export as CSV for accounting or analysis.</p>';
+                            document.getElementById('output').appendChild(successMsg);
+                        }, 100);
+                    }
                 })
                 .catch(err => {
                     setButtonLoading(button, false);

@@ -144,16 +144,25 @@ SUBSCRIBE_HTML = '''
                 </div>
             </div>
             
-            <div style="background: #fafafa; border: 1px solid #e5e5e5; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-                <div style="font-size: 16px; font-weight: 600; color: #0a0a0a; margin-bottom: 16px;">Everything you need to manage your store:</div>
-                <ul class="features-list" style="margin: 0;">
-                    <li>✅ Monitor inventory levels across all products</li>
-                    <li>✅ Get alerts when stock runs low</li>
-                    <li>✅ Track pending and unfulfilled orders</li>
-                    <li>✅ View revenue analytics by product</li>
-                    <li>✅ Export reports as CSV</li>
-                    <li>✅ Email support included</li>
-                </ul>
+            <div style="background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%); border: 1px solid #e5e5e5; border-radius: 16px; padding: 32px; margin-bottom: 32px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);">
+                <div style="font-size: 18px; font-weight: 700; color: #0a0a0a; margin-bottom: 20px; text-align: center;">Everything you need to manage your store</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+                    <div style="padding: 16px; background: #fff; border-radius: 12px; border: 1px solid #f5f5f5;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">📦</div>
+                        <div style="font-weight: 600; color: #0a0a0a; margin-bottom: 4px;">Order Tracking</div>
+                        <div style="font-size: 13px; color: #737373;">Monitor pending and unfulfilled orders</div>
+                    </div>
+                    <div style="padding: 16px; background: #fff; border-radius: 12px; border: 1px solid #f5f5f5;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">📊</div>
+                        <div style="font-weight: 600; color: #0a0a0a; margin-bottom: 4px;">Inventory Management</div>
+                        <div style="font-size: 13px; color: #737373;">Low-stock alerts and full visibility</div>
+                    </div>
+                    <div style="padding: 16px; background: #fff; border-radius: 12px; border: 1px solid #f5f5f5;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">💰</div>
+                        <div style="font-weight: 600; color: #0a0a0a; margin-bottom: 4px;">Revenue Analytics</div>
+                        <div style="font-size: 13px; color: #737373;">Product-level insights and reports</div>
+                    </div>
+                </div>
             </div>
             
             <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #16a34a; border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center;">

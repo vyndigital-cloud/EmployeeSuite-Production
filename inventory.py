@@ -15,7 +15,7 @@ def check_inventory():
     store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
     
     if not store:
-        return {"success": False, "error": "No Shopify store connected. Go to Settings to connect."}
+        return {"success": False, "error": "No Shopify store connected. <a href='/settings' style='color: #3b82f6; text-decoration: underline;'>Connect your store in Settings</a> to check inventory."}
     
     try:
         client = ShopifyClient(store.shop_url, store.access_token)

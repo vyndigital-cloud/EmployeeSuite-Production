@@ -230,7 +230,15 @@ SETTINGS_HTML = '''
         <p class="page-subtitle">Manage your Shopify connection and account</p>
         
         {% if success %}
-        <div class="banner-success">{{ success }}</div>
+        <div class="banner-success" style="animation: fadeIn 0.5s ease-in;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 24px;">🎉</span>
+                <div>
+                    <strong style="display: block; margin-bottom: 4px;">{{ success }}</strong>
+                    <span style="font-size: 14px; opacity: 0.9;">You're all set! Head back to the dashboard to start monitoring your store.</span>
+                </div>
+            </div>
+        </div>
         {% endif %}
         
         {% if error %}
