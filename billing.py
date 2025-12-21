@@ -21,11 +21,19 @@ SUBSCRIBE_HTML = '''
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #ffffff;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f0f4f8 100%);
+            background-attachment: fixed;
             color: #171717;
-            line-height: 1.5;
+            line-height: 1.6;
         }
-        .header { background: #fff; border-bottom: 1px solid #f0f0f0; }
+        .header { 
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
         .header-content {
             max-width: 1200px;
             margin: 0 auto;
@@ -35,61 +43,70 @@ SUBSCRIBE_HTML = '''
             justify-content: space-between;
             align-items: center;
         }
-        .logo { font-size: 17px; font-weight: 500; color: #171717; text-decoration: none; letter-spacing: -0.3px; }
-        .nav-btn { padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 400; text-decoration: none; color: #525252; transition: background 0.15s; }
-        .nav-btn:hover { background: #fafafa; color: #171717; }
-        .container { max-width: 600px; margin: 0 auto; padding: 64px 32px; }
-        .page-title { font-size: 32px; font-weight: 600; color: #0a0a0a; margin-bottom: 8px; letter-spacing: -0.5px; }
-        .page-subtitle { font-size: 16px; color: #737373; margin-bottom: 48px; }
-        .pricing-card { background: #fff; border: 1px solid #f0f0f0; border-radius: 12px; padding: 40px; }
+        .logo { font-size: 18px; font-weight: 600; color: #0a0a0a; text-decoration: none; letter-spacing: -0.4px; display: flex; align-items: center; gap: 10px; }
+        .nav-btn { padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; color: #525252; transition: all 0.2s ease; }
+        .nav-btn:hover { background: rgba(0, 0, 0, 0.04); color: #0a0a0a; }
+        .container { max-width: 640px; margin: 0 auto; padding: 80px 32px; }
+        .page-title { font-size: 48px; font-weight: 700; color: #0a0a0a; margin-bottom: 12px; letter-spacing: -1px; line-height: 1.1; }
+        .page-subtitle { font-size: 18px; color: #64748b; margin-bottom: 64px; }
+        .pricing-card { 
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 1) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: 24px;
+            padding: 48px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+        }
         .pricing-item {
-            padding: 24px 0;
-            border-bottom: 1px solid #f0f0f0;
+            padding: 28px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .pricing-item:last-child { border-bottom: none; }
-        .pricing-label { font-size: 15px; font-weight: 500; color: #171717; }
-        .pricing-detail { font-size: 13px; color: #737373; margin-top: 4px; }
-        .pricing-value { font-size: 24px; font-weight: 600; color: #0a0a0a; }
-        .features-list { list-style: none; margin: 32px 0; padding: 32px 0; border-top: 1px solid #f0f0f0; }
+        .pricing-label { font-size: 16px; font-weight: 600; color: #0a0a0a; }
+        .pricing-detail { font-size: 14px; color: #64748b; margin-top: 6px; }
+        .pricing-value { font-size: 32px; font-weight: 700; color: #0a0a0a; letter-spacing: -0.5px; }
+        .features-list { list-style: none; margin: 40px 0; padding: 40px 0; border-top: 1px solid rgba(0, 0, 0, 0.06); }
         .features-list li {
-            padding: 12px 0;
-            font-size: 14px;
-            color: #525252;
+            padding: 16px 0;
+            font-size: 15px;
+            color: #475569;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
         }
-        .features-list li:before { content: '✓'; color: #16a34a; font-weight: 600; font-size: 14px; }
+        .features-list li:before { content: '✓'; color: #10b981; font-weight: 700; font-size: 16px; }
         .btn {
             width: 100%;
-            padding: 12px;
-            background: #0a0a0a;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, #0a0a0a 0%, #262626 100%);
             color: #fff;
             border: none;
-            border-radius: 6px;
-            font-size: 15px;
-            font-weight: 500;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.15s;
-            margin-top: 8px;
+            transition: all 0.2s ease;
+            margin-top: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         .btn:hover { 
-            background: #171717;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
         }
         
         /* Mobile */
         @media (max-width: 768px) {
-            .container { padding: 40px 24px; }
-            .page-title { font-size: 26px; }
-            .pricing-card { padding: 32px 24px; }
+            .container { padding: 48px 24px; }
+            .page-title { font-size: 36px; }
+            .pricing-card { padding: 40px 32px; }
             .header-content { padding: 0 24px; height: 64px; }
         }
         @media (max-width: 480px) {
-            .container { padding: 32px 20px; }
-            .page-title { font-size: 24px; }
+            .container { padding: 40px 20px; }
+            .page-title { font-size: 28px; }
             .pricing-item { flex-direction: column; align-items: flex-start; gap: 8px; }
         }
     </style>
