@@ -5,6 +5,7 @@ import requests
 from flask import Blueprint, request, redirect, session
 from models import db, ShopifyStore, User
 from flask_login import login_user, current_user
+from logging_config import logger
 
 oauth_bp = Blueprint('oauth', __name__)
 
@@ -206,8 +207,8 @@ def register_compliance_webhooks(shop, access_token):
             # Create webhook
             response = requests.post(url, json=payload, headers=headers, timeout=10)
             if response.status_code in [200, 201]:
-                print(f"Registered webhook: {webhook['topic']}")
+                logger.info(f"Successfully registered compliance webhook: {webhook['topic']} for shop {shop}")
             else:
-                print(f"Failed to register webhook {webhook['topic']}: {response.status_code} - {response.text}")
+                logger.warning(f"Failed to register webhook {webhook['topic']}: {response.status_code} - {response.text}")
         except Exception as e:
-            print(f"Error registering webhook {webhook['topic']}: {e}")
+            logger.error(f"Error registering webhook {webhook['topic']}: {e}", exc_info=True)
