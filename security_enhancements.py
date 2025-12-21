@@ -47,9 +47,13 @@ def add_security_headers(response):
         request.path.startswith('/dashboard') or
         request.path.startswith('/settings') or
         request.path == '/' or
-        request.path.startswith('/auth/callback')
+        request.path.startswith('/auth/callback') or
+        request.path.startswith('/login') or
+        request.path.startswith('/api/')
     )
     
+    # CRITICAL: Always allow iframe for Shopify routes (even if no params detected)
+    # This fixes the "frame-ancestors 'none'" blocking issue
     is_embedded = (
         request.args.get('embedded') == '1' or  # Explicit embedded flag
         has_shop_param or  # Shop parameter
@@ -57,7 +61,7 @@ def add_security_headers(response):
         has_shopify_header or  # Official Shopify headers
         is_shopify_referer or  # Coming from Shopify domains
         is_shopify_origin or  # Origin header from Shopify
-        is_shopify_route  # Any Shopify app route
+        is_shopify_route  # Any Shopify app route (ALWAYS allow for app routes)
     )
     
     # REMOVED X-Frame-Options entirely for embedded - rely ONLY on CSP frame-ancestors
