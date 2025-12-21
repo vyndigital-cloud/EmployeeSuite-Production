@@ -40,9 +40,16 @@ def add_security_headers(response):
         'shopify.com' in origin
     )
     
-    # ULTRA PERMISSIVE: If ANY Shopify indicator exists, allow iframe embedding
+    # ULTRA PERMISSIVE: If ANY Shopify indicator exists OR it's a Shopify route, allow iframe embedding
     # This ensures it works even if Shopify changes how they send requests
     # Still secure: CSP only allows Shopify domains, blocks malicious sites
+    is_shopify_route = (
+        request.path.startswith('/dashboard') or
+        request.path.startswith('/settings') or
+        request.path == '/' or
+        request.path.startswith('/auth/callback')
+    )
+    
     is_embedded = (
         request.args.get('embedded') == '1' or  # Explicit embedded flag
         has_shop_param or  # Shop parameter
@@ -50,16 +57,16 @@ def add_security_headers(response):
         has_shopify_header or  # Official Shopify headers
         is_shopify_referer or  # Coming from Shopify domains
         is_shopify_origin or  # Origin header from Shopify
-        request.path.startswith('/dashboard') or  # Dashboard path (Shopify embedded)
-        request.path.startswith('/settings')  # Settings path (Shopify embedded)
+        is_shopify_route  # Any Shopify app route
     )
     
-    # REMOVED X-Frame-Options entirely - rely ONLY on CSP frame-ancestors
+    # REMOVED X-Frame-Options entirely for embedded - rely ONLY on CSP frame-ancestors
     # X-Frame-Options is too rigid and causes issues with embedded apps
     # CSP frame-ancestors is more flexible and works better
     if is_embedded:
         # For embedded apps: Allow iframe embedding from Shopify domains
         # CSP syntax: allow admin.shopify.com and any myshopify.com subdomain
+        # DO NOT set X-Frame-Options - let CSP handle it
         frame_ancestors = "frame-ancestors https://admin.shopify.com https://*.myshopify.com; "
     else:
         # Regular pages - prevent ALL iframe embedding via CSP
