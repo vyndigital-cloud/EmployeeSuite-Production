@@ -25,11 +25,14 @@ def add_security_headers(response):
     # 2. X-Shopify-Shop-Domain header
     # 3. Referer header from admin.shopify.com
     # 4. Host parameter in query (Shopify provides this)
+    # 5. Any request to /dashboard or /settings (Shopify embedded directories)
+    referer = request.headers.get('Referer', '')
     is_embedded = (
         request.args.get('embedded') == '1' or 
         request.headers.get('X-Shopify-Shop-Domain') or
         request.args.get('host') or
-        (request.headers.get('Referer') and 'admin.shopify.com' in request.headers.get('Referer', ''))
+        'admin.shopify.com' in referer or
+        request.path in ['/dashboard', '/settings/shopify']  # Shopify embedded directories
     )
     
     # For embedded apps, allow iframe embedding from Shopify
