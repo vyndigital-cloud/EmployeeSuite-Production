@@ -35,10 +35,11 @@ def add_security_headers(response):
     # For embedded apps, allow iframe embedding from Shopify
     # For regular pages, prevent clickjacking
     if is_embedded:
-        # Don't set X-Frame-Options for embedded apps (let CSP handle it)
-        # This allows Shopify to embed the app in an iframe
-        # Allow all Shopify admin domains
-        frame_ancestors = "frame-ancestors https://admin.shopify.com https://*.myshopify.com https://*.myshopify.com/*; "
+        # For embedded apps: Remove X-Frame-Options entirely (CSP will handle it)
+        # This is critical - X-Frame-Options takes precedence over CSP
+        # Don't set it at all for embedded apps
+        # Allow all Shopify admin domains and any myshopify.com subdomain
+        frame_ancestors = "frame-ancestors https://admin.shopify.com https://*.myshopify.com https://*.myshopify.com/* https://admin.shopify.com/*; "
     else:
         # Regular pages - prevent clickjacking
         response.headers['X-Frame-Options'] = 'DENY'
