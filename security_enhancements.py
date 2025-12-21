@@ -92,16 +92,17 @@ def add_security_headers(response):
     # Enable XSS protection (legacy browsers)
     response.headers['X-XSS-Protection'] = '1; mode=block'
     
-    # Content Security Policy - strict policy (allows Stripe checkout and Shopify embedding)
+    # Content Security Policy - permissive for embedded apps (allows Stripe checkout and Shopify embedding)
+    # Note: 'unsafe-eval' is required for App Bridge and some Shopify scripts
     csp = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://cdn.shopify.com https://js.stripe.com; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.shopify.com; "
-        "font-src 'self' https://fonts.gstatic.com; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://cdn.shopify.com https://js.stripe.com https://admin.shopify.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.shopify.com https://admin.shopify.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
         "img-src 'self' data: https:; "
-        "connect-src 'self' https://api.stripe.com https://*.myshopify.com https://www.google-analytics.com; "
+        "connect-src 'self' https://api.stripe.com https://*.myshopify.com https://www.google-analytics.com https://admin.shopify.com wss://*.myshopify.com; "
         + frame_ancestors +
-        "frame-src https://checkout.stripe.com https://js.stripe.com; "
+        "frame-src https://checkout.stripe.com https://js.stripe.com https://admin.shopify.com https://*.myshopify.com; "
         "base-uri 'self'; "
         "form-action 'self' https://checkout.stripe.com;"
     )
