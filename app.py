@@ -619,7 +619,7 @@ DASHBOARD_HTML = """
             <div class="card">
                 <div class="card-icon">📦</div>
                 <div class="card-title">Order Processing</div>
-                <div class="card-description">View pending and unfulfilled Shopify orders. Monitor order status and payment information. <strong style="color: #16a34a;">Saves 5-10 hours/week.</strong></div>
+                <div class="card-description">View pending and unfulfilled Shopify orders. Monitor order status and payment information.</div>
                 {% if has_access %}
                 <button class="card-btn" onclick="processOrders(this)" aria-label="View pending orders">
                     View Orders
@@ -632,7 +632,7 @@ DASHBOARD_HTML = """
             <div class="card">
                 <div class="card-icon">📊</div>
                 <div class="card-title">Inventory Management</div>
-                <div class="card-description">Monitor stock levels across all products. Get low-stock alerts and complete inventory visibility. <strong style="color: #16a34a;">Prevents $1,000s in lost sales.</strong></div>
+                <div class="card-description">Monitor stock levels across all products. Get low-stock alerts and complete inventory visibility.</div>
                 {% if has_access %}
                 <button class="card-btn" onclick="updateInventory(this)" aria-label="Check inventory levels">
                     Check Inventory
@@ -645,7 +645,7 @@ DASHBOARD_HTML = """
             <div class="card">
                 <div class="card-icon">💰</div>
                 <div class="card-title">Revenue Analytics</div>
-                <div class="card-description">Generate comprehensive revenue reports with product-level breakdown and performance insights. <strong style="color: #16a34a;">Make data-driven decisions.</strong></div>
+                <div class="card-description">Generate comprehensive revenue reports with product-level breakdown and performance insights.</div>
                 {% if has_access %}
                 <button class="card-btn" onclick="generateReport(this)" aria-label="Generate revenue report">
                     Generate Report

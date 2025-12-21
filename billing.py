@@ -111,9 +111,6 @@ SUBSCRIBE_HTML = '''
     
     <div class="container">
         <div style="text-align: center; margin-bottom: 40px;">
-            <div style="display: inline-block; background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); border: 2px solid #16a34a; border-radius: 12px; padding: 12px 20px; margin-bottom: 24px;">
-                <div style="font-size: 13px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 1px;">💰 Save $471/month</div>
-            </div>
             <h1 class="page-title" style="margin-bottom: 12px;">{% if not has_access %}Restore Access{% else %}Ready to Subscribe?{% endif %}</h1>
             <p class="page-subtitle" style="max-width: 600px; margin: 0 auto;">
                 {% if not has_access %}
@@ -126,22 +123,6 @@ SUBSCRIBE_HTML = '''
             </p>
         </div>
         
-        <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 24px; margin-bottom: 32px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; text-align: center;">
-                <div>
-                    <div style="font-size: 36px; font-weight: 700; color: #0a0a0a; margin-bottom: 8px;">20+</div>
-                    <div style="font-size: 14px; color: #737373;">Hours saved/month</div>
-                </div>
-                <div>
-                    <div style="font-size: 36px; font-weight: 700; color: #0a0a0a; margin-bottom: 8px;">$1,000+</div>
-                    <div style="font-size: 14px; color: #737373;">Value created/month</div>
-                </div>
-                <div>
-                    <div style="font-size: 36px; font-weight: 700; color: #16a34a; margin-bottom: 8px;">3,344%</div>
-                    <div style="font-size: 14px; color: #737373;">ROI</div>
-                </div>
-            </div>
-        </div>
         
         {% if not has_access %}
         <div style="background: #fef2f2; border-left: 3px solid #dc2626; padding: 16px 20px; border-radius: 8px; margin-bottom: 24px;">
@@ -160,15 +141,12 @@ SUBSCRIBE_HTML = '''
                     <div style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.9; margin-bottom: 12px;">Premium Plan</div>
                     <div style="font-size: 56px; font-weight: 800; margin-bottom: 8px; line-height: 1;">$29<span style="font-size: 24px; font-weight: 500; opacity: 0.8;">/month</span></div>
                     <div style="font-size: 15px; opacity: 0.8; margin-bottom: 16px;">7-day free trial • No setup fees • Cancel anytime</div>
-                    <div style="display: inline-block; background: rgba(255, 255, 255, 0.15); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 8px;">
-                        💰 Worth $500/month - You save 94%
-                    </div>
                 </div>
             </div>
             
             <ul class="features-list">
                 <li>✅ Real-time inventory monitoring (prevents stockouts)</li>
-                <li>✅ Low-stock alerts (save $1,000s in lost sales)</li>
+                <li>✅ Low-stock alerts (prevent stockouts)</li>
                 <li>✅ Order tracking & status monitoring (save 10+ hrs/week)</li>
                 <li>✅ Revenue reports by product (data-driven decisions)</li>
                 <li>✅ CSV export for revenue data (accounting ready)</li>
