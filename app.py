@@ -999,9 +999,24 @@ def home():
                     store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
                     if store:
                         client = ShopifyClient(store.shop_url, store.access_token)
-                        stats = client.get_quick_stats()
-                        if stats and isinstance(stats, dict):
-                            quick_stats = stats
+                        # Get quick stats using existing methods (get_quick_stats doesn't exist)
+                        orders = client.get_orders(status='any', limit=10)
+                        products = client.get_products()
+                        low_stock = client.get_low_stock(threshold=10)
+                        
+                        # Handle None values and error dicts properly
+                        if orders is not None and not isinstance(orders, dict) and isinstance(orders, list):
+                            quick_stats['pending_orders'] = len([o for o in orders if o and isinstance(o, dict) and o.get('status') in ['PENDING', 'AUTHORIZED']])
+                        
+                        if products is not None and not isinstance(products, dict) and isinstance(products, list):
+                            quick_stats['total_products'] = len(products)
+                        
+                        if low_stock is not None and not isinstance(low_stock, dict) and isinstance(low_stock, list):
+                            quick_stats['low_stock_items'] = len(low_stock)
+                        
+                        # Only set has_data if we got valid data
+                        if quick_stats['pending_orders'] > 0 or quick_stats['total_products'] > 0:
+                            quick_stats['has_data'] = True
                 except Exception as e:
                     logger.warning(f"Error fetching quick stats: {e}")
             
