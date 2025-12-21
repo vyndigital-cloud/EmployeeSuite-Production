@@ -43,13 +43,17 @@ def add_security_headers(response):
     # ULTRA PERMISSIVE: If ANY Shopify indicator exists OR it's a Shopify route, allow iframe embedding
     # This ensures it works even if Shopify changes how they send requests
     # Still secure: CSP only allows Shopify domains, blocks malicious sites
+    # CRITICAL: Always treat these routes as potentially embedded (Shopify app routes)
+    # This prevents CSP from blocking the iframe
     is_shopify_route = (
         request.path.startswith('/dashboard') or
         request.path.startswith('/settings') or
         request.path == '/' or
         request.path.startswith('/auth/callback') or
         request.path.startswith('/login') or
-        request.path.startswith('/api/')
+        request.path.startswith('/api/') or
+        request.path.startswith('/register') or
+        'shopify' in request.path.lower()  # Any route with 'shopify' in the name
     )
     
     # CRITICAL: Always allow iframe for Shopify routes (even if no params detected)
