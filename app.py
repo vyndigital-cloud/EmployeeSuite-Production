@@ -482,6 +482,51 @@ DASHBOARD_HTML = """
 
     <!-- Shopify App Bridge (for embedded apps) -->
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <script>
+        // Initialize App Bridge for embedded apps
+        if (window['app-bridge']) {
+            var AppBridge = window['app-bridge'];
+            var createApp = AppBridge.default;
+            
+            // Get shop and host from URL params (Shopify provides these for embedded apps)
+            var urlParams = new URLSearchParams(window.location.search);
+            var shop = urlParams.get('shop') || '{{ shop_domain or "" }}';
+            var host = urlParams.get('host') || '';
+            var apiKey = '{{ SHOPIFY_API_KEY or "" }}';
+            
+            // Only initialize if we have the required params (embedded app)
+            if (shop && host && apiKey) {
+                try {
+                    var app = createApp({
+                        apiKey: apiKey,
+                        host: host,
+                        shop: shop
+                    });
+                    
+                    // Make app available globally
+                    window.shopifyApp = app;
+                    
+                    // Fetch and send session tokens for all API requests (MANDATORY as of Jan 2025)
+                    app.getSessionToken().then(function(token) {
+                        // Set default Authorization header for all fetch requests
+                        var originalFetch = window.fetch;
+                        window.fetch = function(url, options) {
+                            options = options || {};
+                            options.headers = options.headers || {};
+                            if (!options.headers['Authorization'] && token) {
+                                options.headers['Authorization'] = 'Bearer ' + token;
+                            }
+                            return originalFetch(url, options);
+                        };
+                    }).catch(function(error) {
+                        console.warn('Failed to get session token:', error);
+                    });
+                } catch (e) {
+                    console.warn('App Bridge initialization failed:', e);
+                }
+            }
+        }
+    </script>
     
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3"></script>
@@ -922,13 +967,22 @@ def dashboard():
             logger.warning(f"Error fetching quick stats: {e}")
             quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
     
+    # Get shop domain and API key for App Bridge initialization
+    shop_domain = ''
+    if has_shopify:
+        store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+        if store:
+            shop_domain = store.shop_url
+    
     return render_template_string(DASHBOARD_HTML, 
                                  trial_active=trial_active, 
                                  days_left=days_left, 
                                  is_subscribed=current_user.is_subscribed, 
                                  has_shopify=has_shopify, 
                                  has_access=has_access,
-                                 quick_stats=quick_stats)
+                                 quick_stats=quick_stats,
+                                 shop_domain=shop_domain,
+                                 SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''))
 
 
 @app.route('/cron/send-trial-warnings', methods=['GET', 'POST'])
