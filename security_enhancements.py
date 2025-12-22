@@ -98,11 +98,11 @@ def add_security_headers(response):
         # Embedded app CSP - allows Shopify resources and App Bridge
         csp = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com https://js.stripe.com; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com https://js.stripe.com https://www.googletagmanager.com; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.shopify.com; "
             "font-src 'self' https://fonts.gstatic.com data:; "
             "img-src 'self' data: https:; "
-            "connect-src 'self' https://api.stripe.com https://*.myshopify.com https://admin.shopify.com; "
+            "connect-src 'self' https://api.stripe.com https://*.myshopify.com https://admin.shopify.com https://www.google-analytics.com; "
             + frame_ancestors +
             "frame-src https://checkout.stripe.com https://js.stripe.com; "
             "base-uri 'self'; "
