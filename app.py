@@ -1040,77 +1040,30 @@ def home():
                                          shop_domain=shop_domain,
                                          SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''))
         else:
-            # Not logged in - for embedded apps, render a page that initiates OAuth
-            # Use App Bridge Redirect if available, otherwise use window.top
-            logger.info(f"Store not connected for embedded app: {shop}, showing connect page")
-            install_url = url_for('oauth.install', shop=shop, embedded='1', host=host)
-            api_key = os.getenv('SHOPIFY_API_KEY', '')
+            # Not logged in - for embedded apps, render dashboard with connect prompt
+            # DON'T redirect - just show the dashboard with a connect button
+            # This prevents iframe breaking
+            logger.info(f"Store not connected for embedded app: {shop}, showing dashboard with connect prompt")
             
-            # Render a proper HTML page that uses App Bridge to redirect
-            return f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <title>Connect Store - Employee Suite</title>
-                <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-                <style>
-                    body {{
-                        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        min-height: 100vh;
-                        margin: 0;
-                        background: #f6f6f7;
-                    }}
-                    .container {{
-                        text-align: center;
-                        padding: 40px;
-                        background: white;
-                        border-radius: 8px;
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                    }}
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <h1>Connect Your Store</h1>
-                    <p>Please connect your Shopify store to continue.</p>
-                    <button id="connectBtn" style="padding: 12px 24px; background: #008060; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer;">Connect Store</button>
-                </div>
-                <script>
-                    document.getElementById('connectBtn').addEventListener('click', function() {{
-                        // Try App Bridge redirect first
-                        if (window['app-bridge']) {{
-                            try {{
-                                var AppBridge = window['app-bridge'];
-                                var createApp = AppBridge.default;
-                                var app = createApp({{
-                                    apiKey: '{api_key}',
-                                    host: '{host or ""}',
-                                    shop: '{shop or ""}'
-                                }});
-                                var Redirect = AppBridge.actions.Redirect;
-                                app.dispatch(Redirect.create(Redirect.Action.APP, '{install_url}'));
-                            }} catch(e) {{
-                                console.error('App Bridge redirect failed:', e);
-                                window.top.location.href = '{install_url}';
-                            }}
-                        }} else {{
-                            window.top.location.href = '{install_url}';
-                        }}
-                    }});
-                    
-                    // Auto-redirect after 1 second
-                    setTimeout(function() {{
-                        document.getElementById('connectBtn').click();
-                    }}, 1000);
-                </script>
-            </body>
-            </html>
-            """
+            # Render dashboard with safe defaults (no auth required)
+            from flask import render_template_string
+            has_access = False
+            trial_active = False
+            days_left = 0
+            is_subscribed = False
+            has_shopify = False
+            quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
+            shop_domain = shop or ''
+            
+            return render_template_string(DASHBOARD_HTML, 
+                                         trial_active=trial_active, 
+                                         days_left=days_left, 
+                                         is_subscribed=is_subscribed, 
+                                         has_shopify=has_shopify, 
+                                         has_access=has_access,
+                                         quick_stats=quick_stats,
+                                         shop_domain=shop_domain,
+                                         SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''))
     
     # Regular (non-embedded) request handling
     if current_user.is_authenticated:
