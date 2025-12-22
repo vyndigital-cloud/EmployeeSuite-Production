@@ -516,77 +516,89 @@ DASHBOARD_HTML = """
         }
     </style>
 
-    <!-- Shopify App Bridge - Only load if embedded -->
+    <!-- Shopify App Bridge - SIMPLE & RELIABLE -->
     <script>
         (function() {
-            // Only load App Bridge if we have host param (embedded mode)
             var urlParams = new URLSearchParams(window.location.search);
             var host = urlParams.get('host');
+            var shop = urlParams.get('shop');
             
+            // Only load if we have host (embedded mode)
             if (!host) {
-                // Not embedded, skip App Bridge
+                window.shopifyApp = null;
                 return;
             }
             
-            // Load App Bridge script
+            // Load App Bridge - synchronous blocking load for reliability
             var script = document.createElement('script');
             script.src = 'https://cdn.shopify.com/shopifycloud/app-bridge.js';
+            script.async = false; // Load synchronously for reliability
+            
+            // Initialize immediately when loaded
             script.onload = function() {
-                initAppBridge();
-            };
-            document.head.appendChild(script);
-            
-            var initAttempts = 0;
-            var maxInitAttempts = 100; // Max 5 seconds (100 * 50ms)
-            
-            function initAppBridge() {
                 try {
-                    initAttempts++;
+                    // Wait for App Bridge to be available (max 1 second)
+                    var attempts = 0;
+                    var maxAttempts = 20; // 20 * 50ms = 1 second max
                     
-                    // Safety: Stop retrying after max attempts
-                    if (initAttempts > maxInitAttempts) {
-                        // App Bridge timeout - continue without it
-                        return;
-                    }
-                    
-                if (typeof window['app-bridge'] === 'undefined') {
-                    setTimeout(initAppBridge, 50);
-                    return;
-                }
-                
-                    var AppBridge = window['app-bridge'];
-                    if (!AppBridge || !AppBridge.default) {
-                        setTimeout(initAppBridge, 50);
-                        return;
-                    }
-                    
-                    var createApp = AppBridge.default;
-                    var urlParams = new URLSearchParams(window.location.search);
-                    var shop = urlParams.get('shop') || '';
-                    var host = urlParams.get('host') || '';
-                    var apiKey = '{{ SHOPIFY_API_KEY or "" }}';
-                    
-                    // Decode host if base64
-                    if (host && !host.includes('.')) {
-                        try {
-                            host = atob(host);
-                        } catch(e) {}
-                    }
-                    
-                    if (shop && host && apiKey) {
-                        var app = createApp({
-                            apiKey: apiKey,
-                            host: host
-                        });
+                    function init() {
+                        attempts++;
                         
-                        window.shopifyApp = app;
-                        // App Bridge ready
+                        if (typeof window['app-bridge'] === 'undefined') {
+                            if (attempts < maxAttempts) {
+                                setTimeout(init, 50);
+                                return;
+                            }
+                            console.warn('App Bridge not available after timeout');
+                            window.shopifyApp = null;
+                            return;
+                        }
+                        
+                        try {
+                            var AppBridge = window['app-bridge'];
+                            if (!AppBridge || !AppBridge.default) {
+                                if (attempts < maxAttempts) {
+                                    setTimeout(init, 50);
+                                    return;
+                                }
+                                console.warn('App Bridge.default not available');
+                                window.shopifyApp = null;
+                                return;
+                            }
+                            
+                            var createApp = AppBridge.default;
+                            var apiKey = '{{ SHOPIFY_API_KEY or "" }}';
+                            
+                            // Use host as-is (Shopify provides it correctly encoded)
+                            if (apiKey && host) {
+                                window.shopifyApp = createApp({
+                                    apiKey: apiKey,
+                                    host: host // Use original encoded host
+                                });
+                                console.log('✅ App Bridge initialized');
+                            } else {
+                                console.warn('Missing apiKey or host');
+                                window.shopifyApp = null;
+                            }
+                        } catch (e) {
+                            console.error('App Bridge init error:', e);
+                            window.shopifyApp = null;
+                        }
                     }
+                    
+                    init();
                 } catch (e) {
-                    console.error('❌ App Bridge init failed:', e);
-                    // Don't retry on error - something is wrong
+                    console.error('App Bridge load error:', e);
+                    window.shopifyApp = null;
                 }
-            }
+            };
+            
+            script.onerror = function() {
+                console.error('Failed to load App Bridge script');
+                window.shopifyApp = null;
+            };
+            
+            document.head.appendChild(script);
         })();
     </script>
     
@@ -1471,21 +1483,21 @@ DASHBOARD_HTML = """
 
 @app.route('/')
 def home():
-    """Home page - handles embedded app requests and redirects appropriately"""
+    """Home page - SIMPLIFIED: Always render dashboard for embedded apps"""
     # Check if this is an embedded app request from Shopify
     shop = request.args.get('shop')
     embedded = request.args.get('embedded')
     host = request.args.get('host')
     
-    # If embedded app request, DON'T redirect - render dashboard directly to avoid breaking iframe
-    # Redirects in iframes can cause "refused to connect" errors
-    # Also check Referer header as Shopify sends requests from admin.shopify.com
+    # Check Referer header as Shopify sends requests from admin.shopify.com
     referer = request.headers.get('Referer', '')
     is_from_shopify_admin = 'admin.shopify.com' in referer
     
-    # CRITICAL: For embedded apps, ALWAYS render something - never redirect
-    # Even if user isn't authenticated, show a page that handles it
-    if embedded == '1' or shop or host or is_from_shopify_admin:
+    # CRITICAL: For embedded apps, ALWAYS render dashboard - NEVER redirect
+    # Redirects break iframes. Just render the dashboard HTML.
+    is_embedded = embedded == '1' or shop or host or is_from_shopify_admin
+    
+    if is_embedded:
         # For embedded apps, check if store is connected
         from models import ShopifyStore
         store = None
