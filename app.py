@@ -278,14 +278,12 @@ DASHBOARD_HTML = """
             padding: 32px 24px;
         }
         
-        /* Page Title - Shopify Typography */
         .page-title {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 600;
             color: #202223;
             margin-bottom: 8px;
             letter-spacing: -0.3px;
-            line-height: 1.2;
         }
         .page-subtitle {
             font-size: 15px;
@@ -443,6 +441,7 @@ DASHBOARD_HTML = """
             display: flex;
             align-items: center;
             justify-content: center;
+            background: #fafafa;
         }
         
         /* Loading - Shopify Style */
@@ -461,6 +460,23 @@ DASHBOARD_HTML = """
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        @keyframes success {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
         }
         .loading-text {
             font-size: 14px;
@@ -518,13 +534,24 @@ DASHBOARD_HTML = """
             };
             document.head.appendChild(script);
             
+            var initAttempts = 0;
+            var maxInitAttempts = 100; // Max 5 seconds (100 * 50ms)
+            
             function initAppBridge() {
                 try {
-                    if (typeof window['app-bridge'] === 'undefined') {
-                        setTimeout(initAppBridge, 50);
+                    initAttempts++;
+                    
+                    // Safety: Stop retrying after max attempts
+                    if (initAttempts > maxInitAttempts) {
+                        // App Bridge timeout - continue without it
                         return;
                     }
                     
+                if (typeof window['app-bridge'] === 'undefined') {
+                    setTimeout(initAppBridge, 50);
+                    return;
+                }
+                
                     var AppBridge = window['app-bridge'];
                     if (!AppBridge || !AppBridge.default) {
                         setTimeout(initAppBridge, 50);
@@ -551,10 +578,11 @@ DASHBOARD_HTML = """
                         });
                         
                         window.shopifyApp = app;
-                        console.log('✅ App Bridge initialized');
+                        // App Bridge ready
                     }
                 } catch (e) {
                     console.error('❌ App Bridge init failed:', e);
+                    // Don't retry on error - something is wrong
                 }
             }
         })();
@@ -570,10 +598,10 @@ DASHBOARD_HTML = """
             document.head.appendChild(script);
             
             script.onload = function() {
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', 'G-RBBQ4X7FJ3');
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-RBBQ4X7FJ3');
             };
         });
     </script>
@@ -724,6 +752,7 @@ DASHBOARD_HTML = """
             </div>
         </div>
         
+        <div id="connection-status" style="display: none; margin-bottom: 16px;"></div>
         <div class="output-container">
             <div class="output-header">Results</div>
             <div id="output"></div>
@@ -731,6 +760,81 @@ DASHBOARD_HTML = """
     </div>
     
     <script>
+        // Professional request management - prevent duplicate requests and cancel previous ones
+        var activeRequests = {
+            processOrders: null,
+            updateInventory: null,
+            generateReport: null
+        };
+        
+        // Debounce timers to prevent rapid clicks
+        var debounceTimers = {
+            processOrders: null,
+            updateInventory: null,
+            generateReport: null
+        };
+        
+        // Network status detection with visual indicator
+        var isOnline = navigator.onLine;
+        function updateConnectionStatus() {
+            var statusEl = document.getElementById('connection-status');
+            if (statusEl) {
+                if (isOnline) {
+                    statusEl.style.display = 'none';
+                } else {
+                    statusEl.style.display = 'block';
+                    statusEl.innerHTML = '<div style="padding: 8px 16px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 6px; font-size: 13px; color: #202223; text-align: center;">⚠️ No internet connection</div>';
+                }
+            }
+        }
+        
+        window.addEventListener('online', function() {
+            isOnline = true;
+            // Connection restored
+            updateConnectionStatus();
+            // Show success message
+            var statusEl = document.getElementById('connection-status');
+            if (statusEl) {
+                statusEl.style.display = 'block';
+                statusEl.innerHTML = '<div style="padding: 8px 16px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; font-size: 13px; color: #166534; text-align: center;">✅ Connection restored</div>';
+                setTimeout(function() {
+                    statusEl.style.display = 'none';
+                }, 3000);
+            }
+        });
+        window.addEventListener('offline', function() {
+            isOnline = false;
+            // Connection lost
+            updateConnectionStatus();
+        });
+        
+        // Cancel previous request if user clicks another button
+        function cancelPreviousRequest(requestType) {
+            if (activeRequests[requestType] && activeRequests[requestType].abort) {
+                activeRequests[requestType].abort();
+                activeRequests[requestType] = null;
+            }
+        }
+        
+        // Debounce function to prevent rapid clicks (professional standard)
+        function debounce(func, requestType, delay) {
+            return function() {
+                var context = this;
+                var args = arguments;
+                
+                // Cancel previous timer
+                if (debounceTimers[requestType]) {
+                    clearTimeout(debounceTimers[requestType]);
+                }
+                
+                // Set new timer
+                debounceTimers[requestType] = setTimeout(function() {
+                    func.apply(context, args);
+                    debounceTimers[requestType] = null;
+                }, delay);
+            };
+        }
+        
         function showSubscribePrompt() {
             document.getElementById('output').innerHTML = `
                 <div style="padding: 32px; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-radius: 16px; border: 2px solid #dc2626; text-align: center; animation: fadeIn 0.3s ease-in;">
@@ -745,12 +849,29 @@ DASHBOARD_HTML = """
         }
         
         function showLoading(message = 'Processing...') {
+            // Professional skeleton loading state (like top Shopify apps)
             document.getElementById('output').innerHTML = `
                 <div class="loading">
                     <div class="spinner"></div>
                     <div class="loading-text">${message}</div>
+                    <div style="margin-top: 16px; font-size: 12px; color: #8c9196;">This may take a few moments...</div>
                 </div>
             `;
+        }
+        
+        function showSkeletonLoading() {
+            // Skeleton screen for better perceived performance
+            var skeleton = '<div style="animation: fadeIn 0.3s ease-in;">';
+            for (var i = 0; i < 5; i++) {
+                skeleton += '<div style="padding: 16px; margin-bottom: 12px; background: #f6f6f7; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">';
+                skeleton += '<div style="flex: 1;"><div style="height: 16px; background: #e1e3e5; border-radius: 4px; width: 60%; margin-bottom: 8px; animation: pulse 1.5s ease-in-out infinite;"></div>';
+                skeleton += '<div style="height: 12px; background: #e1e3e5; border-radius: 4px; width: 40%; animation: pulse 1.5s ease-in-out infinite;"></div></div>';
+                skeleton += '<div style="height: 20px; width: 60px; background: #e1e3e5; border-radius: 4px; animation: pulse 1.5s ease-in-out infinite;"></div>';
+                skeleton += '</div>';
+            }
+            skeleton += '</div>';
+            skeleton += '<style>@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }</style>';
+            document.getElementById('output').innerHTML = skeleton;
         }
         
         function setButtonLoading(button, isLoading) {
@@ -773,8 +894,35 @@ DASHBOARD_HTML = """
         }
         
         function processOrders(button) {
+            // Prevent rapid clicks (debounce)
+            if (debounceTimers.processOrders) {
+                return; // Already processing
+            }
+            
+            // Cancel previous request if exists
+            cancelPreviousRequest('processOrders');
+            
+            // Check network status
+            if (!isOnline) {
+                document.getElementById('output').innerHTML = `
+                    <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                        <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">No Internet Connection</div>
+                        <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please check your internet connection and try again.</div>
+                        <button onclick="processOrders(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
+                    </div>
+                `;
+                return;
+            }
+            
             setButtonLoading(button, true);
-            showLoading();
+            showSkeletonLoading(); // Show skeleton immediately for better UX
+            setTimeout(function() {
+                showLoading('Loading orders...');
+            }, 100);
+            
+            // Create AbortController for request cancellation
+            var controller = new AbortController();
+            activeRequests.processOrders = controller;
             
             // Get session token if in embedded mode - seamless integration
             var fetchPromise;
@@ -789,13 +937,25 @@ DASHBOARD_HTML = """
                     return window.shopifyApp.getSessionToken().then(function(token) {
                         if (!token && retryCount < maxRetries) {
                             retryCount++;
-                            return new Promise(function(resolve) {
+                            return new Promise(function(resolve, reject) {
                                 setTimeout(function() {
-                                    resolve(getTokenWithRetry());
+                                    getTokenWithRetry().then(resolve).catch(reject);
                                 }, 300);
                             });
                         }
                         return token;
+                    }).catch(function(err) {
+                        // If error and haven't exceeded retries, retry
+                        if (retryCount < maxRetries) {
+                            retryCount++;
+                            return new Promise(function(resolve, reject) {
+                                setTimeout(function() {
+                                    getTokenWithRetry().then(resolve).catch(reject);
+                                }, 300);
+                            });
+                        }
+                        // Max retries exceeded, throw error
+                        throw err;
                     });
                 }
                 
@@ -804,9 +964,14 @@ DASHBOARD_HTML = """
                         throw new Error('Unable to get session token. Please refresh the page.');
                     }
                     return fetch('/api/process_orders', {
-                        headers: {'Authorization': 'Bearer ' + token}
+                        headers: {'Authorization': 'Bearer ' + token},
+                        signal: controller.signal
                     });
                 }).catch(function(err) {
+                    // Don't show error if request was cancelled
+                    if (err.name === 'AbortError') {
+                        return;
+                    }
                     // Show professional error instead of trying without auth
                     setButtonLoading(button, false);
                     document.getElementById('output').innerHTML = `
@@ -820,16 +985,32 @@ DASHBOARD_HTML = """
                 });
             } else {
                 // Not embedded - use regular fetch (Flask-Login handles auth)
-                fetchPromise = fetch('/api/process_orders');
+                fetchPromise = fetch('/api/process_orders', {
+                    signal: controller.signal
+                });
             }
             
             fetchPromise
                 .then(r => {
-                    if (!r.ok) throw new Error('Network error');
+                    // Check if request was cancelled
+                    if (controller.signal.aborted) {
+                        return null;
+                    }
+                    if (!r.ok) {
+                        return r.json().then(function(err) {
+                            throw new Error(err.error || 'Network error');
+                        });
+                    }
                     return r.json();
                 })
                 .then(d => {
+                    // Check if request was cancelled
+                    if (!d) return;
+                    
                     setButtonLoading(button, false);
+                    activeRequests.processOrders = null;
+                    debounceTimers.processOrders = null;
+                    
                     if (d.success) {
                         const icon = '✅';
                         document.getElementById('output').innerHTML = `
@@ -874,8 +1055,35 @@ DASHBOARD_HTML = """
         }
         
         function updateInventory(button) {
+            // Prevent rapid clicks (debounce)
+            if (debounceTimers.updateInventory) {
+                return; // Already processing
+            }
+            
+            // Cancel previous request if exists
+            cancelPreviousRequest('updateInventory');
+            
+            // Check network status
+            if (!isOnline) {
+                document.getElementById('output').innerHTML = `
+                    <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                        <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">No Internet Connection</div>
+                        <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please check your internet connection and try again.</div>
+                        <button onclick="updateInventory(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
+                    </div>
+                `;
+                return;
+            }
+            
             setButtonLoading(button, true);
-            showLoading();
+            showSkeletonLoading(); // Show skeleton immediately for better UX
+            setTimeout(function() {
+                showLoading('Loading inventory...');
+            }, 100);
+            
+            // Create AbortController for request cancellation
+            var controller = new AbortController();
+            activeRequests.updateInventory = controller;
             
             // Get session token if in embedded mode - seamless integration
             var fetchPromise;
@@ -890,13 +1098,25 @@ DASHBOARD_HTML = """
                     return window.shopifyApp.getSessionToken().then(function(token) {
                         if (!token && retryCount < maxRetries) {
                             retryCount++;
-                            return new Promise(function(resolve) {
+                            return new Promise(function(resolve, reject) {
                                 setTimeout(function() {
-                                    resolve(getTokenWithRetry());
+                                    getTokenWithRetry().then(resolve).catch(reject);
                                 }, 300);
                             });
                         }
                         return token;
+                }).catch(function(err) {
+                        // If error and haven't exceeded retries, retry
+                        if (retryCount < maxRetries) {
+                            retryCount++;
+                            return new Promise(function(resolve, reject) {
+                                setTimeout(function() {
+                                    getTokenWithRetry().then(resolve).catch(reject);
+                                }, 300);
+                            });
+                        }
+                        // Max retries exceeded, throw error
+                        throw err;
                     });
                 }
                 
@@ -905,9 +1125,14 @@ DASHBOARD_HTML = """
                         throw new Error('Unable to get session token. Please refresh the page.');
                     }
                     return fetch('/api/update_inventory', {
-                        headers: {'Authorization': 'Bearer ' + token}
+                        headers: {'Authorization': 'Bearer ' + token},
+                        signal: controller.signal
                     });
                 }).catch(function(err) {
+                    // Don't show error if request was cancelled
+                    if (err.name === 'AbortError') {
+                        return;
+                    }
                     // Show professional error instead of trying without auth
                     setButtonLoading(button, false);
                     document.getElementById('output').innerHTML = `
@@ -921,11 +1146,17 @@ DASHBOARD_HTML = """
                 });
             } else {
                 // Not embedded - use regular fetch (Flask-Login handles auth)
-                fetchPromise = fetch('/api/update_inventory');
+                fetchPromise = fetch('/api/update_inventory', {
+                    signal: controller.signal
+                });
             }
             
             fetchPromise
                 .then(r => {
+                    // Check if request was cancelled
+                    if (controller.signal.aborted) {
+                        return null;
+                    }
                     if (!r.ok) {
                         return r.text().then(text => {
                             try {
@@ -940,7 +1171,13 @@ DASHBOARD_HTML = """
                     return r.json();
                 })
                 .then(d => {
+                    // Check if request was cancelled
+                    if (!d) return;
+                    
                     setButtonLoading(button, false);
+                    activeRequests.updateInventory = null;
+                    debounceTimers.updateInventory = null;
+                    
                     if (d.success) {
                         const icon = '✅';
                         document.getElementById('output').innerHTML = `
@@ -978,20 +1215,61 @@ DASHBOARD_HTML = """
                     }
                 })
                 .catch(err => {
+                    // Don't show error if request was cancelled
+                    if (err.name === 'AbortError') {
+                        return;
+                    }
+                    
                     setButtonLoading(button, false);
+                    activeRequests.updateInventory = null;
+                    debounceTimers.updateInventory = null;
+                    
+                    var errorMessage = 'Unable to connect to server. Please check your internet connection and try again.';
+                    if (!isOnline) {
+                        errorMessage = 'No internet connection. Please check your network and try again.';
+                    }
+                    
                     document.getElementById('output').innerHTML = `
-                        <div style="animation: fadeIn 0.3s ease-in;">
-                            <h3 class="error">❌ Connection Error</h3>
-                            <p style="margin-top: 12px;">Unable to connect to server. Please check your internet connection and try again.</p>
-                            <p style="margin-top: 8px; font-size: 13px; color: #737373;">💡 Tip: If this persists, go to Settings and verify your Shopify store is connected.</p>
+                        <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                            <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Connection Error</div>
+                            <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${errorMessage}</div>
+                            <button onclick="updateInventory(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; margin-right: 8px;">Try Again</button>
+                            <a href="/settings/shopify" style="display: inline-block; padding: 8px 16px; background: #f6f6f7; color: #202223; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Check Settings</a>
                         </div>
                     `;
                 });
         }
         
         function generateReport(button) {
+            // Prevent rapid clicks (debounce)
+            if (debounceTimers.generateReport) {
+                return; // Already processing
+            }
+            
+            // Cancel previous request if exists
+            cancelPreviousRequest('generateReport');
+            
+            // Check network status
+            if (!isOnline) {
+                document.getElementById('output').innerHTML = `
+                    <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                        <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">No Internet Connection</div>
+                        <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please check your internet connection and try again.</div>
+                        <button onclick="generateReport(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
+                    </div>
+                `;
+                return;
+            }
+            
             setButtonLoading(button, true);
-            showLoading();
+            showSkeletonLoading(); // Show skeleton immediately for better UX
+            setTimeout(function() {
+                showLoading('Generating report...');
+            }, 100);
+            
+            // Create AbortController for request cancellation
+            var controller = new AbortController();
+            activeRequests.generateReport = controller;
             
             // Get session token if in embedded mode - seamless integration
             var fetchPromise;
@@ -1006,13 +1284,25 @@ DASHBOARD_HTML = """
                     return window.shopifyApp.getSessionToken().then(function(token) {
                         if (!token && retryCount < maxRetries) {
                             retryCount++;
-                            return new Promise(function(resolve) {
+                            return new Promise(function(resolve, reject) {
                                 setTimeout(function() {
-                                    resolve(getTokenWithRetry());
+                                    getTokenWithRetry().then(resolve).catch(reject);
                                 }, 300);
                             });
                         }
                         return token;
+                    }).catch(function(err) {
+                        // If error and haven't exceeded retries, retry
+                        if (retryCount < maxRetries) {
+                            retryCount++;
+                            return new Promise(function(resolve, reject) {
+                                setTimeout(function() {
+                                    getTokenWithRetry().then(resolve).catch(reject);
+                                }, 300);
+                            });
+                        }
+                        // Max retries exceeded, throw error
+                        throw err;
                     });
                 }
                 
@@ -1021,9 +1311,14 @@ DASHBOARD_HTML = """
                         throw new Error('Unable to get session token. Please refresh the page.');
                     }
                     return fetch('/api/generate_report', {
-                        headers: {'Authorization': 'Bearer ' + token}
+                        headers: {'Authorization': 'Bearer ' + token},
+                        signal: controller.signal
                     });
                 }).catch(function(err) {
+                    // Don't show error if request was cancelled
+                    if (err.name === 'AbortError') {
+                        return;
+                    }
                     // Show professional error instead of trying without auth
                     setButtonLoading(button, false);
                     document.getElementById('output').innerHTML = `
@@ -1037,11 +1332,17 @@ DASHBOARD_HTML = """
                 });
             } else {
                 // Not embedded - use regular fetch (Flask-Login handles auth)
-                fetchPromise = fetch('/api/generate_report');
+                fetchPromise = fetch('/api/generate_report', {
+                    signal: controller.signal
+                });
             }
             
             fetchPromise
                 .then(r => {
+                    // Check if request was cancelled
+                    if (controller.signal.aborted) {
+                        return null;
+                    }
                     if (!r.ok) {
                         // If error response, try to get error HTML
                         return r.text().then(html => {
@@ -1051,7 +1352,13 @@ DASHBOARD_HTML = """
                     return r.text();
                 })
                 .then(html => {
+                    // Check if request was cancelled
+                    if (!html) return;
+                    
                     setButtonLoading(button, false);
+                    activeRequests.generateReport = null;
+                    debounceTimers.generateReport = null;
+                    
                     // Check if the HTML contains an error message (from backend)
                     if (html.includes('Error Loading revenue') || html.includes('No Shopify store connected')) {
                         // Backend already formatted the error, display directly
@@ -1070,17 +1377,32 @@ DASHBOARD_HTML = """
                     }
                 })
                 .catch(err => {
+                    // Don't show error if request was cancelled
+                    if (err.name === 'AbortError') {
+                        return;
+                    }
+                    
                     setButtonLoading(button, false);
+                    activeRequests.generateReport = null;
+                    debounceTimers.generateReport = null;
+                    
                     // Check if error message is HTML (from backend) or plain text (network error)
                     if (err.message && err.message.includes('Error Loading revenue')) {
                         // Backend error HTML
                         document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${err.message}</div>`;
                     } else {
                         // Network error
+                        var errorMessage = 'Unable to generate report. Please check your internet connection and try again.';
+                        if (!isOnline) {
+                            errorMessage = 'No internet connection. Please check your network and try again.';
+                        }
+                        
                         document.getElementById('output').innerHTML = `
-                            <div style="animation: fadeIn 0.3s ease-in;">
-                                <h3 class="error">❌ Error Loading revenue</h3>
-                                <p style="margin-top: 12px;">Unable to generate report. Please check your internet connection and try again.</p>
+                            <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                                <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Connection Error</div>
+                                <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${errorMessage}</div>
+                                <button onclick="generateReport(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; margin-right: 8px;">Try Again</button>
+                                <a href="/settings/shopify" style="display: inline-block; padding: 8px 16px; background: #f6f6f7; color: #202223; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Check Settings</a>
                             </div>
                         `;
                     }
@@ -1502,7 +1824,7 @@ def get_authenticated_user():
                 return None, (jsonify({'error': 'Invalid token format', 'success': False}), 401)
             
             # Properly verify JWT token with full validation
-            import jwt
+                import jwt
             payload = jwt.decode(
                 token,
                 os.getenv('SHOPIFY_API_SECRET'),

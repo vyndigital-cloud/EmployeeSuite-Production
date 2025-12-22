@@ -14,24 +14,63 @@ class ShopifyClient:
             "Content-Type": "application/json"
         }
     
-    def _make_request(self, endpoint):
+    def _make_request(self, endpoint, retries=3):
+        """
+        Make API request with automatic retry logic (professional standard)
+        Retries on network errors with exponential backoff
+        """
         url = f"https://{self.shop_url}/admin/api/{self.api_version}/{endpoint}"
-        try:
-            # Always fetch fresh data - no caching
-            # Add cache-control headers to ensure real-time data
-            headers = self._get_headers()
-            headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-            headers['Pragma'] = 'no-cache'
-            headers['Expires'] = '0'
-            
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            return {"error": str(e)}
+        headers = self._get_headers()
+        headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        headers['Pragma'] = 'no-cache'
+        headers['Expires'] = '0'
+        
+        for attempt in range(retries):
+            try:
+                response = requests.get(url, headers=headers, timeout=15)
+                response.raise_for_status()
+                return response.json()
+            except requests.exceptions.Timeout:
+                if attempt < retries - 1:
+                    # Exponential backoff: 1s, 2s, 4s
+                    import time
+                    time.sleep(2 ** attempt)
+                    continue
+                return {"error": "Request timeout - Shopify API is taking too long to respond"}
+            except requests.exceptions.ConnectionError:
+                if attempt < retries - 1:
+                    import time
+                    time.sleep(2 ** attempt)
+                    continue
+                return {"error": "Connection error - Cannot connect to Shopify. Check your internet connection."}
+            except requests.exceptions.HTTPError as e:
+                # Don't retry on HTTP errors (4xx, 5xx) - these are permanent
+                if e.response.status_code == 401:
+                    return {"error": "Authentication failed - Please reconnect your store"}
+                elif e.response.status_code == 403:
+                    return {"error": "Access denied - Check your app permissions"}
+                elif e.response.status_code == 429:
+                    # Rate limit - wait longer
+                    if attempt < retries - 1:
+                        import time
+                        time.sleep(5 * (attempt + 1))
+                        continue
+                    return {"error": "Rate limit exceeded - Please wait a moment and try again"}
+                return {"error": f"API error: {e.response.status_code}"}
+            except requests.exceptions.RequestException as e:
+                if attempt < retries - 1:
+                    import time
+                    time.sleep(2 ** attempt)
+                    continue
+                return {"error": f"Request failed: {str(e)}"}
+        
+        return {"error": "Request failed after multiple attempts"}
     
-    def _make_graphql_request(self, query, variables=None):
-        """Make a GraphQL request to Shopify Admin API"""
+    def _make_graphql_request(self, query, variables=None, retries=3):
+        """
+        Make GraphQL request with automatic retry logic (professional standard)
+        Retries on network errors with exponential backoff
+        """
         url = f"https://{self.shop_url}/admin/api/{self.api_version}/graphql.json"
         headers = self._get_headers()
         headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -40,12 +79,45 @@ class ShopifyClient:
         if variables:
             payload["variables"] = variables
         
-        try:
-            response = requests.post(url, json=payload, headers=headers, timeout=10)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            return {"error": str(e)}
+        for attempt in range(retries):
+            try:
+                response = requests.post(url, json=payload, headers=headers, timeout=15)
+                response.raise_for_status()
+                return response.json()
+            except requests.exceptions.Timeout:
+                if attempt < retries - 1:
+                    import time
+                    time.sleep(2 ** attempt)
+                    continue
+                return {"error": "Request timeout - Shopify API is taking too long to respond"}
+            except requests.exceptions.ConnectionError:
+                if attempt < retries - 1:
+                    import time
+                    time.sleep(2 ** attempt)
+                    continue
+                return {"error": "Connection error - Cannot connect to Shopify. Check your internet connection."}
+            except requests.exceptions.HTTPError as e:
+                # Don't retry on HTTP errors (4xx, 5xx) - these are permanent
+                if e.response.status_code == 401:
+                    return {"error": "Authentication failed - Please reconnect your store"}
+                elif e.response.status_code == 403:
+                    return {"error": "Access denied - Check your app permissions"}
+                elif e.response.status_code == 429:
+                    # Rate limit - wait longer
+                    if attempt < retries - 1:
+                        import time
+                        time.sleep(5 * (attempt + 1))
+                        continue
+                    return {"error": "Rate limit exceeded - Please wait a moment and try again"}
+                return {"error": f"API error: {e.response.status_code}"}
+            except requests.exceptions.RequestException as e:
+                if attempt < retries - 1:
+                    import time
+                    time.sleep(2 ** attempt)
+                    continue
+                return {"error": f"Request failed: {str(e)}"}
+        
+        return {"error": "Request failed after multiple attempts"}
     
     @cache_result(ttl=CACHE_TTL_INVENTORY)
     def get_products(self):

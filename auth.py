@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template_string, request, redirect, url_for, session
+from flask import Blueprint, render_template_string, request, redirect, url_for, session, current_app
 from flask_login import login_user, logout_user, login_required
 from models import db, User
 from email_service import send_welcome_email, send_password_reset_email
@@ -8,7 +8,17 @@ import secrets
 from input_validation import validate_email, sanitize_input
 
 auth_bp = Blueprint('auth', __name__)
-bcrypt = Bcrypt()  # Initialize immediately
+
+def get_bcrypt():
+    """Get bcrypt instance - import from app module"""
+    # Import bcrypt from app module (circular import is safe here since we're in a request context)
+    try:
+        from app import bcrypt
+        return bcrypt
+    except ImportError:
+        # Fallback: create new instance
+        from flask_bcrypt import Bcrypt
+        return Bcrypt(current_app)
 
 LOGIN_HTML = '''
 <!DOCTYPE html>
@@ -306,7 +316,22 @@ def login():
         
         user = User.query.filter_by(email=email).first()
         
-        if user and bcrypt.check_password_hash(user.password_hash, password):
+        if not user:
+            return render_template_string(LOGIN_HTML, error="Invalid email or password")
+        
+        if not user.password_hash:
+            return render_template_string(LOGIN_HTML, error="Invalid email or password")
+        
+        bcrypt = get_bcrypt()
+        if not bcrypt:
+            return render_template_string(LOGIN_HTML, error="System error. Please try again.")
+        
+        try:
+            password_valid = bcrypt.check_password_hash(user.password_hash, password)
+        except Exception:
+            return render_template_string(LOGIN_HTML, error="System error. Please try again.")
+        
+        if password_valid:
             login_user(user, remember=True)
             session.permanent = True
             # Preserve embedded params if this is an embedded app request
@@ -345,6 +370,7 @@ def register():
         if User.query.filter_by(email=email).first():
             return render_template_string(REGISTER_HTML, error="Email already registered")
         
+        bcrypt = get_bcrypt()
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
         new_user = User(email=email, password_hash=hashed_password)
         
@@ -569,6 +595,7 @@ def reset_password():
             return render_template_string(RESET_PASSWORD_HTML, error="Passwords don't match", token=token)
         
         # Update password
+        bcrypt = get_bcrypt()
         user.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
         user.reset_token = None
         user.reset_token_expires = None
