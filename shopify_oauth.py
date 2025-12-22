@@ -21,11 +21,66 @@ ACCESS_MODE = 'offline'
 
 @oauth_bp.route('/install')
 def install():
-    """Initiate Shopify OAuth"""
+    """Initiate Shopify OAuth - Professional error handling"""
     shop = request.args.get('shop', '').strip()
     
     if not shop:
-        return "Missing shop parameter", 400
+        from flask import render_template_string
+        return render_template_string("""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Install Employee Suite</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                    margin: 0;
+                    background: #f6f6f7;
+                }
+                .container {
+                    text-align: center;
+                    padding: 40px 24px;
+                    max-width: 500px;
+                }
+                .title {
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #202223;
+                    margin-bottom: 12px;
+                }
+                .message {
+                    font-size: 14px;
+                    color: #6d7175;
+                    line-height: 1.5;
+                    margin-bottom: 24px;
+                }
+                .btn {
+                    display: inline-block;
+                    padding: 10px 20px;
+                    background: #008060;
+                    color: #fff;
+                    border-radius: 6px;
+                    text-decoration: none;
+                    font-size: 14px;
+                    font-weight: 500;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="title">Shop parameter required</div>
+                <div class="message">Please install Employee Suite from your Shopify admin panel, or include your shop domain in the URL.</div>
+                <a href="/settings/shopify" class="btn">Go to Settings</a>
+            </div>
+        </body>
+        </html>
+        """), 400
     
     # Normalize shop domain - add .myshopify.com if not present
     shop = shop.replace('https://', '').replace('http://', '').replace('www.', '')
@@ -138,75 +193,138 @@ def callback():
         embedded_url = f"{app_url}/dashboard?shop={shop}&host={host}&embedded=1"
         logger.info(f"OAuth complete for embedded app, redirecting to: {embedded_url}")
         
-        # Use Shopify App Bridge Redirect action for proper iframe navigation
-        # This is Shopify's recommended approach for embedded apps
+        # Professional OAuth redirect - matches Shopify's seamless flow
         redirect_html = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Installing Employee Suite...</title>
+    <title>Employee Suite - Installation Complete</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <script>
-        // Initialize App Bridge with host parameter
-        var AppBridge = window['app-bridge'];
-        
-        if (AppBridge && '{host}') {{
-            try {{
-                var app = AppBridge.default({{
-                    apiKey: '{api_key}',
-                    host: '{host}'
-                }});
+        (function() {{
+            var redirectAttempted = false;
+            var maxAttempts = 3;
+            var attemptCount = 0;
+            
+            function attemptRedirect() {{
+                if (redirectAttempted || attemptCount >= maxAttempts) return;
+                attemptCount++;
                 
-                // Use App Bridge Redirect for proper iframe navigation
-                var Redirect = AppBridge.actions.Redirect;
-                var redirect = Redirect.create(app);
-                
-                // Redirect to the app within Shopify admin
-                redirect.dispatch(Redirect.Action.APP, '/dashboard?shop={shop}&host={host}&embedded=1');
-            }} catch (e) {{
-                console.error('App Bridge redirect failed:', e);
-                // Fallback: redirect to embedded URL directly
-                window.location.href = '{embedded_url}';
+                try {{
+                    var AppBridge = window['app-bridge'];
+                    if (!AppBridge || !AppBridge.default) {{
+                        if (attemptCount < maxAttempts) {{
+                            setTimeout(attemptRedirect, 200);
+                            return;
+                        }}
+                        // Final fallback
+                        window.location.href = '{embedded_url}';
+                        return;
+                    }}
+                    
+                    var app = AppBridge.default({{
+                        apiKey: '{api_key}',
+                        host: '{host}'
+                    }});
+                    
+                    var Redirect = AppBridge.actions.Redirect;
+                    var redirect = Redirect.create(app);
+                    
+                    redirect.dispatch(Redirect.Action.APP, '/dashboard?shop={shop}&host={host}&embedded=1');
+                    redirectAttempted = true;
+                }} catch (e) {{
+                    console.error('Redirect attempt ' + attemptCount + ' failed:', e);
+                    if (attemptCount < maxAttempts) {{
+                        setTimeout(attemptRedirect, 300);
+                    }} else {{
+                        // Final fallback after all attempts
+                        window.location.href = '{embedded_url}';
+                    }}
+                }}
             }}
-        }} else {{
-            // No App Bridge or host - use direct navigation
-            window.location.href = '{embedded_url}';
-        }}
+            
+            // Start redirect immediately
+            attemptRedirect();
+            
+            // Fallback timeout (3 seconds)
+            setTimeout(function() {{
+                if (!redirectAttempted) {{
+                    window.location.href = '{embedded_url}';
+                }}
+            }}, 3000);
+        }})();
     </script>
     <noscript>
         <meta http-equiv="refresh" content="0;url={embedded_url}">
     </noscript>
     <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
         body {{
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             background: #f6f6f7;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }}
-        .loading {{
+        .container {{
             text-align: center;
-            color: #6d7175;
+            padding: 40px 24px;
+            max-width: 400px;
         }}
         .spinner {{
-            width: 40px;
-            height: 40px;
+            width: 48px;
+            height: 48px;
             border: 3px solid #e1e3e5;
             border-top-color: #008060;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 24px;
         }}
-        @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
+        @keyframes spin {{
+            to {{ transform: rotate(360deg); }}
+        }}
+        .title {{
+            font-size: 18px;
+            font-weight: 600;
+            color: #202223;
+            margin-bottom: 8px;
+            letter-spacing: -0.2px;
+        }}
+        .message {{
+            font-size: 14px;
+            color: #6d7175;
+            line-height: 1.5;
+            margin-bottom: 24px;
+        }}
+        .fallback-link {{
+            display: inline-block;
+            font-size: 13px;
+            color: #008060;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: background 0.15s;
+        }}
+        .fallback-link:hover {{
+            background: #f0f4ff;
+        }}
     </style>
 </head>
 <body>
-    <div class="loading">
+    <div class="container">
         <div class="spinner"></div>
-        <p>Setting up Employee Suite...</p>
-        <p style="font-size: 12px; margin-top: 8px;"><a href="{embedded_url}">Click here if you're not redirected</a></p>
+        <div class="title">Setting up Employee Suite</div>
+        <div class="message">Your store is being connected. You'll be redirected in a moment.</div>
+        <a href="{embedded_url}" class="fallback-link">Continue to app →</a>
     </div>
 </body>
 </html>"""

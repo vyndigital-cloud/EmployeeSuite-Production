@@ -776,20 +776,50 @@ DASHBOARD_HTML = """
             setButtonLoading(button, true);
             showLoading();
             
-            // Get session token if in embedded mode
+            // Get session token if in embedded mode - seamless integration
             var fetchPromise;
-            if (window.shopifyApp) {
-                fetchPromise = window.shopifyApp.getSessionToken().then(function(token) {
-                    var options = {};
-                    if (token) {
-                        options.headers = {'Authorization': 'Bearer ' + token};
+            var isEmbedded = window.shopifyApp && new URLSearchParams(window.location.search).get('host');
+            
+            if (isEmbedded && window.shopifyApp) {
+                // In embedded mode, we MUST have session token - retry up to 3 times
+                var retryCount = 0;
+                var maxRetries = 3;
+                
+                function getTokenWithRetry() {
+                    return window.shopifyApp.getSessionToken().then(function(token) {
+                        if (!token && retryCount < maxRetries) {
+                            retryCount++;
+                            return new Promise(function(resolve) {
+                                setTimeout(function() {
+                                    resolve(getTokenWithRetry());
+                                }, 300);
+                            });
+                        }
+                        return token;
+                    });
+                }
+                
+                fetchPromise = getTokenWithRetry().then(function(token) {
+                    if (!token) {
+                        throw new Error('Unable to get session token. Please refresh the page.');
                     }
-                    return fetch('/api/process_orders', options);
+                    return fetch('/api/process_orders', {
+                        headers: {'Authorization': 'Bearer ' + token}
+                    });
                 }).catch(function(err) {
-                    console.warn('Session token failed, trying without:', err);
-                    return fetch('/api/process_orders');
+                    // Show professional error instead of trying without auth
+                    setButtonLoading(button, false);
+                    document.getElementById('output').innerHTML = `
+                        <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                            <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Session Error</div>
+                            <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Unable to verify your session. This usually happens when the page has been open for a while.</div>
+                            <button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>
+                        </div>
+                    `;
+                    throw err; // Stop execution
                 });
             } else {
+                // Not embedded - use regular fetch (Flask-Login handles auth)
                 fetchPromise = fetch('/api/process_orders');
             }
             
@@ -812,7 +842,23 @@ DASHBOARD_HTML = """
                             </div>
                         `;
                     } else {
-                        document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${d.error || d.message || 'No details available'}</div>`;
+                        // Professional error display with actionable buttons
+                        var errorHtml = '<div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">';
+                        errorHtml += '<div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">' + (d.error || 'Something went wrong') + '</div>';
+                        if (d.message) {
+                            errorHtml += '<div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">' + d.message + '</div>';
+                        }
+                        if (d.action === 'refresh') {
+                            errorHtml += '<button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>';
+                        } else if (d.action === 'subscribe' && d.subscribe_url) {
+                            errorHtml += '<a href="' + d.subscribe_url + '" style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Subscribe Now</a>';
+                        } else if (d.action === 'install') {
+                            errorHtml += '<a href="/settings/shopify" style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Connect Store</a>';
+                        } else if (d.action === 'retry') {
+                            errorHtml += '<button onclick="processOrders(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>';
+                        }
+                        errorHtml += '</div>';
+                        document.getElementById('output').innerHTML = errorHtml;
                     }
                 })
                 .catch(err => {
@@ -831,20 +877,50 @@ DASHBOARD_HTML = """
             setButtonLoading(button, true);
             showLoading();
             
-            // Get session token if in embedded mode - WAIT for it
+            // Get session token if in embedded mode - seamless integration
             var fetchPromise;
-            if (window.shopifyApp) {
-                fetchPromise = window.shopifyApp.getSessionToken().then(function(token) {
-                    var options = {};
-                    if (token) {
-                        options.headers = {'Authorization': 'Bearer ' + token};
+            var isEmbedded = window.shopifyApp && new URLSearchParams(window.location.search).get('host');
+            
+            if (isEmbedded && window.shopifyApp) {
+                // In embedded mode, we MUST have session token - retry up to 3 times
+                var retryCount = 0;
+                var maxRetries = 3;
+                
+                function getTokenWithRetry() {
+                    return window.shopifyApp.getSessionToken().then(function(token) {
+                        if (!token && retryCount < maxRetries) {
+                            retryCount++;
+                            return new Promise(function(resolve) {
+                                setTimeout(function() {
+                                    resolve(getTokenWithRetry());
+                                }, 300);
+                            });
+                        }
+                        return token;
+                    });
+                }
+                
+                fetchPromise = getTokenWithRetry().then(function(token) {
+                    if (!token) {
+                        throw new Error('Unable to get session token. Please refresh the page.');
                     }
-                    return fetch('/api/update_inventory', options);
+                    return fetch('/api/update_inventory', {
+                        headers: {'Authorization': 'Bearer ' + token}
+                    });
                 }).catch(function(err) {
-                    console.warn('Session token failed, trying without:', err);
-                    return fetch('/api/update_inventory');
+                    // Show professional error instead of trying without auth
+                    setButtonLoading(button, false);
+                    document.getElementById('output').innerHTML = `
+                        <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                            <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Session Error</div>
+                            <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Unable to verify your session. This usually happens when the page has been open for a while.</div>
+                            <button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>
+                        </div>
+                    `;
+                    throw err; // Stop execution
                 });
             } else {
+                // Not embedded - use regular fetch (Flask-Login handles auth)
                 fetchPromise = fetch('/api/update_inventory');
             }
             
@@ -877,8 +953,28 @@ DASHBOARD_HTML = """
                             </div>
                         `;
                     } else {
-                        // For errors, display the backend HTML directly (it already has the title and banner)
-                        document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${d.error || d.message || 'No details available'}</div>`;
+                        // Professional error display with actionable buttons
+                        var errorHtml = '<div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">';
+                        errorHtml += '<div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">' + (d.error || 'Something went wrong') + '</div>';
+                        if (d.message) {
+                            errorHtml += '<div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">' + d.message + '</div>';
+                        }
+                        if (d.action === 'refresh') {
+                            errorHtml += '<button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>';
+                        } else if (d.action === 'subscribe' && d.subscribe_url) {
+                            errorHtml += '<a href="' + d.subscribe_url + '" style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Subscribe Now</a>';
+                        } else if (d.action === 'install') {
+                            errorHtml += '<a href="/settings/shopify" style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Connect Store</a>';
+                        } else if (d.action === 'retry') {
+                            errorHtml += '<button onclick="updateInventory(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>';
+                        } else {
+                            // Fallback: try to display HTML error if it's HTML
+                            if (d.error && d.error.includes('<')) {
+                                errorHtml = '<div style="animation: fadeIn 0.3s ease-in;">' + d.error + '</div>';
+                            }
+                        }
+                        if (!errorHtml.includes('</div>')) errorHtml += '</div>';
+                        document.getElementById('output').innerHTML = errorHtml;
                     }
                 })
                 .catch(err => {
@@ -897,20 +993,50 @@ DASHBOARD_HTML = """
             setButtonLoading(button, true);
             showLoading();
             
-            // Get session token if in embedded mode - WAIT for it
+            // Get session token if in embedded mode - seamless integration
             var fetchPromise;
-            if (window.shopifyApp) {
-                fetchPromise = window.shopifyApp.getSessionToken().then(function(token) {
-                    var options = {};
-                    if (token) {
-                        options.headers = {'Authorization': 'Bearer ' + token};
+            var isEmbedded = window.shopifyApp && new URLSearchParams(window.location.search).get('host');
+            
+            if (isEmbedded && window.shopifyApp) {
+                // In embedded mode, we MUST have session token - retry up to 3 times
+                var retryCount = 0;
+                var maxRetries = 3;
+                
+                function getTokenWithRetry() {
+                    return window.shopifyApp.getSessionToken().then(function(token) {
+                        if (!token && retryCount < maxRetries) {
+                            retryCount++;
+                            return new Promise(function(resolve) {
+                                setTimeout(function() {
+                                    resolve(getTokenWithRetry());
+                                }, 300);
+                            });
+                        }
+                        return token;
+                    });
+                }
+                
+                fetchPromise = getTokenWithRetry().then(function(token) {
+                    if (!token) {
+                        throw new Error('Unable to get session token. Please refresh the page.');
                     }
-                    return fetch('/api/generate_report', options);
+                    return fetch('/api/generate_report', {
+                        headers: {'Authorization': 'Bearer ' + token}
+                    });
                 }).catch(function(err) {
-                    console.warn('Session token failed, trying without:', err);
-                    return fetch('/api/generate_report');
+                    // Show professional error instead of trying without auth
+                    setButtonLoading(button, false);
+                    document.getElementById('output').innerHTML = `
+                        <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                            <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Session Error</div>
+                            <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Unable to verify your session. This usually happens when the page has been open for a while.</div>
+                            <button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>
+                        </div>
+                    `;
+                    throw err; // Stop execution
                 });
             } else {
+                // Not embedded - use regular fetch (Flask-Login handles auth)
                 fetchPromise = fetch('/api/generate_report');
             }
             
@@ -1137,7 +1263,73 @@ def home():
     # Regular (non-embedded) request handling
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
-    return redirect(url_for('auth.login'))
+    # For standalone access, redirect to Shopify OAuth install instead of login
+    # OAuth users don't have passwords, so login page won't work for them
+    # Show a page that explains they need to install via Shopify
+    from flask import render_template_string
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Employee Suite - Install via Shopify</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: #f6f6f7;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                margin: 0;
+                padding: 20px;
+            }
+            .container {
+                background: white;
+                border-radius: 8px;
+                padding: 48px;
+                max-width: 500px;
+                text-align: center;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            h1 {
+                font-size: 28px;
+                font-weight: 600;
+                color: #202223;
+                margin-bottom: 16px;
+            }
+            p {
+                font-size: 15px;
+                color: #6d7175;
+                line-height: 1.6;
+                margin-bottom: 32px;
+            }
+            .btn {
+                display: inline-block;
+                background: #008060;
+                color: white;
+                padding: 12px 24px;
+                border-radius: 6px;
+                text-decoration: none;
+                font-weight: 500;
+                font-size: 14px;
+                transition: background 0.15s;
+            }
+            .btn:hover {
+                background: #006e52;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Install Employee Suite</h1>
+            <p>This app is designed to be installed through the Shopify App Store. Please install it from your Shopify admin panel.</p>
+            <p style="font-size: 14px; color: #8c9196; margin-top: 24px;">If you're a developer, you can also connect your store manually via Settings after logging in.</p>
+            <a href="/settings/shopify" class="btn" style="margin-top: 8px;">Go to Settings</a>
+        </div>
+    </body>
+    </html>
+    """)
 
 # Icon is served via Flask static file serving automatically
 
@@ -1292,41 +1484,113 @@ def api_docs():
     """API documentation endpoint"""
     return redirect('https://github.com/vyndigital-cloud/EmployeeSuite-Production/blob/main/API_DOCUMENTATION.md')
 
+def get_authenticated_user():
+    """
+    Get authenticated user from either Flask-Login or Shopify session token.
+    Returns (user, error_response) tuple. If user is None, error_response contains the error.
+    """
+    # Try Flask-Login first (for standalone access)
+    if current_user.is_authenticated:
+        return current_user, None
+    
+    # Try session token (for embedded apps)
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.startswith('Bearer '):
+        try:
+            token = auth_header.split(' ')[1] if ' ' in auth_header else None
+            if not token:
+                return None, (jsonify({'error': 'Invalid token format', 'success': False}), 401)
+            
+            # Properly verify JWT token with full validation
+            import jwt
+            payload = jwt.decode(
+                token,
+                os.getenv('SHOPIFY_API_SECRET'),
+                algorithms=['HS256'],
+                options={
+                    "verify_signature": True,
+                    "verify_exp": True,
+                    "verify_iat": True,
+                    "require": ["iss", "dest", "aud", "sub", "exp", "nbf", "iat"]
+                }
+            )
+            
+            # Verify audience matches API key
+            if payload.get('aud') != os.getenv('SHOPIFY_API_KEY'):
+                logger.warning(f"Invalid audience in session token: {payload.get('aud')}")
+                return None, (jsonify({'error': 'Invalid token', 'success': False}), 401)
+            
+            # Extract shop domain
+            dest = payload.get('dest', '')
+            if not dest or not dest.endswith('.myshopify.com'):
+                logger.warning(f"Invalid destination in session token: {dest}")
+                return None, (jsonify({'error': 'Invalid token', 'success': False}), 401)
+            
+            shop_domain = dest.replace('https://', '').split('/')[0]
+            
+            # Find user from shop
+            from models import ShopifyStore
+            store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
+            if store and store.user:
+                return store.user, None
+            else:
+                logger.warning(f"No store found for shop: {shop_domain}")
+                return None, (jsonify({
+                    'error': 'Your store is not connected. Please install the app from your Shopify admin.',
+                    'success': False,
+                    'action': 'install',
+                    'message': 'To get started, install Employee Suite from your Shopify admin panel.'
+                }), 404)
+                
+        except jwt.ExpiredSignatureError:
+            logger.warning("Expired session token")
+            return None, (jsonify({
+                'error': 'Your session has expired. Please refresh the page.',
+                'success': False,
+                'action': 'refresh',
+                'message': 'This usually happens when the page has been open for a while. Refreshing will restore your session.'
+            }), 401)
+        except jwt.InvalidTokenError as e:
+            logger.warning(f"Invalid session token: {e}")
+            return None, (jsonify({
+                'error': 'Unable to verify your session. Please refresh the page.',
+                'success': False,
+                'action': 'refresh',
+                'message': 'If the problem persists, try closing and reopening the app from your Shopify admin.'
+            }), 401)
+        except Exception as e:
+            logger.error(f"Error verifying session token: {e}", exc_info=True)
+            return None, (jsonify({
+                'error': 'We encountered an issue verifying your session. Please try again.',
+                'success': False,
+                'action': 'retry',
+                'message': 'If this continues, please refresh the page or contact support.'
+            }), 401)
+    
+    # No authentication found
+    return None, (jsonify({
+        'error': 'Please sign in to continue.',
+        'success': False,
+        'action': 'login',
+        'message': 'You need to be signed in to use this feature. If you\'re using the app from Shopify admin, try refreshing the page.'
+    }), 401)
+
 @app.route('/api/process_orders', methods=['GET', 'POST'])
 def api_process_orders():
-    # Support both embedded (session token) and regular (Flask-Login) requests
-    auth_header = request.headers.get('Authorization', '')
-    is_embedded = auth_header.startswith('Bearer ')
-    
-    # Get user - either from Flask-Login or from session token
-    user = None
-    if current_user.is_authenticated:
-        user = current_user
-    elif is_embedded:
-        # For embedded apps, get user from shop domain in session token
-        try:
-            from session_token_verification import verify_session_token, get_shop_from_session_token
-            # Verify token and get shop
-            token = auth_header.split(' ')[1] if ' ' in auth_header else None
-            if token:
-                import jwt
-                payload = jwt.decode(token, os.getenv('SHOPIFY_API_SECRET'), algorithms=['HS256'])
-                shop_domain = payload.get('dest', '').replace('https://', '').split('/')[0]
-                
-                # Find user from shop
-                from models import ShopifyStore
-                store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
-                if store:
-                    user = store.user
-        except Exception as e:
-            logger.warning(f"Failed to get user from session token: {e}")
-    
-    if not user:
-        return jsonify({'error': 'Authentication required', 'success': False}), 401
+    # Get authenticated user (supports both Flask-Login and session tokens)
+    user, error_response = get_authenticated_user()
+    if error_response:
+        return error_response
     
     # Check access
     if not user.has_access():
-        return jsonify({'error': 'Subscription required', 'success': False}), 403
+        return jsonify({
+            'error': 'Subscription required',
+            'success': False,
+            'action': 'subscribe',
+            'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
+            'subscribe_url': url_for('billing.subscribe')
+        }), 403
     
     # Store user ID before login_user to avoid recursion issues
     user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
@@ -1348,34 +1612,19 @@ def api_process_orders():
 
 @app.route('/api/update_inventory', methods=['GET', 'POST'])
 def api_update_inventory():
-    # Support both embedded (session token) and regular (Flask-Login) requests
-    auth_header = request.headers.get('Authorization', '')
-    is_embedded = auth_header.startswith('Bearer ')
-    
-    # Get user - either from Flask-Login or from session token
-    user = None
-    if current_user.is_authenticated:
-        user = current_user
-    elif is_embedded:
-        try:
-            token = auth_header.split(' ')[1] if ' ' in auth_header else None
-            if token:
-                import jwt
-                payload = jwt.decode(token, os.getenv('SHOPIFY_API_SECRET'), algorithms=['HS256'])
-                shop_domain = payload.get('dest', '').replace('https://', '').split('/')[0]
-                
-                from models import ShopifyStore
-                store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
-                if store:
-                    user = store.user
-        except Exception as e:
-            logger.warning(f"Failed to get user from session token: {e}")
-    
-    if not user:
-        return jsonify({'error': 'Authentication required', 'success': False}), 401
+    # Get authenticated user (supports both Flask-Login and session tokens)
+    user, error_response = get_authenticated_user()
+    if error_response:
+        return error_response
     
     if not user.has_access():
-        return jsonify({'error': 'Subscription required', 'success': False}), 403
+        return jsonify({
+            'error': 'Subscription required',
+            'success': False,
+            'action': 'subscribe',
+            'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
+            'subscribe_url': url_for('billing.subscribe')
+        }), 403
     
     # Store user ID before login_user to avoid recursion issues
     user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
@@ -1401,34 +1650,19 @@ def api_update_inventory():
 
 @app.route('/api/generate_report', methods=['GET', 'POST'])
 def api_generate_report():
-    # Support both embedded (session token) and regular (Flask-Login) requests
-    auth_header = request.headers.get('Authorization', '')
-    is_embedded = auth_header.startswith('Bearer ')
-    
-    # Get user - either from Flask-Login or from session token
-    user = None
-    if current_user.is_authenticated:
-        user = current_user
-    elif is_embedded:
-        try:
-            token = auth_header.split(' ')[1] if ' ' in auth_header else None
-            if token:
-                import jwt
-                payload = jwt.decode(token, os.getenv('SHOPIFY_API_SECRET'), algorithms=['HS256'])
-                shop_domain = payload.get('dest', '').replace('https://', '').split('/')[0]
-                
-                from models import ShopifyStore
-                store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
-                if store:
-                    user = store.user
-        except Exception as e:
-            logger.warning(f"Failed to get user from session token: {e}")
-    
-    if not user:
-        return jsonify({'error': 'Authentication required', 'success': False}), 401
+    # Get authenticated user (supports both Flask-Login and session tokens)
+    user, error_response = get_authenticated_user()
+    if error_response:
+        return error_response
     
     if not user.has_access():
-        return jsonify({'error': 'Subscription required', 'success': False}), 403
+        return jsonify({
+            'error': 'Subscription required',
+            'success': False,
+            'action': 'subscribe',
+            'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
+            'subscribe_url': url_for('billing.subscribe')
+        }), 403
     
     # Store user ID before login_user to avoid recursion issues
     user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
