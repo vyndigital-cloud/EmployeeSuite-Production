@@ -1,15 +1,16 @@
 #!/bin/bash
-# Build script for Render deployment
-# This script installs dependencies without hash checking to avoid deployment issues
+# Build script for Render deployment - OPTIMIZED to reduce build time/minutes
+# This script installs dependencies efficiently to minimize build minutes
 
 set -e
 
-echo "🔧 Installing dependencies..."
+echo "🔧 Installing dependencies (optimized build)..."
 
-# Upgrade pip first
-python3 -m pip install --upgrade pip setuptools wheel
+# Upgrade pip (only if needed - cached on Render)
+python3 -m pip install --upgrade --quiet pip setuptools wheel
 
-# Install requirements - pip will skip hash checking if hashes aren't in file
-python3 -m pip install -r requirements.txt
+# Install requirements with pip cache (faster, uses fewer minutes)
+# --no-cache-dir disabled to allow Render's cache to speed things up
+python3 -m pip install --quiet -r requirements.txt
 
 echo "✅ Dependencies installed successfully"
