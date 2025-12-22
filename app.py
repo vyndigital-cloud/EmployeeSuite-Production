@@ -1910,7 +1910,7 @@ def home():
                     except Exception:
                         pass
                     finally:
-                    try:
+                        try:
                             db.session.remove()
                         except Exception:
                             pass
