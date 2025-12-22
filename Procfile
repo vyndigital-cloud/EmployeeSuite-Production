@@ -1,1 +1,1 @@
-web: gunicorn app:app --workers 4 --threads 4 --timeout 120 --max-requests 1000 --max-requests-jitter 100
+web: gunicorn --worker-class=sync --workers=1 --timeout=120 app:app

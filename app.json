@@ -31,6 +31,18 @@
       {
         "uri": "https://employeesuite-production.onrender.com/webhooks/app_subscriptions/update",
         "topics": ["app_subscriptions/update"]
+      },
+      {
+        "uri": "https://employeesuite-production.onrender.com/webhooks/customers/data_request",
+        "topics": ["customers/data_request"]
+      },
+      {
+        "uri": "https://employeesuite-production.onrender.com/webhooks/customers/redact",
+        "topics": ["customers/redact"]
+      },
+      {
+        "uri": "https://employeesuite-production.onrender.com/webhooks/shop/redact",
+        "topics": ["shop/redact"]
       }
     ]
   },

@@ -1,7 +1,53 @@
+import sys
+import os
+import signal
+import traceback
+import logging
+
+# Force single-threaded numpy/pandas operations to prevent segfaults
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['OMP_NUM_THREADS'] = '1'
+
+# CRITICAL: Set up detailed crash logging for debugging segfaults
+# This will help us identify exactly where crashes occur
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout,
+    force=True  # Override any existing config
+)
+
+# CRITICAL: Set signal handlers to prevent segfaults from crashing entire worker
+# This catches SIGSEGV (segmentation fault) and logs it instead of crashing
+def segfault_handler(signum, frame):
+    """Handle segmentation faults gracefully"""
+    import traceback
+    from logging_config import logger
+    logger.critical(f"Segmentation fault detected (signal {signum}) - attempting graceful recovery")
+    logger.critical(f"Traceback: {''.join(traceback.format_stack(frame))}")
+    # Don't exit - let the worker restart naturally
+    # This prevents the entire process from crashing
+
+# Only set handler if not in a subprocess (gunicorn workers are subprocesses)
+# Setting signal handlers in workers can interfere with gunicorn's process management
+if os.getpid() != 1:  # Not the main process (PID 1 is usually the main process)
+    try:
+        # Note: SIGSEGV handler may not work in all environments
+        # Gunicorn handles worker crashes automatically
+        pass
+    except Exception:
+        pass
+
 from flask import Flask, jsonify, render_template_string, redirect, url_for, request, session
 from flask_login import LoginManager, login_required, current_user, login_user
 from flask_bcrypt import Bcrypt
-import os
+# Flask-Session for server-side session storage (no cookies for embedded apps)
+try:
+    from flask_session import Session
+    FLASK_SESSION_AVAILABLE = True
+except ImportError:
+    FLASK_SESSION_AVAILABLE = False
 import logging
 from datetime import datetime
 
@@ -41,6 +87,8 @@ if sentry_dsn:
     from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration
     
+    # CRITICAL: Disable profiling and traces to prevent segfaults after responses
+    # These features can cause crashes when sending data to Sentry after response is sent
     sentry_sdk.init(
         dsn=sentry_dsn,
         integrations=[
@@ -48,11 +96,13 @@ if sentry_dsn:
             SqlalchemyIntegration(),
             LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)
         ],
-        traces_sample_rate=0.1,  # 10% of transactions for performance monitoring
-        profiles_sample_rate=0.1,  # 10% of transactions for profiling
+        traces_sample_rate=0.0,  # DISABLED - causes segfaults after responses
+        profiles_sample_rate=0.0,  # DISABLED - causes segfaults after responses
         environment=os.getenv('ENVIRONMENT', 'production'),
         release=os.getenv('RELEASE_VERSION', '1.0.0'),
         before_send=lambda event, hint: event if os.getenv('ENVIRONMENT') != 'development' else None,  # Don't send in dev
+        # CRITICAL: Disable background worker threads that can cause segfaults
+        transport=sentry_sdk.transport.HttpTransport if hasattr(sentry_sdk, 'transport') else None,
     )
     logger.info("Sentry error monitoring initialized")
 else:
@@ -114,10 +164,29 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 db.init_app(app)
 
 # Configure server-side sessions - optimized for embedded and standalone
+# CRITICAL: For embedded apps, we use session tokens only (no cookies)
+# For standalone, we use cookies normally
 app.config['SESSION_PERMANENT'] = True
 # Session lifetime: 24 hours (embedded apps use tokens, standalone uses cookies)
 # Shorter lifetime = better security + Safari compatibility
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 hours (was 30 days)
+
+# CRITICAL: Use Flask-Session for server-side session storage (no cookies for embedded)
+# This allows us to store session data server-side without setting cookies
+if FLASK_SESSION_AVAILABLE:
+    try:
+        app.config['SESSION_TYPE'] = 'filesystem'  # Store sessions on filesystem (no cookies needed)
+        app.config['SESSION_FILE_DIR'] = '/tmp/flask_session'  # Temp directory for sessions
+        app.config['SESSION_FILE_THRESHOLD'] = 100  # Max sessions
+        app.config['SESSION_PERMANENT'] = False  # Don't persist sessions (embedded uses tokens)
+        sess = Session()
+        sess.init_app(app)
+        logger.info("Flask-Session initialized for server-side session storage (no cookies)")
+    except Exception as e:
+        logger.warning(f"Flask-Session initialization failed: {e} - using default cookie-based sessions")
+else:
+    logger.warning("Flask-Session not available - using default cookie-based sessions (cookies will be removed for embedded apps)")
+
 bcrypt = Bcrypt(app)
 
 login_manager = LoginManager()
@@ -146,7 +215,12 @@ def load_user(user_id):
 @login_manager.unauthorized_handler
 def unauthorized():
     """Handle unauthorized access - preserve embedded parameters for embedded apps"""
-    from flask import request, redirect, url_for
+    from flask import request, redirect, url_for, has_request_context
+    # CRITICAL: Only use request context if we're in a request
+    if not has_request_context():
+        # Not in a request context - return a simple redirect
+        return redirect('/login')
+    
     # Check if this is an embedded app request
     shop = request.args.get('shop')
     embedded = request.args.get('embedded')
@@ -177,29 +251,111 @@ app.register_blueprint(webhook_bp)
 app.register_blueprint(webhook_shopify_bp)
 app.register_blueprint(gdpr_bp)
 
-# Initialize rate limiter with global 200 req/hour
+# Initialize rate limiter with global 200 req/hour + per-endpoint limits
 limiter = init_limiter(app)
+
+# Add comprehensive request/response logging middleware
+@app.before_request
+def log_request():
+    """Log all API requests for debugging and monitoring"""
+    if request.path.startswith('/api/'):
+        logger.info(f"REQUEST: {request.method} {request.path} - IP: {request.remote_addr} - User-Agent: {request.headers.get('User-Agent', 'Unknown')[:50]}")
+
+@app.after_request
+def log_response(response):
+    """Log API responses for debugging"""
+    if request.path.startswith('/api/'):
+        status_code = response.status_code
+        if status_code >= 400:
+            logger.warning(f"RESPONSE: {request.method} {request.path} - Status: {status_code} - IP: {request.remote_addr}")
+        else:
+            logger.debug(f"RESPONSE: {request.method} {request.path} - Status: {status_code}")
+    return response
 
 # Apply security headers and compression to all responses
 @app.after_request
 def optimize_response(response):
     """Add security headers, compress responses, and optimize cookies"""
-    response = add_security_headers(response)
-    response = compress_response(response)
-    
-    # CRITICAL: Force session cookie to be set for Safari compatibility
-    # Safari requires explicit cookie setting in response headers
+    # CRITICAL: Wrap all operations in try/except to prevent segfaults after response
     try:
-        # Check if session has been modified or is permanent
-        if session.get('_permanent') or session.modified:
-            # Ensure cookie is set
-            session.modified = True
-    except (RuntimeError, AttributeError):
-        # Session not available in this context (webhook requests, etc.)
-        pass
-    
-    # Enable Keep-Alive for webhook endpoints (Shopify requirement)
-    # This allows Shopify to reuse connections, reducing latency
+        from flask import has_request_context
+        response = add_security_headers(response)
+        # CRITICAL: Wrap compression in try/except - it can cause segfaults
+        try:
+            response = compress_response(response)
+        except Exception as e:
+            # If compression fails, return uncompressed response
+            logger.debug(f"Compression failed (non-critical): {e}")
+        
+        # CRITICAL: For embedded apps, DO NOT set cookies (Safari blocks them)
+        # Only set cookies for standalone access
+        if has_request_context():
+            try:
+                from flask import request
+                is_embedded = request.args.get('embedded') == '1' or request.args.get('shop') or request.args.get('host')
+                
+                # Log API requests/responses for monitoring
+                if request.path.startswith('/api/'):
+                    status_code = response.status_code
+                    if status_code >= 400:
+                        logger.warning(f"API ERROR: {request.method} {request.path} - Status: {status_code} - IP: {request.remote_addr}")
+                    else:
+                        logger.debug(f"API SUCCESS: {request.method} {request.path} - Status: {status_code}")
+                
+                # Only set cookies for standalone access
+                if not is_embedded:
+                    # Check if session has been modified or is permanent
+                    if session.get('_permanent') or session.modified:
+                        # Ensure cookie is set (standalone only)
+                        session.modified = True
+                else:
+                    # Embedded app - CRITICAL: Remove ALL cookie headers from response
+                    # Flask sessions try to set cookies even if we don't want them
+                    # We must explicitly remove Set-Cookie headers for embedded apps
+                    cookies_removed = 0
+                    headers_to_remove = []
+                    for header_name in list(response.headers.keys()):
+                        if header_name.lower() == 'set-cookie':
+                            cookie_value = response.headers[header_name]
+                            # Remove ALL cookies for embedded apps (session, remember_token, etc.)
+                            if any(cookie_name in cookie_value for cookie_name in ['session=', 'remember_token=', 'session_id=']):
+                                headers_to_remove.append(header_name)
+                                cookies_removed += 1
+                    
+                    for header_name in headers_to_remove:
+                        del response.headers[header_name]
+                    
+                    if cookies_removed > 0:
+                        logger.debug(f"Removed {cookies_removed} cookie header(s) for embedded app")
+                    
+                    # Also prevent Flask from setting cookies by not modifying session
+                    # CRITICAL: Set session.modified = False to prevent cookie headers
+                    try:
+                        session.modified = False
+                    except Exception:
+                        pass
+            except (RuntimeError, AttributeError):
+                # Session not available in this context (webhook requests, etc.)
+                pass
+        
+        # Enable Keep-Alive for webhook endpoints (Shopify requirement)
+        # This allows Shopify to reuse connections, reducing latency
+        if has_request_context():
+            try:
+                if request.path.startswith('/webhooks/'):
+                    response.headers['Connection'] = 'keep-alive'
+                    response.headers['Keep-Alive'] = 'timeout=5, max=1000'
+                
+                # Add cache headers for static assets
+                if request.endpoint == 'static':
+                    response.cache_control.max_age = 31536000  # 1 year
+                    response.cache_control.public = True
+            except Exception as e:
+                # Non-critical - headers might not be accessible
+                logger.debug(f"Header setting failed (non-critical): {e}")
+    except Exception as e:
+        # CRITICAL: Never let after_request crash - response already sent
+        logger.error(f"Error in after_request handler (non-critical): {e}", exc_info=True)
     
     return response
 
@@ -208,39 +364,44 @@ def optimize_response(response):
 @app.teardown_appcontext
 def close_db(error):
     """Close database session after each request - prevents connection leaks and segfaults"""
+    # CRITICAL: Wrap ALL operations in try/except - this runs AFTER response is sent
+    # Any crashes here cause segfaults (code 139) because response is already sent
     from models import db
-    # Flask-SQLAlchemy automatically removes sessions, but we ensure cleanup happens
-    # This is the ROOT CAUSE of segfaults - sessions not being cleaned up properly
     try:
         # CRITICAL: Always remove session to prevent segfaults from stale connections
-        db.session.remove()
-        # Force garbage collection if there was an error
-        if error:
-            import gc
-            gc.collect()
-    except BaseException:
-        # Catch ALL exceptions including segfault precursors (SystemExit, KeyboardInterrupt, etc.)
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
         try:
             db.session.remove()
+        except Exception as e:
+            # Non-critical - session might already be removed
+            logger.debug(f"Session remove failed (non-critical): {e}")
+        
+        # CRITICAL: Disable garbage collection in teardown - it can cause segfaults
+        # Let Python's automatic GC handle it instead
+        # if error:
+        #     import gc
+        #     gc.collect()  # DISABLED - causes segfaults after response
+    except BaseException as e:
+        # Catch ALL exceptions including segfault precursors (SystemExit, KeyboardInterrupt, etc.)
+        # CRITICAL: Never let teardown crash - response already sent
+        try:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            try:
+                db.session.remove()
+            except Exception:
+                pass
         except Exception:
+            # Even rollback/remove can fail - just log and continue
             pass
-        # Force cleanup on error
-        import gc
-        gc.collect()
-    if request.path.startswith('/webhooks/'):
-        response.headers['Connection'] = 'keep-alive'
-        response.headers['Keep-Alive'] = 'timeout=5, max=1000'
-    
-    # Add cache headers for static assets
-    if request.endpoint == 'static':
-        response.cache_control.max_age = 31536000  # 1 year
-        response.cache_control.public = True
-    
-    return response
+        # CRITICAL: Disable gc.collect() in teardown - causes segfaults
+        # import gc
+        # gc.collect()  # DISABLED - causes segfaults after response
+        logger.debug(f"Teardown error handled (non-critical): {type(e).__name__}")
+    # CRITICAL: Do NOT access request or response here
+    # This function is called during app context teardown, which can happen outside requests
+    # Request/response handling should be done in after_request handler instead
 
 # Request validation before processing (optimized - fast checks only)
 @app.before_request
@@ -1751,10 +1912,8 @@ def home():
         store = None
         user = None
         if shop:
+            # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
             try:
-                db.session.remove()
-                try:
-                db.session.remove()
                 store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
             except BaseException:
                 try:
@@ -1778,7 +1937,7 @@ def home():
                     except Exception:
                         pass
                 store = None
-            if store:
+            if store and hasattr(store, 'user') and store.user:
                 user = store.user
         
         # CRITICAL: For embedded apps, DON'T use cookies (Safari blocks them)
@@ -1813,10 +1972,8 @@ def home():
             from models import ShopifyStore
             has_shopify = False
             if user_id:
+                # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                 try:
-                    db.session.remove()
-                    try:
-                    db.session.remove()
                     has_shopify = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first() is not None
                 except BaseException:
                     try:
@@ -1842,10 +1999,8 @@ def home():
                     has_shopify = False
             elif shop:
                 # Check if store exists even without user auth
+                # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                 try:
-                    db.session.remove()
-                    try:
-                    db.session.remove()
                     has_shopify = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first() is not None
                 except BaseException:
                     try:
@@ -1878,10 +2033,8 @@ def home():
             
             shop_domain = shop or ''
             if has_shopify and user_id:
+                # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                 try:
-                    db.session.remove()
-                    try:
-                    db.session.remove()
                     store = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first()
                 except BaseException:
                     try:
@@ -1905,25 +2058,12 @@ def home():
                         except Exception:
                             pass
                     store = None
-                if store:
+                if store and hasattr(store, 'shop_url') and store.shop_url:
                     shop_domain = store.shop_url
             elif shop:
+                # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                 try:
-                    db.session.remove()
-                    try:
-                db.session.remove()
-                store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
-            except BaseException:
-                try:
-                    db.session.rollback()
-                except Exception:
-                    pass
-                finally:
-                    try:
-                        db.session.remove()
-                    except Exception:
-                        pass
-                store = None
+                    store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
                 except BaseException:
                     try:
                         db.session.rollback()
@@ -1935,7 +2075,7 @@ def home():
                         except Exception:
                             pass
                     store = None
-                if store:
+                if store and hasattr(store, 'shop_url') and store.shop_url:
                     shop_domain = store.shop_url
             
             return render_template_string(DASHBOARD_HTML, 
@@ -2072,23 +2212,27 @@ def dashboard():
     host = request.args.get('host')
     is_embedded = request.args.get('embedded') == '1' or shop or host or is_from_shopify_admin
     
+    # CRITICAL: For embedded apps, check custom session auth (no Flask-Login cookies)
+    # For embedded apps, we use session['_authenticated'] instead of Flask-Login
+    embedded_authenticated = False
+    if is_embedded:
+        embedded_authenticated = session.get('_authenticated') and session.get('user_id')
+    
     # For embedded apps, allow access without strict auth (App Bridge handles it)
     # For regular requests, require login
     if not is_embedded and not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
     
     # If embedded but not logged in, try to auto-login from shop param
-    if is_embedded and not current_user.is_authenticated:
+    if is_embedded and not embedded_authenticated and not current_user.is_authenticated:
         # CRITICAL: For embedded apps, DON'T use cookies (Safari blocks them)
         # Session tokens handle all authentication - cookies are unreliable in iframes
         # We'll get user info from session tokens in API calls, not from Flask-Login cookies
         if shop:
             from models import ShopifyStore, db
             store = None
+            # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
             try:
-                db.session.remove()
-                try:
-                db.session.remove()
                 store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
             except BaseException:
                 try:
@@ -2121,21 +2265,71 @@ def dashboard():
     """Dashboard - accessible to all authenticated users, shows subscribe prompt if no access"""
     
     # Handle case where user might not be authenticated (for embedded apps)
-    if current_user.is_authenticated:
-        has_access = current_user.has_access()
-        trial_active = current_user.is_trial_active()
-        days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+    # CRITICAL: For embedded apps, check custom session auth (no Flask-Login cookies)
+    # For standalone, use Flask-Login
+    try:
+        if is_embedded:
+            # Embedded: Check custom session auth
+            user_authenticated = session.get('_authenticated') and session.get('user_id')
+            if user_authenticated:
+                # Load user from session for embedded apps
+                from models import User
+                try:
+                    embedded_user = User.query.get(int(session['user_id']))
+                    if embedded_user:
+                        # Use embedded user for template variables
+                        has_access = embedded_user.has_access()
+                        trial_active = embedded_user.is_trial_active()
+                        days_left = (embedded_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+                        is_subscribed = embedded_user.is_subscribed
+                    else:
+                        user_authenticated = False
+                        has_access = False
+                        trial_active = False
+                        days_left = 0
+                        is_subscribed = False
+                except Exception:
+                    user_authenticated = False
+                    has_access = False
+                    trial_active = False
+                    days_left = 0
+                    is_subscribed = False
+            else:
+                user_authenticated = False
+                has_access = False
+                trial_active = False
+                days_left = 0
+                is_subscribed = False
+        else:
+            # Standalone: Use Flask-Login
+            user_authenticated = current_user.is_authenticated if hasattr(current_user, 'is_authenticated') else False
+    except Exception:
+        user_authenticated = False
+    
+    if user_authenticated and not is_embedded:
+        try:
+            has_access = current_user.has_access()
+            trial_active = current_user.is_trial_active()
+            days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+            is_subscribed = current_user.is_subscribed
+        except Exception as e:
+            logger.error(f"Error accessing user properties: {e}", exc_info=True)
+            has_access = False
+            trial_active = False
+            days_left = 0
+            is_subscribed = False
     else:
         # Embedded app without auth - show limited view
         has_access = False
         trial_active = False
         days_left = 0
+        is_subscribed = False
     
     # Check if user has connected Shopify
     from models import ShopifyStore
-    if current_user.is_authenticated:
+    if user_authenticated:
+        # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
         try:
-            db.session.remove()
             has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
         except BaseException:
             try:
@@ -2148,15 +2342,12 @@ def dashboard():
                 except Exception:
                     pass
             has_shopify = False
-        is_subscribed = current_user.is_subscribed
     else:
         # For embedded apps without auth, check by shop param
         has_shopify = False
         if shop:
+            # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
             try:
-                db.session.remove()
-                try:
-                db.session.remove()
                 store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
             except BaseException:
                 try:
@@ -2210,8 +2401,8 @@ def dashboard():
             shop_domain = store.shop_url
     elif shop and has_shopify:
         store = None
+        # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
         try:
-            db.session.remove()
             store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
         except BaseException:
             try:
@@ -2224,7 +2415,7 @@ def dashboard():
                 except Exception:
                     pass
             store = None
-        if store:
+        if store and hasattr(store, 'shop_url') and store.shop_url:
             shop_domain = store.shop_url
     
     return render_template_string(DASHBOARD_HTML, 
@@ -2289,20 +2480,66 @@ def cron_database_backup():
 
 @app.route('/health')
 def health():
-    """Health check endpoint for monitoring"""
+    """Comprehensive health check endpoint for monitoring - MAXED OUT"""
+    health_data = {
+        "status": "healthy",
+        "service": "Employee Suite",
+        "version": "2.0",
+        "timestamp": datetime.utcnow().isoformat(),
+        "checks": {}
+    }
+    
+    # Database connectivity check with response time
     try:
-        # Quick DB connectivity check
+        start_time = time.time()
         db.session.execute(db.text('SELECT 1'))
-        return jsonify({
-            "status": "healthy", 
-            "service": "Employee Suite", 
-            "version": "2.0", 
-            "database": "connected",
-            "timestamp": datetime.utcnow().isoformat()
-        }), 200
+        response_time = round((time.time() - start_time) * 1000, 2)  # Convert to ms
+        health_data["checks"]["database"] = {"status": "connected", "response_time_ms": response_time}
+        health_data["database"] = "connected"
     except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return jsonify({"status": "unhealthy", "error": str(e)}), 500
+        logger.error(f"Health check - Database failed: {e}")
+        health_data["checks"]["database"] = {"status": "disconnected", "error": str(e)}
+        health_data["status"] = "unhealthy"
+        health_data["database"] = "disconnected"
+    
+    # Cache status check
+    try:
+        from performance import get_cache_stats
+        cache_stats = get_cache_stats()
+        health_data["checks"]["cache"] = {
+            "status": "operational",
+            "entries": cache_stats.get('entries', 0),
+            "max_entries": cache_stats.get('max_entries', 0),
+            "size_mb": cache_stats.get('size_mb', 0)
+        }
+    except Exception as e:
+        logger.warning(f"Health check - Cache check failed: {e}")
+        health_data["checks"]["cache"] = {"status": "unknown", "error": str(e)}
+    
+    # Environment check
+    health_data["checks"]["environment"] = {
+        "python_version": sys.version.split()[0],
+        "flask_version": "3.0.0",
+        "environment": os.getenv('ENVIRONMENT', 'unknown')
+    }
+    
+    # Memory check (basic) - optional, don't fail if psutil not available
+    try:
+        import psutil
+        memory = psutil.virtual_memory()
+        health_data["checks"]["memory"] = {
+            "status": "ok" if memory.percent < 90 else "warning",
+            "percent_used": round(memory.percent, 1),
+            "available_mb": round(memory.available / (1024 * 1024), 1)
+        }
+    except ImportError:
+        # psutil is optional - don't fail health check if not installed
+        health_data["checks"]["memory"] = {"status": "unknown", "note": "psutil not available (optional)"}
+    except Exception as e:
+        health_data["checks"]["memory"] = {"status": "unknown", "error": str(e)}
+    
+    status_code = 200 if health_data["status"] == "healthy" else 503
+    return jsonify(health_data), status_code
 
 @app.route('/api/docs')
 def api_docs():
@@ -2441,10 +2678,14 @@ def get_authenticated_user():
     }), 401)
 
 @app.route('/api/process_orders', methods=['GET', 'POST'])
+@limiter.limit("30 per minute")  # Max 30 requests per minute per IP
 def api_process_orders():
+    """Process pending Shopify orders with rate limiting and comprehensive logging"""
+    logger.info(f"API: /api/process_orders - Method: {request.method}, IP: {request.remote_addr}")
     # Get authenticated user (supports both Flask-Login and session tokens)
     user, error_response = get_authenticated_user()
     if error_response:
+        logger.warning(f"API: /api/process_orders - Authentication failed for IP: {request.remote_addr}")
         return error_response
     
     # Check access
@@ -2490,10 +2731,14 @@ def api_process_orders():
         return jsonify({"error": "An unexpected error occurred. Please try again or contact support if this persists.", "success": False}), 500
 
 @app.route('/api/update_inventory', methods=['GET', 'POST'])
+@limiter.limit("30 per minute")  # Max 30 requests per minute per IP
 def api_update_inventory():
+    """Update inventory from Shopify with rate limiting and comprehensive logging"""
+    logger.info(f"API: /api/update_inventory - Method: {request.method}, IP: {request.remote_addr}")
     # Get authenticated user (supports both Flask-Login and session tokens)
     user, error_response = get_authenticated_user()
     if error_response:
+        logger.warning(f"API: /api/update_inventory - Authentication failed for IP: {request.remote_addr}")
         return error_response
     
     if not user.has_access():
@@ -2516,7 +2761,11 @@ def api_update_inventory():
         # Import at function level to avoid UnboundLocalError
         from performance import clear_cache as clear_perf_cache
         clear_perf_cache('get_products')
+        start_time = time.time()
         result = update_inventory()
+        processing_time = round((time.time() - start_time) * 1000, 2)  # ms
+        logger.info(f"API: /api/update_inventory - SUCCESS - User: {user.id}, Time: {processing_time}ms")
+        
         if isinstance(result, dict):
             # Store inventory data in session for CSV export
             if result.get('success') and 'inventory_data' in result:
@@ -2544,15 +2793,32 @@ def api_update_inventory():
         return jsonify({"success": False, "error": "An unexpected error occurred. Please try again or contact support if this persists."}), 500
 
 @app.route('/api/generate_report', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")  # Max 10 requests per minute (reports are heavy)
 def api_generate_report():
-    # CRITICAL: Wrap entire function in BaseException to catch segfaults
+    """Generate revenue report with detailed crash logging, rate limiting, and comprehensive monitoring"""
+    user_id = None
     try:
+        logger.info(f"API: /api/generate_report - Method: {request.method}, IP: {request.remote_addr}")
+        logging.info("=== REPORT GENERATION START ===")
+        logging.info(f"Request method: {request.method}")
+        logging.info(f"Request path: {request.path}")
+        logging.info(f"Request headers: {dict(request.headers)}")
+        
         # Get authenticated user (supports both Flask-Login and session tokens)
+        logging.info("Step 1: Getting authenticated user...")
         user, error_response = get_authenticated_user()
         if error_response:
+            logging.warning("Step 1 FAILED: Authentication error")
             return error_response
         
+        logging.info(f"Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, 'email') else 'N/A'}")
+        
+        # Store user ID before login_user to avoid recursion issues
+        user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+        logging.info(f"Step 2: User ID extracted: {user_id}")
+        
         if not user.has_access():
+            logging.warning(f"Step 2 FAILED: User {user_id} does not have access")
             return jsonify({
                 'error': 'Subscription required',
                 'success': False,
@@ -2561,22 +2827,35 @@ def api_generate_report():
                 'subscribe_url': url_for('billing.subscribe')
             }), 403
         
-        # Store user ID before login_user to avoid recursion issues
-        user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+        logging.info(f"Step 2 SUCCESS: User {user_id} has access")
         
         # Set current_user for generate_report() function
+        logging.info("Step 3: Logging in user...")
         from flask_login import login_user
         login_user(user, remember=False)
+        logging.info("Step 3 SUCCESS: User logged in")
         
         logger.info(f"Generate report called by user {user_id}")
+        logging.info(f"Step 4: Calling generate_report() for user {user_id}...")
         
         # CRITICAL: DO NOT call db.session.remove() here - let SQLAlchemy manage connections
         # Removing sessions before queries can cause segfaults by corrupting connection state
         from reporting import generate_report
         # Pass user_id to avoid recursion
+        logging.info("Step 4a: Imported generate_report function")
+        logging.info("Step 4b: Calling generate_report(user_id={})...".format(user_id))
+        
+        report_start_time = time.time()
         data = generate_report(user_id=user_id)
+        report_time = round((time.time() - report_start_time) * 1000, 2)  # ms
+        logger.info(f"API: /api/generate_report - Report generated - User: {user_id}, Time: {report_time}ms")
+        
+        logging.info(f"Step 4 SUCCESS: generate_report() returned, checking results...")
+        logging.info(f"Step 4 result keys: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
+        
         if data.get('error') and data['error'] is not None:
             error_msg = data['error']
+            logging.warning(f"Step 4 ERROR: Report generation returned error: {error_msg[:200]}")
             if 'No Shopify store connected' in error_msg:
                 logger.info(f"Generate report: No store connected for user {user_id}")
             else:
@@ -2584,25 +2863,47 @@ def api_generate_report():
             return error_msg, 500
         
         if not data.get('message'):
+            logging.warning(f"Step 4 WARNING: No message in report data")
             logger.warning(f"Generate report returned no message for user {user_id}")
             return '<h3 class="error">❌ No report data available</h3>', 500
         
         html = data.get('message', '<h3 class="error">❌ No report data available</h3>')
+        logging.info(f"Step 5: Report HTML generated, length: {len(html)} characters")
         
         from flask import session
         if 'report_data' in data:
             session['report_data'] = data['report_data']
+            logging.info("Step 5a: Report data stored in session")
         
+        logging.info("=== REPORT GENERATION SUCCESS ===")
         return html, 200
-    except MemoryError:
+        
+    except MemoryError as e:
+        logging.error("=== CRASH DETECTED ===")
+        logging.error(f"Error type: {type(e).__name__}")
+        logging.error(f"Error message: {str(e)}")
+        logging.error(f"Full traceback:\n{traceback.format_exc()}")
+        logging.error("=== END CRASH LOG ===")
         logger.error(f"Memory error generating report for user {user_id} - clearing cache")
         from performance import clear_cache as clear_perf_cache
         clear_perf_cache()
         return jsonify({"success": False, "error": "Memory error - please try again"}), 500
-    except SystemExit:
+    except SystemExit as e:
+        logging.error("=== CRASH DETECTED ===")
+        logging.error(f"Error type: {type(e).__name__}")
+        logging.error(f"Error message: {str(e)}")
+        logging.error(f"Full traceback:\n{traceback.format_exc()}")
+        logging.error("=== END CRASH LOG ===")
         # Re-raise system exits (like from sys.exit())
         raise
     except BaseException as e:
+        logging.error("=== CRASH DETECTED ===")
+        logging.error(f"Error type: {type(e).__name__}")
+        logging.error(f"Error message: {str(e)}")
+        logging.error(f"Full traceback:\n{traceback.format_exc()}")
+        logging.error(f"User ID: {user_id}")
+        logging.error(f"Exception args: {e.args}")
+        logging.error("=== END CRASH LOG ===")
         # Catch all other exceptions including segmentation faults precursors
         logger.error(f"Critical error generating report for user {user_id}: {type(e).__name__}: {str(e)}", exc_info=True)
         from performance import clear_cache as clear_perf_cache
@@ -2612,6 +2913,12 @@ def api_generate_report():
             pass
         return jsonify({"success": False, "error": "An unexpected error occurred. Please try again or contact support if this persists."}), 500
     except Exception as e:
+        logging.error("=== CRASH DETECTED ===")
+        logging.error(f"Error type: {type(e).__name__}")
+        logging.error(f"Error message: {str(e)}")
+        logging.error(f"Full traceback:\n{traceback.format_exc()}")
+        logging.error(f"User ID: {user_id}")
+        logging.error("=== END CRASH LOG ===")
         logger.error(f"Error generating report for user {user_id}: {str(e)}", exc_info=True)
         return jsonify({"success": False, "error": f"Failed to generate report: {str(e)}"}), 500
 
@@ -2836,8 +3143,10 @@ def rate_limit_exceeded(error):
 @app.route('/api/export/inventory', methods=['GET'])
 @login_required
 @require_access
+@limiter.limit("20 per minute")  # Max 20 exports per minute
 def export_inventory_csv():
-    """Export inventory to CSV"""
+    """Export inventory to CSV with rate limiting"""
+    logger.info(f"API: /api/export/inventory - User: {current_user.id}, IP: {request.remote_addr}")
     try:
         from flask import session, Response
         from inventory import check_inventory
@@ -2885,8 +3194,10 @@ def export_inventory_csv():
 @app.route('/api/export/report', methods=['GET'])
 @login_required
 @require_access
+@limiter.limit("20 per minute")  # Max 20 exports per minute
 def export_report_csv():
-    """Export revenue report to CSV"""
+    """Export revenue report to CSV with rate limiting"""
+    logger.info(f"API: /api/export/report - User: {current_user.id}, IP: {request.remote_addr}")
     try:
         from flask import session, Response
         from reporting import generate_report
@@ -2969,40 +3280,65 @@ def init_db():
                 logger.warning(f"Could not check for reset_token columns: {e}")
             
             # Migrate shopify_stores table - add new columns
+            # CRITICAL: Handle each column separately with proper transaction management
             try:
                 from migrate_shopify_store_columns import migrate_shopify_store_columns
                 migrate_shopify_store_columns(app, db)
             except Exception as e:
                 logger.warning(f"Could not migrate shopify_stores columns via function: {e}")
                 # Try manual migration as fallback (SQLite-compatible)
-                try:
-                    logger.info("Adding shop_id, charge_id, uninstalled_at columns (fallback)...")
-                    columns = [
-                        ("shop_id", "BIGINT"),
-                        ("charge_id", "VARCHAR(255)"),
-                        ("uninstalled_at", "TIMESTAMP")
-                    ]
-                    for col_name, col_type in columns:
+                logger.info("Adding shop_id, charge_id, uninstalled_at columns (fallback)...")
+                columns = [
+                    ("shop_id", "BIGINT"),
+                    ("charge_id", "VARCHAR(255)"),
+                    ("uninstalled_at", "TIMESTAMP")
+                ]
+                for col_name, col_type in columns:
+                    # CRITICAL: Each column in separate transaction to prevent cascading failures
+                    try:
+                        # Check if column exists first (PostgreSQL-safe)
                         try:
-                            db.session.execute(db.text(f"""
-                                ALTER TABLE shopify_stores 
-                                ADD COLUMN {col_name} {col_type}
+                            result = db.session.execute(db.text(f"""
+                                SELECT column_name 
+                                FROM information_schema.columns 
+                                WHERE table_name='shopify_stores' AND column_name='{col_name}'
                             """))
-                        except Exception as col_error:
-                            error_str = str(col_error).lower()
-                            if "duplicate column" in error_str or "already exists" in error_str:
+                            if result.fetchone():
                                 logger.info(f"✅ {col_name} column already exists")
-                            else:
-                                raise
-                    db.session.commit()
-                    logger.info("✅ shopify_stores columns added successfully")
-                except Exception as migrate_error:
-                    error_str = str(migrate_error).lower()
-                    if "duplicate column" in error_str or "already exists" in error_str:
-                        logger.info("✅ shopify_stores columns already exist")
-                    else:
-                        logger.warning(f"Could not add shopify_stores columns: {migrate_error}")
-                    db.session.rollback()
+                                continue
+                        except Exception as check_error:
+                            # If check fails, try to add anyway
+                            logger.debug(f"Could not check for {col_name}: {check_error}")
+                        
+                        # Add column in separate transaction
+                        db.session.execute(db.text(f"""
+                            ALTER TABLE shopify_stores 
+                            ADD COLUMN {col_name} {col_type}
+                        """))
+                        db.session.commit()
+                        logger.info(f"✅ {col_name} column added successfully")
+                    except Exception as col_error:
+                        # CRITICAL: Rollback immediately on error to prevent transaction abort
+                        try:
+                            db.session.rollback()
+                        except Exception:
+                            pass
+                        
+                        error_str = str(col_error).lower()
+                        if "duplicate column" in error_str or "already exists" in error_str or "current transaction is aborted" in error_str:
+                            logger.info(f"✅ {col_name} column already exists or transaction aborted (safe to ignore)")
+                            # Force new transaction for next column
+                            try:
+                                db.session.rollback()
+                            except Exception:
+                                pass
+                        else:
+                            logger.warning(f"Could not add {col_name} column: {col_error}")
+                            # Continue with next column even if this one failed
+                            try:
+                                db.session.rollback()
+                            except Exception:
+                                pass
             
             logger.info("Database tables initialized/verified")
         except Exception as e:

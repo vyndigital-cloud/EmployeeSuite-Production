@@ -138,13 +138,30 @@ def cache_result(ttl=CACHE_TTL_INVENTORY):
         return wrapper
     return decorator
 
+# Cache clearing interval - prevent spam
+CACHE_CLEAR_INTERVAL = 300  # 5 minutes minimum between full cache clears
+_last_cache_clear_time = None
+
 def clear_cache(pattern=None):
     """Clear cache entries matching pattern"""
+    global _last_cache_clear_time
     try:
+        from datetime import datetime
+        current_time = datetime.utcnow()
+        
+        # If clearing entire cache, check interval to prevent spam
         if pattern is None:
+            if _last_cache_clear_time:
+                time_since_last_clear = (current_time - _last_cache_clear_time).total_seconds()
+                if time_since_last_clear < CACHE_CLEAR_INTERVAL:
+                    # Too soon - skip clearing to prevent spam
+                    logger.debug(f"Cache clear skipped - only {time_since_last_clear:.1f}s since last clear (minimum {CACHE_CLEAR_INTERVAL}s)")
+                    return
+            
             _cache.clear()
             _cache_timestamps.clear()
             _cache_access_times.clear()
+            _last_cache_clear_time = current_time
             logger.info("Cache cleared completely")
         else:
             keys_to_remove = [k for k in list(_cache.keys()) if pattern in k]
@@ -152,13 +169,16 @@ def clear_cache(pattern=None):
                 _cache.pop(key, None)
                 _cache_timestamps.pop(key, None)
                 _cache_access_times.pop(key, None)
-            logger.info(f"Cleared {len(keys_to_remove)} cache entries matching '{pattern}'")
+            if keys_to_remove:
+                logger.info(f"Cleared {len(keys_to_remove)} cache entries matching '{pattern}'")
+            # Don't log if nothing to clear (prevent spam)
     except Exception as e:
         logger.error(f"Error clearing cache: {e}")
         # Force clear on error
         _cache.clear()
         _cache_timestamps.clear()
         _cache_access_times.clear()
+        _last_cache_clear_time = datetime.utcnow() if 'datetime' in dir() else None
 
 def get_cache_stats():
     """Get cache statistics"""

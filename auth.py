@@ -344,28 +344,41 @@ def login():
             # DETECT EMBEDDED vs STANDALONE for optimal cookie handling
             is_embedded = embedded == '1' or host
             
-            # EMBEDDED APPS: Use session tokens (no remember cookie needed)
-            # STANDALONE: Use cookies with remember for better UX
-            login_user(user, remember=not is_embedded)  # No remember cookie in embedded mode
-            session.permanent = True
-            session.modified = True  # Force immediate session save (Safari compatibility)
-            
-            # For embedded apps, session tokens handle auth - cookies are just for compatibility
-            # For standalone, cookies are primary auth method
+            # CRITICAL: For embedded apps, DO NOT set cookies (Safari blocks them)
+            # Session tokens handle ALL authentication for embedded apps
+            # Only use cookies for standalone access
             if is_embedded:
-                logger.info(f"Login successful for embedded app (session token auth)")
+                # EMBEDDED: Skip login_user() entirely - no cookies, only session tokens
+                # Store user ID in session for reference, but don't use Flask-Login cookies
+                # CRITICAL: Don't call login_user() - it sets cookies even with remember=False
+                session['user_id'] = user.id
+                session['_embedded'] = True  # Mark as embedded session
+                session['_authenticated'] = True  # Custom auth flag
+                session.permanent = False  # Don't persist embedded sessions
+                session.modified = False  # CRITICAL: Don't modify session to avoid cookie headers
+                logger.info(f"Login successful for embedded app (session token auth only, no cookies)")
             else:
+                # STANDALONE: Use Flask-Login cookies normally
+                login_user(user, remember=True)  # Use remember cookie for standalone
+                session.permanent = True
+                session.modified = True  # Force immediate session save
                 logger.info(f"Login successful for standalone access (cookie auth)")
             
             # Preserve embedded params if this is an embedded app request
-            # For embedded apps, redirect back to root with params (never redirect to /dashboard)
+            # For embedded apps, redirect to dashboard with params (dashboard handles embedded better)
             if is_embedded and shop:
                 # Build URL with all embedded parameters
                 params = {'shop': shop, 'embedded': '1'}
                 if host:
                     params['host'] = host
-                return redirect(url_for('home', **params))
+                return redirect(url_for('dashboard', **params))
             # For standalone, redirect to dashboard
+            # CRITICAL: Ensure session is saved before redirect
+            try:
+                session.permanent = True
+                session.modified = True
+            except Exception:
+                pass
             return redirect(url_for('dashboard'))
         
         return render_template_string(LOGIN_HTML, error="Invalid email or password", shop=shop, embedded=embedded, host=host)

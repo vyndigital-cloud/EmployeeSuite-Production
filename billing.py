@@ -279,7 +279,17 @@ def format_billing_error(error_msg):
     
     # Check for common error patterns
     if '422' in error_msg or 'unprocessable' in error_lower:
-        if 'owned by a shop' in error_lower or 'migrated to the shopify partners' in error_lower:
+        # Check for app ownership/migration errors - multiple variations
+        ownership_keywords = [
+            'owned by a shop',
+            'owned by a Shop',
+            'migrated to the shopify partners',
+            'migrated to the Shopify Partners',
+            'must be migrated',
+            'currently owned by a Shop',
+            'It appears that this application is currently owned by a Shop'
+        ]
+        if any(keyword in error_lower for keyword in ownership_keywords):
             return """⚠️ App Migration Required
 
 Your app needs to be migrated to the Shopify Partners area before billing can work.
@@ -346,15 +356,23 @@ def create_recurring_charge(shop_url, access_token, return_url):
         if not response.ok:
             try:
                 error_data = response.json()
-                error_message = error_data.get('errors', {}).get('base', [])
-                if not error_message:
-                    error_message = error_data.get('errors', 'Unknown error')
-                error_text = str(error_message) if error_message else response.text
+                # CRITICAL: Handle both dict and string error_data
+                if isinstance(error_data, dict):
+                    error_message = error_data.get('errors', {})
+                    if isinstance(error_message, dict):
+                        error_message = error_message.get('base', [])
+                    if not error_message:
+                        error_message = error_data.get('errors', 'Unknown error')
+                    error_text = str(error_message) if error_message else response.text
+                elif isinstance(error_data, str):
+                    error_text = error_data
+                else:
+                    error_text = str(error_data) if error_data else response.text
                 logger.error(f"Shopify API error for {shop_url}: {response.status_code} - {error_text}")
                 logger.error(f"Response body: {response.text}")
                 return {'success': False, 'error': f"Shopify API error: {error_text}"}
-            except (ValueError, KeyError):
-                # If response isn't JSON, use the text
+            except (ValueError, KeyError, TypeError):
+                # If response isn't JSON or parsing fails, use the text
                 logger.error(f"Shopify API error for {shop_url}: {response.status_code} - {response.text}")
                 return {'success': False, 'error': f"Shopify API error ({response.status_code}): {response.text[:200]}"}
         
@@ -374,12 +392,20 @@ def create_recurring_charge(shop_url, access_token, return_url):
         if hasattr(e, 'response') and e.response is not None:
             try:
                 error_data = e.response.json()
-                error_message = error_data.get('errors', {}).get('base', [])
-                if not error_message:
-                    error_message = error_data.get('errors', 'Unknown error')
-                error_msg = f"{error_msg} - {error_message}"
+                # CRITICAL: Handle both dict and string error_data
+                if isinstance(error_data, dict):
+                    error_message = error_data.get('errors', {})
+                    if isinstance(error_message, dict):
+                        error_message = error_message.get('base', [])
+                    if not error_message:
+                        error_message = error_data.get('errors', 'Unknown error')
+                    error_msg = f"{error_msg} - {error_message}"
+                elif isinstance(error_data, str):
+                    error_msg = f"{error_msg} - {error_data}"
+                else:
+                    error_msg = f"{error_msg} - {str(error_data)}"
                 logger.error(f"Response body: {e.response.text}")
-            except (ValueError, AttributeError):
+            except (ValueError, AttributeError, TypeError):
                 if hasattr(e.response, 'text'):
                     error_msg = f"{error_msg} - {e.response.text[:200]}"
         
@@ -484,6 +510,19 @@ def create_charge():
     shop_url = store.shop_url
     access_token = store.access_token
     
+    # CRITICAL: Check if access_token exists (None or empty string)
+    if not access_token or access_token.strip() == '':
+        logger.error(f"No access_token found for store {shop_url} - user must reconnect")
+        return redirect(url_for('shopify.shopify_settings', 
+                              error='Store not connected. Please reconnect your store.',
+                              shop=shop_url, host=host))
+    
+    # CRITICAL: Log which API key is being used for OAuth (for debugging)
+    current_api_key = os.getenv('SHOPIFY_API_KEY', 'NOT_SET')
+    logger.info(f"BILLING DEBUG: Using API key: {current_api_key[:8] if len(current_api_key) > 8 else current_api_key}... (first 8 chars)")
+    logger.info(f"BILLING DEBUG: Store: {shop_url}, Access token: {access_token[:10] if len(access_token) > 10 else access_token}... (first 10 chars)")
+    logger.info(f"BILLING DEBUG: Access token was created by OAuth using API key: {current_api_key[:8] if len(current_api_key) > 8 else current_api_key}...")
+    
     # Check if already subscribed
     if current_user.is_subscribed:
         return redirect(f'/dashboard?shop={shop_url}&host={host}')
@@ -497,6 +536,20 @@ def create_charge():
     if not result.get('success'):
         error_msg = result.get('error', 'Failed to create subscription')
         logger.error(f"Billing error for {shop_url}: {error_msg}")
+        
+        # CRITICAL: If "app owned by a shop" error, clear the access_token and force reinstall
+        if 'owned by a shop' in error_msg.lower() or 'must be migrated' in error_msg.lower():
+            logger.warning(f"Detected old app access_token for {shop_url} - clearing token to force reinstall")
+            # Clear the access_token so user must reinstall with new Partners app
+            store.access_token = None
+            store.is_active = False
+            db.session.commit()
+            logger.info(f"Cleared access_token for {shop_url} - user must reinstall with new Partners app")
+            # Redirect to settings with clear message
+            return redirect(url_for('shopify.shopify_settings', 
+                                  error='Your app needs to be reinstalled with the new Partners app. Please disconnect and reconnect your store.',
+                                  shop=shop_url, host=host))
+        
         # Format error message for better user experience
         formatted_error = format_billing_error(error_msg)
         return redirect(url_for('billing.subscribe', error=formatted_error, shop=shop_url, host=host))
