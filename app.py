@@ -242,16 +242,7 @@ def close_db(error):
         gc.collect()
     # CRITICAL: Only access request if we're in a request context
     # This function is called during app context teardown, which can happen outside requests
-    if has_request_context():
-        try:
-            if request.path.startswith('/webhooks/'):
-                # Note: response is not available in teardown_appcontext
-                # This would need to be handled in after_request instead
-                pass
-        except (RuntimeError, AttributeError):
-            # Request not available in this context
-            pass
-        response.headers['Keep-Alive'] = 'timeout=5, max=1000'
+    # Note: response is not available in teardown_appcontext - use after_request instead
     
     # Add cache headers for static assets
     if request.endpoint == 'static':
