@@ -125,10 +125,18 @@ def callback():
         return "HMAC verification failed", 403
     
     # Exchange code for access token
+    # CRITICAL: Log which API key is being used for OAuth (for debugging)
+    current_api_key = os.getenv('SHOPIFY_API_KEY', 'NOT_SET')
+    logger.info(f"OAUTH DEBUG: Using API key for token exchange: {current_api_key[:8]}... (first 8 chars)")
+    logger.info(f"OAUTH DEBUG: Shop: {shop}")
+    
     access_token = exchange_code_for_token(shop, code)
     
     if not access_token:
         return "Failed to get access token", 500
+    
+    logger.info(f"OAUTH DEBUG: Access token received: {access_token[:10]}... (first 10 chars)")
+    logger.info(f"OAUTH DEBUG: This token is tied to API key: {current_api_key[:8]}...")
     
     # Get shop information to extract shop_id
     shop_info = get_shop_info(shop, access_token)

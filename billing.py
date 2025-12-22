@@ -510,6 +510,12 @@ def create_charge():
     shop_url = store.shop_url
     access_token = store.access_token
     
+    # CRITICAL: Log which API key is being used for OAuth (for debugging)
+    current_api_key = os.getenv('SHOPIFY_API_KEY', 'NOT_SET')
+    logger.info(f"BILLING DEBUG: Using API key: {current_api_key[:8]}... (first 8 chars)")
+    logger.info(f"BILLING DEBUG: Store: {shop_url}, Access token: {access_token[:10]}... (first 10 chars)")
+    logger.info(f"BILLING DEBUG: Access token was created by OAuth using API key: {current_api_key[:8]}...")
+    
     # Check if already subscribed
     if current_user.is_subscribed:
         return redirect(f'/dashboard?shop={shop_url}&host={host}')
