@@ -1866,10 +1866,23 @@ def get_authenticated_user():
                 return None, (jsonify({'error': 'Invalid token format', 'success': False}), 401)
             
             # Properly verify JWT token with full validation
-                import jwt
+            import jwt
+            
+            # CRITICAL: Check environment variables exist
+            api_secret = os.getenv('SHOPIFY_API_SECRET')
+            api_key = os.getenv('SHOPIFY_API_KEY')
+            
+            if not api_secret:
+                logger.warning("SHOPIFY_API_SECRET not set - cannot verify session token")
+                return None, (jsonify({'error': 'Server configuration error', 'success': False}), 500)
+            
+            if not api_key:
+                logger.warning("SHOPIFY_API_KEY not set - cannot verify session token")
+                return None, (jsonify({'error': 'Server configuration error', 'success': False}), 500)
+            
             payload = jwt.decode(
                 token,
-                os.getenv('SHOPIFY_API_SECRET'),
+                api_secret,
                 algorithms=['HS256'],
                 options={
                     "verify_signature": True,
@@ -1880,7 +1893,7 @@ def get_authenticated_user():
             )
             
             # Verify audience matches API key
-            if payload.get('aud') != os.getenv('SHOPIFY_API_KEY'):
+            if payload.get('aud') != api_key:
                 logger.warning(f"Invalid audience in session token: {payload.get('aud')}")
                 return None, (jsonify({'error': 'Invalid token', 'success': False}), 401)
             
