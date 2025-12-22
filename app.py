@@ -1776,7 +1776,7 @@ def home():
                     except Exception:
                         pass
                 store = None
-            if store:
+            if store and hasattr(store, 'user') and store.user:
                 user = store.user
         
         # CRITICAL: For embedded apps, DON'T use cookies (Safari blocks them)
@@ -1897,7 +1897,7 @@ def home():
                         except Exception:
                             pass
                     store = None
-                if store:
+                if store and hasattr(store, 'shop_url') and store.shop_url:
                     shop_domain = store.shop_url
             elif shop:
                 # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
@@ -1914,7 +1914,7 @@ def home():
                         except Exception:
                             pass
                     store = None
-                if store:
+                if store and hasattr(store, 'shop_url') and store.shop_url:
                     shop_domain = store.shop_url
             
             return render_template_string(DASHBOARD_HTML, 
@@ -2185,8 +2185,8 @@ def dashboard():
             shop_domain = store.shop_url
     elif shop and has_shopify:
         store = None
+        # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
         try:
-            db.session.remove()
             store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
         except BaseException:
             try:
@@ -2199,7 +2199,7 @@ def dashboard():
                 except Exception:
                     pass
             store = None
-        if store:
+        if store and hasattr(store, 'shop_url') and store.shop_url:
             shop_domain = store.shop_url
     
     return render_template_string(DASHBOARD_HTML, 

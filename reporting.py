@@ -93,10 +93,19 @@ def generate_report(user_id=None):
                 if len(all_orders_raw) + len(orders) > 10000:
                     logger.warning(f"Reached memory limit (10,000 orders). Stopping pagination to prevent segfault.")
                     all_orders_raw.extend(orders[:10000 - len(all_orders_raw)])
+                    # Force garbage collection when hitting memory limit
+                    import gc
+                    gc.collect()
                     break
                 
                 all_orders_raw.extend(orders)
                 logger.info(f"Fetched {len(orders)} orders (iteration {iteration + 1}), total so far: {len(all_orders_raw)}")
+                
+                # Periodic memory cleanup for large datasets
+                if iteration > 0 and iteration % 5 == 0 and len(all_orders_raw) > 2000:
+                    import gc
+                    gc.collect()
+                    logger.debug(f"Memory cleanup: Collected garbage after {iteration + 1} iterations ({len(all_orders_raw)} orders)")
                 
                 # Check if we got fewer than limit (last page)
                 if len(orders) < limit:
@@ -141,12 +150,13 @@ def generate_report(user_id=None):
                 except Exception:
                     pass
                 return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify API error</div><div style='margin-bottom: 12px;'>Please try again in a moment.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
-        finally:
-            # CRITICAL: Always cleanup database session to prevent memory leaks
-            try:
-                db.session.remove()
-            except Exception:
-                pass
+        
+        # CRITICAL: Explicit memory cleanup after order fetching
+        # Force garbage collection for large datasets to prevent memory leaks
+        if len(all_orders_raw) > 5000:
+            import gc
+            gc.collect()
+            logger.info(f"Memory cleanup: Collected garbage after fetching {len(all_orders_raw)} orders")
         
         # Continue with order processing...
         try:
