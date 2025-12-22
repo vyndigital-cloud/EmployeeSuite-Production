@@ -571,9 +571,14 @@ DASHBOARD_HTML = """
             var host = urlParams.get('host');
             var shop = urlParams.get('shop');
             
+            // Global flag to track App Bridge readiness
+            window.appBridgeReady = false;
+            window.isEmbedded = !!host;
+            
             // Only load if we have host (embedded mode)
             if (!host) {
                 window.shopifyApp = null;
+                window.appBridgeReady = true; // Not embedded, so "ready" (won't use it)
                 return;
             }
             
@@ -585,9 +590,9 @@ DASHBOARD_HTML = """
             // Initialize immediately when loaded
             script.onload = function() {
                 try {
-                    // Wait for App Bridge to be available (max 1 second)
+                    // Wait for App Bridge to be available (max 2 seconds for Safari)
                     var attempts = 0;
-                    var maxAttempts = 20; // 20 * 50ms = 1 second max
+                    var maxAttempts = 40; // 40 * 50ms = 2 seconds max (Safari needs more time)
                     
                     function init() {
                         attempts++;
@@ -597,8 +602,10 @@ DASHBOARD_HTML = """
                                 setTimeout(init, 50);
                                 return;
                             }
-                            console.warn('App Bridge not available after timeout');
+                            console.error('❌ App Bridge not available after timeout');
                             window.shopifyApp = null;
+                            window.appBridgeReady = true; // Mark as ready so buttons can show error
+                            showAppBridgeError('App Bridge failed to load. Please refresh the page.');
                             return;
                         }
                         
@@ -609,8 +616,10 @@ DASHBOARD_HTML = """
                                     setTimeout(init, 50);
                                     return;
                                 }
-                                console.warn('App Bridge.default not available');
+                                console.error('❌ App Bridge.default not available');
                                 window.shopifyApp = null;
+                                window.appBridgeReady = true;
+                                showAppBridgeError('App Bridge initialization failed. Please refresh the page.');
                                 return;
                             }
                             
@@ -624,29 +633,55 @@ DASHBOARD_HTML = """
                                     host: host // Use original encoded host
                                 });
                                 console.log('✅ App Bridge initialized');
+                                window.appBridgeReady = true;
+                                
+                                // Enable buttons now that App Bridge is ready
+                                enableEmbeddedButtons();
                             } else {
-                                console.warn('Missing apiKey or host');
+                                console.error('❌ Missing apiKey or host');
                                 window.shopifyApp = null;
+                                window.appBridgeReady = true;
+                                showAppBridgeError('App configuration error. Please contact support.');
                             }
                         } catch (e) {
-                            console.error('App Bridge init error:', e);
+                            console.error('❌ App Bridge init error:', e);
                             window.shopifyApp = null;
+                            window.appBridgeReady = true;
+                            showAppBridgeError('App Bridge error: ' + e.message);
                         }
                     }
                     
                     init();
                 } catch (e) {
-                    console.error('App Bridge load error:', e);
+                    console.error('❌ App Bridge load error:', e);
                     window.shopifyApp = null;
+                    window.appBridgeReady = true;
+                    showAppBridgeError('Failed to load App Bridge: ' + e.message);
                 }
             };
             
             script.onerror = function() {
-                console.error('Failed to load App Bridge script');
+                console.error('❌ Failed to load App Bridge script');
                 window.shopifyApp = null;
+                window.appBridgeReady = true;
+                showAppBridgeError('Failed to load App Bridge script. Please check your internet connection and refresh.');
             };
             
             document.head.appendChild(script);
+            
+            // Helper function to show App Bridge errors
+            function showAppBridgeError(message) {
+                var output = document.getElementById('output');
+                if (output) {
+                    output.innerHTML = '<div style="padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px; color: #d72c0d;"><strong>App Bridge Error:</strong><br>' + message + '</div>';
+                }
+            }
+            
+            // Helper function to enable buttons after App Bridge is ready
+            function enableEmbeddedButtons() {
+                // Buttons are enabled by default, but we can add visual feedback
+                console.log('✅ Embedded app ready - buttons enabled');
+            }
         })();
     </script>
     
@@ -1025,6 +1060,7 @@ DASHBOARD_HTML = """
                     if (!token) {
                         throw new Error('Unable to get session token. Please refresh the page.');
                     }
+                    console.log('✅ Got session token, making API request...');
                     return fetch('/api/process_orders', {
                         headers: {'Authorization': 'Bearer ' + token},
                         signal: controller.signal
@@ -1034,13 +1070,22 @@ DASHBOARD_HTML = """
                     if (err.name === 'AbortError') {
                         return;
                     }
-                    // Show professional error instead of trying without auth
+                    // Show detailed error for debugging
+                    console.error('❌ Session token error:', err);
                     setButtonLoading(button, false);
+                    var errorMsg = err.message || 'Unknown error';
                     document.getElementById('output').innerHTML = `
-                        <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
-                            <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Session Error</div>
-                            <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Unable to verify your session. This usually happens when the page has been open for a while.</div>
-                            <button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>
+                        <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;">
+                            <div style="font-size: 15px; font-weight: 600; color: #d72c0d; margin-bottom: 8px;">🔒 Session Token Error</div>
+                            <div style="font-size: 14px; color: #6d7175; margin-bottom: 12px; line-height: 1.5;">${errorMsg}</div>
+                            <div style="font-size: 13px; color: #8c9196; margin-bottom: 16px; padding: 12px; background: #f6f6f7; border-radius: 4px;">
+                                <strong>Debug info:</strong><br>
+                                App Bridge ready: ${window.appBridgeReady ? 'Yes' : 'No'}<br>
+                                App Bridge exists: ${window.shopifyApp ? 'Yes' : 'No'}<br>
+                                Embedded mode: ${window.isEmbedded ? 'Yes' : 'No'}
+                            </div>
+                            <button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; margin-right: 8px;">Refresh Page</button>
+                            <button onclick="console.log('App Bridge:', window.shopifyApp, 'Ready:', window.appBridgeReady)" style="padding: 8px 16px; background: #f6f6f7; color: #202223; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Debug Console</button>
                         </div>
                     `;
                     throw err; // Stop execution
@@ -1106,11 +1151,18 @@ DASHBOARD_HTML = """
                 })
                 .catch(err => {
                     setButtonLoading(button, false);
+                    console.error('❌ API request error:', err);
+                    var errorDetails = '';
+                    if (err.message) {
+                        errorDetails = '<div style="font-size: 12px; color: #8c9196; margin-top: 8px; padding: 8px; background: #f6f6f7; border-radius: 4px;">' + err.message + '</div>';
+                    }
                     document.getElementById('output').innerHTML = `
-                        <div style="animation: fadeIn 0.3s ease-in;">
-                            <h3 class="error">❌ Connection Error</h3>
-                            <p style="margin-top: 12px;">Unable to connect to server. Please check your internet connection and try again.</p>
-                            <p style="margin-top: 8px; font-size: 13px; color: #737373;">💡 Tip: If this persists, go to Settings and verify your Shopify store is connected.</p>
+                        <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;">
+                            <h3 class="error" style="color: #d72c0d; margin-bottom: 12px;">❌ Connection Error</h3>
+                            <p style="margin-top: 12px; color: #6d7175;">Unable to connect to server. Please check your internet connection and try again.</p>
+                            ${errorDetails}
+                            <p style="margin-top: 12px; font-size: 13px; color: #737373;">💡 Tip: If this persists, go to Settings and verify your Shopify store is connected.</p>
+                            <button onclick="processOrders(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 12px;">Try Again</button>
                         </div>
                     `;
                 });
@@ -1149,9 +1201,22 @@ DASHBOARD_HTML = """
             
             // Get session token if in embedded mode - seamless integration
             var fetchPromise;
-            var isEmbedded = window.shopifyApp && new URLSearchParams(window.location.search).get('host');
+            var isEmbedded = window.isEmbedded; // Use global flag
             
-            if (isEmbedded && window.shopifyApp) {
+            // CRITICAL: Wait for App Bridge to be ready before making requests
+            if (isEmbedded && !window.appBridgeReady) {
+                setButtonLoading(button, false);
+                document.getElementById('output').innerHTML = `
+                    <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                        <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">⏳ Initializing App...</div>
+                        <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please wait while the app initializes. This should only take a moment.</div>
+                        <button onclick="setTimeout(function(){updateInventory(this);}, 500)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
                 // In embedded mode, we MUST have session token - retry up to 3 times
                 var retryCount = 0;
                 var maxRetries = 3;
@@ -1335,9 +1400,22 @@ DASHBOARD_HTML = """
             
             // Get session token if in embedded mode - seamless integration
             var fetchPromise;
-            var isEmbedded = window.shopifyApp && new URLSearchParams(window.location.search).get('host');
+            var isEmbedded = window.isEmbedded; // Use global flag
             
-            if (isEmbedded && window.shopifyApp) {
+            // CRITICAL: Wait for App Bridge to be ready before making requests
+            if (isEmbedded && !window.appBridgeReady) {
+                setButtonLoading(button, false);
+                document.getElementById('output').innerHTML = `
+                    <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                        <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">⏳ Initializing App...</div>
+                        <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please wait while the app initializes. This should only take a moment.</div>
+                        <button onclick="setTimeout(function(){generateReport(this);}, 500)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
                 // In embedded mode, we MUST have session token - retry up to 3 times
                 var retryCount = 0;
                 var maxRetries = 3;
@@ -1549,39 +1627,35 @@ def home():
         # For embedded apps, check if store is connected
         from models import ShopifyStore
         store = None
+        user = None
         if shop:
             store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            if store:
+                user = store.user
         
-        if store:
-            # Store is connected - auto-login the user
-            user = store.user
-            if user and not current_user.is_authenticated:
-                # Safari compatibility: Don't use remember cookie in embedded mode
-                # Session tokens handle auth for embedded apps, not cookies
-                login_user(user, remember=False)  # No remember cookie for Safari compatibility
-                session.permanent = True
-                session.modified = True  # Force session save for Safari
-                logger.info(f"Auto-logged in user for embedded app: {shop}")
+        # CRITICAL: For embedded apps, DON'T use cookies (Safari blocks them)
+        # Session tokens handle all authentication - cookies are unreliable in iframes
+        # We'll get user info from session tokens in API calls, not from Flask-Login cookies
         
         # For embedded apps, ALWAYS render dashboard - don't check Flask-Login
         # Flask-Login sessions don't work in iframes, but session tokens do
-        # If user isn't logged in via Flask-Login, we'll handle it in the template
         # CRITICAL: Always render HTML for embedded apps, never redirect
         if True:  # Always render for embedded apps
             # Import dashboard function logic to render directly
             from flask import render_template_string
             
-            # Safe defaults for when user isn't authenticated via Flask-Login
-            # Session tokens will handle auth for API calls
-            if current_user.is_authenticated:
-                has_access = current_user.has_access()
-                trial_active = current_user.is_trial_active()
-                days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
-                is_subscribed = current_user.is_subscribed
-                user_id = current_user.id
+            # For embedded apps, get user info from store (if connected)
+            # Session tokens will verify this in API calls
+            if user:
+                # Store is connected - use user info for template
+                has_access = user.has_access()
+                trial_active = user.is_trial_active()
+                days_left = (user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+                is_subscribed = user.is_subscribed
+                user_id = user.id
             else:
-                # User not authenticated via Flask-Login (normal for embedded apps)
-                # Use safe defaults - session tokens will handle API auth
+                # Store not connected yet - show connect prompt
+                # Session tokens will handle auth once store is connected
                 has_access = False
                 trial_active = False
                 days_left = 0
@@ -1878,10 +1952,12 @@ def get_authenticated_user():
     """
     # Try Flask-Login first (for standalone access)
     if current_user.is_authenticated:
+        logger.debug(f"User authenticated via Flask-Login: {current_user.id}")
         return current_user, None
     
     # Try session token (for embedded apps)
     auth_header = request.headers.get('Authorization', '')
+    logger.debug(f"Auth header present: {bool(auth_header)}, starts with Bearer: {auth_header.startswith('Bearer ')}")
     if auth_header.startswith('Bearer '):
         try:
             token = auth_header.split(' ')[1] if ' ' in auth_header else None
@@ -1940,9 +2016,10 @@ def get_authenticated_user():
             from models import ShopifyStore
             store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
             if store and store.user:
+                logger.info(f"✅ Session token verified - user {store.user.id} from shop {shop_domain}")
                 return store.user, None
             else:
-                logger.warning(f"No store found for shop: {shop_domain}")
+                logger.warning(f"❌ No store found for shop: {shop_domain}")
                 return None, (jsonify({
                     'error': 'Your store is not connected. Please install the app from your Shopify admin.',
                     'success': False,
