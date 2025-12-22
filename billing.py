@@ -270,6 +270,29 @@ def get_shop_and_token_for_user(user):
     return None, None
 
 
+def format_billing_error(error_msg):
+    """
+    Format billing error messages to be more user-friendly
+    Provides guidance for common issues
+    """
+    error_lower = error_msg.lower()
+    
+    # Check for common error patterns
+    if '422' in error_msg or 'unprocessable' in error_lower:
+        if 'managed pricing' in error_lower or 'pricing' in error_lower:
+            return "Billing setup issue: Please check your app's pricing settings in the Shopify Partners dashboard. Make sure 'Manual Pricing' is enabled (not 'Managed Pricing')."
+        elif 'custom app' in error_lower or 'owned by a shop' in error_lower:
+            return "Billing setup issue: Your app needs to be a public app in the Shopify Partners area. Please verify your app configuration in the Partners dashboard."
+        else:
+            return f"Unable to create subscription. This may be due to app configuration. Please contact support if this persists. Error: {error_msg[:100]}"
+    elif '403' in error_msg or 'forbidden' in error_lower:
+        return "Permission denied: Your app may not have billing permissions. Please verify your app is properly configured in the Shopify Partners dashboard."
+    elif '401' in error_msg or 'unauthorized' in error_lower:
+        return "Authentication error: Please try reconnecting your Shopify store."
+    else:
+        return f"Subscription error: {error_msg[:150]}"
+
+
 def create_recurring_charge(shop_url, access_token, return_url):
     """
     Create a recurring application charge using Shopify Billing API
@@ -283,18 +306,45 @@ def create_recurring_charge(shop_url, access_token, return_url):
         'Content-Type': 'application/json'
     }
     
+    # Automatically enable test mode for development stores
+    is_dev_store = shop_url.endswith('.myshopify.com') and ('-dev' in shop_url or 'dev' in shop_url.lower())
+    test_mode = os.getenv('SHOPIFY_BILLING_TEST', 'false').lower() == 'true' or is_dev_store
+    
     payload = {
         'recurring_application_charge': {
             'name': 'Employee Suite Pro',
             'price': 29.00,
             'return_url': return_url,
             'trial_days': 7,
-            'test': os.getenv('SHOPIFY_BILLING_TEST', 'false').lower() == 'true'  # Set to true for testing
+            'test': test_mode
         }
     }
     
+    if test_mode:
+        logger.info(f"Using test mode for charge creation (dev store: {is_dev_store})")
+    
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=15)
+        
+        # Log request details for debugging
+        logger.info(f"Creating charge for {shop_url}, status: {response.status_code}")
+        
+        # If error, capture the actual response body
+        if not response.ok:
+            try:
+                error_data = response.json()
+                error_message = error_data.get('errors', {}).get('base', [])
+                if not error_message:
+                    error_message = error_data.get('errors', 'Unknown error')
+                error_text = str(error_message) if error_message else response.text
+                logger.error(f"Shopify API error for {shop_url}: {response.status_code} - {error_text}")
+                logger.error(f"Response body: {response.text}")
+                return {'success': False, 'error': f"Shopify API error: {error_text}"}
+            except (ValueError, KeyError):
+                # If response isn't JSON, use the text
+                logger.error(f"Shopify API error for {shop_url}: {response.status_code} - {response.text}")
+                return {'success': False, 'error': f"Shopify API error ({response.status_code}): {response.text[:200]}"}
+        
         response.raise_for_status()
         data = response.json()
         charge = data.get('recurring_application_charge', {})
@@ -306,8 +356,22 @@ def create_recurring_charge(shop_url, access_token, return_url):
             'status': charge.get('status')
         }
     except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to create Shopify charge: {e}")
-        return {'success': False, 'error': str(e)}
+        error_msg = str(e)
+        # Try to get response if available
+        if hasattr(e, 'response') and e.response is not None:
+            try:
+                error_data = e.response.json()
+                error_message = error_data.get('errors', {}).get('base', [])
+                if not error_message:
+                    error_message = error_data.get('errors', 'Unknown error')
+                error_msg = f"{error_msg} - {error_message}"
+                logger.error(f"Response body: {e.response.text}")
+            except (ValueError, AttributeError):
+                if hasattr(e.response, 'text'):
+                    error_msg = f"{error_msg} - {e.response.text[:200]}"
+        
+        logger.error(f"Failed to create Shopify charge for {shop_url}: {error_msg}")
+        return {'success': False, 'error': error_msg}
 
 
 def activate_recurring_charge(shop_url, access_token, charge_id):
@@ -420,7 +484,9 @@ def create_charge():
     if not result.get('success'):
         error_msg = result.get('error', 'Failed to create subscription')
         logger.error(f"Billing error for {shop_url}: {error_msg}")
-        return redirect(url_for('billing.subscribe', error=error_msg, shop=shop_url, host=host))
+        # Format error message for better user experience
+        formatted_error = format_billing_error(error_msg)
+        return redirect(url_for('billing.subscribe', error=formatted_error, shop=shop_url, host=host))
     
     # Store charge_id for later confirmation
     store.charge_id = str(result['charge_id'])
