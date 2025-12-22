@@ -1150,7 +1150,9 @@ def dashboard():
     # Check if this is an embedded request (from Referer or params)
     referer = request.headers.get('Referer', '')
     is_from_shopify_admin = 'admin.shopify.com' in referer
-    is_embedded = request.args.get('embedded') == '1' or request.args.get('shop') or request.args.get('host') or is_from_shopify_admin
+    shop = request.args.get('shop')
+    host = request.args.get('host')
+    is_embedded = request.args.get('embedded') == '1' or shop or host or is_from_shopify_admin
     
     # For embedded apps, allow access without strict auth (App Bridge handles it)
     # For regular requests, require login
@@ -1159,7 +1161,6 @@ def dashboard():
     
     # If embedded but not logged in, try to auto-login from shop param
     if is_embedded and not current_user.is_authenticated:
-        shop = request.args.get('shop')
         if shop:
             from models import ShopifyStore
             store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
@@ -1171,9 +1172,17 @@ def dashboard():
     # For embedded requests, always render - never redirect
     # This prevents iframe breaking
     """Dashboard - accessible to all authenticated users, shows subscribe prompt if no access"""
-    has_access = current_user.has_access()
-    trial_active = current_user.is_trial_active()
-    days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+    
+    # Handle case where user might not be authenticated (for embedded apps)
+    if current_user.is_authenticated:
+        has_access = current_user.has_access()
+        trial_active = current_user.is_trial_active()
+        days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+    else:
+        # Embedded app without auth - show limited view
+        has_access = False
+        trial_active = False
+        days_left = 0
     
     # Check if user has connected Shopify
     from models import ShopifyStore
