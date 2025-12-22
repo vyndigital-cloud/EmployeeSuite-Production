@@ -183,23 +183,9 @@ DASHBOARD_HTML = """
     <meta charset="utf-8">
     <!-- Critical: Prevent any blocking - render immediately -->
     <style>
-        /* Inline critical CSS to prevent render blocking */
+        /* Inline critical CSS - no blocking */
         body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-        /* Hide until ready to prevent flash */
-        body:not(.loaded) { visibility: hidden; }
     </style>
-    <script>
-        // Mark page as loaded immediately - don't wait for anything
-        (function() {
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', function() {
-                    document.body.classList.add('loaded');
-                });
-            } else {
-                document.body.classList.add('loaded');
-            }
-        })();
-    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -213,57 +199,41 @@ DASHBOARD_HTML = """
         }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #fafbfb 0%, #f6f6f7 50%, #f0f1f2 100%);
-            background-attachment: fixed;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f6f6f7;
             color: #202223;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             min-height: 100vh;
-            line-height: 1.6;
+            line-height: 1.5;
         }
         
-        /* Header - Premium Style */
+        /* Header - Shopify Style */
         .header {
             background: #ffffff;
             border-bottom: 1px solid #e1e3e5;
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            backdrop-filter: blur(10px);
-            background: rgba(255, 255, 255, 0.98);
         }
         .header-content {
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 24px;
-            height: 70px;
+            height: 64px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .logo {
-            font-size: 18px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #008060 0%, #00a67e 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 16px;
+            font-weight: 600;
+            color: #202223;
             text-decoration: none;
-            letter-spacing: -0.3px;
+            letter-spacing: -0.2px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            transition: transform 0.2s ease;
-        }
-        .logo:hover {
-            transform: scale(1.02);
-        }
-        .logo::before {
-            content: '⚡';
-            font-size: 24px;
-            filter: drop-shadow(0 2px 4px rgba(0, 128, 96, 0.3));
+            gap: 10px;
         }
         .header-nav {
             display: flex;
@@ -300,83 +270,42 @@ DASHBOARD_HTML = """
             padding: 32px 24px;
         }
         
-        /* Page Title - Premium Typography */
+        /* Page Title - Shopify Typography */
         .page-title {
-            font-size: 32px;
-            font-weight: 700;
+            font-size: 28px;
+            font-weight: 600;
             color: #202223;
-            margin-bottom: 12px;
-            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+            letter-spacing: -0.3px;
             line-height: 1.2;
-            background: linear-gradient(135deg, #202223 0%, #4a5568 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: fadeInDown 0.5s ease-out;
-        }
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
         .page-subtitle {
-            font-size: 16px;
+            font-size: 15px;
             color: #6d7175;
-            margin-bottom: 40px;
+            margin-bottom: 32px;
             font-weight: 400;
-            line-height: 1.6;
-            max-width: 650px;
-            animation: fadeInDown 0.5s ease-out 0.1s both;
+            line-height: 1.5;
+            max-width: 600px;
         }
         
-        /* Banner - Premium Style */
+        /* Banner - Shopify Style */
         .banner {
             background: #ffffff;
             border: 1px solid #e1e3e5;
-            border-radius: 12px;
-            padding: 20px 24px;
-            margin-bottom: 28px;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .banner::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background: currentColor;
-            opacity: 0.3;
-        }
-        .banner:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            transform: translateY(-1px);
         }
         .banner-warning {
-            background: linear-gradient(135deg, #fffbf0 0%, #fef3c7 100%);
-            border-color: #fcd34d;
-            color: #92400e;
+            background: #fffbf0;
+            border-color: #fef3c7;
         }
         .banner-info {
-            background: linear-gradient(135deg, #f0f4ff 0%, #dbeafe 100%);
-            border-color: #60a5fa;
-            color: #1e40af;
-        }
-        .banner-success {
-            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-            border-color: #86efac;
-            color: #166534;
+            background: #f0f4ff;
+            border-color: #dbeafe;
         }
         .banner-content h3 {
             font-size: 15px;
@@ -390,177 +319,70 @@ DASHBOARD_HTML = """
             font-weight: 400;
         }
         .banner-action {
-            background: linear-gradient(135deg, #008060 0%, #00a67e 100%);
+            background: #008060;
             color: #fff;
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 8px 16px;
+            border-radius: 6px;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 500;
             text-decoration: none;
             white-space: nowrap;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 2px 4px rgba(0, 128, 96, 0.2);
-            position: relative;
-            overflow: hidden;
-        }
-        .banner-action::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.4s, height 0.4s;
-        }
-        .banner-action:hover::before {
-            width: 200px;
-            height: 200px;
+            transition: background 0.15s;
         }
         .banner-action:hover {
-            background: linear-gradient(135deg, #006e52 0%, #008060 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0, 128, 96, 0.3);
-        }
-        .banner-action:active {
-            transform: translateY(0);
+            background: #006e52;
         }
         
-        /* Cards Grid - Premium Style */
+        /* Cards Grid - Shopify Style */
         .cards-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 24px;
-            margin-bottom: 40px;
-            animation: fadeInUp 0.6s ease-out;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
         }
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .cards-grid .card:nth-child(1) { animation-delay: 0.1s; }
-        .cards-grid .card:nth-child(2) { animation-delay: 0.2s; }
-        .cards-grid .card:nth-child(3) { animation-delay: 0.3s; }
         .card {
             background: #ffffff;
             border: 1px solid #e1e3e5;
-            border-radius: 12px;
-            padding: 28px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #008060, #00a67e);
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 8px;
+            padding: 24px;
+            transition: box-shadow 0.15s;
         }
         
         .card:hover {
-            box-shadow: 0 4px 16px rgba(0, 128, 96, 0.12);
-            border-color: #008060;
-            transform: translateY(-2px);
-        }
-        
-        .card:hover::before {
-            transform: scaleX(1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
         
         .card-icon {
-            font-size: 40px;
-            margin-bottom: 20px;
+            font-size: 32px;
+            margin-bottom: 16px;
             line-height: 1;
             display: inline-block;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .card:hover .card-icon {
-            transform: scale(1.1) rotate(5deg);
         }
         
         .card-title {
-            font-size: 18px;
-            font-weight: 700;
+            font-size: 17px;
+            font-weight: 600;
             color: #202223;
-            margin-bottom: 10px;
-            letter-spacing: -0.3px;
-            line-height: 1.3;
+            margin-bottom: 8px;
+            letter-spacing: -0.2px;
         }
         .card-description {
             font-size: 14px;
             color: #6d7175;
-            line-height: 1.6;
-            margin-bottom: 24px;
+            line-height: 1.5;
+            margin-bottom: 20px;
             font-weight: 400;
         }
         .card-btn {
             width: 100%;
-            background: linear-gradient(135deg, #008060 0%, #00a67e 100%);
+            background: #008060;
             color: #fff;
             border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
+            padding: 10px 16px;
+            border-radius: 6px;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 2px 4px rgba(0, 128, 96, 0.2);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .card-btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-        
-        .card-btn:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-        
-        .card-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 128, 96, 0.3);
-        }
-        
-        .card-btn:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0, 128, 96, 0.2);
-        }
-        
-        .card-btn:disabled {
-            background: #e1e3e5;
-            color: #8c9196;
-            cursor: not-allowed;
-            box-shadow: none;
-            transform: none;
-        }
             transition: background 0.15s;
             display: flex;
             align-items: center;
@@ -578,148 +400,69 @@ DASHBOARD_HTML = """
             background: #6d7175;
         }
         
-        /* Output - Premium Style */
+        /* Output - Shopify Style */
         .output-container {
             background: #ffffff;
             border: 1px solid #e1e3e5;
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            transition: box-shadow 0.3s ease;
-        }
-        .output-container:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
         .output-header {
-            padding: 18px 24px;
+            padding: 16px 20px;
             border-bottom: 1px solid #e1e3e5;
             font-size: 14px;
             font-weight: 600;
             color: #202223;
-            background: linear-gradient(to bottom, #fafbfb, #f6f6f7);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .output-header::before {
-            content: '📊';
-            font-size: 16px;
+            background: #f6f6f7;
         }
         #output {
-            padding: 24px;
+            padding: 20px;
             min-height: 200px;
             font-size: 14px;
-            line-height: 1.7;
-            color: #202223;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            animation: fadeIn 0.3s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            line-height: 1.6;
+            color: #6d7175;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
         }
         #output:empty:before {
-            content: '✨ Click any button above to get started. Your results will appear here.';
+            content: 'Click any button above to get started. Your results will appear here.';
             color: #8c9196;
             font-style: italic;
             text-align: center;
-            padding: 60px 20px;
+            padding: 40px 20px;
             display: block;
-            font-size: 15px;
         }
         #output:empty {
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #fafbfb 0%, #f6f6f7 100%);
         }
         
-        /* Loading - Premium Style */
+        /* Loading - Shopify Style */
         .loading {
             text-align: center;
-            padding: 60px 40px;
-            background: linear-gradient(135deg, #fafbfb 0%, #f6f6f7 100%);
+            padding: 48px 40px;
         }
         .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(0, 128, 96, 0.1);
-            border-top: 3px solid #008060;
-            border-right: 3px solid #00a67e;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #e1e3e5;
+            border-top: 2px solid #008060;
             border-radius: 50%;
-            animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-            margin: 0 auto 20px;
-            position: relative;
-        }
-        .spinner::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(0, 128, 96, 0.2);
-            border-top: 2px solid transparent;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            animation: spin 1.2s linear infinite reverse;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
         .loading-text {
-            font-size: 15px;
-            font-weight: 500;
-            color: #202223;
-            letter-spacing: 0.3px;
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
+            font-size: 14px;
+            font-weight: 400;
+            color: #6d7175;
         }
         
-        /* Status - Premium Style */
-        .success { 
-            color: #008060; 
-            font-weight: 600; 
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .success::before {
-            content: '✓';
-            background: #008060;
-            color: white;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 700;
-        }
-        .error { 
-            color: #d72c0d; 
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .error::before {
-            content: '✕';
-            background: #d72c0d;
-            color: white;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 700;
-        }
+        /* Status */
+        .success { color: #008060; font-weight: 500; }
+        .error { color: #d72c0d; font-weight: 500; }
         
         /* Focus states */
         button:focus-visible,
@@ -747,39 +490,52 @@ DASHBOARD_HTML = """
         }
     </style>
 
-    <!-- Shopify App Bridge (for embedded apps) - Load synchronously for proper initialization -->
+    <!-- Shopify App Bridge (for embedded apps) - CRITICAL: Must load before page renders -->
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <script>
-        // Initialize App Bridge immediately if available
+        // Initialize App Bridge - CRITICAL for embedded apps
         (function() {
-            // Wait for App Bridge to load (it might already be loaded)
             function initAppBridge() {
-                if (typeof window['app-bridge'] === 'undefined') {
-                    // Wait a bit and try again
-                    setTimeout(initAppBridge, 50);
-                    return;
-                }
-                
                 try {
-                    var AppBridge = window['app-bridge'];
-                    var createApp = AppBridge.default;
+                    // Check if App Bridge is loaded
+                    if (typeof window['app-bridge'] === 'undefined') {
+                        setTimeout(initAppBridge, 100);
+                        return;
+                    }
                     
-                    // Get shop and host from URL params
+                    var AppBridge = window['app-bridge'];
+                    if (!AppBridge || !AppBridge.default) {
+                        setTimeout(initAppBridge, 100);
+                        return;
+                    }
+                    
+                    var createApp = AppBridge.default;
+                    var Redirect = AppBridge.actions ? AppBridge.actions.Redirect : null;
+                    
+                    // Get shop and host from URL params (Shopify provides these)
                     var urlParams = new URLSearchParams(window.location.search);
-                    var shop = urlParams.get('shop') || '{{ shop_domain or "" }}';
+                    var shop = urlParams.get('shop') || '';
                     var host = urlParams.get('host') || '';
                     var apiKey = '{{ SHOPIFY_API_KEY or "" }}';
+                    
+                    // Decode host if it's base64 encoded
+                    if (host && !host.includes('.')) {
+                        try {
+                            host = atob(host);
+                        } catch(e) {
+                            // Not base64, use as-is
+                        }
+                    }
                     
                     if (shop && host && apiKey) {
                         var app = createApp({
                             apiKey: apiKey,
-                            host: host,
-                            shop: shop
+                            host: host
                         });
                         
                         window.shopifyApp = app;
                         
-                        // Wrap fetch to add session tokens for ALL internal requests
+                        // Wrap fetch to add session tokens
                         var originalFetch = window.fetch;
                         window.fetch = function(url, options) {
                             options = options || {};
@@ -788,9 +544,9 @@ DASHBOARD_HTML = """
                             var isInternalRequest = typeof url === 'string' && (url.startsWith('/') || url.includes(window.location.hostname));
                             
                             if (isInternalRequest && !options.headers['Authorization']) {
-                                // Get fresh session token for each request
                                 return app.getSessionToken().then(function(token) {
                                     if (token) {
+                                        options.headers = options.headers || {};
                                         options.headers['Authorization'] = 'Bearer ' + token;
                                     }
                                     return originalFetch(url, options);
@@ -803,7 +559,7 @@ DASHBOARD_HTML = """
                             return originalFetch(url, options);
                         };
                         
-                        // Also wrap XMLHttpRequest for compatibility
+                        // Wrap XMLHttpRequest
                         var originalXHROpen = XMLHttpRequest.prototype.open;
                         var originalXHRSend = XMLHttpRequest.prototype.send;
                         XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
@@ -831,16 +587,16 @@ DASHBOARD_HTML = """
                             }
                         };
                         
-                        console.log('✅ App Bridge initialized successfully');
+                        console.log('✅ App Bridge initialized');
                     } else {
-                        console.warn('⚠️ App Bridge: Missing required params', {shop: shop, host: host, apiKey: !!apiKey});
+                        console.warn('⚠️ App Bridge: Missing params', {shop: !!shop, host: !!host, apiKey: !!apiKey});
                     }
                 } catch (e) {
                     console.error('❌ App Bridge init failed:', e);
                 }
             }
             
-            // Start initialization
+            // Start immediately - don't wait for DOMContentLoaded
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', initAppBridge);
             } else {
