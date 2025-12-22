@@ -31,7 +31,7 @@ from security_enhancements import (
     log_security_event,
     require_https
 )
-from performance import compress_response, clear_cache
+from performance import compress_response
 
 # Initialize Sentry for error monitoring (if DSN is provided)
 sentry_dsn = os.getenv('SENTRY_DSN')

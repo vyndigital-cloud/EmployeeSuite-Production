@@ -1,6 +1,7 @@
 from flask_login import current_user
-from models import ShopifyStore
+from models import ShopifyStore, db
 from shopify_integration import ShopifyClient
+from logging_config import logger
 import requests
 
 def check_inventory():
@@ -32,7 +33,18 @@ def check_inventory():
         
         # Check if products returned an error
         if isinstance(products, dict) and "error" in products:
-            return {"success": False, "error": f"Shopify returned an error: {products['error']}"}
+            error_msg = products['error']
+            # If authentication failed, mark store as inactive
+            if "Authentication failed" in error_msg or "401" in str(products):
+                logger.warning(f"Authentication failed for store {store.shop_url} (user {current_user.id}) - marking as inactive")
+                try:
+                    store.is_active = False
+                    db.session.commit()
+                except Exception as db_error:
+                    logger.error(f"Failed to update store status: {db_error}")
+                    db.session.rollback()
+                return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>Authentication failed - Please reconnect your store</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
+            return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>{error_msg}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
         
         if not products or len(products) == 0:
             return {"success": True, "message": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 8px 12px; background: #f0fdf4; border-left: 2px solid #16a34a; border-radius: 4px; font-size: 12px; color: #166534;'>✅ No products found in your store.</div>"}
