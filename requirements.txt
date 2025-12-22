@@ -12,6 +12,9 @@ Flask-Login==0.6.3
 Flask-Session==0.8.0
 Flask-SQLAlchemy==3.1.1
 gunicorn==21.2.0
+gevent==23.9.1
+numpy==1.24.3
+pandas==2.0.3
 idna==3.11
 itsdangerous==2.2.0
 Jinja2==3.1.6

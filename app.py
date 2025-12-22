@@ -1,7 +1,14 @@
+import sys
+import os
+
+# Force single-threaded numpy/pandas operations to prevent segfaults
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['OMP_NUM_THREADS'] = '1'
+
 from flask import Flask, jsonify, render_template_string, redirect, url_for, request, session
 from flask_login import LoginManager, login_required, current_user, login_user
 from flask_bcrypt import Bcrypt
-import os
 import logging
 from datetime import datetime
 
