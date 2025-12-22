@@ -1851,10 +1851,10 @@ def get_authenticated_user():
                 return None, (jsonify({'error': 'Invalid token', 'success': False}), 401)
             
             shop_domain = dest.replace('https://', '').split('/')[0]
-                
-                # Find user from shop
-                from models import ShopifyStore
-                store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
+            
+            # Find user from shop
+            from models import ShopifyStore
+            store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
             if store and store.user:
                 return store.user, None
             else:
