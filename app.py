@@ -1,7 +1,6 @@
 from flask import Flask, jsonify, render_template_string, redirect, url_for, request, session
 from flask_login import LoginManager, login_required, current_user, login_user
 from flask_bcrypt import Bcrypt
-from flask_session import Session
 import os
 import logging
 from datetime import datetime
@@ -147,11 +146,12 @@ def optimize_response(response):
     # CRITICAL: Force session cookie to be set for Safari compatibility
     # Safari requires explicit cookie setting in response headers
     try:
-        if hasattr(session, 'permanent') and session.permanent:
-            # Session is permanent - ensure cookie is set
+        # Check if session has been modified or is permanent
+        if session.get('_permanent') or session.modified:
+            # Ensure cookie is set
             session.modified = True
-    except Exception:
-        # Session not available - skip (webhook requests, etc.)
+    except (RuntimeError, AttributeError):
+        # Session not available in this context (webhook requests, etc.)
         pass
     
     # Enable Keep-Alive for webhook endpoints (Shopify requirement)
