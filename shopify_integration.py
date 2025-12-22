@@ -188,31 +188,61 @@ class ShopifyClient:
             
             # Process products
             for edge in products_data.get("edges", []):
-                product = edge["node"]
-                product_title = product.get("title", "Untitled")
-                
-                # Process variants
-                for variant_edge in product.get("variants", {}).get("edges", []):
-                    variant = variant_edge["node"]
+                try:
+                    product = edge.get("node", {})
+                    if not product:
+                        continue
                     
-                    # Handle None values - Shopify can return None for SKU
-                    sku = variant.get("sku") or 'N/A'
-                    price_value = variant.get("price") or '0'
-                    price = f"${price_value}" if price_value != '0' else 'N/A'
+                    product_title = product.get("title", "Untitled")
                     
-                    # Get inventory quantity from GraphQL structure
-                    stock = 0
-                    inventory_item = variant.get("inventoryItem")
-                    if inventory_item:
-                        # Use quantityAvailable (direct field, more reliable)
-                        stock = inventory_item.get("quantityAvailable", 0) or 0
+                    # Process variants - handle cases where variants might be None or missing
+                    variants_data = product.get("variants", {})
+                    if not isinstance(variants_data, dict):
+                        # If no variants, skip this product
+                        continue
                     
-                    inventory.append({
-                        'product': product_title,
-                        'sku': sku,
-                        'stock': stock,
-                        'price': price
-                    })
+                    variant_edges = variants_data.get("edges", [])
+                    if not variant_edges:
+                        # Product with no variants - still add it with default values
+                        inventory.append({
+                            'product': product_title,
+                            'sku': 'N/A',
+                            'stock': 0,
+                            'price': 'N/A'
+                        })
+                        continue
+                    
+                    # Process each variant
+                    for variant_edge in variant_edges:
+                        try:
+                            variant = variant_edge.get("node", {})
+                            if not variant:
+                                continue
+                            
+                            # Handle None values - Shopify can return None for SKU
+                            sku = variant.get("sku") or 'N/A'
+                            price_value = variant.get("price") or '0'
+                            price = f"${price_value}" if price_value != '0' else 'N/A'
+                            
+                            # Get inventory quantity from GraphQL structure
+                            stock = 0
+                            inventory_item = variant.get("inventoryItem")
+                            if inventory_item and isinstance(inventory_item, dict):
+                                # Use quantityAvailable (direct field, more reliable)
+                                stock = inventory_item.get("quantityAvailable", 0) or 0
+                            
+                            inventory.append({
+                                'product': product_title,
+                                'sku': sku,
+                                'stock': stock,
+                                'price': price
+                            })
+                        except Exception as e:
+                            # Skip this variant if there's an error, continue with others
+                            continue
+                except Exception as e:
+                    # Skip this product if there's an error, continue with others
+                    continue
         
         return inventory
     
