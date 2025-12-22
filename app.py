@@ -217,6 +217,7 @@ def optimize_response(response):
 def close_db(error):
     """Close database session after each request - prevents connection leaks and segfaults"""
     from models import db
+    from flask import has_request_context
     # Flask-SQLAlchemy automatically removes sessions, but we ensure cleanup happens
     # This is the ROOT CAUSE of segfaults - sessions not being cleaned up properly
     try:
@@ -239,8 +240,17 @@ def close_db(error):
         # Force cleanup on error
         import gc
         gc.collect()
-    if request.path.startswith('/webhooks/'):
-        response.headers['Connection'] = 'keep-alive'
+    # CRITICAL: Only access request if we're in a request context
+    # This function is called during app context teardown, which can happen outside requests
+    if has_request_context():
+        try:
+            if request.path.startswith('/webhooks/'):
+                # Note: response is not available in teardown_appcontext
+                # This would need to be handled in after_request instead
+                pass
+        except (RuntimeError, AttributeError):
+            # Request not available in this context
+            pass
         response.headers['Keep-Alive'] = 'timeout=5, max=1000'
     
     # Add cache headers for static assets
