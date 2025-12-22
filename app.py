@@ -1930,6 +1930,11 @@ def api_process_orders():
             return jsonify(result)
         else:
             return jsonify({"message": str(result), "success": True})
+    except MemoryError:
+        logger.error(f"Memory error processing orders for user {user_id} - clearing cache")
+        from performance import clear_cache
+        clear_cache()
+        return jsonify({"error": "Memory error - please try again", "success": False}), 500
     except Exception as e:
         logger.error(f"Error processing orders for user {user_id}: {str(e)}", exc_info=True)
         return jsonify({"error": f"Failed to process orders: {str(e)}", "success": False}), 500
@@ -1968,6 +1973,11 @@ def api_update_inventory():
             return jsonify(result)
         else:
             return jsonify({"success": False, "error": str(result)})
+    except MemoryError:
+        logger.error(f"Memory error updating inventory for user {user_id} - clearing cache")
+        from performance import clear_cache
+        clear_cache()
+        return jsonify({"success": False, "error": "Memory error - please try again"}), 500
     except Exception as e:
         logger.error(f"Error updating inventory for user {user_id}: {str(e)}", exc_info=True)
         return jsonify({"success": False, "error": f"Failed to update inventory: {str(e)}"}), 500
@@ -2019,6 +2029,11 @@ def api_generate_report():
             session['report_data'] = data['report_data']
         
         return html, 200
+    except MemoryError:
+        logger.error(f"Memory error generating report for user {user_id} - clearing cache")
+        from performance import clear_cache
+        clear_cache()
+        return jsonify({"success": False, "error": "Memory error - please try again"}), 500
     except Exception as e:
         logger.error(f"Error generating report for user {user_id}: {str(e)}", exc_info=True)
         return jsonify({"success": False, "error": f"Failed to generate report: {str(e)}"}), 500

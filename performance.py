@@ -5,21 +5,29 @@ Lightning-fast caching and response optimization
 
 from functools import wraps
 from datetime import datetime, timedelta
+from collections import OrderedDict
 import hashlib
 import json
 import logging
+import sys
 
 logger = logging.getLogger(__name__)
 
-# In-memory cache (simple, fast, no dependencies)
-_cache = {}
+# In-memory cache with LRU eviction (prevents memory exhaustion)
+# Using OrderedDict for O(1) LRU operations
+_cache = OrderedDict()
 _cache_timestamps = {}
+_cache_access_times = {}  # Track last access for LRU
 
-# Cache TTLs (in seconds) - Increased for better performance
-CACHE_TTL_INVENTORY = 300  # 5 minutes for inventory (was 60s)
-CACHE_TTL_ORDERS = 180  # 3 minutes for orders (was 30s)
-CACHE_TTL_REPORTS = 600  # 10 minutes for reports (was 120s)
-CACHE_TTL_STATS = 300  # 5 minutes for dashboard stats
+# Cache limits to prevent memory exhaustion (critical for worker stability)
+MAX_CACHE_ENTRIES = 100  # Maximum number of cache entries per worker
+MAX_CACHE_SIZE_MB = 50  # Maximum cache size in MB (approximate)
+
+# Cache TTLs (in seconds) - Balanced for performance and memory
+CACHE_TTL_INVENTORY = 180  # 3 minutes for inventory (reduced from 5min to prevent memory issues)
+CACHE_TTL_ORDERS = 120  # 2 minutes for orders (reduced from 3min)
+CACHE_TTL_REPORTS = 300  # 5 minutes for reports (reduced from 10min to prevent crashes)
+CACHE_TTL_STATS = 180  # 3 minutes for dashboard stats
 
 def get_cache_key(prefix, *args, **kwargs):
     """Generate cache key from function arguments"""
@@ -31,56 +39,146 @@ def get_cache_key(prefix, *args, **kwargs):
     key_hash = hashlib.md5(key_string.encode()).hexdigest()
     return f"{prefix}:{key_hash}"
 
+def _get_cache_size_mb():
+    """Estimate cache size in MB"""
+    try:
+        total_size = 0
+        for key, value in _cache.items():
+            # Rough estimate: key + value size
+            try:
+                key_size = sys.getsizeof(str(key))
+                value_size = sys.getsizeof(str(value))
+                total_size += key_size + value_size
+            except:
+                pass
+        return total_size / (1024 * 1024)  # Convert to MB
+    except:
+        return 0
+
+def _evict_lru():
+    """Evict least recently used cache entries"""
+    try:
+        # Remove oldest entries until under limit
+        while len(_cache) >= MAX_CACHE_ENTRIES:
+            # Remove oldest (first in OrderedDict)
+            if _cache:
+                oldest_key = next(iter(_cache))
+                _cache.pop(oldest_key, None)
+                _cache_timestamps.pop(oldest_key, None)
+                _cache_access_times.pop(oldest_key, None)
+        
+        # Also check size limit
+        cache_size_mb = _get_cache_size_mb()
+        if cache_size_mb > MAX_CACHE_SIZE_MB:
+            # Remove oldest entries until under size limit
+            while cache_size_mb > MAX_CACHE_SIZE_MB and _cache:
+                oldest_key = next(iter(_cache))
+                _cache.pop(oldest_key, None)
+                _cache_timestamps.pop(oldest_key, None)
+                _cache_access_times.pop(oldest_key, None)
+                cache_size_mb = _get_cache_size_mb()
+    except Exception as e:
+        logger.warning(f"Error during cache eviction: {e}")
+        # If eviction fails, clear cache to prevent memory issues
+        _cache.clear()
+        _cache_timestamps.clear()
+        _cache_access_times.clear()
+
 def cache_result(ttl=CACHE_TTL_INVENTORY):
-    """Decorator to cache function results"""
+    """Decorator to cache function results with LRU eviction"""
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            # Generate cache key
-            cache_key = get_cache_key(func.__name__, *args, **kwargs)
-            
-            # Check cache
-            if cache_key in _cache:
-                timestamp = _cache_timestamps.get(cache_key)
-                if timestamp and (datetime.utcnow() - timestamp).total_seconds() < ttl:
-                    logger.debug(f"Cache HIT: {func.__name__}")
-                    return _cache[cache_key]
-                else:
-                    # Expired, remove it
-                    _cache.pop(cache_key, None)
-                    _cache_timestamps.pop(cache_key, None)
-            
-            # Cache miss - execute function
-            logger.debug(f"Cache MISS: {func.__name__}")
-            result = func(*args, **kwargs)
-            
-            # Store in cache
-            _cache[cache_key] = result
-            _cache_timestamps[cache_key] = datetime.utcnow()
-            
-            return result
+            try:
+                # Generate cache key
+                cache_key = get_cache_key(func.__name__, *args, **kwargs)
+                
+                # Check cache
+                if cache_key in _cache:
+                    timestamp = _cache_timestamps.get(cache_key)
+                    if timestamp and (datetime.utcnow() - timestamp).total_seconds() < ttl:
+                        # Cache hit - move to end (most recently used)
+                        _cache.move_to_end(cache_key)
+                        _cache_access_times[cache_key] = datetime.utcnow()
+                        logger.debug(f"Cache HIT: {func.__name__}")
+                        return _cache[cache_key]
+                    else:
+                        # Expired, remove it
+                        _cache.pop(cache_key, None)
+                        _cache_timestamps.pop(cache_key, None)
+                        _cache_access_times.pop(cache_key, None)
+                
+                # Cache miss - execute function
+                logger.debug(f"Cache MISS: {func.__name__}")
+                result = func(*args, **kwargs)
+                
+                # Evict if needed before storing
+                _evict_lru()
+                
+                # Store in cache (at end = most recently used)
+                _cache[cache_key] = result
+                _cache_timestamps[cache_key] = datetime.utcnow()
+                _cache_access_times[cache_key] = datetime.utcnow()
+                
+                # Move to end to mark as recently used
+                _cache.move_to_end(cache_key)
+                
+                return result
+            except MemoryError:
+                # Memory error - clear cache and retry without caching
+                logger.error("Memory error in cache - clearing cache")
+                _cache.clear()
+                _cache_timestamps.clear()
+                _cache_access_times.clear()
+                return func(*args, **kwargs)
+            except Exception as e:
+                # Any other error - don't cache, just execute
+                logger.warning(f"Cache error for {func.__name__}: {e}")
+                return func(*args, **kwargs)
         return wrapper
     return decorator
 
 def clear_cache(pattern=None):
     """Clear cache entries matching pattern"""
-    if pattern is None:
+    try:
+        if pattern is None:
+            _cache.clear()
+            _cache_timestamps.clear()
+            _cache_access_times.clear()
+            logger.info("Cache cleared completely")
+        else:
+            keys_to_remove = [k for k in list(_cache.keys()) if pattern in k]
+            for key in keys_to_remove:
+                _cache.pop(key, None)
+                _cache_timestamps.pop(key, None)
+                _cache_access_times.pop(key, None)
+            logger.info(f"Cleared {len(keys_to_remove)} cache entries matching '{pattern}'")
+    except Exception as e:
+        logger.error(f"Error clearing cache: {e}")
+        # Force clear on error
         _cache.clear()
         _cache_timestamps.clear()
-        logger.info("Cache cleared completely")
-    else:
-        keys_to_remove = [k for k in _cache.keys() if pattern in k]
-        for key in keys_to_remove:
-            _cache.pop(key, None)
-            _cache_timestamps.pop(key, None)
-        logger.info(f"Cleared {len(keys_to_remove)} cache entries matching '{pattern}'")
+        _cache_access_times.clear()
 
 def get_cache_stats():
     """Get cache statistics"""
-    return {
-        'entries': len(_cache),
-        'keys': list(_cache.keys())[:10]  # First 10 keys
-    }
+    try:
+        return {
+            'entries': len(_cache),
+            'max_entries': MAX_CACHE_ENTRIES,
+            'size_mb': round(_get_cache_size_mb(), 2),
+            'max_size_mb': MAX_CACHE_SIZE_MB,
+            'keys': list(_cache.keys())[:10]  # First 10 keys
+        }
+    except Exception as e:
+        logger.error(f"Error getting cache stats: {e}")
+        return {
+            'entries': 0,
+            'max_entries': MAX_CACHE_ENTRIES,
+            'size_mb': 0,
+            'max_size_mb': MAX_CACHE_SIZE_MB,
+            'keys': []
+        }
 
 # Response compression
 import gzip
