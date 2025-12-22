@@ -1327,16 +1327,39 @@ def api_process_orders():
 @app.route('/api/update_inventory', methods=['GET', 'POST'])
 def api_update_inventory():
     # Support both embedded (session token) and regular (Flask-Login) requests
-    is_embedded = request.headers.get('Authorization', '').startswith('Bearer ')
-    if not is_embedded and not current_user.is_authenticated:
+    auth_header = request.headers.get('Authorization', '')
+    is_embedded = auth_header.startswith('Bearer ')
+    
+    # Get user - either from Flask-Login or from session token
+    user = None
+    if current_user.is_authenticated:
+        user = current_user
+    elif is_embedded:
+        try:
+            token = auth_header.split(' ')[1] if ' ' in auth_header else None
+            if token:
+                import jwt
+                payload = jwt.decode(token, os.getenv('SHOPIFY_API_SECRET'), algorithms=['HS256'])
+                shop_domain = payload.get('dest', '').replace('https://', '').split('/')[0]
+                
+                from models import ShopifyStore
+                store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
+                if store:
+                    user = store.user
+        except Exception as e:
+            logger.warning(f"Failed to get user from session token: {e}")
+    
+    if not user:
         return jsonify({'error': 'Authentication required', 'success': False}), 401
     
-    # Check access
-    if not current_user.has_access():
+    if not user.has_access():
         return jsonify({'error': 'Subscription required', 'success': False}), 403
     
+    # Set current_user for update_inventory() function
+    from flask_login import login_user
+    login_user(user, remember=False)
+    
     try:
-        # Clear inventory cache to force fresh data
         clear_cache('get_products')
         result = update_inventory()
         if isinstance(result, dict):
@@ -1344,52 +1367,70 @@ def api_update_inventory():
         else:
             return jsonify({"success": False, "error": str(result)})
     except Exception as e:
-        user_id = current_user.id if current_user.is_authenticated else 'unknown'
-        logger.error(f"Error updating inventory for user {user_id}: {str(e)}", exc_info=True)
+        logger.error(f"Error updating inventory for user {user.id}: {str(e)}", exc_info=True)
         return jsonify({"success": False, "error": f"Failed to update inventory: {str(e)}"}), 500
 
 @app.route('/api/generate_report', methods=['GET', 'POST'])
 def api_generate_report():
     # Support both embedded (session token) and regular (Flask-Login) requests
-    is_embedded = request.headers.get('Authorization', '').startswith('Bearer ')
-    if not is_embedded and not current_user.is_authenticated:
+    auth_header = request.headers.get('Authorization', '')
+    is_embedded = auth_header.startswith('Bearer ')
+    
+    # Get user - either from Flask-Login or from session token
+    user = None
+    if current_user.is_authenticated:
+        user = current_user
+    elif is_embedded:
+        try:
+            token = auth_header.split(' ')[1] if ' ' in auth_header else None
+            if token:
+                import jwt
+                payload = jwt.decode(token, os.getenv('SHOPIFY_API_SECRET'), algorithms=['HS256'])
+                shop_domain = payload.get('dest', '').replace('https://', '').split('/')[0]
+                
+                from models import ShopifyStore
+                store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
+                if store:
+                    user = store.user
+        except Exception as e:
+            logger.warning(f"Failed to get user from session token: {e}")
+    
+    if not user:
         return jsonify({'error': 'Authentication required', 'success': False}), 401
     
-    # Check access
-    if not current_user.has_access():
+    if not user.has_access():
         return jsonify({'error': 'Subscription required', 'success': False}), 403
     
-    user_id = current_user.id if current_user.is_authenticated else 'unknown'
-    logger.info(f"Generate report called by user {user_id}")
+    # Set current_user for generate_report() function
+    from flask_login import login_user
+    login_user(user, remember=False)
+    
+    logger.info(f"Generate report called by user {user.id}")
     try:
         from reporting import generate_report
         data = generate_report()
         if data.get('error') and data['error'] is not None:
-            # Don't log expected errors (like "No Shopify store connected") as ERROR level
             error_msg = data['error']
             if 'No Shopify store connected' in error_msg:
-                logger.info(f"Generate report: No store connected for user {current_user.id}")
+                logger.info(f"Generate report: No store connected for user {user.id}")
             else:
-                logger.error(f"Generate report error for user {current_user.id}: {error_msg}")
-            # Return the formatted error HTML directly (it already has the title and banner)
+                logger.error(f"Generate report error for user {user.id}: {error_msg}")
             return error_msg, 500
         
-        # Report HTML is already in data['message']
         if not data.get('message'):
-            logger.warning(f"Generate report returned no message for user {current_user.id}")
+            logger.warning(f"Generate report returned no message for user {user.id}")
             return '<h3 class="error">❌ No report data available</h3>', 500
         
-        # Export button is now included directly in the report HTML from reporting.py
         html = data.get('message', '<h3 class="error">❌ No report data available</h3>')
         
-        # Store report data for CSV export
         from flask import session
         if 'report_data' in data:
             session['report_data'] = data['report_data']
         
-        return html
+        return html, 200
     except Exception as e:
-        logger.error(f"Generate report exception for user {current_user.id}: {str(e)}", exc_info=True)
+        logger.error(f"Error generating report for user {user.id}: {str(e)}", exc_info=True)
+        return jsonify({"success": False, "error": f"Failed to generate report: {str(e)}"}), 500
         return f"<h3 class='error'>❌ Error: {str(e)}</h3>", 500
 
 @app.errorhandler(404)
