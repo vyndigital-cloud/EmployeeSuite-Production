@@ -279,9 +279,11 @@ def format_billing_error(error_msg):
     
     # Check for common error patterns
     if '422' in error_msg or 'unprocessable' in error_lower:
-        if 'managed pricing' in error_lower or 'pricing' in error_lower:
+        if 'owned by a shop' in error_lower or 'migrated to the shopify partners' in error_lower:
+            return "⚠️ App Migration Required: Your app is currently owned by a shop and needs to be migrated to the Shopify Partners area. Go to your Shopify Partners Dashboard → Your App → Settings, and migrate the app to Partners. This is required for billing to work."
+        elif 'managed pricing' in error_lower or 'pricing' in error_lower:
             return "Billing setup issue: Please check your app's pricing settings in the Shopify Partners dashboard. Make sure 'Manual Pricing' is enabled (not 'Managed Pricing')."
-        elif 'custom app' in error_lower or 'owned by a shop' in error_lower:
+        elif 'custom app' in error_lower:
             return "Billing setup issue: Your app needs to be a public app in the Shopify Partners area. Please verify your app configuration in the Partners dashboard."
         else:
             return f"Unable to create subscription. This may be due to app configuration. Please contact support if this persists. Error: {error_msg[:100]}"
