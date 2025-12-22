@@ -373,12 +373,21 @@ def exchange_code_for_token(shop, code):
         'code': code
     }
     
-    response = requests.post(url, json=payload)
-    
-    if response.status_code == 200:
-        return response.json().get('access_token')
-    
-    return None
+    try:
+        response = requests.post(url, json=payload, timeout=10)
+        
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                return data.get('access_token') if isinstance(data, dict) else None
+            except (ValueError, KeyError) as e:
+                logger.error(f"Error parsing access token response: {e}")
+                return None
+        
+        return None
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error requesting access token: {e}")
+        return None
 
 def get_shop_info(shop, access_token):
     """Get shop information including shop_id"""

@@ -1903,7 +1903,15 @@ def get_authenticated_user():
                 logger.warning(f"Invalid destination in session token: {dest}")
                 return None, (jsonify({'error': 'Invalid token', 'success': False}), 401)
             
-            shop_domain = dest.replace('https://', '').split('/')[0]
+            # CRITICAL: Safe string splitting - handle edge cases
+            try:
+                cleaned_dest = dest.replace('https://', '').replace('http://', '')
+                shop_domain = cleaned_dest.split('/')[0] if '/' in cleaned_dest else cleaned_dest
+                if not shop_domain:
+                    raise ValueError("Empty shop domain")
+            except (IndexError, AttributeError, ValueError) as e:
+                logger.warning(f"Error parsing shop domain from dest '{dest}': {e}")
+                return None, (jsonify({'error': 'Invalid token format', 'success': False}), 401)
             
             # Find user from shop
             from models import ShopifyStore
