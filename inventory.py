@@ -98,7 +98,14 @@ def check_inventory():
         message += f"<div style='color: #a3a3a3; font-size: 10px; margin-top: 12px; text-align: right;'>Updated: {timestamp}</div>"
         message += "</div>"
         
-        return {"success": True, "message": message}
+        # Store inventory data in session for CSV export
+        try:
+            from flask import session
+            session['inventory_data'] = products
+        except Exception:
+            pass  # Session might not be available, continue anyway
+        
+        return {"success": True, "message": message, "inventory_data": products}
     
     except Exception as e:
         return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Unexpected error</div><div style='margin-bottom: 12px;'>{str(e)}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
