@@ -146,7 +146,12 @@ def load_user(user_id):
 @login_manager.unauthorized_handler
 def unauthorized():
     """Handle unauthorized access - preserve embedded parameters for embedded apps"""
-    from flask import request, redirect, url_for
+    from flask import request, redirect, url_for, has_request_context
+    # CRITICAL: Only use request context if we're in a request
+    if not has_request_context():
+        # Not in a request context - return a simple redirect
+        return redirect('/login')
+    
     # Check if this is an embedded app request
     shop = request.args.get('shop')
     embedded = request.args.get('embedded')

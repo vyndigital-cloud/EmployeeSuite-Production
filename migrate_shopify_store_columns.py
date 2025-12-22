@@ -10,12 +10,12 @@ def migrate_shopify_store_columns(app, db):
     # CRITICAL: Don't create nested app_context - assume we're already in one
     # If called from init_db(), we're already in app.app_context()
     try:
-            # Get database dialect to determine which method to use
-            dialect = db.engine.dialect.name
-            
-            # SQLite doesn't have information_schema, so we just try to add columns
-            # PostgreSQL has information_schema, so we can check first
-            if dialect == 'sqlite':
+        # Get database dialect to determine which method to use
+        dialect = db.engine.dialect.name
+        
+        # SQLite doesn't have information_schema, so we just try to add columns
+        # PostgreSQL has information_schema, so we can check first
+        if dialect == 'sqlite':
                 # For SQLite, just try to add columns and catch "already exists" errors
                 columns_to_add = [
                     ('shop_id', 'BIGINT'),
@@ -178,9 +178,9 @@ def migrate_shopify_store_columns(app, db):
                 db.session.commit()
             except Exception:
                 pass
-            logger.info("✅ Migration completed successfully")
-            
-        except Exception as e:
+        logger.info("✅ Migration completed successfully")
+        
+    except Exception as e:
             logger.error(f"Migration error: {e}", exc_info=True)
             try:
                 db.session.rollback()
