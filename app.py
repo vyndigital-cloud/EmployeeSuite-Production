@@ -31,7 +31,7 @@ from security_enhancements import (
     log_security_event,
     require_https
 )
-from performance import compress_response, clear_cache
+from performance import compress_response
 
 # Initialize Sentry for error monitoring (if DSN is provided)
 sentry_dsn = os.getenv('SENTRY_DSN')
@@ -1993,8 +1993,8 @@ def api_process_orders():
             return jsonify({"message": str(result), "success": True})
     except MemoryError:
         logger.error(f"Memory error processing orders for user {user_id} - clearing cache")
-        from performance import clear_cache
-        clear_cache()
+        from performance import clear_cache as clear_perf_cache
+        clear_perf_cache()
         return jsonify({"error": "Memory error - please try again", "success": False}), 500
     except Exception as e:
         logger.error(f"Error processing orders for user {user_id}: {str(e)}", exc_info=True)
@@ -2024,7 +2024,9 @@ def api_update_inventory():
     login_user(user, remember=False)
     
     try:
-        clear_cache('get_products')
+        # Import at function level to avoid UnboundLocalError
+        from performance import clear_cache as clear_perf_cache
+        clear_perf_cache('get_products')
         result = update_inventory()
         if isinstance(result, dict):
             # Store inventory data in session for CSV export
@@ -2036,8 +2038,8 @@ def api_update_inventory():
             return jsonify({"success": False, "error": str(result)})
     except MemoryError:
         logger.error(f"Memory error updating inventory for user {user_id} - clearing cache")
-        from performance import clear_cache
-        clear_cache()
+        from performance import clear_cache as clear_perf_cache
+        clear_perf_cache()
         return jsonify({"success": False, "error": "Memory error - please try again"}), 500
     except Exception as e:
         logger.error(f"Error updating inventory for user {user_id}: {str(e)}", exc_info=True)
@@ -2092,8 +2094,8 @@ def api_generate_report():
         return html, 200
     except MemoryError:
         logger.error(f"Memory error generating report for user {user_id} - clearing cache")
-        from performance import clear_cache
-        clear_cache()
+        from performance import clear_cache as clear_perf_cache
+        clear_perf_cache()
         return jsonify({"success": False, "error": "Memory error - please try again"}), 500
     except Exception as e:
         logger.error(f"Error generating report for user {user_id}: {str(e)}", exc_info=True)

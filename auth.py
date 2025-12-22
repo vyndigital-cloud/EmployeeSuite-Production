@@ -6,6 +6,7 @@ from flask_bcrypt import Bcrypt
 from datetime import datetime, timedelta
 import secrets
 from input_validation import validate_email, sanitize_input
+from logging_config import logger
 
 auth_bp = Blueprint('auth', __name__)
 
