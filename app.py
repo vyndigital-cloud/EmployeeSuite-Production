@@ -1905,11 +1905,11 @@ def home():
                 # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                     store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
                 except BaseException:
-                try:
-                    db.session.rollback()
-                except Exception:
-                    pass
-                finally:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+                    finally:
                     try:
                         db.session.remove()
                     except Exception:
