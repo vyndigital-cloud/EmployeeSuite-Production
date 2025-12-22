@@ -40,6 +40,7 @@ if os.getpid() != 1:  # Not the main process (PID 1 is usually the main process)
         pass
 
 from flask import Flask, jsonify, render_template_string, redirect, url_for, request, session
+from embedded_detection import is_embedded_request, get_embedded_params
 from flask_login import LoginManager, login_required, current_user, login_user
 from flask_bcrypt import Bcrypt
 # Flask-Session for server-side session storage (no cookies for embedded apps)
@@ -221,13 +222,15 @@ def unauthorized():
         # Not in a request context - return a simple redirect
         return redirect('/login')
     
-    # Check if this is an embedded app request
-    shop = request.args.get('shop')
-    embedded = request.args.get('embedded')
-    host = request.args.get('host')
+    # SAFARI FIX: Use unified embedded detection (Safari-compatible)
+    # This detects embedded mode consistently across Safari & Chrome
+    is_embedded = is_embedded_request()
+    embedded_params = get_embedded_params()
     
-    # SAFARI FIX: If embedded app, use JavaScript redirect (Safari blocks server-side redirects in iframes)
-    if embedded == '1' or shop or host:
+    if is_embedded:
+        shop = embedded_params['shop']
+        embedded = '1' if embedded_params['embedded'] else None
+        host = embedded_params['host']
         params = {}
         if shop:
             params['shop'] = shop
@@ -329,6 +332,8 @@ def optimize_response(response):
                         logger.debug(f"API SUCCESS: {request.method} {request.path} - Status: {status_code}")
                 
                 # Only set cookies for standalone access
+                # Use unified embedded detection (Safari-compatible)
+                is_embedded = is_embedded_request()
                 if not is_embedded:
                     # Check if session has been modified or is permanent
                     if session.get('_permanent') or session.modified:
@@ -1924,13 +1929,16 @@ def home():
     embedded = request.args.get('embedded')
     host = request.args.get('host')
     
-    # Check Referer header as Shopify sends requests from admin.shopify.com
-    referer = request.headers.get('Referer', '')
-    is_from_shopify_admin = 'admin.shopify.com' in referer
+    # CRITICAL: Use unified embedded detection (Safari-compatible)
+    # This works consistently in Safari & Chrome by checking URL params first (not Referer)
+    is_embedded = is_embedded_request()
     
-    # CRITICAL: For embedded apps, ALWAYS render dashboard - NEVER redirect
-    # Redirects break iframes. Just render the dashboard HTML.
-    is_embedded = embedded == '1' or shop or host or is_from_shopify_admin
+    # Get params if not already extracted
+    if not shop:
+        embedded_params = get_embedded_params()
+        shop = embedded_params['shop']
+        host = embedded_params['host']
+        embedded = '1' if embedded_params['embedded'] else None
     
     if is_embedded:
         # For embedded apps, check if store is connected
@@ -2231,12 +2239,12 @@ def home():
 
 @app.route('/dashboard')
 def dashboard():
-    # Check if this is an embedded request (from Referer or params)
-    referer = request.headers.get('Referer', '')
-    is_from_shopify_admin = 'admin.shopify.com' in referer
-    shop = request.args.get('shop')
-    host = request.args.get('host')
-    is_embedded = request.args.get('embedded') == '1' or shop or host or is_from_shopify_admin
+    # CRITICAL: Use unified embedded detection (Safari-compatible)
+    # This detects embedded mode consistently - Safari blocks Referer, so we check URL params FIRST
+    is_embedded = is_embedded_request()
+    embedded_params = get_embedded_params()
+    shop = embedded_params['shop']
+    host = embedded_params['host']
     
     # CRITICAL: For embedded apps, check custom session auth (no Flask-Login cookies)
     # For embedded apps, we use session['_authenticated'] instead of Flask-Login

@@ -341,8 +341,16 @@ def login():
             return render_template_string(LOGIN_HTML, error="System error. Please try again.", shop=shop, embedded=embedded, host=host)
         
         if password_valid:
-            # DETECT EMBEDDED vs STANDALONE for optimal cookie handling
-            is_embedded = embedded == '1' or host
+            # CRITICAL: Use unified embedded detection (Safari-compatible)
+            # This checks URL params FIRST (not Referer) - works in Safari & Chrome
+            is_embedded = is_embedded_request()
+            
+            # Get params if detection succeeded
+            if is_embedded:
+                embedded_params = get_embedded_params()
+                shop = embedded_params['shop'] or shop
+                host = embedded_params['host'] or host
+                embedded = '1' if embedded_params['embedded'] else embedded
             
             # CRITICAL: For embedded apps, DO NOT set cookies (Safari blocks them)
             # Session tokens handle ALL authentication for embedded apps
@@ -439,8 +447,8 @@ def register():
         except Exception:
             pass  # Don't block signup if email fails
         
-        # Register: Use remember cookie for standalone, session tokens for embedded
-        is_embedded = request.args.get('embedded') == '1' or request.args.get('host')
+        # CRITICAL: Use unified embedded detection (Safari-compatible)
+        is_embedded = is_embedded_request()
         login_user(new_user, remember=not is_embedded)  # No remember cookie in embedded mode
         session.permanent = True
         session.modified = True  # Force immediate session save (Safari compatibility)

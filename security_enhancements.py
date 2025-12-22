@@ -11,6 +11,7 @@ import os
 import logging
 import secrets
 from datetime import datetime, timedelta
+from embedded_detection import is_embedded_request
 
 logger = logging.getLogger(__name__)
 
@@ -19,35 +20,20 @@ def add_security_headers(response):
     """Add comprehensive security headers to all responses"""
     from flask import request
     
-    # Check if this is an embedded app request (Shopify iframe)
-    # ULTRA PERMISSIVE: Allow iframe embedding for ANY Shopify-related request
-    # This ensures embedded apps ALWAYS work, even if detection method changes
+    # CRITICAL: Use unified embedded detection (Safari-compatible)
+    # This single function handles all detection logic consistently
+    # Safari blocks Referer headers, so we check URL params FIRST
+    is_embedded = is_embedded_request()
+    
+    # For CSP headers, also check if this is a Shopify route (fallback for security)
+    # This ensures CSP allows iframe even if params aren't detected
     referer = request.headers.get('Referer', '').lower()
-    origin = request.headers.get('Origin', '').lower()
-    has_shop_param = request.args.get('shop') or request.args.get('shop_domain')
-    has_host_param = request.args.get('host')  # Shopify provides this for embedded apps
-    has_shopify_header = request.headers.get('X-Shopify-Shop-Domain') or request.headers.get('X-Shopify-Hmac-Sha256')
-    
-    # Also check session/cookies for embedded context
-    has_embedded_session = request.args.get('embedded') == '1'
-    
-    # SECURITY: Only trust Shopify domains
     is_shopify_referer = (
-        'admin.shopify.com' in referer or  # Official Shopify admin
-        '.myshopify.com' in referer or  # Verified Shopify stores (more flexible matching)
-        'shopify.com' in referer  # Any Shopify domain
-    )
-    is_shopify_origin = (
-        'admin.shopify.com' in origin or
-        '.myshopify.com' in origin or
-        'shopify.com' in origin
+        'admin.shopify.com' in referer or
+        '.myshopify.com' in referer or
+        'shopify.com' in referer
     )
     
-    # ULTRA PERMISSIVE: If ANY Shopify indicator exists OR it's a Shopify route, allow iframe embedding
-    # This ensures it works even if Shopify changes how they send requests
-    # Still secure: CSP only allows Shopify domains, blocks malicious sites
-    # CRITICAL: Always treat these routes as potentially embedded (Shopify app routes)
-    # This prevents CSP from blocking the iframe
     is_shopify_route = (
         request.path.startswith('/dashboard') or
         request.path.startswith('/settings') or
@@ -63,20 +49,12 @@ def add_security_headers(response):
         request.path.startswith('/faq') or
         request.path.startswith('/privacy') or
         request.path.startswith('/terms') or
-        'shopify' in request.path.lower()  # Any route with 'shopify' in the name
+        'shopify' in request.path.lower()
     )
     
-    # CRITICAL: Always allow iframe for Shopify routes (even if no params detected)
-    # This fixes the "frame-ancestors 'none'" blocking issue
-    is_embedded = (
-        has_embedded_session or  # Explicit embedded flag
-        has_shop_param or  # Shop parameter
-        has_host_param or  # Host parameter
-        has_shopify_header or  # Official Shopify headers
-        is_shopify_referer or  # Coming from Shopify domains
-        is_shopify_origin or  # Origin header from Shopify
-        is_shopify_route  # Any Shopify app route (ALWAYS allow for app routes)
-    )
+    # For CSP headers only: allow iframe for Shopify routes (security headers need this)
+    if not is_embedded and (is_shopify_referer or is_shopify_route):
+        is_embedded = True  # Allow iframe for CSP, but don't use this for auth/cookie decisions
     
     # REMOVED X-Frame-Options entirely for embedded - rely ONLY on CSP frame-ancestors
     # X-Frame-Options is too rigid and causes issues with embedded apps
