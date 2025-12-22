@@ -1900,9 +1900,9 @@ def home():
                 if store:
                     shop_domain = store.shop_url
             elif shop:
-                try:
                 # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                 try:
+                # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                     store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
                 except BaseException:
                 try:
