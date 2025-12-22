@@ -30,25 +30,119 @@ class ShopifyClient:
         except requests.exceptions.RequestException as e:
             return {"error": str(e)}
     
+    def _make_graphql_request(self, query, variables=None):
+        """Make a GraphQL request to Shopify Admin API"""
+        url = f"https://{self.shop_url}/admin/api/{self.api_version}/graphql.json"
+        headers = self._get_headers()
+        headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        
+        payload = {"query": query}
+        if variables:
+            payload["variables"] = variables
+        
+        try:
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            return {"error": str(e)}
+    
     @cache_result(ttl=CACHE_TTL_INVENTORY)
     def get_products(self):
-        data = self._make_request("products.json")
-        if "error" in data:
-            return {"error": data["error"]}
+        """
+        Get products using GraphQL (migrated from deprecated REST API)
+        Returns same format as before for backward compatibility
+        """
+        # GraphQL query to fetch products with variants and inventory
+        # Migrated from deprecated REST API /products.json endpoint
+        # Using GraphQL Admin API as required by Shopify (deadline: 2025-04-01)
+        query = """
+        query getProducts($first: Int!, $after: String) {
+            products(first: $first, after: $after) {
+                pageInfo {
+                    hasNextPage
+                    endCursor
+                }
+                edges {
+                    node {
+                        id
+                        title
+                        variants(first: 250) {
+                            edges {
+                                node {
+                                    id
+                                    sku
+                                    price
+                                    inventoryItem {
+                                        inventoryLevels(first: 1) {
+                                            edges {
+                                                node {
+                                                    available
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        """
+        
         inventory = []
-        for product in data.get('products', []):
-            for variant in product.get('variants', []):
-                # Handle None values - Shopify can return None for SKU
-                sku = variant.get('sku') or 'N/A'  # Use 'N/A' if SKU is None or empty
-                price_value = variant.get('price') or '0'  # Use '0' if price is None
-                price = f"${price_value}" if price_value != '0' else 'N/A'
+        cursor = None
+        has_next_page = True
+        
+        # Paginate through all products
+        while has_next_page:
+            variables = {"first": 250}  # Max 250 products per request
+            if cursor:
+                variables["after"] = cursor
+            
+            data = self._make_graphql_request(query, variables)
+            
+            if "error" in data:
+                return {"error": data["error"]}
+            
+            if "errors" in data:
+                return {"error": str(data["errors"])}
+            
+            products_data = data.get("data", {}).get("products", {})
+            page_info = products_data.get("pageInfo", {})
+            has_next_page = page_info.get("hasNextPage", False)
+            cursor = page_info.get("endCursor")
+            
+            # Process products
+            for edge in products_data.get("edges", []):
+                product = edge["node"]
+                product_title = product.get("title", "Untitled")
                 
-                inventory.append({
-                    'product': product['title'],
-                    'sku': sku,
-                    'stock': variant.get('inventory_quantity', 0) or 0,  # Ensure stock is a number
-                    'price': price
-                })
+                # Process variants
+                for variant_edge in product.get("variants", {}).get("edges", []):
+                    variant = variant_edge["node"]
+                    
+                    # Handle None values - Shopify can return None for SKU
+                    sku = variant.get("sku") or 'N/A'
+                    price_value = variant.get("price") or '0'
+                    price = f"${price_value}" if price_value != '0' else 'N/A'
+                    
+                    # Get inventory quantity from GraphQL structure
+                    stock = 0
+                    inventory_item = variant.get("inventoryItem")
+                    if inventory_item:
+                        inventory_levels = inventory_item.get("inventoryLevels", {}).get("edges", [])
+                        if inventory_levels and len(inventory_levels) > 0:
+                            stock = inventory_levels[0].get("node", {}).get("available", 0) or 0
+                    
+                    inventory.append({
+                        'product': product_title,
+                        'sku': sku,
+                        'stock': stock,
+                        'price': price
+                    })
+        
         return inventory
     
     @cache_result(ttl=CACHE_TTL_ORDERS)
