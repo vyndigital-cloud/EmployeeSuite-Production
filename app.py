@@ -1699,7 +1699,6 @@ def export_inventory_csv():
         
         if not inventory_data:
             # Regenerate if not in session
-            from inventory import check_inventory
             result = check_inventory()
             if result.get('success') and 'inventory_data' in result:
                 inventory_data = result['inventory_data']
