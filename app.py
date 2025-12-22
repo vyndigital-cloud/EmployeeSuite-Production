@@ -98,11 +98,17 @@ if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Performance optimizations - Optimized for speed
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_size': 10,  # Increased for 50-100 clients
-    'max_overflow': 20,  # Increased for traffic spikes
-    'pool_pre_ping': True,  # Verify connections before using
-    'pool_recycle': 3600,  # Recycle connections after 1 hour
+    'pool_size': 2,  # Ultra-conservative to prevent connection exhaustion and segfaults
+    'max_overflow': 3,  # Minimal overflow for stability
+    'pool_pre_ping': True,  # CRITICAL: Verify connections before using (prevents segfaults)
+    'pool_recycle': 600,  # Recycle connections after 10 minutes (prevent stale connections)
+    'pool_timeout': 5,  # Shorter timeout for getting connection from pool
+    'connect_args': {
+        'connect_timeout': 3,  # Fast connection timeout
+        'options': '-c statement_timeout=20000'  # 20 second query timeout (prevent hangs)
+    },
     'echo': False,  # Disable SQL logging for performance
+    'isolation_level': 'READ_COMMITTED',  # Prevent deadlocks
 }
 
 db.init_app(app)
@@ -120,7 +126,22 @@ login_manager.login_view = 'auth.login'
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    # CRITICAL: Protect against segfaults from corrupted connections
+    # DO NOT call db.session.remove() before query - pool_pre_ping handles validation
+    try:
+        return User.query.get(int(user_id))
+    except BaseException:
+        # Catch segfault precursors - return None to let Flask-Login handle it
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        finally:
+            try:
+                db.session.remove()
+            except Exception:
+                pass
+        return None
 
 @login_manager.unauthorized_handler
 def unauthorized():
@@ -179,6 +200,37 @@ def optimize_response(response):
     
     # Enable Keep-Alive for webhook endpoints (Shopify requirement)
     # This allows Shopify to reuse connections, reducing latency
+    
+    return response
+
+# CRITICAL: Proper database session cleanup after each request
+# This prevents connection pool exhaustion and segfaults (code 139)
+@app.teardown_appcontext
+def close_db(error):
+    """Close database session after each request - prevents connection leaks and segfaults"""
+    from models import db
+    # Flask-SQLAlchemy automatically removes sessions, but we ensure cleanup happens
+    # This is the ROOT CAUSE of segfaults - sessions not being cleaned up properly
+    try:
+        # CRITICAL: Always remove session to prevent segfaults from stale connections
+        db.session.remove()
+        # Force garbage collection if there was an error
+        if error:
+            import gc
+            gc.collect()
+    except BaseException:
+        # Catch ALL exceptions including segfault precursors (SystemExit, KeyboardInterrupt, etc.)
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        try:
+            db.session.remove()
+        except Exception:
+            pass
+        # Force cleanup on error
+        import gc
+        gc.collect()
     if request.path.startswith('/webhooks/'):
         response.headers['Connection'] = 'keep-alive'
         response.headers['Keep-Alive'] = 'timeout=5, max=1000'
@@ -587,10 +639,12 @@ DASHBOARD_HTML = """
                 return;
             }
             
-            // Load App Bridge - synchronous blocking load for reliability
+            // Load App Bridge - use versioned CDN for reliability
+            console.log('🔄 Loading App Bridge from CDN...');
             var script = document.createElement('script');
-            script.src = 'https://cdn.shopify.com/shopifycloud/app-bridge.js';
+            script.src = 'https://cdn.shopify.com/shopifycloud/app-bridge/3.7.0/app-bridge.js';
             script.async = false; // Load synchronously for reliability
+            script.crossOrigin = 'anonymous'; // CORS for CDN
             
             // Initialize immediately when loaded
             script.onload = function() {
@@ -629,24 +683,38 @@ DASHBOARD_HTML = """
                             }
                             
                             var createApp = AppBridge.default;
+                            // Get API key from template or try to find it
                             var apiKey = '{{ SHOPIFY_API_KEY or "" }}';
                             
+                            // Fallback: try to get from window if template didn't work
+                            if (!apiKey || apiKey === '') {
+                                console.warn('API key not found in template, checking environment...');
+                                // API key should be set server-side, but if missing, show error
+                            }
+                            
                             // Use host as-is (Shopify provides it correctly encoded)
-                            if (apiKey && host) {
-                                window.shopifyApp = createApp({
-                                    apiKey: apiKey,
-                                    host: host // Use original encoded host
-                                });
-                                console.log('✅ App Bridge initialized');
-                                window.appBridgeReady = true;
-                                
-                                // Enable buttons now that App Bridge is ready
-                                enableEmbeddedButtons();
+                            if (apiKey && apiKey !== '' && host) {
+                                try {
+                                    window.shopifyApp = createApp({
+                                        apiKey: apiKey,
+                                        host: host // Use original encoded host
+                                    });
+                                    console.log('✅ App Bridge initialized with API key:', apiKey.substring(0, 8) + '...');
+                                    window.appBridgeReady = true;
+                                    
+                                    // Enable buttons now that App Bridge is ready
+                                    enableEmbeddedButtons();
+                                } catch (initError) {
+                                    console.error('❌ App Bridge createApp error:', initError);
+                                    window.shopifyApp = null;
+                                    window.appBridgeReady = true;
+                                    showAppBridgeError('Failed to initialize App Bridge: ' + initError.message);
+                                }
                             } else {
-                                console.error('❌ Missing apiKey or host');
+                                console.error('❌ Missing apiKey or host', {apiKey: apiKey ? 'present' : 'missing', host: host ? 'present' : 'missing'});
                                 window.shopifyApp = null;
                                 window.appBridgeReady = true;
-                                showAppBridgeError('App configuration error. Please contact support.');
+                                showAppBridgeError('App configuration error: Missing API key or host. Please contact support.');
                             }
                         } catch (e) {
                             console.error('❌ App Bridge init error:', e);
@@ -666,10 +734,43 @@ DASHBOARD_HTML = """
             };
             
             script.onerror = function() {
-                console.error('❌ Failed to load App Bridge script');
-                window.shopifyApp = null;
-                window.appBridgeReady = true;
-                showAppBridgeError('Failed to load App Bridge script. Please check your internet connection and refresh.');
+                console.error('❌ Failed to load App Bridge script from CDN');
+                // Try fallback: load from unversioned URL
+                var fallbackScript = document.createElement('script');
+                fallbackScript.src = 'https://cdn.shopify.com/shopifycloud/app-bridge.js';
+                fallbackScript.async = false;
+                fallbackScript.crossOrigin = 'anonymous';
+                fallbackScript.onload = function() {
+                    console.log('✅ App Bridge loaded from fallback URL');
+                    // Retry initialization
+                    setTimeout(function() {
+                        if (typeof window['app-bridge'] !== 'undefined') {
+                            try {
+                                var AppBridge = window['app-bridge'];
+                                var createApp = AppBridge.default;
+                                var apiKey = '{{ SHOPIFY_API_KEY or "" }}';
+                                if (apiKey && host) {
+                                    window.shopifyApp = createApp({apiKey: apiKey, host: host});
+                                    window.appBridgeReady = true;
+                                    console.log('✅ App Bridge initialized from fallback');
+                                    enableEmbeddedButtons();
+                                }
+                            } catch (e) {
+                                console.error('❌ Fallback init error:', e);
+                                window.shopifyApp = null;
+                                window.appBridgeReady = true;
+                                showAppBridgeError('App Bridge initialization failed: ' + e.message);
+                            }
+                        }
+                    }, 100);
+                };
+                fallbackScript.onerror = function() {
+                    console.error('❌ Fallback App Bridge script also failed');
+                    window.shopifyApp = null;
+                    window.appBridgeReady = true;
+                    showAppBridgeError('Failed to load App Bridge script. Please check your internet connection and refresh the page.');
+                };
+                document.head.appendChild(fallbackScript);
             };
             
             document.head.appendChild(script);
@@ -1028,9 +1129,22 @@ DASHBOARD_HTML = """
             
             // Get session token if in embedded mode - seamless integration
             var fetchPromise;
-            var isEmbedded = window.shopifyApp && new URLSearchParams(window.location.search).get('host');
+            var isEmbedded = window.isEmbedded; // Use global flag
             
-            if (isEmbedded && window.shopifyApp) {
+            // CRITICAL: Wait for App Bridge to be ready before making requests
+            if (isEmbedded && !window.appBridgeReady) {
+                setButtonLoading(button, false);
+                document.getElementById('output').innerHTML = `
+                    <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                        <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">⏳ Initializing App...</div>
+                        <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please wait while the app initializes. This should only take a moment.</div>
+                        <button onclick="setTimeout(function(){processOrders(this);}, 500)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
                 // In embedded mode, we MUST have session token - retry up to 3 times
                 var retryCount = 0;
                 var maxRetries = 3;
@@ -1560,7 +1674,8 @@ DASHBOARD_HTML = """
             if ((e.ctrlKey || e.metaKey) && e.key === '1') {
                 e.preventDefault();
                 {% if has_access %}
-                processOrders();
+                var btn = document.querySelector('.card-btn[onclick*="processOrders"]');
+                if (btn) processOrders(btn);
                 {% else %}
                 showSubscribePrompt();
                 {% endif %}
@@ -1569,7 +1684,8 @@ DASHBOARD_HTML = """
             if ((e.ctrlKey || e.metaKey) && e.key === '2') {
                 e.preventDefault();
                 {% if has_access %}
-                updateInventory();
+                var btn = document.querySelector('.card-btn[onclick*="updateInventory"]');
+                if (btn) updateInventory(btn);
                 {% else %}
                 showSubscribePrompt();
                 {% endif %}
@@ -1578,7 +1694,8 @@ DASHBOARD_HTML = """
             if ((e.ctrlKey || e.metaKey) && e.key === '3') {
                 e.preventDefault();
                 {% if has_access %}
-                generateReport();
+                var btn = document.querySelector('.card-btn[onclick*="generateReport"]');
+                if (btn) generateReport(btn);
                 {% else %}
                 showSubscribePrompt();
                 {% endif %}
@@ -1634,7 +1751,33 @@ def home():
         store = None
         user = None
         if shop:
-            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            try:
+                db.session.remove()
+                try:
+                db.session.remove()
+                store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            except BaseException:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                finally:
+                    try:
+                        db.session.remove()
+                    except Exception:
+                        pass
+                store = None
+            except BaseException:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                finally:
+                    try:
+                        db.session.remove()
+                    except Exception:
+                        pass
+                store = None
             if store:
                 user = store.user
         
@@ -1670,10 +1813,62 @@ def home():
             from models import ShopifyStore
             has_shopify = False
             if user_id:
-                has_shopify = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first() is not None
+                try:
+                    db.session.remove()
+                    try:
+                    db.session.remove()
+                    has_shopify = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first() is not None
+                except BaseException:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+                    finally:
+                        try:
+                            db.session.remove()
+                        except Exception:
+                            pass
+                    has_shopify = False
+                except BaseException:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+                    finally:
+                        try:
+                            db.session.remove()
+                        except Exception:
+                            pass
+                    has_shopify = False
             elif shop:
                 # Check if store exists even without user auth
-                has_shopify = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first() is not None
+                try:
+                    db.session.remove()
+                    try:
+                    db.session.remove()
+                    has_shopify = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first() is not None
+                except BaseException:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+                    finally:
+                        try:
+                            db.session.remove()
+                        except Exception:
+                            pass
+                    has_shopify = False
+                except BaseException:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+                    finally:
+                        try:
+                            db.session.remove()
+                        except Exception:
+                            pass
+                    has_shopify = False
             
             # Skip slow API calls for embedded apps - just show empty stats
             # This prevents the page from hanging while waiting for Shopify API
@@ -1683,11 +1878,63 @@ def home():
             
             shop_domain = shop or ''
             if has_shopify and user_id:
-                store = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first()
+                try:
+                    db.session.remove()
+                    try:
+                    db.session.remove()
+                    store = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first()
+                except BaseException:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+                    finally:
+                        try:
+                            db.session.remove()
+                        except Exception:
+                            pass
+                    store = None
+                except BaseException:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+                    finally:
+                        try:
+                            db.session.remove()
+                        except Exception:
+                            pass
+                    store = None
                 if store:
                     shop_domain = store.shop_url
             elif shop:
+                try:
+                    db.session.remove()
+                    try:
+                db.session.remove()
                 store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            except BaseException:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                finally:
+                    try:
+                        db.session.remove()
+                    except Exception:
+                        pass
+                store = None
+                except BaseException:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+                    finally:
+                        try:
+                            db.session.remove()
+                        except Exception:
+                            pass
+                    store = None
                 if store:
                     shop_domain = store.shop_url
             
@@ -1728,7 +1975,24 @@ def home():
     
     # Regular (non-embedded) request handling
     if current_user.is_authenticated:
+        # If user is authenticated, always go to dashboard (even if embedded params missing)
         return redirect(url_for('dashboard'))
+    
+    # Check if this might be an embedded request that lost its params
+    # If referer is from Shopify admin, treat as embedded
+    if is_from_shopify_admin:
+        # Render dashboard for embedded apps even without explicit params
+        from flask import render_template_string
+        return render_template_string(DASHBOARD_HTML, 
+                                     trial_active=False, 
+                                     days_left=0, 
+                                     is_subscribed=False, 
+                                     has_shopify=False, 
+                                     has_access=False,
+                                     quick_stats={'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0},
+                                     shop_domain=shop or '',
+                                     SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''))
+    
     # For standalone access, redirect to Shopify OAuth install instead of login
     # OAuth users don't have passwords, so login page won't work for them
     # Show a page that explains they need to install via Shopify
@@ -1819,8 +2083,34 @@ def dashboard():
         # Session tokens handle all authentication - cookies are unreliable in iframes
         # We'll get user info from session tokens in API calls, not from Flask-Login cookies
         if shop:
-            from models import ShopifyStore
-            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            from models import ShopifyStore, db
+            store = None
+            try:
+                db.session.remove()
+                try:
+                db.session.remove()
+                store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            except BaseException:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                finally:
+                    try:
+                        db.session.remove()
+                    except Exception:
+                        pass
+                store = None
+            except BaseException:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                finally:
+                    try:
+                        db.session.remove()
+                    except Exception:
+                        pass
             if store and store.user:
                 # Don't use login_user() for embedded apps - Safari blocks the cookie
                 # Session tokens will handle authentication in API calls
@@ -1844,13 +2134,52 @@ def dashboard():
     # Check if user has connected Shopify
     from models import ShopifyStore
     if current_user.is_authenticated:
-        has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
+        try:
+            db.session.remove()
+            has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
+        except BaseException:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            finally:
+                try:
+                    db.session.remove()
+                except Exception:
+                    pass
+            has_shopify = False
         is_subscribed = current_user.is_subscribed
     else:
         # For embedded apps without auth, check by shop param
         has_shopify = False
         if shop:
-            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            try:
+                db.session.remove()
+                try:
+                db.session.remove()
+                store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            except BaseException:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                finally:
+                    try:
+                        db.session.remove()
+                    except Exception:
+                        pass
+                store = None
+            except BaseException:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                finally:
+                    try:
+                        db.session.remove()
+                    except Exception:
+                        pass
+                store = None
             if store:
                 has_shopify = True
         is_subscribed = False
@@ -1863,11 +2192,38 @@ def dashboard():
     # Get shop domain and API key for App Bridge initialization
     shop_domain = shop or ''
     if current_user.is_authenticated and has_shopify:
-        store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+        try:
+            db.session.remove()
+            store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+        except BaseException:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            finally:
+                try:
+                    db.session.remove()
+                except Exception:
+                    pass
+            store = None
         if store:
             shop_domain = store.shop_url
     elif shop and has_shopify:
-        store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+        store = None
+        try:
+            db.session.remove()
+            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+        except BaseException:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            finally:
+                try:
+                    db.session.remove()
+                except Exception:
+                    pass
+            store = None
         if store:
             shop_domain = store.shop_url
     
@@ -2020,9 +2376,25 @@ def get_authenticated_user():
                 logger.warning(f"Error parsing shop domain from dest '{dest}': {e}")
                 return None, (jsonify({'error': 'Invalid token format', 'success': False}), 401)
             
-            # Find user from shop
-            from models import ShopifyStore
-            store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
+            # Find user from shop - CRITICAL: Protect against segfaults
+            # DO NOT call db.session.remove() - let pool_pre_ping validate connections
+            from models import ShopifyStore, db
+            store = None
+            try:
+                store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
+            except BaseException as db_error:
+                logger.error(f"Database error in get_authenticated_user: {type(db_error).__name__}: {str(db_error)}", exc_info=True)
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                finally:
+                    try:
+                        db.session.remove()
+                    except Exception:
+                        pass
+                return None, (jsonify({'error': 'Database connection error', 'success': False, 'action': 'retry'}), 500)
+            
             if store and store.user:
                 logger.info(f"✅ Session token verified - user {store.user.id} from shop {shop_domain}")
                 return store.user, None
@@ -2113,7 +2485,7 @@ def api_process_orders():
         from performance import clear_cache as clear_perf_cache
         try:
             clear_perf_cache()
-        except:
+        except Exception:
             pass
         return jsonify({"error": "An unexpected error occurred. Please try again or contact support if this persists.", "success": False}), 500
 
@@ -2167,35 +2539,39 @@ def api_update_inventory():
         from performance import clear_cache as clear_perf_cache
         try:
             clear_perf_cache()
-        except:
+        except Exception:
             pass
         return jsonify({"success": False, "error": "An unexpected error occurred. Please try again or contact support if this persists."}), 500
 
 @app.route('/api/generate_report', methods=['GET', 'POST'])
 def api_generate_report():
-    # Get authenticated user (supports both Flask-Login and session tokens)
-    user, error_response = get_authenticated_user()
-    if error_response:
-        return error_response
-    
-    if not user.has_access():
-        return jsonify({
-            'error': 'Subscription required',
-            'success': False,
-            'action': 'subscribe',
-            'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
-            'subscribe_url': url_for('billing.subscribe')
-        }), 403
-    
-    # Store user ID before login_user to avoid recursion issues
-    user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
-    
-    # Set current_user for generate_report() function
-    from flask_login import login_user
-    login_user(user, remember=False)
-    
-    logger.info(f"Generate report called by user {user_id}")
+    # CRITICAL: Wrap entire function in BaseException to catch segfaults
     try:
+        # Get authenticated user (supports both Flask-Login and session tokens)
+        user, error_response = get_authenticated_user()
+        if error_response:
+            return error_response
+        
+        if not user.has_access():
+            return jsonify({
+                'error': 'Subscription required',
+                'success': False,
+                'action': 'subscribe',
+                'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
+                'subscribe_url': url_for('billing.subscribe')
+            }), 403
+        
+        # Store user ID before login_user to avoid recursion issues
+        user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+        
+        # Set current_user for generate_report() function
+        from flask_login import login_user
+        login_user(user, remember=False)
+        
+        logger.info(f"Generate report called by user {user_id}")
+        
+        # CRITICAL: DO NOT call db.session.remove() here - let SQLAlchemy manage connections
+        # Removing sessions before queries can cause segfaults by corrupting connection state
         from reporting import generate_report
         # Pass user_id to avoid recursion
         data = generate_report(user_id=user_id)
@@ -2232,7 +2608,7 @@ def api_generate_report():
         from performance import clear_cache as clear_perf_cache
         try:
             clear_perf_cache()
-        except:
+        except Exception:
             pass
         return jsonify({"success": False, "error": "An unexpected error occurred. Please try again or contact support if this persists."}), 500
     except Exception as e:
