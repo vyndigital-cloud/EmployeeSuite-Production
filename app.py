@@ -171,7 +171,7 @@ login_manager.login_view = 'auth.login'
 @login_manager.user_loader
 def load_user(user_id):
     # CRITICAL: Protect against segfaults from corrupted connections
-    # DO NOT call db.session.remove() before query - pool_pre_ping handles validation
+    # DO NOT call db.session.remove() before query - pool_pre_ping handle validation
     try:
         return User.query.get(int(user_id))
     except BaseException:
