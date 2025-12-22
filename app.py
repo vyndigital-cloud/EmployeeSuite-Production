@@ -69,15 +69,19 @@ if not SECRET_KEY:
     SECRET_KEY = 'dev-secret-key-change-in-production'
     logger.warning("Using default SECRET_KEY - THIS IS INSECURE. Set SECRET_KEY environment variable.")
 app.config['SECRET_KEY'] = SECRET_KEY
-app.config['SESSION_COOKIE_SECURE'] = True  # Secure cookies over HTTPS
+app.config['SESSION_COOKIE_SECURE'] = True  # Secure cookies over HTTPS (REQUIRED for SameSite=None)
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 # CRITICAL: SameSite=None is REQUIRED for Shopify embedded apps (iframes)
 # SameSite=Lax blocks cookies in cross-origin iframes, breaking session handling
+# Safari requires Secure=True when SameSite=None (which we have)
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+# Safari compatibility: Set cookie domain explicitly (None = current domain)
+app.config['SESSION_COOKIE_DOMAIN'] = None  # Don't set domain - let browser handle it
 app.config['REMEMBER_COOKIE_DURATION'] = 2592000  # 30 days
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_SAMESITE'] = 'None'  # Also for remember me cookies
 app.config['REMEMBER_COOKIE_SECURE'] = True  # Required when SameSite=None
+app.config['REMEMBER_COOKIE_DOMAIN'] = None  # Don't set domain for Safari compatibility
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///employeesuite.db')
 if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
     app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
@@ -1508,8 +1512,11 @@ def home():
             # Store is connected - auto-login the user
             user = store.user
             if user and not current_user.is_authenticated:
-                login_user(user, remember=True)
+                # Safari compatibility: Don't use remember cookie in embedded mode
+                # Session tokens handle auth for embedded apps, not cookies
+                login_user(user, remember=False)  # No remember cookie for Safari compatibility
                 session.permanent = True
+                session.modified = True  # Force session save for Safari
                 logger.info(f"Auto-logged in user for embedded app: {shop}")
         
         # For embedded apps, ALWAYS render dashboard - don't check Flask-Login
