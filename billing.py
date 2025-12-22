@@ -529,6 +529,20 @@ def create_charge():
     if not result.get('success'):
         error_msg = result.get('error', 'Failed to create subscription')
         logger.error(f"Billing error for {shop_url}: {error_msg}")
+        
+        # CRITICAL: If "app owned by a shop" error, clear the access_token and force reinstall
+        if 'owned by a shop' in error_msg.lower() or 'must be migrated' in error_msg.lower():
+            logger.warning(f"Detected old app access_token for {shop_url} - clearing token to force reinstall")
+            # Clear the access_token so user must reinstall with new Partners app
+            store.access_token = None
+            store.is_active = False
+            db.session.commit()
+            logger.info(f"Cleared access_token for {shop_url} - user must reinstall with new Partners app")
+            # Redirect to settings with clear message
+            return redirect(url_for('shopify.shopify_settings', 
+                                  error='Your app needs to be reinstalled with the new Partners app. Please disconnect and reconnect your store.',
+                                  shop=shop_url, host=host))
+        
         # Format error message for better user experience
         formatted_error = format_billing_error(error_msg)
         return redirect(url_for('billing.subscribe', error=formatted_error, shop=shop_url, host=host))

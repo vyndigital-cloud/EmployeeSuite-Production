@@ -417,9 +417,13 @@ def connect_store():
 def disconnect_store():
     store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
     if store:
+        # CRITICAL: Clear access_token to force fresh OAuth with new Partners app
+        store.access_token = None
         store.is_active = False
+        store.charge_id = None  # Clear any existing charge
         db.session.commit()
-        return redirect(url_for('shopify.shopify_settings', success='Store disconnected successfully!'))
+        logger.info(f"Store {store.shop_url} disconnected and access_token cleared for user {current_user.id}")
+        return redirect(url_for('shopify.shopify_settings', success='Store disconnected successfully! You can now reconnect with the new Partners app.'))
     return redirect(url_for('shopify.shopify_settings', error='No active store found.'))
 
 @shopify_bp.route('/settings/shopify/cancel', methods=['POST'])
