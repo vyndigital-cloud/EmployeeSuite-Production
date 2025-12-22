@@ -55,13 +55,18 @@ def migrate_shopify_store_columns(app, db):
                                 ALTER TABLE shopify_stores 
                                 ADD COLUMN shop_id BIGINT
                             """))
+                            db.session.commit()  # CRITICAL: Commit immediately after each column
                             logger.info("✅ shop_id column added successfully")
                         except Exception as e:
-                            if "already exists" in str(e).lower() or "duplicate" in str(e).lower():
+                            # CRITICAL: Rollback immediately on error
+                            try:
+                                db.session.rollback()
+                            except Exception:
+                                pass
+                            if "already exists" in str(e).lower() or "duplicate" in str(e).lower() or "current transaction is aborted" in str(e).lower():
                                 logger.info("✅ shop_id column already exists")
                             else:
                                 logger.warning(f"Could not add shop_id column: {e}")
-                                db.session.rollback()
                     else:
                         logger.info("✅ shop_id column already exists")
                 except Exception as e:
@@ -82,13 +87,18 @@ def migrate_shopify_store_columns(app, db):
                                 ALTER TABLE shopify_stores 
                                 ADD COLUMN charge_id VARCHAR(255)
                             """))
+                            db.session.commit()  # CRITICAL: Commit immediately after each column
                             logger.info("✅ charge_id column added successfully")
                         except Exception as e:
-                            if "already exists" in str(e).lower() or "duplicate" in str(e).lower():
+                            # CRITICAL: Rollback immediately on error
+                            try:
+                                db.session.rollback()
+                            except Exception:
+                                pass
+                            if "already exists" in str(e).lower() or "duplicate" in str(e).lower() or "current transaction is aborted" in str(e).lower():
                                 logger.info("✅ charge_id column already exists")
                             else:
                                 logger.warning(f"Could not add charge_id column: {e}")
-                                db.session.rollback()
                     else:
                         logger.info("✅ charge_id column already exists")
                 except Exception as e:
@@ -109,13 +119,18 @@ def migrate_shopify_store_columns(app, db):
                                 ALTER TABLE shopify_stores 
                                 ADD COLUMN uninstalled_at TIMESTAMP
                             """))
+                            db.session.commit()  # CRITICAL: Commit immediately after each column
                             logger.info("✅ uninstalled_at column added successfully")
                         except Exception as e:
-                            if "already exists" in str(e).lower() or "duplicate" in str(e).lower():
+                            # CRITICAL: Rollback immediately on error
+                            try:
+                                db.session.rollback()
+                            except Exception:
+                                pass
+                            if "already exists" in str(e).lower() or "duplicate" in str(e).lower() or "current transaction is aborted" in str(e).lower():
                                 logger.info("✅ uninstalled_at column already exists")
                             else:
                                 logger.warning(f"Could not add uninstalled_at column: {e}")
-                                db.session.rollback()
                     else:
                         logger.info("✅ uninstalled_at column already exists")
                 except Exception as e:
@@ -152,8 +167,16 @@ def migrate_shopify_store_columns(app, db):
                     except Exception as e:
                         logger.warning(f"Could not add indexes: {e}")
                         # Don't rollback - indexes are optional
+                        try:
+                            db.session.rollback()
+                        except Exception:
+                            pass
             
-            db.session.commit()
+            # Final commit (though we've been committing after each column)
+            try:
+                db.session.commit()
+            except Exception:
+                pass
             logger.info("✅ Migration completed successfully")
             
         except Exception as e:
