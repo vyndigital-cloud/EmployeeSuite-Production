@@ -28,15 +28,18 @@ def add_security_headers(response):
     has_host_param = request.args.get('host')  # Shopify provides this for embedded apps
     has_shopify_header = request.headers.get('X-Shopify-Shop-Domain') or request.headers.get('X-Shopify-Hmac-Sha256')
     
+    # Also check session/cookies for embedded context
+    has_embedded_session = request.args.get('embedded') == '1'
+    
     # SECURITY: Only trust Shopify domains
     is_shopify_referer = (
         'admin.shopify.com' in referer or  # Official Shopify admin
-        referer.endswith('.myshopify.com') or  # Verified Shopify stores
+        '.myshopify.com' in referer or  # Verified Shopify stores (more flexible matching)
         'shopify.com' in referer  # Any Shopify domain
     )
     is_shopify_origin = (
         'admin.shopify.com' in origin or
-        origin.endswith('.myshopify.com') or
+        '.myshopify.com' in origin or
         'shopify.com' in origin
     )
     
@@ -50,16 +53,23 @@ def add_security_headers(response):
         request.path.startswith('/settings') or
         request.path == '/' or
         request.path.startswith('/auth/callback') or
+        request.path.startswith('/auth/') or
         request.path.startswith('/login') or
         request.path.startswith('/api/') or
         request.path.startswith('/register') or
+        request.path.startswith('/install') or
+        request.path.startswith('/billing') or
+        request.path.startswith('/subscribe') or
+        request.path.startswith('/faq') or
+        request.path.startswith('/privacy') or
+        request.path.startswith('/terms') or
         'shopify' in request.path.lower()  # Any route with 'shopify' in the name
     )
     
     # CRITICAL: Always allow iframe for Shopify routes (even if no params detected)
     # This fixes the "frame-ancestors 'none'" blocking issue
     is_embedded = (
-        request.args.get('embedded') == '1' or  # Explicit embedded flag
+        has_embedded_session or  # Explicit embedded flag
         has_shop_param or  # Shop parameter
         has_host_param or  # Host parameter
         has_shopify_header or  # Official Shopify headers
@@ -75,12 +85,12 @@ def add_security_headers(response):
     # Only use CSP frame-ancestors to control iframe embedding
     if is_embedded:
         # For embedded apps: Allow iframe embedding from Shopify domains only
-        # Standard Shopify configuration - allows admin.shopify.com and all myshopify.com stores
-        # Simplified syntax - no wildcards in paths, just domains
+        # FIXED: Shopify's official recommendation - use exact format they specify
+        # https://shopify.dev/docs/apps/store/security/iframe-protection
         frame_ancestors = "frame-ancestors https://admin.shopify.com https://*.myshopify.com; "
         
-        # Log for debugging
-        logger.info(f"🔓 ALLOWING IFRAME: path={request.path}, shop={has_shop_param}, host={has_host_param}, referer={referer[:50] if referer else 'none'}, origin={origin[:50] if origin else 'none'}")
+        # Log for debugging (reduced verbosity)
+        logger.debug(f"🔓 ALLOWING IFRAME: path={request.path}, shop={has_shop_param}, host={has_host_param}")
     else:
         # Regular pages - prevent ALL iframe embedding via CSP only
         frame_ancestors = "frame-ancestors 'none'; "

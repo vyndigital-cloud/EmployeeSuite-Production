@@ -126,34 +126,84 @@ def callback():
             host = unquote(parts[1])
     
     # If host is present, this is an embedded app installation (App Store)
-    # CRITICAL: Cannot use server-side redirect() in iframe - causes "refused to connect"
-    # Must render HTML that redirects via JavaScript using window.top.location
+    # CRITICAL: Use Shopify App Bridge for navigation within embedded apps
+    # Regular redirects and window.top.location can cause "refused to connect" errors
     if host:
         app_url = os.getenv('SHOPIFY_APP_URL', 'https://employeesuite-production.onrender.com')
-        embedded_url = f"{app_url}/dashboard?shop={shop}&host={host}"
+        api_key = os.getenv('SHOPIFY_API_KEY', '')
+        embedded_url = f"{app_url}/dashboard?shop={shop}&host={host}&embedded=1"
         logger.info(f"OAuth complete for embedded app, redirecting to: {embedded_url}")
         
-        # Render HTML that redirects via JavaScript (breaks out of iframe)
-        # This is the standard way to handle OAuth callbacks in embedded apps
+        # Use Shopify App Bridge Redirect action for proper iframe navigation
+        # This is Shopify's recommended approach for embedded apps
         redirect_html = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <title>Installing Employee Suite...</title>
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <script>
-        // Break out of iframe and redirect to dashboard
-        // window.top.location works even when regular redirects fail in iframes
-        try {{
-            window.top.location.href = '{embedded_url}';
-        }} catch (e) {{
-            // If window.top is blocked, try regular redirect
+        // Initialize App Bridge with host parameter
+        var AppBridge = window['app-bridge'];
+        
+        if (AppBridge && '{host}') {{
+            try {{
+                var app = AppBridge.default({{
+                    apiKey: '{api_key}',
+                    host: '{host}'
+                }});
+                
+                // Use App Bridge Redirect for proper iframe navigation
+                var Redirect = AppBridge.actions.Redirect;
+                var redirect = Redirect.create(app);
+                
+                // Redirect to the app within Shopify admin
+                redirect.dispatch(Redirect.Action.APP, '/dashboard?shop={shop}&host={host}&embedded=1');
+            }} catch (e) {{
+                console.error('App Bridge redirect failed:', e);
+                // Fallback: redirect to embedded URL directly
+                window.location.href = '{embedded_url}';
+            }}
+        }} else {{
+            // No App Bridge or host - use direct navigation
             window.location.href = '{embedded_url}';
         }}
     </script>
-    <meta http-equiv="refresh" content="0;url={embedded_url}">
+    <noscript>
+        <meta http-equiv="refresh" content="0;url={embedded_url}">
+    </noscript>
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: #f6f6f7;
+        }}
+        .loading {{
+            text-align: center;
+            color: #6d7175;
+        }}
+        .spinner {{
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e1e3e5;
+            border-top-color: #008060;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }}
+        @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
+    </style>
 </head>
 <body>
-    <p>Installing Employee Suite... <a href="{embedded_url}">Click here if you're not redirected</a></p>
+    <div class="loading">
+        <div class="spinner"></div>
+        <p>Setting up Employee Suite...</p>
+        <p style="font-size: 12px; margin-top: 8px;"><a href="{embedded_url}">Click here if you're not redirected</a></p>
+    </div>
 </body>
 </html>"""
         from flask import Response

@@ -71,9 +71,13 @@ if not SECRET_KEY:
 app.config['SECRET_KEY'] = SECRET_KEY
 app.config['SESSION_COOKIE_SECURE'] = True  # Secure cookies over HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# CRITICAL: SameSite=None is REQUIRED for Shopify embedded apps (iframes)
+# SameSite=Lax blocks cookies in cross-origin iframes, breaking session handling
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['REMEMBER_COOKIE_DURATION'] = 2592000  # 30 days
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'None'  # Also for remember me cookies
+app.config['REMEMBER_COOKIE_SECURE'] = True  # Required when SameSite=None
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///employeesuite.db')
 if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
     app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
