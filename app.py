@@ -1687,7 +1687,8 @@ def api_generate_report():
     logger.info(f"Generate report called by user {user_id}")
     try:
         from reporting import generate_report
-        data = generate_report()
+        # Pass user_id to avoid recursion
+        data = generate_report(user_id=user_id)
         if data.get('error') and data['error'] is not None:
             error_msg = data['error']
             if 'No Shopify store connected' in error_msg:
