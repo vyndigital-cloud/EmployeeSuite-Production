@@ -85,12 +85,12 @@ def add_security_headers(response):
     # Only use CSP frame-ancestors to control iframe embedding
     if is_embedded:
         # For embedded apps: Allow iframe embedding from Shopify domains only
-        # FIXED: Shopify's official recommendation - use exact format they specify
+        # CRITICAL: Use exact format Shopify requires - no wildcards in protocol
         # https://shopify.dev/docs/apps/store/security/iframe-protection
         frame_ancestors = "frame-ancestors https://admin.shopify.com https://*.myshopify.com; "
         
-        # Log for debugging (reduced verbosity)
-        logger.debug(f"🔓 ALLOWING IFRAME: path={request.path}, shop={has_shop_param}, host={has_host_param}")
+        # Log for debugging
+        logger.info(f"🔓 ALLOWING IFRAME: path={request.path}, shop={has_shop_param}, host={has_host_param}")
     else:
         # Regular pages - prevent ALL iframe embedding via CSP only
         frame_ancestors = "frame-ancestors 'none'; "
