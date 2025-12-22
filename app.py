@@ -1914,16 +1914,6 @@ def home():
                     except Exception:
                         pass
                 store = None
-                    try:
-                        db.session.rollback()
-                    except Exception:
-                        pass
-                    finally:
-                        try:
-                            db.session.remove()
-                        except Exception:
-                            pass
-                    store = None
                 if store:
                     shop_domain = store.shop_url
             
