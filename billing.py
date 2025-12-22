@@ -510,8 +510,8 @@ def create_charge():
     shop_url = store.shop_url
     access_token = store.access_token
     
-    # CRITICAL: Check if access_token exists
-    if not access_token:
+    # CRITICAL: Check if access_token exists (None or empty string)
+    if not access_token or access_token.strip() == '':
         logger.error(f"No access_token found for store {shop_url} - user must reconnect")
         return redirect(url_for('shopify.shopify_settings', 
                               error='Store not connected. Please reconnect your store.',
