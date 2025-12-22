@@ -34,8 +34,8 @@ echo ""
 
 # Check 3: Unpushed commits
 echo -e "${BLUE}3. Checking for Unpushed Commits...${NC}"
-UNPUSHED=$(git status -sb | grep -c "ahead" || echo "0")
-if [ "$UNPUSHED" -gt 0 ]; then
+UNPUSHED=$(git status -sb 2>/dev/null | grep -c "ahead" || echo "0")
+if [ "$UNPUSHED" -gt 0 ] 2>/dev/null; then
     echo -e "${YELLOW}⚠️  You have unpushed commits!${NC}"
     echo "   Run: git push origin $BRANCH"
 else
@@ -67,7 +67,7 @@ echo "========================================"
 echo -e "${BLUE}📊 Summary:${NC}"
 echo ""
 
-if [ "$ALL_OK" = true ] && [ "$UNPUSHED" -eq 0 ]; then
+if [ "$ALL_OK" = true ] && [ "$UNPUSHED" -eq 0 ] 2>/dev/null; then
     echo -e "${GREEN}✅ Code is ready for auto-deployment!${NC}"
     echo ""
     echo -e "${YELLOW}📋 Next Steps:${NC}"
@@ -91,7 +91,7 @@ if [ "$ALL_OK" = true ] && [ "$UNPUSHED" -eq 0 ]; then
 else
     echo -e "${YELLOW}⚠️  Fix these issues first:${NC}"
     [ "$ALL_OK" = false ] && echo "   - Missing required files"
-    [ "$UNPUSHED" -gt 0 ] && echo "   - Push your commits"
+    [ "$UNPUSHED" -gt 0 ] 2>/dev/null && echo "   - Push your commits"
     echo ""
 fi
 
