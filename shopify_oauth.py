@@ -2,6 +2,7 @@ import os
 import hmac
 import hashlib
 import requests
+from urllib.parse import quote, unquote
 from flask import Blueprint, request, redirect, session
 from models import db, ShopifyStore, User
 from flask_login import login_user, current_user
@@ -29,20 +30,22 @@ def install():
         shop = f"{shop}.myshopify.com"
     
     # Build authorization URL
+    # For App Store installations, Shopify will include 'host' parameter in callback
+    # We store it in state to preserve it through OAuth flow
+    host = request.args.get('host', '')
+    state_data = shop
+    if host:
+        # Encode host in state for embedded app installations
+        # Use a separator that won't conflict with shop domain
+        state_data = f"{shop}||{quote(host, safe='')}"
+    
     auth_url = f"https://{shop}/admin/oauth/authorize"
     params = {
         'client_id': SHOPIFY_API_KEY,
         'scope': SCOPES,
-        'redirect_uri': REDIRECT_URI,
-        'state': shop  # Use shop as state for simplicity
+        'redirect_uri': REDIRECT_URI,  # Must match Partners Dashboard exactly - no query params
+        'state': state_data
     }
-    
-    # For embedded apps, add embedded parameter to redirect URI so callback knows it's embedded
-    embedded = request.args.get('embedded')
-    if embedded == '1':
-        # Append embedded param to redirect URI so callback preserves it
-        redirect_uri_with_embedded = f"{REDIRECT_URI}?embedded=1"
-        params['redirect_uri'] = redirect_uri_with_embedded
     
     query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
     return redirect(f"{auth_url}?{query_string}")
@@ -110,13 +113,28 @@ def callback():
     login_user(user, remember=True)
     session.permanent = True
     
-    # Preserve embedded params if this is an embedded app request
-    embedded = request.args.get('embedded')
-    if embedded == '1':
-        from flask import url_for
-        dashboard_url = url_for('dashboard', shop=shop, embedded='1', host=request.args.get('host'))
-        return redirect(dashboard_url)
+    # Handle redirect after OAuth - check if this is an embedded app (App Store installation)
+    # Shopify sends 'host' parameter for embedded apps
+    host = request.args.get('host')
     
+    # Also check state for host (in case it was passed through from install endpoint)
+    state = request.args.get('state', '')
+    if state and '||' in state and not host:
+        # State contains shop||host format
+        parts = state.split('||', 1)
+        if len(parts) == 2:
+            host = unquote(parts[1])
+    
+    # If host is present, this is an embedded app installation (App Store)
+    if host:
+        # Redirect to our app's dashboard with shop and host parameters
+        # App Bridge will handle the embedding when these params are present
+        app_url = os.getenv('SHOPIFY_APP_URL', 'https://employeesuite-production.onrender.com')
+        embedded_url = f"{app_url}/dashboard?shop={shop}&host={host}"
+        logger.info(f"Redirecting embedded app (App Store installation) to: {embedded_url}")
+        return redirect(embedded_url)
+    
+    # Non-embedded installation - redirect to regular dashboard
     return redirect('/dashboard')
 
 def verify_hmac(params):
