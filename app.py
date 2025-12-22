@@ -1,11 +1,22 @@
 import sys
 import os
 import signal
+import traceback
+import logging
 
 # Force single-threaded numpy/pandas operations to prevent segfaults
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 os.environ['MKL_NUM_THREADS'] = '1'
 os.environ['OMP_NUM_THREADS'] = '1'
+
+# CRITICAL: Set up detailed crash logging for debugging segfaults
+# This will help us identify exactly where crashes occur
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout,
+    force=True  # Override any existing config
+)
 
 # CRITICAL: Set signal handlers to prevent segfaults from crashing entire worker
 # This catches SIGSEGV (segmentation fault) and logs it instead of crashing
@@ -2560,14 +2571,29 @@ def api_update_inventory():
 
 @app.route('/api/generate_report', methods=['GET', 'POST'])
 def api_generate_report():
-    # CRITICAL: Wrap entire function in BaseException to catch segfaults
+    """Generate revenue report with detailed crash logging"""
+    user_id = None
     try:
+        logging.info("=== REPORT GENERATION START ===")
+        logging.info(f"Request method: {request.method}")
+        logging.info(f"Request path: {request.path}")
+        logging.info(f"Request headers: {dict(request.headers)}")
+        
         # Get authenticated user (supports both Flask-Login and session tokens)
+        logging.info("Step 1: Getting authenticated user...")
         user, error_response = get_authenticated_user()
         if error_response:
+            logging.warning("Step 1 FAILED: Authentication error")
             return error_response
         
+        logging.info(f"Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, 'email') else 'N/A'}")
+        
+        # Store user ID before login_user to avoid recursion issues
+        user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+        logging.info(f"Step 2: User ID extracted: {user_id}")
+        
         if not user.has_access():
+            logging.warning(f"Step 2 FAILED: User {user_id} does not have access")
             return jsonify({
                 'error': 'Subscription required',
                 'success': False,
@@ -2576,22 +2602,32 @@ def api_generate_report():
                 'subscribe_url': url_for('billing.subscribe')
             }), 403
         
-        # Store user ID before login_user to avoid recursion issues
-        user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+        logging.info(f"Step 2 SUCCESS: User {user_id} has access")
         
         # Set current_user for generate_report() function
+        logging.info("Step 3: Logging in user...")
         from flask_login import login_user
         login_user(user, remember=False)
+        logging.info("Step 3 SUCCESS: User logged in")
         
         logger.info(f"Generate report called by user {user_id}")
+        logging.info(f"Step 4: Calling generate_report() for user {user_id}...")
         
         # CRITICAL: DO NOT call db.session.remove() here - let SQLAlchemy manage connections
         # Removing sessions before queries can cause segfaults by corrupting connection state
         from reporting import generate_report
         # Pass user_id to avoid recursion
+        logging.info("Step 4a: Imported generate_report function")
+        logging.info("Step 4b: Calling generate_report(user_id={})...".format(user_id))
+        
         data = generate_report(user_id=user_id)
+        
+        logging.info(f"Step 4 SUCCESS: generate_report() returned, checking results...")
+        logging.info(f"Step 4 result keys: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
+        
         if data.get('error') and data['error'] is not None:
             error_msg = data['error']
+            logging.warning(f"Step 4 ERROR: Report generation returned error: {error_msg[:200]}")
             if 'No Shopify store connected' in error_msg:
                 logger.info(f"Generate report: No store connected for user {user_id}")
             else:
@@ -2599,25 +2635,47 @@ def api_generate_report():
             return error_msg, 500
         
         if not data.get('message'):
+            logging.warning(f"Step 4 WARNING: No message in report data")
             logger.warning(f"Generate report returned no message for user {user_id}")
             return '<h3 class="error">❌ No report data available</h3>', 500
         
         html = data.get('message', '<h3 class="error">❌ No report data available</h3>')
+        logging.info(f"Step 5: Report HTML generated, length: {len(html)} characters")
         
         from flask import session
         if 'report_data' in data:
             session['report_data'] = data['report_data']
+            logging.info("Step 5a: Report data stored in session")
         
+        logging.info("=== REPORT GENERATION SUCCESS ===")
         return html, 200
-    except MemoryError:
+        
+    except MemoryError as e:
+        logging.error("=== CRASH DETECTED ===")
+        logging.error(f"Error type: {type(e).__name__}")
+        logging.error(f"Error message: {str(e)}")
+        logging.error(f"Full traceback:\n{traceback.format_exc()}")
+        logging.error("=== END CRASH LOG ===")
         logger.error(f"Memory error generating report for user {user_id} - clearing cache")
         from performance import clear_cache as clear_perf_cache
         clear_perf_cache()
         return jsonify({"success": False, "error": "Memory error - please try again"}), 500
-    except SystemExit:
+    except SystemExit as e:
+        logging.error("=== CRASH DETECTED ===")
+        logging.error(f"Error type: {type(e).__name__}")
+        logging.error(f"Error message: {str(e)}")
+        logging.error(f"Full traceback:\n{traceback.format_exc()}")
+        logging.error("=== END CRASH LOG ===")
         # Re-raise system exits (like from sys.exit())
         raise
     except BaseException as e:
+        logging.error("=== CRASH DETECTED ===")
+        logging.error(f"Error type: {type(e).__name__}")
+        logging.error(f"Error message: {str(e)}")
+        logging.error(f"Full traceback:\n{traceback.format_exc()}")
+        logging.error(f"User ID: {user_id}")
+        logging.error(f"Exception args: {e.args}")
+        logging.error("=== END CRASH LOG ===")
         # Catch all other exceptions including segmentation faults precursors
         logger.error(f"Critical error generating report for user {user_id}: {type(e).__name__}: {str(e)}", exc_info=True)
         from performance import clear_cache as clear_perf_cache
@@ -2627,6 +2685,12 @@ def api_generate_report():
             pass
         return jsonify({"success": False, "error": "An unexpected error occurred. Please try again or contact support if this persists."}), 500
     except Exception as e:
+        logging.error("=== CRASH DETECTED ===")
+        logging.error(f"Error type: {type(e).__name__}")
+        logging.error(f"Error message: {str(e)}")
+        logging.error(f"Full traceback:\n{traceback.format_exc()}")
+        logging.error(f"User ID: {user_id}")
+        logging.error("=== END CRASH LOG ===")
         logger.error(f"Error generating report for user {user_id}: {str(e)}", exc_info=True)
         return jsonify({"success": False, "error": f"Failed to generate report: {str(e)}"}), 500
 
