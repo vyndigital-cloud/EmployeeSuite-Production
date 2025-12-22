@@ -67,7 +67,15 @@ echo "========================================"
 echo -e "${BLUE}📊 Summary:${NC}"
 echo ""
 
-if [ "$ALL_OK" = true ] && [ "$UNPUSHED" -eq 0 ] 2>/dev/null; then
+ISSUES=0
+if [ "$ALL_OK" != true ]; then
+    ISSUES=1
+fi
+if [ "$UNPUSHED" -gt 0 ] 2>/dev/null; then
+    ISSUES=1
+fi
+
+if [ "$ISSUES" -eq 0 ]; then
     echo -e "${GREEN}✅ Code is ready for auto-deployment!${NC}"
     echo ""
     echo -e "${YELLOW}📋 Next Steps:${NC}"
@@ -90,7 +98,7 @@ if [ "$ALL_OK" = true ] && [ "$UNPUSHED" -eq 0 ] 2>/dev/null; then
     echo "   Run: ./test_auto_deploy.sh"
 else
     echo -e "${YELLOW}⚠️  Fix these issues first:${NC}"
-    [ "$ALL_OK" = false ] && echo "   - Missing required files"
+    [ "$ALL_OK" != true ] && echo "   - Missing required files"
     [ "$UNPUSHED" -gt 0 ] 2>/dev/null && echo "   - Push your commits"
     echo ""
 fi
