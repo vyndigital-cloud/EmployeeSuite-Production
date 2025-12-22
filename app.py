@@ -103,7 +103,6 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'max_overflow': 20,  # Increased for traffic spikes
     'pool_pre_ping': True,  # Verify connections before using
     'pool_recycle': 3600,  # Recycle connections after 1 hour
-    'connect_args': {'connect_timeout': 5},  # Faster connection timeout
     'echo': False,  # Disable SQL logging for performance
 }
 
@@ -147,9 +146,13 @@ def optimize_response(response):
     
     # CRITICAL: Force session cookie to be set for Safari compatibility
     # Safari requires explicit cookie setting in response headers
-    if session.get('_permanent'):
-        # Session is permanent - ensure cookie is set
-        session.modified = True
+    try:
+        if hasattr(session, 'permanent') and session.permanent:
+            # Session is permanent - ensure cookie is set
+            session.modified = True
+    except Exception:
+        # Session not available - skip (webhook requests, etc.)
+        pass
     
     # Enable Keep-Alive for webhook endpoints (Shopify requirement)
     # This allows Shopify to reuse connections, reducing latency
