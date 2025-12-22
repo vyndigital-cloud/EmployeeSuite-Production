@@ -358,14 +358,20 @@ def login():
                 logger.info(f"Login successful for standalone access (cookie auth)")
             
             # Preserve embedded params if this is an embedded app request
-            # For embedded apps, redirect back to root with params (never redirect to /dashboard)
+            # For embedded apps, redirect to dashboard with params (dashboard handles embedded better)
             if is_embedded and shop:
                 # Build URL with all embedded parameters
                 params = {'shop': shop, 'embedded': '1'}
                 if host:
                     params['host'] = host
-                return redirect(url_for('home', **params))
+                return redirect(url_for('dashboard', **params))
             # For standalone, redirect to dashboard
+            # CRITICAL: Ensure session is saved before redirect
+            try:
+                session.permanent = True
+                session.modified = True
+            except Exception:
+                pass
             return redirect(url_for('dashboard'))
         
         return render_template_string(LOGIN_HTML, error="Invalid email or password", shop=shop, embedded=embedded, host=host)

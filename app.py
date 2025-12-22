@@ -2178,19 +2178,34 @@ def dashboard():
     """Dashboard - accessible to all authenticated users, shows subscribe prompt if no access"""
     
     # Handle case where user might not be authenticated (for embedded apps)
-    if current_user.is_authenticated:
-        has_access = current_user.has_access()
-        trial_active = current_user.is_trial_active()
-        days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+    # CRITICAL: Check authentication safely - current_user might not be loaded yet
+    try:
+        user_authenticated = current_user.is_authenticated if hasattr(current_user, 'is_authenticated') else False
+    except Exception:
+        user_authenticated = False
+    
+    if user_authenticated:
+        try:
+            has_access = current_user.has_access()
+            trial_active = current_user.is_trial_active()
+            days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+            is_subscribed = current_user.is_subscribed
+        except Exception as e:
+            logger.error(f"Error accessing user properties: {e}", exc_info=True)
+            has_access = False
+            trial_active = False
+            days_left = 0
+            is_subscribed = False
     else:
         # Embedded app without auth - show limited view
         has_access = False
         trial_active = False
         days_left = 0
+        is_subscribed = False
     
     # Check if user has connected Shopify
     from models import ShopifyStore
-    if current_user.is_authenticated:
+    if user_authenticated:
         # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
         try:
             has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
@@ -2205,7 +2220,6 @@ def dashboard():
                 except Exception:
                     pass
             has_shopify = False
-        is_subscribed = current_user.is_subscribed
     else:
         # For embedded apps without auth, check by shop param
         has_shopify = False
