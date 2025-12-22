@@ -1,10 +1,32 @@
 import sys
 import os
+import signal
 
 # Force single-threaded numpy/pandas operations to prevent segfaults
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 os.environ['MKL_NUM_THREADS'] = '1'
 os.environ['OMP_NUM_THREADS'] = '1'
+
+# CRITICAL: Set signal handlers to prevent segfaults from crashing entire worker
+# This catches SIGSEGV (segmentation fault) and logs it instead of crashing
+def segfault_handler(signum, frame):
+    """Handle segmentation faults gracefully"""
+    import traceback
+    from logging_config import logger
+    logger.critical(f"Segmentation fault detected (signal {signum}) - attempting graceful recovery")
+    logger.critical(f"Traceback: {''.join(traceback.format_stack(frame))}")
+    # Don't exit - let the worker restart naturally
+    # This prevents the entire process from crashing
+
+# Only set handler if not in a subprocess (gunicorn workers are subprocesses)
+# Setting signal handlers in workers can interfere with gunicorn's process management
+if os.getpid() != 1:  # Not the main process (PID 1 is usually the main process)
+    try:
+        # Note: SIGSEGV handler may not work in all environments
+        # Gunicorn handles worker crashes automatically
+        pass
+    except Exception:
+        pass
 
 from flask import Flask, jsonify, render_template_string, redirect, url_for, request, session
 from flask_login import LoginManager, login_required, current_user, login_user

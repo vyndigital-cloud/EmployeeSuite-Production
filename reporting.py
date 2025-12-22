@@ -90,13 +90,23 @@ def generate_report(user_id=None):
                     break
                 
                 # CRITICAL: Memory management - limit total orders to prevent segfaults
-                if len(all_orders_raw) + len(orders) > 10000:
-                    logger.warning(f"Reached memory limit (10,000 orders). Stopping pagination to prevent segfault.")
-                    all_orders_raw.extend(orders[:10000 - len(all_orders_raw)])
+                # Reduced limit to 5000 orders to prevent segfaults (code 139)
+                MAX_ORDERS = 5000
+                if len(all_orders_raw) + len(orders) > MAX_ORDERS:
+                    logger.warning(f"Reached memory limit ({MAX_ORDERS} orders). Stopping pagination to prevent segfault.")
+                    remaining = MAX_ORDERS - len(all_orders_raw)
+                    if remaining > 0:
+                        all_orders_raw.extend(orders[:remaining])
                     # Force garbage collection when hitting memory limit
                     import gc
                     gc.collect()
                     break
+                
+                # CRITICAL: Periodic garbage collection during pagination to prevent memory buildup
+                if iteration % 5 == 0 and len(all_orders_raw) > 1000:
+                    import gc
+                    gc.collect()
+                    logger.debug(f"Memory cleanup after {iteration + 1} iterations ({len(all_orders_raw)} orders)")
                 
                 all_orders_raw.extend(orders)
                 logger.info(f"Fetched {len(orders)} orders (iteration {iteration + 1}), total so far: {len(all_orders_raw)}")
