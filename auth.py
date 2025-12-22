@@ -5,8 +5,10 @@ from email_service import send_welcome_email, send_password_reset_email
 from flask_bcrypt import Bcrypt
 from datetime import datetime, timedelta
 import secrets
+import os
 from input_validation import validate_email, sanitize_input
 from logging_config import logger
+from embedded_detection import is_embedded_request, get_embedded_params
 
 auth_bp = Blueprint('auth', __name__)
 
