@@ -7,8 +7,9 @@ from logging_config import logger
 
 def migrate_shopify_store_columns(app, db):
     """Add new columns to shopify_stores table - SQLite and PostgreSQL compatible"""
-    with app.app_context():
-        try:
+    # CRITICAL: Don't create nested app_context - assume we're already in one
+    # If called from init_db(), we're already in app.app_context()
+    try:
             # Get database dialect to determine which method to use
             dialect = db.engine.dialect.name
             
@@ -181,8 +182,12 @@ def migrate_shopify_store_columns(app, db):
             
         except Exception as e:
             logger.error(f"Migration error: {e}", exc_info=True)
-            db.session.rollback()
-            raise
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            # Don't raise - allow app to continue even if migration fails
+            # Log the error but don't crash the app
 
 if __name__ == "__main__":
     migrate_shopify_store_columns()
