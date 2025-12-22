@@ -1186,7 +1186,17 @@ def dashboard():
     
     # Check if user has connected Shopify
     from models import ShopifyStore
-    has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
+    if current_user.is_authenticated:
+        has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
+        is_subscribed = current_user.is_subscribed
+    else:
+        # For embedded apps without auth, check by shop param
+        has_shopify = False
+        if shop:
+            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            if store:
+                has_shopify = True
+        is_subscribed = False
     
     # Skip slow API calls on dashboard load - just show empty stats
     # This prevents the page from hanging while waiting for Shopify API
@@ -1194,16 +1204,20 @@ def dashboard():
     quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
     
     # Get shop domain and API key for App Bridge initialization
-    shop_domain = ''
-    if has_shopify:
+    shop_domain = shop or ''
+    if current_user.is_authenticated and has_shopify:
         store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+        if store:
+            shop_domain = store.shop_url
+    elif shop and has_shopify:
+        store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
         if store:
             shop_domain = store.shop_url
     
     return render_template_string(DASHBOARD_HTML, 
                                  trial_active=trial_active, 
                                  days_left=days_left, 
-                                 is_subscribed=current_user.is_subscribed, 
+                                 is_subscribed=is_subscribed, 
                                  has_shopify=has_shopify, 
                                  has_access=has_access,
                                  quick_stats=quick_stats,
