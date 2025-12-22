@@ -364,15 +364,32 @@ def login():
                 session.modified = True  # Force immediate session save
                 logger.info(f"Login successful for standalone access (cookie auth)")
             
-            # Preserve embedded params if this is an embedded app request
-            # For embedded apps, redirect to dashboard with params (dashboard handles embedded better)
+            # CRITICAL: Safari blocks server-side redirects in iframes
+            # For embedded apps, use JavaScript redirect via App Bridge or render directly
             if is_embedded and shop:
-                # Build URL with all embedded parameters
-                params = {'shop': shop, 'embedded': '1'}
-                if host:
-                    params['host'] = host
-                return redirect(url_for('dashboard', **params))
-            # For standalone, redirect to dashboard
+                # SAFARI FIX: Render dashboard HTML directly instead of redirecting
+                # This prevents Safari from blocking the redirect in iframe
+                from flask import render_template_string
+                from app import DASHBOARD_HTML  # Import dashboard HTML
+                
+                # Get dashboard data (simplified for embedded apps)
+                from models import ShopifyStore
+                store = ShopifyStore.query.filter_by(shop_url=shop).first() if shop else None
+                has_shopify = store is not None
+                
+                # Render dashboard directly - no redirect needed
+                logger.info(f"Safari-friendly login: Rendering dashboard directly for embedded app (shop: {shop})")
+                return render_template_string(DASHBOARD_HTML,
+                    trial_active=False,
+                    days_left=0,
+                    is_subscribed=False,
+                    has_shopify=has_shopify,
+                    has_access=True,  # User just logged in
+                    quick_stats={'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0},
+                    shop_domain=shop or '',
+                    SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''))
+            
+            # For standalone access, redirect to dashboard (Safari allows redirects outside iframes)
             # CRITICAL: Ensure session is saved before redirect
             try:
                 session.permanent = True
