@@ -186,11 +186,19 @@ DASHBOARD_HTML = """
         /* Inline critical CSS - no blocking */
         body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
     </style>
+    <!-- Defer non-critical resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Shopify Polaris CSS for better design consistency -->
-    <link rel="stylesheet" href="https://cdn.shopify.com/shopifycloud/app-bridge.css">
+    <!-- Shopify Polaris CSS - only load in embedded mode -->
+    <script>
+        // Only load App Bridge CSS if in embedded mode
+        if (new URLSearchParams(window.location.search).get('host')) {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://cdn.shopify.com/shopifycloud/app-bridge.css';
+            document.head.appendChild(link);
+        }
+    </script>
     <style>
         * {
             margin: 0;
@@ -490,41 +498,50 @@ DASHBOARD_HTML = """
         }
     </style>
 
-    <!-- Shopify App Bridge (for embedded apps) - CRITICAL: Must load before page renders -->
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <!-- Shopify App Bridge - Only load if embedded -->
     <script>
-        // Initialize App Bridge - CRITICAL for embedded apps
         (function() {
+            // Only load App Bridge if we have host param (embedded mode)
+            var urlParams = new URLSearchParams(window.location.search);
+            var host = urlParams.get('host');
+            
+            if (!host) {
+                // Not embedded, skip App Bridge
+                return;
+            }
+            
+            // Load App Bridge script
+            var script = document.createElement('script');
+            script.src = 'https://cdn.shopify.com/shopifycloud/app-bridge.js';
+            script.onload = function() {
+                initAppBridge();
+            };
+            document.head.appendChild(script);
+            
             function initAppBridge() {
                 try {
-                    // Check if App Bridge is loaded
                     if (typeof window['app-bridge'] === 'undefined') {
-                        setTimeout(initAppBridge, 100);
+                        setTimeout(initAppBridge, 50);
                         return;
                     }
                     
                     var AppBridge = window['app-bridge'];
                     if (!AppBridge || !AppBridge.default) {
-                        setTimeout(initAppBridge, 100);
+                        setTimeout(initAppBridge, 50);
                         return;
                     }
                     
                     var createApp = AppBridge.default;
-                    var Redirect = AppBridge.actions ? AppBridge.actions.Redirect : null;
-                    
-                    // Get shop and host from URL params (Shopify provides these)
                     var urlParams = new URLSearchParams(window.location.search);
                     var shop = urlParams.get('shop') || '';
                     var host = urlParams.get('host') || '';
                     var apiKey = '{{ SHOPIFY_API_KEY or "" }}';
                     
-                    // Decode host if it's base64 encoded
+                    // Decode host if base64
                     if (host && !host.includes('.')) {
                         try {
                             host = atob(host);
-                        } catch(e) {
-                            // Not base64, use as-is
-                        }
+                        } catch(e) {}
                     }
                     
                     if (shop && host && apiKey) {
@@ -534,84 +551,31 @@ DASHBOARD_HTML = """
                         });
                         
                         window.shopifyApp = app;
-                        
-                        // Wrap fetch to add session tokens
-                        var originalFetch = window.fetch;
-                        window.fetch = function(url, options) {
-                            options = options || {};
-                            options.headers = options.headers || {};
-                            
-                            var isInternalRequest = typeof url === 'string' && (url.startsWith('/') || url.includes(window.location.hostname));
-                            
-                            if (isInternalRequest && !options.headers['Authorization']) {
-                                return app.getSessionToken().then(function(token) {
-                                    if (token) {
-                                        options.headers = options.headers || {};
-                                        options.headers['Authorization'] = 'Bearer ' + token;
-                                    }
-                                    return originalFetch(url, options);
-                                }).catch(function(error) {
-                                    console.warn('Session token fetch failed:', error);
-                                    return originalFetch(url, options);
-                                });
-                            }
-                            
-                            return originalFetch(url, options);
-                        };
-                        
-                        // Wrap XMLHttpRequest
-                        var originalXHROpen = XMLHttpRequest.prototype.open;
-                        var originalXHRSend = XMLHttpRequest.prototype.send;
-                        XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
-                            this._method = method;
-                            this._url = url;
-                            return originalXHROpen.apply(this, arguments);
-                        };
-                        XMLHttpRequest.prototype.send = function(data) {
-                            var xhr = this;
-                            var url = this._url;
-                            var isInternalRequest = url && (url.startsWith('/') || url.includes(window.location.hostname));
-                            
-                            if (isInternalRequest && !this.getRequestHeader('Authorization')) {
-                                app.getSessionToken().then(function(token) {
-                                    if (token) {
-                                        xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-                                    }
-                                    originalXHRSend.call(xhr, data);
-                                }).catch(function(error) {
-                                    console.warn('Session token fetch failed for XHR:', error);
-                                    originalXHRSend.call(xhr, data);
-                                });
-                            } else {
-                                originalXHRSend.call(this, data);
-                            }
-                        };
-                        
                         console.log('✅ App Bridge initialized');
-                    } else {
-                        console.warn('⚠️ App Bridge: Missing params', {shop: !!shop, host: !!host, apiKey: !!apiKey});
                     }
                 } catch (e) {
                     console.error('❌ App Bridge init failed:', e);
                 }
             }
-            
-            // Start immediately - don't wait for DOMContentLoaded
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initAppBridge);
-            } else {
-                initAppBridge();
-            }
         })();
     </script>
     
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3"></script>
+    <!-- Google Analytics - Load after page renders -->
     <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-RBBQ4X7FJ3');
+        // Defer analytics loading
+        window.addEventListener('load', function() {
+            var script = document.createElement('script');
+            script.async = true;
+            script.src = 'https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3';
+            document.head.appendChild(script);
+            
+            script.onload = function() {
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', 'G-RBBQ4X7FJ3');
+            };
+        });
     </script>
     
     <!-- Meta tags for better SEO and sharing -->
@@ -811,7 +775,25 @@ DASHBOARD_HTML = """
         function processOrders(button) {
             setButtonLoading(button, true);
             showLoading();
-            fetch('/api/process_orders')
+            
+            // Get session token if in embedded mode
+            var fetchPromise;
+            if (window.shopifyApp) {
+                fetchPromise = window.shopifyApp.getSessionToken().then(function(token) {
+                    var options = {};
+                    if (token) {
+                        options.headers = {'Authorization': 'Bearer ' + token};
+                    }
+                    return fetch('/api/process_orders', options);
+                }).catch(function(err) {
+                    console.warn('Session token failed, trying without:', err);
+                    return fetch('/api/process_orders');
+                });
+            } else {
+                fetchPromise = fetch('/api/process_orders');
+            }
+            
+            fetchPromise
                 .then(r => {
                     if (!r.ok) throw new Error('Network error');
                     return r.json();
@@ -830,7 +812,6 @@ DASHBOARD_HTML = """
                             </div>
                         `;
                     } else {
-                        // For errors, display the backend HTML directly (it already has the title and banner)
                         document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${d.error || d.message || 'No details available'}</div>`;
                     }
                 })
@@ -850,18 +831,24 @@ DASHBOARD_HTML = """
             setButtonLoading(button, true);
             showLoading();
             
-            var fetchOptions = {};
+            // Get session token if in embedded mode - WAIT for it
+            var fetchPromise;
             if (window.shopifyApp) {
-                window.shopifyApp.getSessionToken().then(function(token) {
+                fetchPromise = window.shopifyApp.getSessionToken().then(function(token) {
+                    var options = {};
                     if (token) {
-                        fetchOptions.headers = {'Authorization': 'Bearer ' + token};
+                        options.headers = {'Authorization': 'Bearer ' + token};
                     }
+                    return fetch('/api/update_inventory', options);
                 }).catch(function(err) {
-                    console.warn('Failed to get session token:', err);
+                    console.warn('Session token failed, trying without:', err);
+                    return fetch('/api/update_inventory');
                 });
+            } else {
+                fetchPromise = fetch('/api/update_inventory');
             }
             
-            fetch('/api/update_inventory', fetchOptions)
+            fetchPromise
                 .then(r => {
                     if (!r.ok) {
                         return r.text().then(text => {
@@ -910,18 +897,24 @@ DASHBOARD_HTML = """
             setButtonLoading(button, true);
             showLoading();
             
-            var fetchOptions = {};
+            // Get session token if in embedded mode - WAIT for it
+            var fetchPromise;
             if (window.shopifyApp) {
-                window.shopifyApp.getSessionToken().then(function(token) {
+                fetchPromise = window.shopifyApp.getSessionToken().then(function(token) {
+                    var options = {};
                     if (token) {
-                        fetchOptions.headers = {'Authorization': 'Bearer ' + token};
+                        options.headers = {'Authorization': 'Bearer ' + token};
                     }
+                    return fetch('/api/generate_report', options);
                 }).catch(function(err) {
-                    console.warn('Failed to get session token:', err);
+                    console.warn('Session token failed, trying without:', err);
+                    return fetch('/api/generate_report');
                 });
+            } else {
+                fetchPromise = fetch('/api/generate_report');
             }
             
-            fetch('/api/generate_report', fetchOptions)
+            fetchPromise
                 .then(r => {
                     if (!r.ok) {
                         // If error response, try to get error HTML
