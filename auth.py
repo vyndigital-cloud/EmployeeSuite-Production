@@ -332,8 +332,15 @@ def login():
             return render_template_string(LOGIN_HTML, error="System error. Please try again.")
         
         if password_valid:
-            login_user(user, remember=True)
+            # Safari compatibility: Use remember=False for embedded apps to reduce cookie issues
+            # For embedded apps, session tokens handle auth, not cookies
+            is_embedded = request.args.get('embedded') == '1' or request.args.get('host')
+            login_user(user, remember=not is_embedded)  # Don't use remember cookie in embedded mode
             session.permanent = True
+            
+            # Safari: Force session to be saved immediately
+            session.modified = True
+            
             # Preserve embedded params if this is an embedded app request
             shop = request.args.get('shop')
             embedded = request.args.get('embedded')
