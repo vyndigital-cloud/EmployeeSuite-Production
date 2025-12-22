@@ -215,7 +215,7 @@ def load_user(user_id):
 @login_manager.unauthorized_handler
 def unauthorized():
     """Handle unauthorized access - preserve embedded parameters for embedded apps"""
-    from flask import request, redirect, url_for, has_request_context
+    from flask import request, redirect, url_for, has_request_context, Response, render_template_string
     # CRITICAL: Only use request context if we're in a request
     if not has_request_context():
         # Not in a request context - return a simple redirect
@@ -226,7 +226,7 @@ def unauthorized():
     embedded = request.args.get('embedded')
     host = request.args.get('host')
     
-    # If embedded app, preserve parameters when redirecting to login
+    # SAFARI FIX: If embedded app, use JavaScript redirect (Safari blocks server-side redirects in iframes)
     if embedded == '1' or shop or host:
         params = {}
         if shop:
@@ -235,9 +235,35 @@ def unauthorized():
             params['embedded'] = embedded
         if host:
             params['host'] = host
-        return redirect(url_for('auth.login', **params))
+        
+        login_url = url_for('auth.login', **params, _external=True)
+        
+        # Use JavaScript redirect for Safari compatibility
+        redirect_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Redirecting to Login...</title>
+    <meta http-equiv="refresh" content="0;url={login_url}">
+    <script>
+        // Immediate JavaScript redirect - Safari allows this in iframes
+        window.location.href = '{login_url}';
+        // Fallback for older browsers
+        setTimeout(function() {{
+            window.location.replace('{login_url}');
+        }}, 100);
+    </script>
+</head>
+<body>
+    <p>Redirecting to login...</p>
+    <p><a href="{login_url}">Click here if not redirected</a></p>
+</body>
+</html>
+"""
+        return Response(redirect_html, mimetype='text/html')
     
-    # For standalone access, redirect normally
+    # For standalone access, redirect normally (Safari allows redirects outside iframes)
     return redirect(url_for('auth.login'))
 
 app.register_blueprint(auth_bp)
