@@ -1911,9 +1911,9 @@ def home():
                         pass
                     finally:
                     try:
-                        db.session.remove()
-                    except Exception:
-                        pass
+                            db.session.remove()
+                        except Exception:
+                            pass
                 store = None
                 if store:
                     shop_domain = store.shop_url
