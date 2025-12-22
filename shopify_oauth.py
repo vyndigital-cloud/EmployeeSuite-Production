@@ -168,9 +168,17 @@ def callback():
     # Register mandatory compliance webhooks (Shopify requirement)
     register_compliance_webhooks(shop, access_token)
     
-    # Log user in
-    login_user(user, remember=True)
+    # Log user in - for OAuth (embedded apps), use session tokens, not remember cookies
+    # Session tokens are primary auth for embedded apps, cookies are secondary
+    is_embedded = bool(host)  # If host is present, this is embedded
+    login_user(user, remember=not is_embedded)  # No remember cookie for embedded apps
     session.permanent = True
+    session.modified = True  # Force immediate session save (Safari compatibility)
+    
+    if is_embedded:
+        logger.info(f"OAuth login for embedded app (session token auth)")
+    else:
+        logger.info(f"OAuth login for standalone access (cookie auth)")
     
     # Handle redirect after OAuth - check if this is an embedded app (App Store installation)
     # Shopify sends 'host' parameter for embedded apps

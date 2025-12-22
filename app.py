@@ -69,19 +69,30 @@ if not SECRET_KEY:
     SECRET_KEY = 'dev-secret-key-change-in-production'
     logger.warning("Using default SECRET_KEY - THIS IS INSECURE. Set SECRET_KEY environment variable.")
 app.config['SECRET_KEY'] = SECRET_KEY
-app.config['SESSION_COOKIE_SECURE'] = True  # Secure cookies over HTTPS (REQUIRED for SameSite=None)
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-# CRITICAL: SameSite=None is REQUIRED for Shopify embedded apps (iframes)
-# SameSite=Lax blocks cookies in cross-origin iframes, breaking session handling
-# Safari requires Secure=True when SameSite=None (which we have)
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'
-# Safari compatibility: Set cookie domain explicitly (None = current domain)
-app.config['SESSION_COOKIE_DOMAIN'] = None  # Don't set domain - let browser handle it
+# ============================================================================
+# SESSION COOKIE CONFIGURATION - 100% OPTIMIZED FOR EMBEDDED & STANDALONE
+# ============================================================================
+# CRITICAL: Embedded apps use session tokens (NO cookies needed)
+# Standalone access uses cookies with optimal Safari/Chrome compatibility
+
+# Base cookie settings - work for both embedded and standalone
+app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only (REQUIRED for SameSite=None)
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent XSS
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Required for cross-origin (embedded apps)
+app.config['SESSION_COOKIE_DOMAIN'] = None  # Let browser handle domain (Safari compatibility)
+app.config['SESSION_COOKIE_PATH'] = '/'  # Available site-wide
+app.config['SESSION_COOKIE_NAME'] = 'session'  # Standard name
+
+# Remember cookie settings - ONLY for standalone (not used in embedded mode)
 app.config['REMEMBER_COOKIE_DURATION'] = 2592000  # 30 days
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
-app.config['REMEMBER_COOKIE_SAMESITE'] = 'None'  # Also for remember me cookies
-app.config['REMEMBER_COOKIE_SECURE'] = True  # Required when SameSite=None
-app.config['REMEMBER_COOKIE_DOMAIN'] = None  # Don't set domain for Safari compatibility
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'None'  # Same as session cookie
+app.config['REMEMBER_COOKIE_SECURE'] = True  # HTTPS only
+app.config['REMEMBER_COOKIE_DOMAIN'] = None  # Safari compatibility
+app.config['REMEMBER_COOKIE_NAME'] = 'remember_token'  # Standard name
+
+# Session lifetime - shorter for embedded apps (they use tokens anyway)
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 hours (embedded apps use tokens)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///employeesuite.db')
 if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
     app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
@@ -98,11 +109,11 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 
 db.init_app(app)
 
-# Configure server-side sessions
-# Session config removed - using Flask defaults
-
+# Configure server-side sessions - optimized for embedded and standalone
 app.config['SESSION_PERMANENT'] = True
-app.config['PERMANENT_SESSION_LIFETIME'] = 86400 * 30
+# Session lifetime: 24 hours (embedded apps use tokens, standalone uses cookies)
+# Shorter lifetime = better security + Safari compatibility
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 hours (was 30 days)
 bcrypt = Bcrypt(app)
 
 login_manager = LoginManager()
@@ -130,9 +141,15 @@ limiter = init_limiter(app)
 # Apply security headers and compression to all responses
 @app.after_request
 def optimize_response(response):
-    """Add security headers and compress responses"""
+    """Add security headers, compress responses, and optimize cookies"""
     response = add_security_headers(response)
     response = compress_response(response)
+    
+    # CRITICAL: Force session cookie to be set for Safari compatibility
+    # Safari requires explicit cookie setting in response headers
+    if session.get('_permanent'):
+        # Session is permanent - ensure cookie is set
+        session.modified = True
     
     # Enable Keep-Alive for webhook endpoints (Shopify requirement)
     # This allows Shopify to reuse connections, reducing latency
@@ -144,6 +161,7 @@ def optimize_response(response):
     if request.endpoint == 'static':
         response.cache_control.max_age = 31536000  # 1 year
         response.cache_control.public = True
+    
     return response
 
 # Request validation before processing (optimized - fast checks only)

@@ -332,14 +332,21 @@ def login():
             return render_template_string(LOGIN_HTML, error="System error. Please try again.")
         
         if password_valid:
-            # Safari compatibility: Use remember=False for embedded apps to reduce cookie issues
-            # For embedded apps, session tokens handle auth, not cookies
+            # DETECT EMBEDDED vs STANDALONE for optimal cookie handling
             is_embedded = request.args.get('embedded') == '1' or request.args.get('host')
-            login_user(user, remember=not is_embedded)  # Don't use remember cookie in embedded mode
-            session.permanent = True
             
-            # Safari: Force session to be saved immediately
-            session.modified = True
+            # EMBEDDED APPS: Use session tokens (no remember cookie needed)
+            # STANDALONE: Use cookies with remember for better UX
+            login_user(user, remember=not is_embedded)  # No remember cookie in embedded mode
+            session.permanent = True
+            session.modified = True  # Force immediate session save (Safari compatibility)
+            
+            # For embedded apps, session tokens handle auth - cookies are just for compatibility
+            # For standalone, cookies are primary auth method
+            if is_embedded:
+                logger.info(f"Login successful for embedded app (session token auth)")
+            else:
+                logger.info(f"Login successful for standalone access (cookie auth)")
             
             # Preserve embedded params if this is an embedded app request
             shop = request.args.get('shop')
@@ -390,8 +397,11 @@ def register():
         except Exception:
             pass  # Don't block signup if email fails
         
-        login_user(new_user, remember=True)
+        # Register: Use remember cookie for standalone, session tokens for embedded
+        is_embedded = request.args.get('embedded') == '1' or request.args.get('host')
+        login_user(new_user, remember=not is_embedded)  # No remember cookie in embedded mode
         session.permanent = True
+        session.modified = True  # Force immediate session save (Safari compatibility)
         return redirect(url_for('dashboard'))
     
     return render_template_string(REGISTER_HTML)
