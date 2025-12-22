@@ -67,3 +67,4 @@ While you're in the Pricing section:
 2. The red error should disappear
 3. You can proceed with app submission
 
+

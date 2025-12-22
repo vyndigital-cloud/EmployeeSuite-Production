@@ -187,3 +187,4 @@ Track orders, monitor inventory, and analyze revenue for your Shopify store. Rea
 3. Test all URLs to ensure they work
 4. Proceed to next sections (Contact information, App testing information, etc.)
 
+
