@@ -1276,21 +1276,43 @@ def api_docs():
 @app.route('/api/process_orders', methods=['GET', 'POST'])
 def api_process_orders():
     # Support both embedded (session token) and regular (Flask-Login) requests
-    is_embedded = request.headers.get('Authorization', '').startswith('Bearer ')
-    if not is_embedded and not current_user.is_authenticated:
+    auth_header = request.headers.get('Authorization', '')
+    is_embedded = auth_header.startswith('Bearer ')
+    
+    # Get user - either from Flask-Login or from session token
+    user = None
+    if current_user.is_authenticated:
+        user = current_user
+    elif is_embedded:
+        # For embedded apps, get user from shop domain in session token
+        try:
+            from session_token_verification import verify_session_token, get_shop_from_session_token
+            # Verify token and get shop
+            token = auth_header.split(' ')[1] if ' ' in auth_header else None
+            if token:
+                import jwt
+                payload = jwt.decode(token, os.getenv('SHOPIFY_API_SECRET'), algorithms=['HS256'])
+                shop_domain = payload.get('dest', '').replace('https://', '').split('/')[0]
+                
+                # Find user from shop
+                from models import ShopifyStore
+                store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
+                if store:
+                    user = store.user
+        except Exception as e:
+            logger.warning(f"Failed to get user from session token: {e}")
+    
+    if not user:
         return jsonify({'error': 'Authentication required', 'success': False}), 401
     
-    # For embedded apps, we still need to check access via session token
-    # For now, allow if authenticated (either way)
-    if not current_user.is_authenticated:
-        # Try to get user from session token (would need to verify token first)
-        # For now, just allow if we have a session token
-        if not is_embedded:
-            return jsonify({'error': 'Authentication required', 'success': False}), 401
-    
     # Check access
-    if not current_user.has_access():
+    if not user.has_access():
         return jsonify({'error': 'Subscription required', 'success': False}), 403
+    
+    # Temporarily set current_user for process_orders() function
+    # (it expects current_user to be set)
+    from flask_login import login_user
+    login_user(user, remember=False)
     
     try:
         result = process_orders()
@@ -1299,8 +1321,7 @@ def api_process_orders():
         else:
             return jsonify({"message": str(result), "success": True})
     except Exception as e:
-        user_id = current_user.id if current_user.is_authenticated else 'unknown'
-        logger.error(f"Error processing orders for user {user_id}: {str(e)}", exc_info=True)
+        logger.error(f"Error processing orders for user {user.id}: {str(e)}", exc_info=True)
         return jsonify({"error": f"Failed to process orders: {str(e)}", "success": False}), 500
 
 @app.route('/api/update_inventory', methods=['GET', 'POST'])
