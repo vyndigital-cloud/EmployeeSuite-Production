@@ -5,10 +5,31 @@ name = "Employee Suite"
 application_url = "https://employeesuite-production.onrender.com"
 embedded = true
 
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_inventory,read_orders,read_products"
+optional_scopes = []
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [
+  "https://employeesuite-production.onrender.com/auth/callback"
+]
+
 [webhooks]
 api_version = "2024-10"
 
-# Mandatory compliance webhooks for App Store submission
+# App lifecycle webhooks (MANDATORY)
+[[webhooks.subscriptions]]
+topics = ["app/uninstalled"]
+uri = "https://employeesuite-production.onrender.com/webhooks/app/uninstall"
+
+# Billing webhooks (for subscription status updates)
+[[webhooks.subscriptions]]
+topics = ["app_subscriptions/update"]
+uri = "https://employeesuite-production.onrender.com/webhooks/app_subscriptions/update"
+
+# GDPR Mandatory compliance webhooks
 [[webhooks.subscriptions]]
 compliance_topics = ["customers/data_request"]
 uri = "https://employeesuite-production.onrender.com/webhooks/customers/data_request"
@@ -21,13 +42,5 @@ uri = "https://employeesuite-production.onrender.com/webhooks/customers/redact"
 compliance_topics = ["shop/redact"]
 uri = "https://employeesuite-production.onrender.com/webhooks/shop/redact"
 
-[access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_inventory,read_orders,read_products"
-optional_scopes = [ ]
-use_legacy_install_flow = false
-
-[auth]
-redirect_urls = [
-  "https://employeesuite-production.onrender.com/auth/callback"
-]
+[pos]
+embedded = false

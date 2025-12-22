@@ -12,9 +12,12 @@ oauth_bp = Blueprint('oauth', __name__)
 
 SHOPIFY_API_KEY = os.getenv('SHOPIFY_API_KEY')
 SHOPIFY_API_SECRET = os.getenv('SHOPIFY_API_SECRET')
-# App Store required scopes
+# App Store required scopes - only request what you need (Shopify requirement)
 SCOPES = 'read_products,read_inventory,read_orders'
 REDIRECT_URI = os.getenv('SHOPIFY_REDIRECT_URI', 'https://employeesuite-production.onrender.com/auth/callback')
+# Access mode: offline = persistent token, online = session-based token
+# Use offline for background operations (webhooks, cron jobs)
+ACCESS_MODE = 'offline'
 
 @oauth_bp.route('/install')
 def install():
@@ -44,7 +47,8 @@ def install():
         'client_id': SHOPIFY_API_KEY,
         'scope': SCOPES,
         'redirect_uri': REDIRECT_URI,  # Must match Partners Dashboard exactly - no query params
-        'state': state_data
+        'state': state_data,
+        'grant_options[]': ACCESS_MODE  # Request offline (persistent) access token
     }
     
     query_string = '&'.join([f"{k}={v}" for k, v in params.items()])

@@ -425,51 +425,58 @@ def disconnect_store():
 @shopify_bp.route('/settings/shopify/cancel', methods=['POST'])
 @login_required
 def cancel_subscription():
-    """Cancel user's Stripe subscription"""
-    import stripe
+    """Cancel user's Shopify subscription"""
+    import requests
     import os
-    
-    stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
     
     if not current_user.is_subscribed:
         return redirect(url_for('shopify.shopify_settings', error='No active subscription found.'))
     
-    if not current_user.stripe_customer_id:
-        return redirect(url_for('shopify.shopify_settings', error='No Stripe customer ID found.'))
+    # Get user's Shopify store
+    store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+    if not store:
+        return redirect(url_for('shopify.shopify_settings', error='No Shopify store connected.'))
     
-    try:
-        # Get all subscriptions for this customer
-        subscriptions = stripe.Subscription.list(
-            customer=current_user.stripe_customer_id,
-            status='active',
-            limit=10
-        )
-        
-        # Cancel all active subscriptions
-        cancelled_count = 0
-        for subscription in subscriptions.data:
-            stripe.Subscription.delete(subscription.id)
-            cancelled_count += 1
-        
-        if cancelled_count == 0:
-            return redirect(url_for('shopify.shopify_settings', error='No active subscriptions found in Stripe.'))
-        
-        # Update database
+    if not store.charge_id:
+        # No charge_id but marked as subscribed - just update the flag
         current_user.is_subscribed = False
         db.session.commit()
+        return redirect(url_for('shopify.shopify_settings', success='Subscription status updated.'))
+    
+    try:
+        # Cancel via Shopify Billing API
+        api_version = '2024-10'
+        url = f"https://{store.shop_url}/admin/api/{api_version}/recurring_application_charges/{store.charge_id}.json"
+        headers = {
+            'X-Shopify-Access-Token': store.access_token,
+            'Content-Type': 'application/json'
+        }
         
-        # Send cancellation email
-        try:
-            from email_service import send_cancellation_email
-            send_cancellation_email(current_user.email)
-        except Exception as e:
-            logger.error(f"Failed to send cancellation email: {e}")
+        response = requests.delete(url, headers=headers, timeout=10)
         
-        return redirect(url_for('shopify.shopify_settings', success='Subscription cancelled successfully. You will retain access until the end of your billing period.'))
+        # 200 = cancelled, 404 = already cancelled/doesn't exist
+        if response.status_code in [200, 404]:
+            current_user.is_subscribed = False
+            store.charge_id = None
+            db.session.commit()
+            
+            logger.info(f"Subscription cancelled for {store.shop_url}")
+            
+            # Send cancellation email
+            try:
+                from email_service import send_cancellation_email
+                send_cancellation_email(current_user.email)
+            except Exception as e:
+                logger.error(f"Failed to send cancellation email: {e}")
+            
+            return redirect(url_for('shopify.shopify_settings', success='Subscription cancelled successfully. You will retain access until the end of your billing period.'))
+        else:
+            logger.error(f"Failed to cancel Shopify subscription: {response.status_code} - {response.text}")
+            return redirect(url_for('shopify.shopify_settings', error='Failed to cancel subscription. Please try again or contact support.'))
         
-    except stripe.error.StripeError as e:
-        logger.error(f"Stripe error during cancellation: {e}")
-        return redirect(url_for('shopify.shopify_settings', error=f'Failed to cancel subscription: {str(e)}'))
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request error during cancellation: {e}")
+        return redirect(url_for('shopify.shopify_settings', error=f'Network error: {str(e)}'))
     except Exception as e:
         logger.error(f"Unexpected error during cancellation: {e}")
         return redirect(url_for('shopify.shopify_settings', error='An unexpected error occurred. Please contact support.'))
