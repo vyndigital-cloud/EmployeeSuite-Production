@@ -993,12 +993,31 @@ def home():
         if True:  # Always render for embedded apps
             # Import dashboard function logic to render directly
             from flask import render_template_string
-            has_access = current_user.has_access()
-            trial_active = current_user.is_trial_active()
-            days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+            
+            # Safe defaults for when user isn't authenticated via Flask-Login
+            # Session tokens will handle auth for API calls
+            if current_user.is_authenticated:
+                has_access = current_user.has_access()
+                trial_active = current_user.is_trial_active()
+                days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+                is_subscribed = current_user.is_subscribed
+                user_id = current_user.id
+            else:
+                # User not authenticated via Flask-Login (normal for embedded apps)
+                # Use safe defaults - session tokens will handle API auth
+                has_access = False
+                trial_active = False
+                days_left = 0
+                is_subscribed = False
+                user_id = None
             
             from models import ShopifyStore
-            has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
+            has_shopify = False
+            if user_id:
+                has_shopify = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first() is not None
+            elif shop:
+                # Check if store exists even without user auth
+                has_shopify = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first() is not None
             
             # Skip slow API calls for embedded apps - just show empty stats
             # This prevents the page from hanging while waiting for Shopify API
@@ -1006,16 +1025,20 @@ def home():
             # Don't fetch quick stats on initial load - let the user click buttons to load data
             # This makes the page load instantly
             
-            shop_domain = ''
-            if has_shopify:
-                store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+            shop_domain = shop or ''
+            if has_shopify and user_id:
+                store = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first()
+                if store:
+                    shop_domain = store.shop_url
+            elif shop:
+                store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
                 if store:
                     shop_domain = store.shop_url
             
             return render_template_string(DASHBOARD_HTML, 
                                          trial_active=trial_active, 
                                          days_left=days_left, 
-                                         is_subscribed=current_user.is_subscribed, 
+                                         is_subscribed=is_subscribed, 
                                          has_shopify=has_shopify, 
                                          has_access=has_access,
                                          quick_stats=quick_stats,
