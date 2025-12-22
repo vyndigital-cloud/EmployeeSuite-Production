@@ -213,41 +213,57 @@ DASHBOARD_HTML = """
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f6f6f7;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #fafbfb 0%, #f6f6f7 50%, #f0f1f2 100%);
+            background-attachment: fixed;
             color: #202223;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             min-height: 100vh;
-            line-height: 1.5;
+            line-height: 1.6;
         }
         
-        /* Header - Shopify Style */
+        /* Header - Premium Style */
         .header {
             background: #ffffff;
             border-bottom: 1px solid #e1e3e5;
             position: sticky;
             top: 0;
             z-index: 100;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.98);
         }
         .header-content {
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 24px;
-            height: 64px;
+            height: 70px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .logo {
-            font-size: 16px;
-            font-weight: 600;
-            color: #202223;
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #008060 0%, #00a67e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             text-decoration: none;
-            letter-spacing: -0.2px;
+            letter-spacing: -0.3px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            transition: transform 0.2s ease;
+        }
+        .logo:hover {
+            transform: scale(1.02);
+        }
+        .logo::before {
+            content: '⚡';
+            font-size: 24px;
+            filter: drop-shadow(0 2px 4px rgba(0, 128, 96, 0.3));
         }
         .header-nav {
             display: flex;
@@ -284,42 +300,83 @@ DASHBOARD_HTML = """
             padding: 32px 24px;
         }
         
-        /* Page Title - Shopify Typography */
+        /* Page Title - Premium Typography */
         .page-title {
-            font-size: 28px;
-            font-weight: 600;
+            font-size: 32px;
+            font-weight: 700;
             color: #202223;
-            margin-bottom: 8px;
-            letter-spacing: -0.3px;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
             line-height: 1.2;
+            background: linear-gradient(135deg, #202223 0%, #4a5568 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: fadeInDown 0.5s ease-out;
+        }
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         .page-subtitle {
-            font-size: 15px;
+            font-size: 16px;
             color: #6d7175;
-            margin-bottom: 32px;
+            margin-bottom: 40px;
             font-weight: 400;
-            line-height: 1.5;
-            max-width: 600px;
+            line-height: 1.6;
+            max-width: 650px;
+            animation: fadeInDown 0.5s ease-out 0.1s both;
         }
         
-        /* Banner - Shopify Style */
+        /* Banner - Premium Style */
         .banner {
             background: #ffffff;
             border: 1px solid #e1e3e5;
-            border-radius: 8px;
-            padding: 16px 20px;
-            margin-bottom: 24px;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 28px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .banner::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: currentColor;
+            opacity: 0.3;
+        }
+        .banner:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transform: translateY(-1px);
         }
         .banner-warning {
-            background: #fffbf0;
-            border-color: #fef3c7;
+            background: linear-gradient(135deg, #fffbf0 0%, #fef3c7 100%);
+            border-color: #fcd34d;
+            color: #92400e;
         }
         .banner-info {
-            background: #f0f4ff;
-            border-color: #dbeafe;
+            background: linear-gradient(135deg, #f0f4ff 0%, #dbeafe 100%);
+            border-color: #60a5fa;
+            color: #1e40af;
+        }
+        .banner-success {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-color: #86efac;
+            color: #166534;
         }
         .banner-content h3 {
             font-size: 15px;
@@ -333,70 +390,177 @@ DASHBOARD_HTML = """
             font-weight: 400;
         }
         .banner-action {
-            background: #008060;
+            background: linear-gradient(135deg, #008060 0%, #00a67e 100%);
             color: #fff;
-            padding: 8px 16px;
-            border-radius: 6px;
+            padding: 10px 20px;
+            border-radius: 8px;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             text-decoration: none;
             white-space: nowrap;
-            transition: background 0.15s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0, 128, 96, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        .banner-action::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.4s, height 0.4s;
+        }
+        .banner-action:hover::before {
+            width: 200px;
+            height: 200px;
         }
         .banner-action:hover {
-            background: #006e52;
+            background: linear-gradient(135deg, #006e52 0%, #008060 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 128, 96, 0.3);
+        }
+        .banner-action:active {
+            transform: translateY(0);
         }
         
-        /* Cards Grid - Shopify Style */
+        /* Cards Grid - Premium Style */
         .cards-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 32px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+            animation: fadeInUp 0.6s ease-out;
         }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .cards-grid .card:nth-child(1) { animation-delay: 0.1s; }
+        .cards-grid .card:nth-child(2) { animation-delay: 0.2s; }
+        .cards-grid .card:nth-child(3) { animation-delay: 0.3s; }
         .card {
             background: #ffffff;
             border: 1px solid #e1e3e5;
-            border-radius: 8px;
-            padding: 24px;
-            transition: box-shadow 0.15s;
+            border-radius: 12px;
+            padding: 28px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #008060, #00a67e);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .card:hover {
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 16px rgba(0, 128, 96, 0.12);
+            border-color: #008060;
+            transform: translateY(-2px);
+        }
+        
+        .card:hover::before {
+            transform: scaleX(1);
         }
         
         .card-icon {
-            font-size: 32px;
-            margin-bottom: 16px;
+            font-size: 40px;
+            margin-bottom: 20px;
             line-height: 1;
             display: inline-block;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card:hover .card-icon {
+            transform: scale(1.1) rotate(5deg);
         }
         
         .card-title {
-            font-size: 17px;
-            font-weight: 600;
+            font-size: 18px;
+            font-weight: 700;
             color: #202223;
-            margin-bottom: 8px;
-            letter-spacing: -0.2px;
+            margin-bottom: 10px;
+            letter-spacing: -0.3px;
+            line-height: 1.3;
         }
         .card-description {
             font-size: 14px;
             color: #6d7175;
-            line-height: 1.5;
-            margin-bottom: 20px;
+            line-height: 1.6;
+            margin-bottom: 24px;
             font-weight: 400;
         }
         .card-btn {
             width: 100%;
-            background: #008060;
+            background: linear-gradient(135deg, #008060 0%, #00a67e 100%);
             color: #fff;
             border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
+            padding: 12px 20px;
+            border-radius: 8px;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0, 128, 96, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .card-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .card-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 128, 96, 0.3);
+        }
+        
+        .card-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 128, 96, 0.2);
+        }
+        
+        .card-btn:disabled {
+            background: #e1e3e5;
+            color: #8c9196;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
             transition: background 0.15s;
             display: flex;
             align-items: center;
@@ -414,69 +578,148 @@ DASHBOARD_HTML = """
             background: #6d7175;
         }
         
-        /* Output - Shopify Style */
+        /* Output - Premium Style */
         .output-container {
             background: #ffffff;
             border: 1px solid #e1e3e5;
-            border-radius: 8px;
+            border-radius: 12px;
             overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.3s ease;
+        }
+        .output-container:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
         .output-header {
-            padding: 16px 20px;
+            padding: 18px 24px;
             border-bottom: 1px solid #e1e3e5;
             font-size: 14px;
             font-weight: 600;
             color: #202223;
-            background: #f6f6f7;
+            background: linear-gradient(to bottom, #fafbfb, #f6f6f7);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .output-header::before {
+            content: '📊';
+            font-size: 16px;
         }
         #output {
-            padding: 20px;
+            padding: 24px;
             min-height: 200px;
             font-size: 14px;
-            line-height: 1.6;
-            color: #6d7175;
-            font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+            line-height: 1.7;
+            color: #202223;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         #output:empty:before {
-            content: 'Click any button above to get started. Your results will appear here.';
+            content: '✨ Click any button above to get started. Your results will appear here.';
             color: #8c9196;
             font-style: italic;
             text-align: center;
-            padding: 40px 20px;
+            padding: 60px 20px;
             display: block;
+            font-size: 15px;
         }
         #output:empty {
             display: flex;
             align-items: center;
             justify-content: center;
+            background: linear-gradient(135deg, #fafbfb 0%, #f6f6f7 100%);
         }
         
-        /* Loading - Shopify Style */
+        /* Loading - Premium Style */
         .loading {
             text-align: center;
-            padding: 48px 40px;
+            padding: 60px 40px;
+            background: linear-gradient(135deg, #fafbfb 0%, #f6f6f7 100%);
         }
         .spinner {
-            width: 24px;
-            height: 24px;
-            border: 2px solid #e1e3e5;
-            border-top: 2px solid #008060;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(0, 128, 96, 0.1);
+            border-top: 3px solid #008060;
+            border-right: 3px solid #00a67e;
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 12px;
+            animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+        .spinner::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 128, 96, 0.2);
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            animation: spin 1.2s linear infinite reverse;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
         .loading-text {
-            font-size: 14px;
-            font-weight: 400;
-            color: #6d7175;
+            font-size: 15px;
+            font-weight: 500;
+            color: #202223;
+            letter-spacing: 0.3px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
         }
         
-        /* Status */
-        .success { color: #008060; font-weight: 500; }
-        .error { color: #d72c0d; font-weight: 500; }
+        /* Status - Premium Style */
+        .success { 
+            color: #008060; 
+            font-weight: 600; 
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .success::before {
+            content: '✓';
+            background: #008060;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .error { 
+            color: #d72c0d; 
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .error::before {
+            content: '✕';
+            background: #d72c0d;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
         
         /* Focus states */
         button:focus-visible,
@@ -781,11 +1024,11 @@ DASHBOARD_HTML = """
             `;
         }
         
-        function showLoading() {
+        function showLoading(message = 'Processing...') {
             document.getElementById('output').innerHTML = `
                 <div class="loading">
                     <div class="spinner"></div>
-                    <div class="loading-text">Processing...</div>
+                    <div class="loading-text">${message}</div>
                 </div>
             `;
         }
