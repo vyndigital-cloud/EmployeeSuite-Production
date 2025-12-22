@@ -81,6 +81,8 @@ if sentry_dsn:
     from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration
     
+    # CRITICAL: Disable profiling and traces to prevent segfaults after responses
+    # These features can cause crashes when sending data to Sentry after response is sent
     sentry_sdk.init(
         dsn=sentry_dsn,
         integrations=[
@@ -88,11 +90,13 @@ if sentry_dsn:
             SqlalchemyIntegration(),
             LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)
         ],
-        traces_sample_rate=0.1,  # 10% of transactions for performance monitoring
-        profiles_sample_rate=0.1,  # 10% of transactions for profiling
+        traces_sample_rate=0.0,  # DISABLED - causes segfaults after responses
+        profiles_sample_rate=0.0,  # DISABLED - causes segfaults after responses
         environment=os.getenv('ENVIRONMENT', 'production'),
         release=os.getenv('RELEASE_VERSION', '1.0.0'),
         before_send=lambda event, hint: event if os.getenv('ENVIRONMENT') != 'development' else None,  # Don't send in dev
+        # CRITICAL: Disable background worker threads that can cause segfaults
+        transport=sentry_sdk.transport.HttpTransport if hasattr(sentry_sdk, 'transport') else None,
     )
     logger.info("Sentry error monitoring initialized")
 else:
@@ -229,34 +233,48 @@ limiter = init_limiter(app)
 @app.after_request
 def optimize_response(response):
     """Add security headers, compress responses, and optimize cookies"""
-    from flask import has_request_context
-    response = add_security_headers(response)
-    response = compress_response(response)
-    
-    # CRITICAL: Force session cookie to be set for Safari compatibility
-    # Safari requires explicit cookie setting in response headers
-    # Only access session if we're in a request context
-    if has_request_context():
+    # CRITICAL: Wrap all operations in try/except to prevent segfaults after response
+    try:
+        from flask import has_request_context
+        response = add_security_headers(response)
+        # CRITICAL: Wrap compression in try/except - it can cause segfaults
         try:
-            # Check if session has been modified or is permanent
-            if session.get('_permanent') or session.modified:
-                # Ensure cookie is set
-                session.modified = True
-        except (RuntimeError, AttributeError):
-            # Session not available in this context (webhook requests, etc.)
-            pass
-    
-    # Enable Keep-Alive for webhook endpoints (Shopify requirement)
-    # This allows Shopify to reuse connections, reducing latency
-    if has_request_context():
-        if request.path.startswith('/webhooks/'):
-            response.headers['Connection'] = 'keep-alive'
-            response.headers['Keep-Alive'] = 'timeout=5, max=1000'
+            response = compress_response(response)
+        except Exception as e:
+            # If compression fails, return uncompressed response
+            logger.debug(f"Compression failed (non-critical): {e}")
         
-        # Add cache headers for static assets
-        if request.endpoint == 'static':
-            response.cache_control.max_age = 31536000  # 1 year
-            response.cache_control.public = True
+        # CRITICAL: Force session cookie to be set for Safari compatibility
+        # Safari requires explicit cookie setting in response headers
+        # Only access session if we're in a request context
+        if has_request_context():
+            try:
+                # Check if session has been modified or is permanent
+                if session.get('_permanent') or session.modified:
+                    # Ensure cookie is set
+                    session.modified = True
+            except (RuntimeError, AttributeError):
+                # Session not available in this context (webhook requests, etc.)
+                pass
+        
+        # Enable Keep-Alive for webhook endpoints (Shopify requirement)
+        # This allows Shopify to reuse connections, reducing latency
+        if has_request_context():
+            try:
+                if request.path.startswith('/webhooks/'):
+                    response.headers['Connection'] = 'keep-alive'
+                    response.headers['Keep-Alive'] = 'timeout=5, max=1000'
+                
+                # Add cache headers for static assets
+                if request.endpoint == 'static':
+                    response.cache_control.max_age = 31536000  # 1 year
+                    response.cache_control.public = True
+            except Exception as e:
+                # Non-critical - headers might not be accessible
+                logger.debug(f"Header setting failed (non-critical): {e}")
+    except Exception as e:
+        # CRITICAL: Never let after_request crash - response already sent
+        logger.error(f"Error in after_request handler (non-critical): {e}", exc_info=True)
     
     return response
 
@@ -265,30 +283,41 @@ def optimize_response(response):
 @app.teardown_appcontext
 def close_db(error):
     """Close database session after each request - prevents connection leaks and segfaults"""
+    # CRITICAL: Wrap ALL operations in try/except - this runs AFTER response is sent
+    # Any crashes here cause segfaults (code 139) because response is already sent
     from models import db
-    from flask import has_request_context
-    # Flask-SQLAlchemy automatically removes sessions, but we ensure cleanup happens
-    # This is the ROOT CAUSE of segfaults - sessions not being cleaned up properly
     try:
         # CRITICAL: Always remove session to prevent segfaults from stale connections
-        db.session.remove()
-        # Force garbage collection if there was an error
-        if error:
-            import gc
-            gc.collect()
-    except BaseException:
-        # Catch ALL exceptions including segfault precursors (SystemExit, KeyboardInterrupt, etc.)
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
         try:
             db.session.remove()
+        except Exception as e:
+            # Non-critical - session might already be removed
+            logger.debug(f"Session remove failed (non-critical): {e}")
+        
+        # CRITICAL: Disable garbage collection in teardown - it can cause segfaults
+        # Let Python's automatic GC handle it instead
+        # if error:
+        #     import gc
+        #     gc.collect()  # DISABLED - causes segfaults after response
+    except BaseException as e:
+        # Catch ALL exceptions including segfault precursors (SystemExit, KeyboardInterrupt, etc.)
+        # CRITICAL: Never let teardown crash - response already sent
+        try:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            try:
+                db.session.remove()
+            except Exception:
+                pass
         except Exception:
+            # Even rollback/remove can fail - just log and continue
             pass
-        # Force cleanup on error
-        import gc
-        gc.collect()
+        # CRITICAL: Disable gc.collect() in teardown - causes segfaults
+        # import gc
+        # gc.collect()  # DISABLED - causes segfaults after response
+        logger.debug(f"Teardown error handled (non-critical): {type(e).__name__}")
     # CRITICAL: Do NOT access request or response here
     # This function is called during app context teardown, which can happen outside requests
     # Request/response handling should be done in after_request handler instead
