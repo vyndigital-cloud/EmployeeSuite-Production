@@ -1579,6 +1579,9 @@ def api_process_orders():
     if not user.has_access():
         return jsonify({'error': 'Subscription required', 'success': False}), 403
     
+    # Store user ID before login_user to avoid recursion issues
+    user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+    
     # Temporarily set current_user for process_orders() function
     # (it expects current_user to be set)
     from flask_login import login_user
@@ -1591,7 +1594,7 @@ def api_process_orders():
         else:
             return jsonify({"message": str(result), "success": True})
     except Exception as e:
-        logger.error(f"Error processing orders for user {user.id}: {str(e)}", exc_info=True)
+        logger.error(f"Error processing orders for user {user_id}: {str(e)}", exc_info=True)
         return jsonify({"error": f"Failed to process orders: {str(e)}", "success": False}), 500
 
 @app.route('/api/update_inventory', methods=['GET', 'POST'])
@@ -1625,6 +1628,9 @@ def api_update_inventory():
     if not user.has_access():
         return jsonify({'error': 'Subscription required', 'success': False}), 403
     
+    # Store user ID before login_user to avoid recursion issues
+    user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+    
     # Set current_user for update_inventory() function
     from flask_login import login_user
     login_user(user, remember=False)
@@ -1637,7 +1643,7 @@ def api_update_inventory():
         else:
             return jsonify({"success": False, "error": str(result)})
     except Exception as e:
-        logger.error(f"Error updating inventory for user {user.id}: {str(e)}", exc_info=True)
+        logger.error(f"Error updating inventory for user {user_id}: {str(e)}", exc_info=True)
         return jsonify({"success": False, "error": f"Failed to update inventory: {str(e)}"}), 500
 
 @app.route('/api/generate_report', methods=['GET', 'POST'])
@@ -1671,24 +1677,27 @@ def api_generate_report():
     if not user.has_access():
         return jsonify({'error': 'Subscription required', 'success': False}), 403
     
+    # Store user ID before login_user to avoid recursion issues
+    user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+    
     # Set current_user for generate_report() function
     from flask_login import login_user
     login_user(user, remember=False)
     
-    logger.info(f"Generate report called by user {user.id}")
+    logger.info(f"Generate report called by user {user_id}")
     try:
         from reporting import generate_report
         data = generate_report()
         if data.get('error') and data['error'] is not None:
             error_msg = data['error']
             if 'No Shopify store connected' in error_msg:
-                logger.info(f"Generate report: No store connected for user {user.id}")
+                logger.info(f"Generate report: No store connected for user {user_id}")
             else:
-                logger.error(f"Generate report error for user {user.id}: {error_msg}")
+                logger.error(f"Generate report error for user {user_id}: {error_msg}")
             return error_msg, 500
         
         if not data.get('message'):
-            logger.warning(f"Generate report returned no message for user {user.id}")
+            logger.warning(f"Generate report returned no message for user {user_id}")
             return '<h3 class="error">❌ No report data available</h3>', 500
         
         html = data.get('message', '<h3 class="error">❌ No report data available</h3>')
@@ -1699,9 +1708,8 @@ def api_generate_report():
         
         return html, 200
     except Exception as e:
-        logger.error(f"Error generating report for user {user.id}: {str(e)}", exc_info=True)
+        logger.error(f"Error generating report for user {user_id}: {str(e)}", exc_info=True)
         return jsonify({"success": False, "error": f"Failed to generate report: {str(e)}"}), 500
-        return f"<h3 class='error'>❌ Error: {str(e)}</h3>", 500
 
 @app.errorhandler(404)
 def not_found(error):
