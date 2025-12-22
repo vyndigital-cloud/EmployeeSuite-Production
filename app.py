@@ -986,9 +986,11 @@ def home():
                 session.permanent = True
                 logger.info(f"Auto-logged in user for embedded app: {shop}")
         
-        # For embedded apps, render dashboard directly instead of redirecting
-        # This prevents iframe connection issues
-        if current_user.is_authenticated:
+        # For embedded apps, ALWAYS render dashboard - don't check Flask-Login
+        # Flask-Login sessions don't work in iframes, but session tokens do
+        # If user isn't logged in via Flask-Login, we'll handle it in the template
+        # CRITICAL: Always render HTML for embedded apps, never redirect
+        if True:  # Always render for embedded apps
             # Import dashboard function logic to render directly
             from flask import render_template_string
             has_access = current_user.has_access()
