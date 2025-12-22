@@ -52,14 +52,10 @@ def generate_report(user_id=None):
         max_iterations = 20  # ~5,000 orders max to prevent memory issues
         
         # Memory-safe pagination with explicit cleanup
+        # CRITICAL: DO NOT call db.session.remove() before queries - let pool_pre_ping handle validation
+        # Removing sessions manually can corrupt connection state and cause segfaults
         try:
             for iteration in range(max_iterations):
-                # CRITICAL: Clear any stale database sessions before each API call
-                try:
-                    db.session.remove()
-                except Exception:
-                    pass
-                
                 # Make request and get response
                 orders_data = client._make_request(endpoint)
                 
@@ -67,25 +63,23 @@ def generate_report(user_id=None):
                     # If error on first request, check if it's authentication failure
                     if iteration == 0:
                         error_msg = orders_data['error']
-                        # If authentication failed, try token refresh (if implemented) or mark inactive
-                        if "Authentication failed" in error_msg or "401" in str(orders_data):
-                            logger.warning(f"Authentication failed for store {store.shop_url} (user {user_id}) - attempting reconnection")
+                        # Check for auth_failed flag from ShopifyClient
+                        if orders_data.get('auth_failed') or "Authentication failed" in error_msg or "401" in str(orders_data):
+                            logger.warning(f"Authentication failed for store {store.shop_url} (user {user_id}) - marking as inactive")
                             # Mark store as inactive - user needs to reconnect
+                            # CRITICAL: DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                             try:
-                                db.session.remove()
                                 store.is_active = False
                                 db.session.commit()
-                            except Exception as db_error:
-                                logger.error(f"Failed to update store status: {db_error}")
+                            except BaseException as db_error:
+                                logger.error(f"Failed to update store status: {type(db_error).__name__}: {str(db_error)}", exc_info=True)
                                 try:
                                     db.session.rollback()
                                 except Exception:
                                     pass
                             finally:
-                                try:
-                                    db.session.remove()
-                                except Exception:
-                                    pass
+                                # Session cleanup handled by teardown_appcontext
+                                pass
                             return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>Authentication failed - Please reconnect your store</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
                         return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>{orders_data['error']}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
                     # Otherwise, we've fetched all available orders

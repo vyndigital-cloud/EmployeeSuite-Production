@@ -1751,8 +1751,8 @@ def home():
         store = None
         user = None
         if shop:
+            # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
             try:
-                # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                 store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
             except BaseException:
                 try:
@@ -1811,8 +1811,8 @@ def home():
             from models import ShopifyStore
             has_shopify = False
             if user_id:
+                # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                 try:
-                    # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                     has_shopify = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first() is not None
                 except BaseException:
                     try:
@@ -1838,8 +1838,8 @@ def home():
                     has_shopify = False
             elif shop:
                 # Check if store exists even without user auth
+                # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                 try:
-                    # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                     has_shopify = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first() is not None
                 except BaseException:
                     try:
@@ -1872,8 +1872,8 @@ def home():
             
             shop_domain = shop or ''
             if has_shopify and user_id:
+                # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                 try:
-                    # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                     store = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first()
                 except BaseException:
                     try:
@@ -1902,7 +1902,6 @@ def home():
             elif shop:
                 # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                 try:
-                # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                     store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
                 except BaseException:
                     try:
@@ -1914,7 +1913,7 @@ def home():
                             db.session.remove()
                         except Exception:
                             pass
-                store = None
+                    store = None
                 if store:
                     shop_domain = store.shop_url
             
@@ -2065,8 +2064,8 @@ def dashboard():
         if shop:
             from models import ShopifyStore, db
             store = None
+            # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
             try:
-                # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                 store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
             except BaseException:
                 try:
@@ -2112,8 +2111,8 @@ def dashboard():
     # Check if user has connected Shopify
     from models import ShopifyStore
     if current_user.is_authenticated:
+        # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
         try:
-            db.session.remove()
             has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
         except BaseException:
             try:
@@ -2131,8 +2130,8 @@ def dashboard():
         # For embedded apps without auth, check by shop param
         has_shopify = False
         if shop:
+            # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
             try:
-                # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                 store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
             except BaseException:
                 try:
