@@ -126,15 +126,40 @@ def callback():
             host = unquote(parts[1])
     
     # If host is present, this is an embedded app installation (App Store)
+    # CRITICAL: Cannot use server-side redirect() in iframe - causes "refused to connect"
+    # Must render HTML that redirects via JavaScript using window.top.location
     if host:
-        # Redirect to our app's dashboard with shop and host parameters
-        # App Bridge will handle the embedding when these params are present
         app_url = os.getenv('SHOPIFY_APP_URL', 'https://employeesuite-production.onrender.com')
         embedded_url = f"{app_url}/dashboard?shop={shop}&host={host}"
-        logger.info(f"Redirecting embedded app (App Store installation) to: {embedded_url}")
-        return redirect(embedded_url)
+        logger.info(f"OAuth complete for embedded app, redirecting to: {embedded_url}")
+        
+        # Render HTML that redirects via JavaScript (breaks out of iframe)
+        # This is the standard way to handle OAuth callbacks in embedded apps
+        redirect_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Installing Employee Suite...</title>
+    <script>
+        // Break out of iframe and redirect to dashboard
+        // window.top.location works even when regular redirects fail in iframes
+        try {{
+            window.top.location.href = '{embedded_url}';
+        }} catch (e) {{
+            // If window.top is blocked, try regular redirect
+            window.location.href = '{embedded_url}';
+        }}
+    </script>
+    <meta http-equiv="refresh" content="0;url={embedded_url}">
+</head>
+<body>
+    <p>Installing Employee Suite... <a href="{embedded_url}">Click here if you're not redirected</a></p>
+</body>
+</html>"""
+        from flask import Response
+        return Response(redirect_html, mimetype='text/html')
     
-    # Non-embedded installation - redirect to regular dashboard
+    # Non-embedded installation - regular redirect works fine
     return redirect('/dashboard')
 
 def verify_hmac(params):
