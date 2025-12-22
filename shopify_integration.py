@@ -27,20 +27,21 @@ class ShopifyClient:
         
         for attempt in range(retries):
             try:
-                response = requests.get(url, headers=headers, timeout=15)
+                response = requests.get(url, headers=headers, timeout=10)  # Reduced for faster failures
                 response.raise_for_status()
                 return response.json()
             except requests.exceptions.Timeout:
                 if attempt < retries - 1:
-                    # Exponential backoff: 1s, 2s, 4s
+                    # Faster retries - max 0.5s delay
                     import time
-                    time.sleep(2 ** attempt)
+                    time.sleep(min(0.5, 0.2 * (attempt + 1)))
                     continue
                 return {"error": "Request timeout - Shopify API is taking too long to respond"}
             except requests.exceptions.ConnectionError:
                 if attempt < retries - 1:
+                    # Faster retries - max 0.5s delay
                     import time
-                    time.sleep(2 ** attempt)
+                    time.sleep(min(0.5, 0.2 * (attempt + 1)))
                     continue
                 return {"error": "Connection error - Cannot connect to Shopify. Check your internet connection."}
             except requests.exceptions.HTTPError as e:
@@ -50,17 +51,18 @@ class ShopifyClient:
                 elif e.response.status_code == 403:
                     return {"error": "Access denied - Check your app permissions"}
                 elif e.response.status_code == 429:
-                    # Rate limit - wait longer
+                    # Rate limit - wait but not too long
                     if attempt < retries - 1:
                         import time
-                        time.sleep(5 * (attempt + 1))
+                        time.sleep(min(2, 1 * (attempt + 1)))  # Max 2 seconds
                         continue
                     return {"error": "Rate limit exceeded - Please wait a moment and try again"}
                 return {"error": f"API error: {e.response.status_code}"}
             except requests.exceptions.RequestException as e:
                 if attempt < retries - 1:
+                    # Faster retries - max 0.5s delay
                     import time
-                    time.sleep(2 ** attempt)
+                    time.sleep(min(0.5, 0.2 * (attempt + 1)))
                     continue
                 return {"error": f"Request failed: {str(e)}"}
         
@@ -81,19 +83,21 @@ class ShopifyClient:
         
         for attempt in range(retries):
             try:
-                response = requests.post(url, json=payload, headers=headers, timeout=15)
+                response = requests.post(url, json=payload, headers=headers, timeout=10)  # Reduced from 15s for faster failures
                 response.raise_for_status()
                 return response.json()
             except requests.exceptions.Timeout:
                 if attempt < retries - 1:
+                    # Faster retries - max 0.5s delay
                     import time
-                    time.sleep(2 ** attempt)
+                    time.sleep(min(0.5, 0.2 * (attempt + 1)))
                     continue
                 return {"error": "Request timeout - Shopify API is taking too long to respond"}
             except requests.exceptions.ConnectionError:
                 if attempt < retries - 1:
+                    # Faster retries - max 0.5s delay
                     import time
-                    time.sleep(2 ** attempt)
+                    time.sleep(min(0.5, 0.2 * (attempt + 1)))
                     continue
                 return {"error": "Connection error - Cannot connect to Shopify. Check your internet connection."}
             except requests.exceptions.HTTPError as e:
@@ -103,17 +107,18 @@ class ShopifyClient:
                 elif e.response.status_code == 403:
                     return {"error": "Access denied - Check your app permissions"}
                 elif e.response.status_code == 429:
-                    # Rate limit - wait longer
+                    # Rate limit - wait but not too long
                     if attempt < retries - 1:
                         import time
-                        time.sleep(5 * (attempt + 1))
+                        time.sleep(min(2, 1 * (attempt + 1)))  # Max 2 seconds
                         continue
                     return {"error": "Rate limit exceeded - Please wait a moment and try again"}
                 return {"error": f"API error: {e.response.status_code}"}
             except requests.exceptions.RequestException as e:
                 if attempt < retries - 1:
+                    # Faster retries - max 0.5s delay
                     import time
-                    time.sleep(2 ** attempt)
+                    time.sleep(min(0.5, 0.2 * (attempt + 1)))
                     continue
                 return {"error": f"Request failed: {str(e)}"}
         

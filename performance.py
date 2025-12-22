@@ -15,10 +15,10 @@ logger = logging.getLogger(__name__)
 _cache = {}
 _cache_timestamps = {}
 
-# Cache TTLs (in seconds)
-CACHE_TTL_INVENTORY = 60  # 1 minute for inventory
-CACHE_TTL_ORDERS = 30  # 30 seconds for orders
-CACHE_TTL_REPORTS = 120  # 2 minutes for reports
+# Cache TTLs (in seconds) - Increased for better performance
+CACHE_TTL_INVENTORY = 300  # 5 minutes for inventory (was 60s)
+CACHE_TTL_ORDERS = 180  # 3 minutes for orders (was 30s)
+CACHE_TTL_REPORTS = 600  # 10 minutes for reports (was 120s)
 CACHE_TTL_STATS = 300  # 5 minutes for dashboard stats
 
 def get_cache_key(prefix, *args, **kwargs):

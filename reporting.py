@@ -27,7 +27,7 @@ def generate_report(user_id=None):
         all_orders_raw = []
         limit = 250  # Shopify max per page
         endpoint = f"orders.json?status=any&limit={limit}"  # Fetch ALL orders (any status), filter client-side
-        max_iterations = 50  # Safety limit: ~12,500 orders
+        max_iterations = 20  # Reduced for faster performance: ~5,000 orders (enough for most stores)
         
         try:
             for iteration in range(max_iterations):

@@ -82,12 +82,14 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///emp
 if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
     app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# Performance optimizations
+# Performance optimizations - Optimized for speed
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_size': 10,  # Increased for 50-100 clients
     'max_overflow': 20,  # Increased for traffic spikes
     'pool_pre_ping': True,  # Verify connections before using
     'pool_recycle': 3600,  # Recycle connections after 1 hour
+    'connect_args': {'connect_timeout': 5},  # Faster connection timeout
+    'echo': False,  # Disable SQL logging for performance
 }
 
 db.init_app(app)
@@ -1291,7 +1293,7 @@ DASHBOARD_HTML = """
                             });
                         }
                         return token;
-                    }).catch(function(err) {
+                }).catch(function(err) {
                         // If error and haven't exceeded retries, retry
                         if (retryCount < maxRetries) {
                             retryCount++;
@@ -1849,10 +1851,10 @@ def get_authenticated_user():
                 return None, (jsonify({'error': 'Invalid token', 'success': False}), 401)
             
             shop_domain = dest.replace('https://', '').split('/')[0]
-            
-            # Find user from shop
-            from models import ShopifyStore
-            store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
+                
+                # Find user from shop
+                from models import ShopifyStore
+                store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
             if store and store.user:
                 return store.user, None
             else:
