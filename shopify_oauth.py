@@ -156,19 +156,21 @@ def callback():
     
     # CRITICAL: Log which API key was used to generate this access_token
     current_api_key = os.getenv('SHOPIFY_API_KEY', 'NOT_SET')
-    logger.info(f"OAUTH COMPLETE: Generated new access_token using Partners API key: {current_api_key[:8]}...")
-    logger.info(f"OAUTH COMPLETE: This access_token is tied to Partners app: {current_api_key[:8]}...")
+    api_key_preview = current_api_key[:8] if len(current_api_key) > 8 else current_api_key
+    logger.info(f"OAUTH COMPLETE: Generated new access_token using Partners API key: {api_key_preview}...")
+    logger.info(f"OAUTH COMPLETE: This access_token is tied to Partners app: {api_key_preview}...")
     
     # Store Shopify credentials with shop_id
     store = ShopifyStore.query.filter_by(shop_url=shop).first()
     if store:
         # CRITICAL: Always update access_token when reconnecting (gets new token from new Partners app)
-        old_token_preview = store.access_token[:10] if store.access_token else "None"
+        old_token_preview = store.access_token[:10] if store.access_token and len(store.access_token) > 10 else (store.access_token or "None")
+        new_token_preview = access_token[:10] if len(access_token) > 10 else access_token
         store.access_token = access_token
         store.shop_id = shop_id
         store.is_active = True
         store.user_id = user.id
-        logger.info(f"Updated existing store {shop} with new access_token (old: {old_token_preview}..., new: {access_token[:10]}...)")
+        logger.info(f"Updated existing store {shop} with new access_token (old: {old_token_preview}..., new: {new_token_preview}...)")
     else:
         store = ShopifyStore(
             user_id=user.id,
@@ -178,7 +180,8 @@ def callback():
             is_active=True
         )
         db.session.add(store)
-        logger.info(f"Created new store {shop} with access_token: {access_token[:10]}...")
+        token_preview = access_token[:10] if len(access_token) > 10 else access_token
+        logger.info(f"Created new store {shop} with access_token: {token_preview}...")
     
     db.session.commit()
     
