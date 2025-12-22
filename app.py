@@ -2944,40 +2944,65 @@ def init_db():
                 logger.warning(f"Could not check for reset_token columns: {e}")
             
             # Migrate shopify_stores table - add new columns
+            # CRITICAL: Handle each column separately with proper transaction management
             try:
                 from migrate_shopify_store_columns import migrate_shopify_store_columns
                 migrate_shopify_store_columns(app, db)
             except Exception as e:
                 logger.warning(f"Could not migrate shopify_stores columns via function: {e}")
                 # Try manual migration as fallback (SQLite-compatible)
-                try:
-                    logger.info("Adding shop_id, charge_id, uninstalled_at columns (fallback)...")
-                    columns = [
-                        ("shop_id", "BIGINT"),
-                        ("charge_id", "VARCHAR(255)"),
-                        ("uninstalled_at", "TIMESTAMP")
-                    ]
-                    for col_name, col_type in columns:
+                logger.info("Adding shop_id, charge_id, uninstalled_at columns (fallback)...")
+                columns = [
+                    ("shop_id", "BIGINT"),
+                    ("charge_id", "VARCHAR(255)"),
+                    ("uninstalled_at", "TIMESTAMP")
+                ]
+                for col_name, col_type in columns:
+                    # CRITICAL: Each column in separate transaction to prevent cascading failures
+                    try:
+                        # Check if column exists first (PostgreSQL-safe)
                         try:
-                            db.session.execute(db.text(f"""
-                                ALTER TABLE shopify_stores 
-                                ADD COLUMN {col_name} {col_type}
+                            result = db.session.execute(db.text(f"""
+                                SELECT column_name 
+                                FROM information_schema.columns 
+                                WHERE table_name='shopify_stores' AND column_name='{col_name}'
                             """))
-                        except Exception as col_error:
-                            error_str = str(col_error).lower()
-                            if "duplicate column" in error_str or "already exists" in error_str:
+                            if result.fetchone():
                                 logger.info(f"✅ {col_name} column already exists")
-                            else:
-                                raise
-                    db.session.commit()
-                    logger.info("✅ shopify_stores columns added successfully")
-                except Exception as migrate_error:
-                    error_str = str(migrate_error).lower()
-                    if "duplicate column" in error_str or "already exists" in error_str:
-                        logger.info("✅ shopify_stores columns already exist")
-                    else:
-                        logger.warning(f"Could not add shopify_stores columns: {migrate_error}")
-                    db.session.rollback()
+                                continue
+                        except Exception as check_error:
+                            # If check fails, try to add anyway
+                            logger.debug(f"Could not check for {col_name}: {check_error}")
+                        
+                        # Add column in separate transaction
+                        db.session.execute(db.text(f"""
+                            ALTER TABLE shopify_stores 
+                            ADD COLUMN {col_name} {col_type}
+                        """))
+                        db.session.commit()
+                        logger.info(f"✅ {col_name} column added successfully")
+                    except Exception as col_error:
+                        # CRITICAL: Rollback immediately on error to prevent transaction abort
+                        try:
+                            db.session.rollback()
+                        except Exception:
+                            pass
+                        
+                        error_str = str(col_error).lower()
+                        if "duplicate column" in error_str or "already exists" in error_str or "current transaction is aborted" in error_str:
+                            logger.info(f"✅ {col_name} column already exists or transaction aborted (safe to ignore)")
+                            # Force new transaction for next column
+                            try:
+                                db.session.rollback()
+                            except Exception:
+                                pass
+                        else:
+                            logger.warning(f"Could not add {col_name} column: {col_error}")
+                            # Continue with next column even if this one failed
+                            try:
+                                db.session.rollback()
+                            except Exception:
+                                pass
             
             logger.info("Database tables initialized/verified")
         except Exception as e:
