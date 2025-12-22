@@ -124,7 +124,7 @@ SUBSCRIBE_HTML = '''
         </div>
         
         {% if error %}
-        <div class="error-banner">{{ error }}</div>
+        <div class="error-banner" style="white-space: pre-line;">{{ error }}</div>
         {% endif %}
         
         {% if trial_active and not is_subscribed %}
@@ -280,7 +280,18 @@ def format_billing_error(error_msg):
     # Check for common error patterns
     if '422' in error_msg or 'unprocessable' in error_lower:
         if 'owned by a shop' in error_lower or 'migrated to the shopify partners' in error_lower:
-            return "⚠️ App Migration Required: Your app is currently owned by a shop and needs to be migrated to the Shopify Partners area. Go to your Shopify Partners Dashboard → Your App → Settings, and migrate the app to Partners. This is required for billing to work."
+            return """⚠️ App Migration Required
+
+Your app needs to be migrated to the Shopify Partners area before billing can work.
+
+**To fix this:**
+1. Go to https://partners.shopify.com
+2. Navigate to your app → Settings
+3. Look for "App ownership" or "Migration" section
+4. Migrate the app from Shop ownership to Partners ownership
+5. Once migrated, try subscribing again
+
+This is a one-time setup required for all Shopify apps to use billing."""
         elif 'managed pricing' in error_lower or 'pricing' in error_lower:
             return "Billing setup issue: Please check your app's pricing settings in the Shopify Partners dashboard. Make sure 'Manual Pricing' is enabled (not 'Managed Pricing')."
         elif 'custom app' in error_lower:

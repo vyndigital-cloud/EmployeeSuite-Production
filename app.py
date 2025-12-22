@@ -122,6 +122,29 @@ login_manager.login_view = 'auth.login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+@login_manager.unauthorized_handler
+def unauthorized():
+    """Handle unauthorized access - preserve embedded parameters for embedded apps"""
+    from flask import request, redirect, url_for
+    # Check if this is an embedded app request
+    shop = request.args.get('shop')
+    embedded = request.args.get('embedded')
+    host = request.args.get('host')
+    
+    # If embedded app, preserve parameters when redirecting to login
+    if embedded == '1' or shop or host:
+        params = {}
+        if shop:
+            params['shop'] = shop
+        if embedded:
+            params['embedded'] = embedded
+        if host:
+            params['host'] = host
+        return redirect(url_for('auth.login', **params))
+    
+    # For standalone access, redirect normally
+    return redirect(url_for('auth.login'))
+
 app.register_blueprint(auth_bp)
 app.register_blueprint(shopify_bp)
 app.register_blueprint(billing_bp)
@@ -1993,12 +2016,21 @@ def api_process_orders():
             return jsonify({"message": str(result), "success": True})
     except MemoryError:
         logger.error(f"Memory error processing orders for user {user_id} - clearing cache")
-        from performance import clear_cache
-        clear_cache()
+        from performance import clear_cache as clear_perf_cache
+        clear_perf_cache()
         return jsonify({"error": "Memory error - please try again", "success": False}), 500
-    except Exception as e:
-        logger.error(f"Error processing orders for user {user_id}: {str(e)}", exc_info=True)
-        return jsonify({"error": f"Failed to process orders: {str(e)}", "success": False}), 500
+    except SystemExit:
+        # Re-raise system exits (like from sys.exit())
+        raise
+    except BaseException as e:
+        # Catch all other exceptions including segmentation faults precursors
+        logger.error(f"Critical error processing orders for user {user_id}: {type(e).__name__}: {str(e)}", exc_info=True)
+        from performance import clear_cache as clear_perf_cache
+        try:
+            clear_perf_cache()
+        except:
+            pass
+        return jsonify({"error": "An unexpected error occurred. Please try again or contact support if this persists.", "success": False}), 500
 
 @app.route('/api/update_inventory', methods=['GET', 'POST'])
 def api_update_inventory():
@@ -2024,7 +2056,9 @@ def api_update_inventory():
     login_user(user, remember=False)
     
     try:
-        clear_cache('get_products')
+        # Import at function level to avoid UnboundLocalError
+        from performance import clear_cache as clear_perf_cache
+        clear_perf_cache('get_products')
         result = update_inventory()
         if isinstance(result, dict):
             # Store inventory data in session for CSV export
@@ -2036,12 +2070,21 @@ def api_update_inventory():
             return jsonify({"success": False, "error": str(result)})
     except MemoryError:
         logger.error(f"Memory error updating inventory for user {user_id} - clearing cache")
-        from performance import clear_cache
-        clear_cache()
+        from performance import clear_cache as clear_perf_cache
+        clear_perf_cache()
         return jsonify({"success": False, "error": "Memory error - please try again"}), 500
-    except Exception as e:
-        logger.error(f"Error updating inventory for user {user_id}: {str(e)}", exc_info=True)
-        return jsonify({"success": False, "error": f"Failed to update inventory: {str(e)}"}), 500
+    except SystemExit:
+        # Re-raise system exits (like from sys.exit())
+        raise
+    except BaseException as e:
+        # Catch all other exceptions including segmentation faults precursors
+        logger.error(f"Critical error updating inventory for user {user_id}: {type(e).__name__}: {str(e)}", exc_info=True)
+        from performance import clear_cache as clear_perf_cache
+        try:
+            clear_perf_cache()
+        except:
+            pass
+        return jsonify({"success": False, "error": "An unexpected error occurred. Please try again or contact support if this persists."}), 500
 
 @app.route('/api/generate_report', methods=['GET', 'POST'])
 def api_generate_report():
@@ -2092,9 +2135,21 @@ def api_generate_report():
         return html, 200
     except MemoryError:
         logger.error(f"Memory error generating report for user {user_id} - clearing cache")
-        from performance import clear_cache
-        clear_cache()
+        from performance import clear_cache as clear_perf_cache
+        clear_perf_cache()
         return jsonify({"success": False, "error": "Memory error - please try again"}), 500
+    except SystemExit:
+        # Re-raise system exits (like from sys.exit())
+        raise
+    except BaseException as e:
+        # Catch all other exceptions including segmentation faults precursors
+        logger.error(f"Critical error generating report for user {user_id}: {type(e).__name__}: {str(e)}", exc_info=True)
+        from performance import clear_cache as clear_perf_cache
+        try:
+            clear_perf_cache()
+        except:
+            pass
+        return jsonify({"success": False, "error": "An unexpected error occurred. Please try again or contact support if this persists."}), 500
     except Exception as e:
         logger.error(f"Error generating report for user {user_id}: {str(e)}", exc_info=True)
         return jsonify({"success": False, "error": f"Failed to generate report: {str(e)}"}), 500

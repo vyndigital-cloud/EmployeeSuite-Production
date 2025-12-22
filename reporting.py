@@ -1,6 +1,6 @@
 from shopify_integration import ShopifyClient
 from flask_login import current_user
-from models import ShopifyStore
+from models import ShopifyStore, db
 from logging_config import logger
 
 def generate_report(user_id=None):
@@ -35,8 +35,19 @@ def generate_report(user_id=None):
                 orders_data = client._make_request(endpoint)
                 
                 if "error" in orders_data:
-                    # If error on first request, return error
+                    # If error on first request, check if it's authentication failure
                     if iteration == 0:
+                        error_msg = orders_data['error']
+                        # If authentication failed, mark store as inactive
+                        if "Authentication failed" in error_msg or "401" in str(orders_data):
+                            logger.warning(f"Authentication failed for store {store.shop_url} (user {user_id}) - marking as inactive")
+                            try:
+                                store.is_active = False
+                                db.session.commit()
+                            except Exception as db_error:
+                                logger.error(f"Failed to update store status: {db_error}")
+                                db.session.rollback()
+                            return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>Authentication failed - Please reconnect your store</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
                         return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>{orders_data['error']}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
                     # Otherwise, we've fetched all available orders
                     break
@@ -76,6 +87,12 @@ def generate_report(user_id=None):
         financial_statuses = [order.get('financial_status', 'MISSING') for order in all_orders_raw]
         logger.info(f"Financial statuses found: {set(financial_statuses)}")
         logger.info(f"Total orders fetched: {len(all_orders_raw)}")
+        
+        # Limit processing to prevent memory issues (max 10,000 orders)
+        MAX_ORDERS_TO_PROCESS = 10000
+        if len(all_orders_raw) > MAX_ORDERS_TO_PROCESS:
+            logger.warning(f"Large dataset detected ({len(all_orders_raw)} orders). Processing first {MAX_ORDERS_TO_PROCESS} orders to prevent memory issues.")
+            all_orders_raw = all_orders_raw[:MAX_ORDERS_TO_PROCESS]
         
         all_orders = [order for order in all_orders_raw if order.get('financial_status', '').lower() == 'paid']
         logger.info(f"Filtered to {len(all_orders)} paid orders from {len(all_orders_raw)} total orders")

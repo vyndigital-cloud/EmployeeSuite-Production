@@ -6,6 +6,7 @@ from flask_bcrypt import Bcrypt
 from datetime import datetime, timedelta
 import secrets
 from input_validation import validate_email, sanitize_input
+from logging_config import logger
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -134,6 +135,9 @@ LOGIN_HTML = '''
             <div class="banner-error">{{ error }}</div>
             {% endif %}
             <form method="POST">
+                {% if shop %}<input type="hidden" name="shop" value="{{ shop }}">{% endif %}
+                {% if host %}<input type="hidden" name="host" value="{{ host }}">{% endif %}
+                {% if embedded %}<input type="hidden" name="embedded" value="{{ embedded }}">{% endif %}
                 <div class="form-group">
                     <label class="form-label">Email</label>
                     <input type="email" name="email" class="form-input" required autofocus>
@@ -303,37 +307,42 @@ REGISTER_HTML = '''
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    # Get embedded parameters from both GET (URL params) and POST (form data)
+    shop = request.args.get('shop') or request.form.get('shop')
+    embedded = request.args.get('embedded') or request.form.get('embedded')
+    host = request.args.get('host') or request.form.get('host')
+    
     if request.method == 'POST':
         email = request.form.get('email', '').lower().strip()
         password = request.form.get('password', '')
         
         # Input validation
         if not email or not password:
-            return render_template_string(LOGIN_HTML, error="Email and password are required")
+            return render_template_string(LOGIN_HTML, error="Email and password are required", shop=shop, embedded=embedded, host=host)
         
         if not validate_email(email):
-            return render_template_string(LOGIN_HTML, error="Invalid email format")
+            return render_template_string(LOGIN_HTML, error="Invalid email format", shop=shop, embedded=embedded, host=host)
         
         user = User.query.filter_by(email=email).first()
         
         if not user:
-            return render_template_string(LOGIN_HTML, error="Invalid email or password")
+            return render_template_string(LOGIN_HTML, error="Invalid email or password", shop=shop, embedded=embedded, host=host)
         
         if not user.password_hash:
-            return render_template_string(LOGIN_HTML, error="Invalid email or password")
+            return render_template_string(LOGIN_HTML, error="Invalid email or password", shop=shop, embedded=embedded, host=host)
         
         bcrypt = get_bcrypt()
         if not bcrypt:
-            return render_template_string(LOGIN_HTML, error="System error. Please try again.")
+            return render_template_string(LOGIN_HTML, error="System error. Please try again.", shop=shop, embedded=embedded, host=host)
         
         try:
             password_valid = bcrypt.check_password_hash(user.password_hash, password)
         except Exception:
-            return render_template_string(LOGIN_HTML, error="System error. Please try again.")
+            return render_template_string(LOGIN_HTML, error="System error. Please try again.", shop=shop, embedded=embedded, host=host)
         
         if password_valid:
             # DETECT EMBEDDED vs STANDALONE for optimal cookie handling
-            is_embedded = request.args.get('embedded') == '1' or request.args.get('host')
+            is_embedded = embedded == '1' or host
             
             # EMBEDDED APPS: Use session tokens (no remember cookie needed)
             # STANDALONE: Use cookies with remember for better UX
@@ -349,17 +358,20 @@ def login():
                 logger.info(f"Login successful for standalone access (cookie auth)")
             
             # Preserve embedded params if this is an embedded app request
-            shop = request.args.get('shop')
-            embedded = request.args.get('embedded')
-            host = request.args.get('host')
-            if embedded == '1' and shop:
-                dashboard_url = url_for('dashboard', shop=shop, embedded='1', host=host)
-                return redirect(dashboard_url)
+            # For embedded apps, redirect back to root with params (never redirect to /dashboard)
+            if is_embedded and shop:
+                # Build URL with all embedded parameters
+                params = {'shop': shop, 'embedded': '1'}
+                if host:
+                    params['host'] = host
+                return redirect(url_for('home', **params))
+            # For standalone, redirect to dashboard
             return redirect(url_for('dashboard'))
         
-        return render_template_string(LOGIN_HTML, error="Invalid email or password")
+        return render_template_string(LOGIN_HTML, error="Invalid email or password", shop=shop, embedded=embedded, host=host)
     
-    return render_template_string(LOGIN_HTML)
+    # GET request - render login page with embedded params preserved
+    return render_template_string(LOGIN_HTML, shop=shop, embedded=embedded, host=host)
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
