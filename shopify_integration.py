@@ -74,13 +74,8 @@ class ShopifyClient:
                                     sku
                                     price
                                     inventoryItem {
-                                        inventoryLevels(first: 1) {
-                                            edges {
-                                                node {
-                                                    available
-                                                }
-                                            }
-                                        }
+                                        id
+                                        quantityAvailable
                                     }
                                 }
                             }
@@ -132,9 +127,8 @@ class ShopifyClient:
                     stock = 0
                     inventory_item = variant.get("inventoryItem")
                     if inventory_item:
-                        inventory_levels = inventory_item.get("inventoryLevels", {}).get("edges", [])
-                        if inventory_levels and len(inventory_levels) > 0:
-                            stock = inventory_levels[0].get("node", {}).get("available", 0) or 0
+                        # Use quantityAvailable (direct field, more reliable)
+                        stock = inventory_item.get("quantityAvailable", 0) or 0
                     
                     inventory.append({
                         'product': product_title,

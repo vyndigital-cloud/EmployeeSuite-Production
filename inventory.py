@@ -43,6 +43,13 @@ def check_inventory():
         threshold = 10
         low_stock_count = sum(1 for p in products if p.get('stock', 0) < threshold)
         
+        # Store inventory data in session for CSV export
+        try:
+            from flask import session
+            session['inventory_data'] = products
+        except Exception:
+            pass  # Session might not be available, continue anyway
+        
         # Build minimalistic inventory report with unified style
         from datetime import datetime
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")

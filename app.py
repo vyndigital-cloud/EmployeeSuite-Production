@@ -1388,6 +1388,10 @@ def api_update_inventory():
         clear_cache('get_products')
         result = update_inventory()
         if isinstance(result, dict):
+            # Store inventory data in session for CSV export
+            if result.get('success') and 'inventory_data' in result:
+                from flask import session
+                session['inventory_data'] = result['inventory_data']
             return jsonify(result)
         else:
             return jsonify({"success": False, "error": str(result)})
@@ -1679,6 +1683,56 @@ def rate_limit_exceeded(error):
     return jsonify({'error': 'Rate limit exceeded. Please try again later.'}), 429
 
 # CSV Export Endpoints
+@app.route('/api/export/inventory', methods=['GET'])
+@login_required
+@require_access
+def export_inventory_csv():
+    """Export inventory to CSV"""
+    try:
+        from flask import session, Response
+        from inventory import check_inventory
+        import csv
+        import io
+        
+        # Get inventory data from session or regenerate
+        inventory_data = session.get('inventory_data', [])
+        
+        if not inventory_data:
+            # Regenerate if not in session
+            from inventory import check_inventory
+            result = check_inventory()
+            if result.get('success') and 'inventory_data' in result:
+                inventory_data = result['inventory_data']
+                session['inventory_data'] = inventory_data
+        
+        if not inventory_data:
+            return "No inventory data available. Please check inventory first.", 404
+        
+        # Create CSV
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['Product', 'SKU', 'Stock', 'Price'])
+        
+        for item in inventory_data:
+            writer.writerow([
+                item.get('product', 'N/A'),
+                item.get('sku', 'N/A'),
+                item.get('stock', 0),
+                item.get('price', 'N/A')
+            ])
+        
+        # Return CSV file
+        response = Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename=inventory_{datetime.utcnow().strftime("%Y%m%d")}.csv'}
+        )
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error exporting inventory CSV: {str(e)}", exc_info=True)
+        return jsonify({"error": f"Failed to export inventory: {str(e)}"}), 500
+
 @app.route('/api/export/report', methods=['GET'])
 @login_required
 @require_access
