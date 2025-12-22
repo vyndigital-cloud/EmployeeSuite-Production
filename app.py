@@ -189,19 +189,22 @@ limiter = init_limiter(app)
 @app.after_request
 def optimize_response(response):
     """Add security headers, compress responses, and optimize cookies"""
+    from flask import has_request_context
     response = add_security_headers(response)
     response = compress_response(response)
     
     # CRITICAL: Force session cookie to be set for Safari compatibility
     # Safari requires explicit cookie setting in response headers
-    try:
-        # Check if session has been modified or is permanent
-        if session.get('_permanent') or session.modified:
-            # Ensure cookie is set
-            session.modified = True
-    except (RuntimeError, AttributeError):
-        # Session not available in this context (webhook requests, etc.)
-        pass
+    # Only access session if we're in a request context
+    if has_request_context():
+        try:
+            # Check if session has been modified or is permanent
+            if session.get('_permanent') or session.modified:
+                # Ensure cookie is set
+                session.modified = True
+        except (RuntimeError, AttributeError):
+            # Session not available in this context (webhook requests, etc.)
+            pass
     
     # Enable Keep-Alive for webhook endpoints (Shopify requirement)
     # This allows Shopify to reuse connections, reducing latency
