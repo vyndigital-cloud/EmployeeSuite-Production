@@ -140,7 +140,7 @@ LOGIN_HTML = '''
                 {% if embedded %}<input type="hidden" name="embedded" value="{{ embedded }}">{% endif %}
                 <div class="form-group">
                     <label class="form-label">Email</label>
-                    <input type="email" name="email" class="form-input" required autofocus>
+                    <input type="email" name="email" class="form-input" required{% if not embedded %} autofocus{% endif %}>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Password</label>

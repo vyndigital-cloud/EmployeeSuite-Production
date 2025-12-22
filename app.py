@@ -242,10 +242,15 @@ DASHBOARD_HTML = """
     <!-- Shopify Polaris CSS - only load in embedded mode -->
     <script>
         // Only load App Bridge CSS if in embedded mode
+        // Note: App Bridge CSS is optional - if it fails to load, the app still works
         if (new URLSearchParams(window.location.search).get('host')) {
             var link = document.createElement('link');
             link.rel = 'stylesheet';
             link.href = 'https://cdn.shopify.com/shopifycloud/app-bridge.css';
+            link.onerror = function() {
+                // CSS failed to load - not critical, app still works
+                console.warn('App Bridge CSS failed to load (non-critical)');
+            };
             document.head.appendChild(link);
         }
     </script>
@@ -1810,13 +1815,16 @@ def dashboard():
     
     # If embedded but not logged in, try to auto-login from shop param
     if is_embedded and not current_user.is_authenticated:
+        # CRITICAL: For embedded apps, DON'T use cookies (Safari blocks them)
+        # Session tokens handle all authentication - cookies are unreliable in iframes
+        # We'll get user info from session tokens in API calls, not from Flask-Login cookies
         if shop:
             from models import ShopifyStore
             store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
             if store and store.user:
-                login_user(store.user, remember=True)
-                session.permanent = True
-                logger.info(f"Auto-logged in user for embedded app: {shop}")
+                # Don't use login_user() for embedded apps - Safari blocks the cookie
+                # Session tokens will handle authentication in API calls
+                logger.info(f"Store connected for embedded app: {shop} (using session tokens, not cookies)")
     
     # For embedded requests, always render - never redirect
     # This prevents iframe breaking
