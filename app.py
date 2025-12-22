@@ -480,92 +480,67 @@ DASHBOARD_HTML = """
         }
     </style>
 
-    <!-- Shopify App Bridge (for embedded apps) -->
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <!-- Shopify App Bridge (for embedded apps) - Loaded asynchronously to prevent blocking -->
     <script>
-        // Initialize App Bridge for embedded apps
-        if (window['app-bridge']) {
-            var AppBridge = window['app-bridge'];
-            var createApp = AppBridge.default;
-            
-            // Get shop and host from URL params (Shopify provides these for embedded apps)
-            var urlParams = new URLSearchParams(window.location.search);
-            var shop = urlParams.get('shop') || '{{ shop_domain or "" }}';
-            var host = urlParams.get('host') || '';
-            var apiKey = '{{ SHOPIFY_API_KEY or "" }}';
-            
-            // Only initialize if we have the required params (embedded app)
-            if (shop && host && apiKey) {
-                try {
-                    var app = createApp({
-                        apiKey: apiKey,
-                        host: host,
-                        shop: shop
-                    });
-                    
-                    // Make app available globally
-                    window.shopifyApp = app;
-                    
-                    // CRITICAL: Fetch session token for ALL API requests (MANDATORY as of Jan 2025)
-                    // Wrap fetch to automatically add session token to every request
-                    var originalFetch = window.fetch;
-                    window.fetch = function(url, options) {
-                        options = options || {};
-                        options.headers = options.headers || {};
+        // Load App Bridge asynchronously - don't block page render
+        (function() {
+            var script = document.createElement('script');
+            script.src = 'https://cdn.shopify.com/shopifycloud/app-bridge.js';
+            script.async = true;
+            script.onload = function() {
+                // Initialize App Bridge after page loads
+                if (window['app-bridge']) {
+                    try {
+                        var AppBridge = window['app-bridge'];
+                        var createApp = AppBridge.default;
                         
-                        // Always fetch fresh session token for each request (tokens expire quickly)
-                        // Only add token for requests to our own domain (not external APIs)
-                        var isInternalRequest = typeof url === 'string' && (url.startsWith('/') || url.includes(window.location.hostname));
+                        // Get shop and host from URL params
+                        var urlParams = new URLSearchParams(window.location.search);
+                        var shop = urlParams.get('shop') || '{{ shop_domain or "" }}';
+                        var host = urlParams.get('host') || '';
+                        var apiKey = '{{ SHOPIFY_API_KEY or "" }}';
                         
-                        if (isInternalRequest && !options.headers['Authorization']) {
-                            // Get fresh session token for this request
-                            return app.getSessionToken().then(function(token) {
-                                if (token) {
-                                    options.headers['Authorization'] = 'Bearer ' + token;
-                                }
-                                return originalFetch(url, options);
-                            }).catch(function(error) {
-                                console.warn('Failed to get session token, proceeding without it:', error);
-                                return originalFetch(url, options);
+                        if (shop && host && apiKey) {
+                            var app = createApp({
+                                apiKey: apiKey,
+                                host: host,
+                                shop: shop
                             });
-                        }
-                        
-                        return originalFetch(url, options);
-                    };
-                    
-                    // Also wrap XMLHttpRequest for compatibility
-                    var originalXHROpen = XMLHttpRequest.prototype.open;
-                    var originalXHRSend = XMLHttpRequest.prototype.send;
-                    XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
-                        this._method = method;
-                        this._url = url;
-                        this._async = async;
-                        return originalXHROpen.apply(this, arguments);
-                    };
-                    XMLHttpRequest.prototype.send = function(data) {
-                        var xhr = this;
-                        var url = this._url;
-                        var isInternalRequest = url && (url.startsWith('/') || url.includes(window.location.hostname));
-                        
-                        if (isInternalRequest && !this.getRequestHeader('Authorization')) {
-                            app.getSessionToken().then(function(token) {
-                                if (token) {
-                                    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+                            
+                            window.shopifyApp = app;
+                            
+                            // Wrap fetch to add session tokens (non-blocking)
+                            var originalFetch = window.fetch;
+                            window.fetch = function(url, options) {
+                                options = options || {};
+                                options.headers = options.headers || {};
+                                
+                                var isInternalRequest = typeof url === 'string' && (url.startsWith('/') || url.includes(window.location.hostname));
+                                
+                                if (isInternalRequest && !options.headers['Authorization']) {
+                                    return app.getSessionToken().then(function(token) {
+                                        if (token) {
+                                            options.headers['Authorization'] = 'Bearer ' + token;
+                                        }
+                                        return originalFetch(url, options);
+                                    }).catch(function(error) {
+                                        return originalFetch(url, options);
+                                    });
                                 }
-                                originalXHRSend.call(xhr, data);
-                            }).catch(function(error) {
-                                console.warn('Failed to get session token for XHR:', error);
-                                originalXHRSend.call(xhr, data);
-                            });
-                        } else {
-                            originalXHRSend.call(this, data);
+                                
+                                return originalFetch(url, options);
+                            };
                         }
-                    };
-                } catch (e) {
-                    console.warn('App Bridge initialization failed:', e);
+                    } catch (e) {
+                        console.warn('App Bridge init failed:', e);
+                    }
                 }
-            }
-        }
+            };
+            script.onerror = function() {
+                console.warn('Failed to load App Bridge script');
+            };
+            document.head.appendChild(script);
+        })();
     </script>
     
     <!-- Google Analytics -->
