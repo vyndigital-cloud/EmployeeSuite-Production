@@ -208,6 +208,15 @@ def optimize_response(response):
     
     # Enable Keep-Alive for webhook endpoints (Shopify requirement)
     # This allows Shopify to reuse connections, reducing latency
+    if has_request_context():
+        if request.path.startswith('/webhooks/'):
+            response.headers['Connection'] = 'keep-alive'
+            response.headers['Keep-Alive'] = 'timeout=5, max=1000'
+        
+        # Add cache headers for static assets
+        if request.endpoint == 'static':
+            response.cache_control.max_age = 31536000  # 1 year
+            response.cache_control.public = True
     
     return response
 
@@ -240,16 +249,9 @@ def close_db(error):
         # Force cleanup on error
         import gc
         gc.collect()
-    # CRITICAL: Only access request if we're in a request context
+    # CRITICAL: Do NOT access request or response here
     # This function is called during app context teardown, which can happen outside requests
-    # Note: response is not available in teardown_appcontext - use after_request instead
-    
-    # Add cache headers for static assets
-    if request.endpoint == 'static':
-        response.cache_control.max_age = 31536000  # 1 year
-        response.cache_control.public = True
-    
-    return response
+    # Request/response handling should be done in after_request handler instead
 
 # Request validation before processing (optimized - fast checks only)
 @app.before_request
