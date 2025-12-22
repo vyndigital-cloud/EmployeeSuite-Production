@@ -176,6 +176,26 @@ DASHBOARD_HTML = """
 <head>
     <title>Dashboard - Employee Suite</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <!-- Critical: Prevent any blocking - render immediately -->
+    <style>
+        /* Inline critical CSS to prevent render blocking */
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        /* Hide until ready to prevent flash */
+        body:not(.loaded) { visibility: hidden; }
+    </style>
+    <script>
+        // Mark page as loaded immediately - don't wait for anything
+        (function() {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.body.classList.add('loaded');
+                });
+            } else {
+                document.body.classList.add('loaded');
+            }
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
