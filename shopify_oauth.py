@@ -342,8 +342,8 @@ def callback():
     
     if not user:
         # No logged-in user - this is likely an App Store installation
-        # Get or create user (for App Store, use shop domain as identifier)
-        user = User.query.filter_by(email=f"{shop}@shopify.com").first()
+    # Get or create user (for App Store, use shop domain as identifier)
+    user = User.query.filter_by(email=f"{shop}@shopify.com").first()
     if not user:
         from datetime import datetime, timedelta
         user = User(
