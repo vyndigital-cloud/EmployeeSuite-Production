@@ -2366,19 +2366,74 @@ def cron_database_backup():
 @app.route('/health')
 def health():
     """Health check endpoint for monitoring"""
+    from datetime import datetime
+    from performance import get_cache_stats
+    import sys
+    
+    checks = {}
+    overall_status = "healthy"
+    
+    # Cache check
     try:
-        # Quick DB connectivity check
-        db.session.execute(db.text('SELECT 1'))
-        return jsonify({
-            "status": "healthy", 
-            "service": "Employee Suite", 
-            "version": "2.0", 
-            "database": "connected",
-            "timestamp": datetime.utcnow().isoformat()
-        }), 200
+        cache_stats = get_cache_stats()
+        checks['cache'] = {
+            "entries": cache_stats.get('entries', 0),
+            "max_entries": cache_stats.get('max_entries', 100),
+            "size_mb": cache_stats.get('size_mb', 0.0),
+            "status": "operational"
+        }
     except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return jsonify({"status": "unhealthy", "error": str(e)}), 500
+        checks['cache'] = {"error": str(e), "status": "error"}
+        overall_status = "unhealthy"
+    
+    # Database check
+    try:
+        db.session.execute(db.text('SELECT 1'))
+        checks['database'] = {"status": "connected"}
+    except Exception as e:
+        checks['database'] = {"error": str(e), "status": "disconnected"}
+        overall_status = "unhealthy"
+    
+    # Environment check
+    try:
+        import flask
+        checks['environment'] = {
+            "environment": os.getenv('ENVIRONMENT', 'unknown'),
+            "flask_version": flask.__version__,
+            "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        }
+    except Exception as e:
+        checks['environment'] = {"error": str(e), "status": "error"}
+    
+    # Memory check (optional - psutil might not be available)
+    try:
+        import psutil
+        process = psutil.Process()
+        memory_info = process.memory_info()
+        checks['memory'] = {
+            "rss_mb": round(memory_info.rss / (1024 * 1024), 2),
+            "vms_mb": round(memory_info.vms / (1024 * 1024), 2),
+            "status": "operational"
+        }
+    except ImportError:
+        checks['memory'] = {
+            "note": "psutil not available (optional)",
+            "status": "unknown"
+        }
+    except Exception as e:
+        checks['memory'] = {"error": str(e), "status": "error"}
+    
+    # Determine overall database status for backward compatibility
+    database_status = "connected" if checks.get('database', {}).get('status') == 'connected' else "disconnected"
+    
+    return jsonify({
+        "status": overall_status,
+        "service": "Employee Suite",
+        "version": "2.0",
+        "database": database_status,
+        "checks": checks,
+        "timestamp": datetime.utcnow().isoformat()
+    }), 200 if overall_status == "healthy" else 500
 
 @app.route('/api/docs')
 def api_docs():
