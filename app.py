@@ -377,18 +377,8 @@ DASHBOARD_HTML = """
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Shopify Polaris CSS - only load in embedded mode -->
     <script>
-        // Only load App Bridge CSS if in embedded mode
-        // Note: App Bridge CSS is optional - if it fails to load, the app still works
-        if (new URLSearchParams(window.location.search).get('host')) {
-            var link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = 'https://cdn.shopify.com/shopifycloud/app-bridge.css';
-            link.onerror = function() {
-                // CSS failed to load - not critical, app still works
-                console.warn('App Bridge CSS failed to load (non-critical)');
-            };
-            document.head.appendChild(link);
-        }
+        // App Bridge CSS removed - it's optional and the file doesn't exist at the CDN URL
+        // App Bridge JavaScript provides all necessary functionality without CSS
     </script>
     <style>
         * {
