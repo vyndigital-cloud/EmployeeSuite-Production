@@ -325,7 +325,12 @@ def login():
         if not validate_email(email):
             return render_template_string(LOGIN_HTML, error="Invalid email format", shop=shop, embedded=embedded, host=host)
         
-        user = User.query.filter_by(email=email).first()
+        # CRITICAL: Wrap database query in try/except to prevent 500 errors
+        try:
+            user = User.query.filter_by(email=email).first()
+        except Exception as db_error:
+            logger.error(f"Database error in login: {db_error}", exc_info=True)
+            return render_template_string(LOGIN_HTML, error="System error. Please try again.", shop=shop, embedded=embedded, host=host)
         
         if not user:
             return render_template_string(LOGIN_HTML, error="Invalid email or password", shop=shop, embedded=embedded, host=host)
