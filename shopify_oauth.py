@@ -122,8 +122,16 @@ def install():
         'grant_options[]': ACCESS_MODE  # Request offline (persistent) access token
     }
     
-    query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
+    # CRITICAL: URL-encode all parameter values, especially redirect_uri
+    # Shopify requires exact match, but values must be properly encoded in the query string
+    # Log the redirect URI being used for debugging
+    logger.info(f"OAuth install: Using redirect_uri={REDIRECT_URI} (must match Partners Dashboard exactly)")
+    
+    query_string = '&'.join([f"{k}={quote(str(v), safe='')}" for k, v in params.items()])
     full_auth_url = f"{auth_url}?{query_string}"
+    
+    # Log the full OAuth URL (without sensitive data) for debugging
+    logger.debug(f"OAuth install: Generated auth URL for shop {shop}")
     
     # CRITICAL: Also check if we're being accessed from admin.shopify.com (embedded context)
     # Even if host param is missing, if Referer is from admin.shopify.com, we're in an iframe
