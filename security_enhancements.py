@@ -52,9 +52,18 @@ def add_security_headers(response):
         'shopify' in request.path.lower()
     )
     
-    # For CSP headers only: allow iframe for Shopify routes (security headers need this)
+    # CRITICAL FIX: For CSP headers, ALWAYS allow iframe for Shopify routes
+    # This prevents iframe blocking when embedded detection fails
+    # Shopify routes are designed to be embedded, so we should allow it
     if not is_embedded and (is_shopify_referer or is_shopify_route):
         is_embedded = True  # Allow iframe for CSP, but don't use this for auth/cookie decisions
+        logger.info(f"🔓 IFRAME ALLOWED (fallback): path={request.path}, referer={bool(is_shopify_referer)}, route={bool(is_shopify_route)}")
+    
+    # CRITICAL: Root route `/` is ALWAYS embedded when accessed from Shopify
+    # Always allow iframe for root route to prevent blocking on initial load
+    if request.path == '/' and not is_embedded:
+        is_embedded = True
+        logger.info(f"🔓 IFRAME ALLOWED (root route): path={request.path}")
     
     # REMOVED X-Frame-Options entirely for embedded - rely ONLY on CSP frame-ancestors
     # X-Frame-Options is too rigid and causes issues with embedded apps
