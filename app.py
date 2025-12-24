@@ -2130,10 +2130,50 @@ def home():
 def dashboard():
     # Check if this is an embedded request (from Referer or params)
     referer = request.headers.get('Referer', '')
-    is_from_shopify_admin = 'admin.shopify.com' in referer
+    is_from_shopify_admin = 'admin.shopify.com' in referer or 'myshopify.com' in referer
     shop = request.args.get('shop')
     host = request.args.get('host')
     is_embedded = request.args.get('embedded') == '1' or shop or host or is_from_shopify_admin
+    
+    # CRITICAL: If embedded but no shop param, try to extract from Referer
+    if is_embedded and not shop and is_from_shopify_admin:
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(referer)
+            if 'myshopify.com' in parsed.netloc:
+                shop = parsed.netloc.split('.')[0] + '.myshopify.com'
+            elif '/store/' in parsed.path:
+                shop_name = parsed.path.split('/store/')[1].split('/')[0]
+                shop = f"{shop_name}.myshopify.com"
+        except Exception:
+            pass
+    
+    # CRITICAL: For embedded apps without shop, redirect to OAuth immediately
+    if is_embedded and not shop:
+        logger.warning(f"Embedded app request but no shop param found - redirecting to install")
+        # Can't redirect to OAuth without shop, show install message
+        from flask import render_template_string
+        return render_template_string("""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Install Required - Employee Suite</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f6f6f7; padding: 20px; }
+                .container { text-align: center; max-width: 500px; }
+                h1 { font-size: 20px; font-weight: 600; color: #202223; margin-bottom: 16px; }
+                p { font-size: 14px; color: #6d7175; line-height: 1.6; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Installation Required</h1>
+                <p>Please install Employee Suite from your Shopify admin panel to continue.</p>
+            </div>
+        </body>
+        </html>
+        """), 400
     
     # For embedded apps, allow access without strict auth (App Bridge handles it)
     # For regular requests, require login

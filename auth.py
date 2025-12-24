@@ -314,13 +314,59 @@ def login():
     
     # CRITICAL: For embedded apps, use Shopify OAuth flow - NO login form
     # Embedded apps should redirect to OAuth install endpoint
-    is_embedded = embedded == '1' or host or shop
+    # Check Referer header to detect if coming from Shopify admin
+    referer = request.headers.get('Referer', '')
+    is_from_shopify = 'admin.shopify.com' in referer or 'myshopify.com' in referer
+    is_embedded = embedded == '1' or host or shop or is_from_shopify
+    
+    # If embedded but no shop param, try to extract from Referer
+    if is_embedded and not shop and is_from_shopify:
+        # Try to extract shop from Referer URL
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(referer)
+            # Referer might be like: https://admin.shopify.com/store/YOUR-SHOP-NAME
+            # Or: https://YOUR-SHOP.myshopify.com/admin
+            if 'myshopify.com' in parsed.netloc:
+                shop = parsed.netloc.split('.')[0] + '.myshopify.com'
+            elif '/store/' in parsed.path:
+                shop_name = parsed.path.split('/store/')[1].split('/')[0]
+                shop = f"{shop_name}.myshopify.com"
+        except Exception:
+            pass
+    
+    # If we have shop (from params or extracted), redirect to OAuth
     if is_embedded and shop:
         # Redirect to OAuth install flow (Shopify's embedded auth)
         from flask import redirect, url_for
         install_url = url_for('oauth.install', shop=shop, host=host) if host else url_for('oauth.install', shop=shop)
         logger.info(f"Embedded app login request - redirecting to OAuth: {install_url}")
         return redirect(install_url)
+    
+    # If embedded but no shop found, show error message instead of login form
+    if is_embedded:
+        from flask import render_template_string
+        return render_template_string("""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Install Required - Employee Suite</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f6f6f7; }
+                .container { text-align: center; padding: 40px; max-width: 500px; }
+                h1 { font-size: 20px; font-weight: 600; color: #202223; margin-bottom: 16px; }
+                p { font-size: 14px; color: #6d7175; line-height: 1.6; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Installation Required</h1>
+                <p>Please install Employee Suite from your Shopify admin panel to continue.</p>
+            </div>
+        </body>
+        </html>
+        """), 400
     
     if request.method == 'POST':
         email = request.form.get('email', '').lower().strip()
