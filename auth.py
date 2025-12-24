@@ -312,6 +312,16 @@ def login():
     embedded = request.args.get('embedded') or request.form.get('embedded')
     host = request.args.get('host') or request.form.get('host')
     
+    # CRITICAL: For embedded apps, use Shopify OAuth flow - NO login form
+    # Embedded apps should redirect to OAuth install endpoint
+    is_embedded = embedded == '1' or host or shop
+    if is_embedded and shop:
+        # Redirect to OAuth install flow (Shopify's embedded auth)
+        from flask import redirect, url_for
+        install_url = url_for('oauth.install', shop=shop, host=host) if host else url_for('oauth.install', shop=shop)
+        logger.info(f"Embedded app login request - redirecting to OAuth: {install_url}")
+        return redirect(install_url)
+    
     if request.method == 'POST':
         email = request.form.get('email', '').lower().strip()
         password = request.form.get('password', '')

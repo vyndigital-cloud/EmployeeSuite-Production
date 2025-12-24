@@ -196,7 +196,7 @@ def load_user(user_id):
 
 @login_manager.unauthorized_handler
 def unauthorized():
-    """Handle unauthorized access - preserve embedded parameters for embedded apps"""
+    """Handle unauthorized access - redirect embedded apps to OAuth, standalone to login"""
     from flask import request, redirect, url_for, has_request_context
     # CRITICAL: Only use request context if we're in a request
     if not has_request_context():
@@ -208,18 +208,15 @@ def unauthorized():
     embedded = request.args.get('embedded')
     host = request.args.get('host')
     
-    # If embedded app, preserve parameters when redirecting to login
-    if embedded == '1' or shop or host:
-        params = {}
+    # CRITICAL: For embedded apps, redirect to OAuth (Shopify's embedded auth flow)
+    # DO NOT redirect to login form - embedded apps use OAuth
+    if embedded == '1' or (shop and host):
         if shop:
-            params['shop'] = shop
-        if embedded:
-            params['embedded'] = embedded
-        if host:
-            params['host'] = host
-        return redirect(url_for('auth.login', **params))
+            install_url = url_for('oauth.install', shop=shop, host=host) if host else url_for('oauth.install', shop=shop)
+            logger.info(f"Unauthorized embedded app request - redirecting to OAuth: {install_url}")
+            return redirect(install_url)
     
-    # For standalone access, redirect normally
+    # For standalone access, redirect to login form
     return redirect(url_for('auth.login'))
 
 app.register_blueprint(auth_bp)
@@ -2143,42 +2140,24 @@ def dashboard():
     if not is_embedded and not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
     
-    # If embedded but not logged in, try to auto-login from shop param
-    if is_embedded and not current_user.is_authenticated:
-        # CRITICAL: For embedded apps, DON'T use cookies (Safari blocks them)
-        # Session tokens handle all authentication - cookies are unreliable in iframes
-        # We'll get user info from session tokens in API calls, not from Flask-Login cookies
-        if shop:
-            from models import ShopifyStore, db
-            store = None
-            # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
+    # If embedded but no session/store found, redirect to OAuth (Shopify's embedded auth flow)
+    if is_embedded and shop and not current_user.is_authenticated:
+        from models import ShopifyStore, db
+        store = None
+        # Check if store exists and is connected
+        try:
+            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+        except Exception:
             try:
-                store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
-            except BaseException:
-                try:
-                    db.session.rollback()
-                except Exception:
-                    pass
-                finally:
-                    try:
-                        db.session.remove()
-                    except Exception:
-                        pass
-                store = None
-            except BaseException:
-                try:
-                    db.session.rollback()
-                except Exception:
-                    pass
-                finally:
-                    try:
-                        db.session.remove()
-                    except Exception:
-                        pass
-            if store and store.user:
-                # Don't use login_user() for embedded apps - Safari blocks the cookie
-                # Session tokens will handle authentication in API calls
-                logger.info(f"Store connected for embedded app: {shop} (using session tokens, not cookies)")
+                db.session.rollback()
+            except Exception:
+                pass
+        
+        # If no active store found or store is not connected, redirect to OAuth install flow
+        if not store or not store.is_connected():
+            logger.info(f"Embedded app - no active store found for {shop}, redirecting to OAuth")
+            install_url = url_for('oauth.install', shop=shop, host=host) if host else url_for('oauth.install', shop=shop)
+            return redirect(install_url)
     
     # For embedded requests, always render - never redirect
     # This prevents iframe breaking
