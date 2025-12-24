@@ -345,7 +345,7 @@ def login():
     
     # If embedded but no shop found, show error message instead of login form
     if is_embedded:
-        from flask import render_template_string
+        # render_template_string is already imported at top of file
         return render_template_string("""
         <!DOCTYPE html>
         <html>
