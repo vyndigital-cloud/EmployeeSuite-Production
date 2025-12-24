@@ -3,7 +3,7 @@ from flask_login import current_user
 from models import ShopifyStore, db
 from logging_config import logger
 
-def generate_report(user_id=None):
+def generate_report(user_id=None, shop_url=None):
     """Generate revenue report from Shopify data"""
     # CRITICAL: Catch ALL exceptions including segfault precursors (BaseException)
     # This prevents worker crashes (code 139) from corrupting the entire process
@@ -23,7 +23,18 @@ def generate_report(user_id=None):
         try:
             # Let SQLAlchemy's pool_pre_ping validate the connection automatically
             # Removing sessions manually can corrupt connection state and cause segfaults
-            store = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first()
+            # If shop_url is provided, use it to find the specific store; otherwise use first active store for user
+            if shop_url:
+                logger.info(f"Generating report for shop_url: {shop_url}, user_id: {user_id}")
+                store = ShopifyStore.query.filter_by(shop_url=shop_url, is_active=True).first()
+                # Verify the store belongs to this user (security check)
+                if store and store.user_id != user_id:
+                    logger.warning(f"Shop {shop_url} does not belong to user {user_id}, denying access")
+                    store = None
+            else:
+                # Fallback: use first active store for user
+                logger.info(f"No shop_url provided, using first active store for user_id: {user_id}")
+                store = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first()
         except BaseException as db_error:
             # Catch ALL exceptions including segfault precursors
             logger.error(f"Database error fetching store for user {user_id}: {type(db_error).__name__}: {str(db_error)}", exc_info=True)

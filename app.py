@@ -1653,7 +1653,10 @@ DASHBOARD_HTML = """
                     if (!token) {
                         throw new Error('Unable to get session token. Please refresh the page.');
                     }
-                    return fetch('/api/generate_report', {
+                    // Get shop from URL or use current shop
+                    const shopUrl = new URLSearchParams(window.location.search).get('shop') || '';
+                    const reportUrl = shopUrl ? `/api/generate_report?shop=${encodeURIComponent(shopUrl)}` : '/api/generate_report';
+                    return fetch(reportUrl, {
                         headers: {'Authorization': 'Bearer ' + token},
                         signal: controller.signal
                     });
@@ -1675,7 +1678,10 @@ DASHBOARD_HTML = """
                 });
             } else {
                 // Not embedded - use regular fetch (Flask-Login handles auth)
-                fetchPromise = fetch('/api/generate_report', {
+                // Get shop from URL or use current shop
+                const shopUrl = new URLSearchParams(window.location.search).get('shop') || '';
+                const reportUrl = shopUrl ? `/api/generate_report?shop=${encodeURIComponent(shopUrl)}` : '/api/generate_report';
+                fetchPromise = fetch(reportUrl, {
                     signal: controller.signal
                 });
             }
@@ -2738,14 +2744,22 @@ def api_generate_report():
         logger.info(f"Generate report called by user {user_id}")
         logging.info(f"Step 4: Calling generate_report() for user {user_id}...")
         
+        # Get shop_url from request args, session, or None (will use first active store)
+        from flask import session
+        shop_url = request.args.get('shop') or session.get('current_shop') or None
+        if shop_url:
+            logging.info(f"Step 4: Using shop_url from request/session: {shop_url}")
+        else:
+            logging.info(f"Step 4: No shop_url in request/session, will use first active store for user")
+        
         # CRITICAL: DO NOT call db.session.remove() here - let SQLAlchemy manage connections
         # Removing sessions before queries can cause segfaults by corrupting connection state
         from reporting import generate_report
-        # Pass user_id to avoid recursion
+        # Pass user_id and shop_url to avoid recursion and ensure correct store
         logging.info("Step 4a: Imported generate_report function")
-        logging.info("Step 4b: Calling generate_report(user_id={})...".format(user_id))
+        logging.info("Step 4b: Calling generate_report(user_id={}, shop_url={})...".format(user_id, shop_url))
         
-        data = generate_report(user_id=user_id)
+        data = generate_report(user_id=user_id, shop_url=shop_url)
         
         logging.info(f"Step 4 SUCCESS: generate_report() returned, checking results...")
         logging.info(f"Step 4 result keys: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
