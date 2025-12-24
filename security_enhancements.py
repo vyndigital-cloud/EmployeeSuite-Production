@@ -68,6 +68,8 @@ def add_security_headers(response):
         frame_ancestors = "frame-ancestors https://admin.shopify.com https://*.myshopify.com; "
         
         # Log for debugging
+        has_shop_param = 'shop' in request.args
+        has_host_param = 'host' in request.args
         logger.info(f"🔓 ALLOWING IFRAME: path={request.path}, shop={has_shop_param}, host={has_host_param}")
     else:
         # Regular pages - prevent ALL iframe embedding via CSP only
