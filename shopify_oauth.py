@@ -163,7 +163,7 @@ def install():
         # If we have host, use App Bridge. Otherwise, use window.top.location fallback
         if host:
             # Render a page that uses App Bridge to redirect to OAuth in the top-level window
-        redirect_html = f"""<!DOCTYPE html>
+            redirect_html = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -344,15 +344,15 @@ def callback():
         # No logged-in user - this is likely an App Store installation
         # Get or create user (for App Store, use shop domain as identifier)
         user = User.query.filter_by(email=f"{shop}@shopify.com").first()
-        if not user:
-            from datetime import datetime, timedelta
-            user = User(
-                email=f"{shop}@shopify.com",
-                password_hash='',  # OAuth users don't have passwords
-                trial_ends_at=datetime.utcnow() + timedelta(days=7)
-            )
-            db.session.add(user)
-            db.session.commit()
+    if not user:
+        from datetime import datetime, timedelta
+        user = User(
+            email=f"{shop}@shopify.com",
+            password_hash='',  # OAuth users don't have passwords
+            trial_ends_at=datetime.utcnow() + timedelta(days=7)
+        )
+        db.session.add(user)
+        db.session.commit()
             logger.info(f"OAuth callback: Created new shop-based user {user.email} (ID: {user.id})")
         else:
             logger.info(f"OAuth callback: Found existing shop-based user {user.email} (ID: {user.id})")
@@ -362,7 +362,7 @@ def callback():
     if current_api_key and current_api_key != 'NOT_SET' and len(current_api_key) >= 8:
         api_key_preview = current_api_key[:8]
         logger.info(f"OAUTH COMPLETE: Generated new access_token using Partners API key: {api_key_preview}... (length: {len(current_api_key)})")
-        logger.info(f"OAUTH COMPLETE: This access_token is tied to Partners app: {api_key_preview}...")
+    logger.info(f"OAUTH COMPLETE: This access_token is tied to Partners app: {api_key_preview}...")
     else:
         logger.error(f"OAUTH COMPLETE: WARNING - API key is NOT SET or invalid! current_api_key={current_api_key}")
     
@@ -372,7 +372,7 @@ def callback():
     store = ShopifyStore.query.filter_by(shop_url=shop, user_id=user.id).first()
     if not store:
         # If not found with user_id, check if store exists for this shop (might be from old flow)
-        store = ShopifyStore.query.filter_by(shop_url=shop).first()
+    store = ShopifyStore.query.filter_by(shop_url=shop).first()
     
     if store:
         # CRITICAL: Always update access_token when reconnecting (gets new token from new Partners app)
