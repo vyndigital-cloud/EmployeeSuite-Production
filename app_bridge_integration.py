@@ -18,7 +18,7 @@ def get_app_bridge_script():
         return ""
     
     return f"""
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge/3.7.0/app-bridge.js"></script>
     <script>
         var AppBridge = window['app-bridge'];
         var createApp = AppBridge.default;

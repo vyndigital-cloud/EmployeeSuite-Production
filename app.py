@@ -824,7 +824,7 @@ DASHBOARD_HTML = """
                 console.error('❌ Failed to load App Bridge script from CDN');
                 // Try fallback: load from unversioned URL
                 var fallbackScript = document.createElement('script');
-                fallbackScript.src = 'https://cdn.shopify.com/shopifycloud/app-bridge.js';
+                fallbackScript.src = 'https://cdn.shopify.com/shopifycloud/app-bridge/3.7.0/app-bridge.js';
                 fallbackScript.async = false;
                 fallbackScript.crossOrigin = 'anonymous';
                 fallbackScript.onload = function() {

@@ -228,7 +228,7 @@ def callback():
     <meta charset="utf-8">
     <title>Employee Suite - Installation Complete</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge/3.7.0/app-bridge.js"></script>
     <script>
         (function() {{
             var redirectAttempted = false;
