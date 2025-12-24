@@ -171,6 +171,7 @@ def install():
         # If we have host, use App Bridge. Otherwise, use window.top.location fallback
         if host:
             # Render a page that uses App Bridge to redirect to OAuth in the top-level window
+            # CRITICAL: Wait for App Bridge to load before redirecting to prevent "refused to connect" errors
             redirect_html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -180,37 +181,102 @@ def install():
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <script>
         (function() {{
-            // Use App Bridge to redirect the TOP-LEVEL window to OAuth
-            // This prevents "accounts.shopify.com refused to connect" errors
-            try {{
-                var AppBridge = window['app-bridge'] || window['ShopifyAppBridge'] || window.appBridge;
-                if (AppBridge && AppBridge.default) {{
-                    var app = AppBridge.default({{
-                        apiKey: '{api_key}',
-                        host: '{host}'
-                    }});
-                    
-                    // Use App Bridge Redirect to navigate top-level window
-                    var Redirect = AppBridge.actions.Redirect;
-                    var redirect = Redirect.create(app);
-                    redirect.dispatch(Redirect.Action.REMOTE, '{full_auth_url}');
+            var maxAttempts = 150; // 15 seconds max wait for App Bridge
+            var attempts = 0;
+            var redirected = false;
+            var scriptLoaded = false;
+            
+            // Wait for App Bridge script to load
+            function checkScriptLoaded() {{
+                // Check if script loaded by looking for the global
+                if (typeof window['app-bridge'] !== 'undefined' || 
+                    typeof window['ShopifyAppBridge'] !== 'undefined') {{
+                    scriptLoaded = true;
+                    console.log('✅ App Bridge script loaded');
+                    tryRedirect();
                 }} else {{
-                    // Fallback: direct top-level redirect
-                    if (window.top && window.top !== window) {{
-                        window.top.location.href = '{full_auth_url}';
+                    attempts++;
+                    if (attempts < maxAttempts) {{
+                        setTimeout(checkScriptLoaded, 100);
                     }} else {{
-                        window.location.href = '{full_auth_url}';
+                        console.warn('⚠️ App Bridge script did not load, using fallback');
+                        scriptLoaded = false; // Mark as failed
+                        fallbackRedirect();
                     }}
                 }}
-            }} catch (e) {{
-                console.error('App Bridge redirect error:', e);
-                // Fallback: direct top-level redirect
-                if (window.top && window.top !== window) {{
-                    window.top.location.href = '{full_auth_url}';
-                }} else {{
-                    window.location.href = '{full_auth_url}';
+            }}
+            
+            function tryRedirect() {{
+                if (redirected) return; // Prevent double redirect
+                
+                // Try to use App Bridge Redirect
+                try {{
+                    var AppBridge = window['app-bridge'] || window['ShopifyAppBridge'] || window.appBridge;
+                    if (AppBridge && AppBridge.default && AppBridge.actions && AppBridge.actions.Redirect) {{
+                        var app = AppBridge.default({{
+                            apiKey: '{api_key}',
+                            host: '{host}'
+                        }});
+                        
+                        // Use App Bridge Redirect to navigate top-level window
+                        var Redirect = AppBridge.actions.Redirect;
+                        var redirect = Redirect.create(app);
+                        redirect.dispatch(Redirect.Action.REMOTE, '{full_auth_url}');
+                        
+                        redirected = true;
+                        console.log('✅ Using App Bridge Redirect to:', '{full_auth_url}');
+                        return;
+                    }}
+                }} catch (e) {{
+                    console.error('❌ App Bridge redirect error:', e);
+                }}
+                
+                // If App Bridge actions not available, wait a bit more and retry
+                attempts++;
+                if (attempts < maxAttempts && !redirected) {{
+                    setTimeout(tryRedirect, 100);
+                }} else if (!redirected) {{
+                    console.warn('⚠️ App Bridge actions not available, using fallback');
+                    fallbackRedirect();
                 }}
             }}
+            
+            function fallbackRedirect() {{
+                if (redirected) return; // Prevent double redirect
+                redirected = true;
+                
+                console.log('🔄 Using fallback redirect method');
+                
+                // CRITICAL: Use window.top.location for embedded, window.location for standalone
+                try {{
+                    // Check if we're in an iframe
+                    if (window.top && window.top !== window) {{
+                        // We're in an iframe - redirect top window
+                        console.log('Redirecting top window to:', '{full_auth_url}');
+                        window.top.location.href = '{full_auth_url}';
+                    }} else {{
+                        // Standalone - redirect current window
+                        console.log('Redirecting current window to:', '{full_auth_url}');
+                        window.location.href = '{full_auth_url}';
+                    }}
+                }} catch (e) {{
+                    console.error('❌ Redirect failed:', e);
+                    // Last resort: show message and link
+                    document.body.innerHTML = '<div style="padding: 40px; text-align: center; font-family: sans-serif;"><h2>Redirect Required</h2><p>Please <a href="{full_auth_url}">click here</a> to continue.</p></div>';
+                }}
+            }}
+            
+            // Start checking for App Bridge script
+            attempts = 0;
+            checkScriptLoaded();
+            
+            // Also set a timeout as absolute fallback
+            setTimeout(function() {{
+                if (!redirected) {{
+                    console.warn('⏱️ Timeout reached, forcing redirect');
+                    fallbackRedirect();
+                }}
+            }}, 15000); // 15 seconds absolute maximum
         }})();
     </script>
     <noscript>
@@ -704,3 +770,4 @@ def register_compliance_webhooks(shop, access_token):
                 logger.warning(f"Failed to register webhook {webhook['topic']}: {response.status_code} - {response.text}")
         except Exception as e:
             logger.error(f"Error registering webhook {webhook['topic']}: {e}", exc_info=True)
+
