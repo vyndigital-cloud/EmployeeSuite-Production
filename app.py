@@ -768,10 +768,27 @@ DASHBOARD_HTML = """
                             // Get API key from template or try to find it
                             var apiKey = '{{ SHOPIFY_API_KEY or "" }}';
                             
-                            // Fallback: try to get from window if template didn't work
+                            // CRITICAL: If API key is missing, try to get from window (fallback)
                             if (!apiKey || apiKey === '') {
-                                console.warn('API key not found in template, checking environment...');
-                                // API key should be set server-side, but if missing, show error
+                                console.warn('API key not found in template, checking window...');
+                                apiKey = window.SHOPIFY_API_KEY || '';
+                            }
+                            
+                            // CRITICAL: Both API key AND host are REQUIRED for embedded apps
+                            if (!apiKey || apiKey === '') {
+                                console.error('❌ SHOPIFY_API_KEY is missing - App Bridge cannot initialize');
+                                window.shopifyApp = null;
+                                window.appBridgeReady = true;
+                                showAppBridgeError('App configuration error: Missing API key. Please contact support.');
+                                return;
+                            }
+                            
+                            if (!host || host === '') {
+                                console.error('❌ Host parameter is missing - App Bridge cannot initialize');
+                                window.shopifyApp = null;
+                                window.appBridgeReady = true;
+                                showAppBridgeError('App configuration error: Missing host parameter. Please refresh the page from Shopify admin.');
+                                return;
                             }
                             
                             // Use host as-is (Shopify provides it correctly encoded)
@@ -2004,6 +2021,9 @@ def home():
                 if store and hasattr(store, 'shop_url') and store.shop_url:
                     shop_domain = store.shop_url
             
+            # CRITICAL: Pass host parameter to template for App Bridge initialization
+            host_param = request.args.get('host', '')
+            
             return render_template_string(DASHBOARD_HTML, 
                                          trial_active=trial_active, 
                                          days_left=days_left, 
@@ -2012,7 +2032,8 @@ def home():
                                          has_access=has_access,
                                          quick_stats=quick_stats,
                                          shop_domain=shop_domain,
-                                         SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''))
+                                         SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
+                                         host=host_param)
         else:
             # Not logged in - for embedded apps, render dashboard with connect prompt
             # DON'T redirect - just show the dashboard with a connect button
@@ -2029,6 +2050,9 @@ def home():
             quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
             shop_domain = shop or ''
             
+            # CRITICAL: Pass host parameter to template for App Bridge initialization
+            host_param = request.args.get('host', '')
+            
             return render_template_string(DASHBOARD_HTML, 
                                          trial_active=trial_active, 
                                          days_left=days_left, 
@@ -2037,7 +2061,8 @@ def home():
                                          has_access=has_access,
                                          quick_stats=quick_stats,
                                          shop_domain=shop_domain,
-                                         SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''))
+                                         SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
+                                         host=host_param)
     
     # Regular (non-embedded) request handling
     if current_user.is_authenticated:
@@ -2049,6 +2074,9 @@ def home():
     if is_from_shopify_admin:
         # Render dashboard for embedded apps even without explicit params
         # render_template_string is already imported at top of file
+        # CRITICAL: Pass host parameter to template for App Bridge initialization
+        host_param = request.args.get('host', '')
+        
         return render_template_string(DASHBOARD_HTML, 
                                      trial_active=False, 
                                      days_left=0, 
@@ -2057,7 +2085,8 @@ def home():
                                      has_access=False,
                                      quick_stats={'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0},
                                      shop_domain=shop or '',
-                                     SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''))
+                                     SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
+                                     host=host_param)
     
     # For standalone access, redirect to Shopify OAuth install instead of login
     # OAuth users don't have passwords, so login page won't work for them
