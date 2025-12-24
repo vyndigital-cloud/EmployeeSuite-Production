@@ -735,7 +735,7 @@ DASHBOARD_HTML = """
                         // Check multiple possible global names for App Bridge
                         var AppBridge = window['app-bridge'] || window['ShopifyAppBridge'] || window.appBridge;
                         
-                        if (typeof AppBridge === 'undefined') {
+                        if (typeof AppBridge === 'undefined' || !AppBridge) {
                             if (attempts < maxAttempts) {
                                 setTimeout(init, 100); // Increased interval to 100ms
                                 return;
@@ -751,19 +751,6 @@ DASHBOARD_HTML = """
                         console.log('✅ App Bridge object found:', typeof AppBridge);
                         
                         try {
-                            // Use the AppBridge we found in the check above
-                            if (!AppBridge) {
-                                if (attempts < maxAttempts) {
-                                    setTimeout(init, 100);
-                                    return;
-                                }
-                                console.error('❌ App Bridge object not available');
-                                window.shopifyApp = null;
-                                window.appBridgeReady = true;
-                                showAppBridgeError('App Bridge initialization failed. Please refresh the page.');
-                                return;
-                            }
-                            
                             // App Bridge v3 uses .default, older versions might use .create
                             var createApp = AppBridge.default || AppBridge.create || AppBridge;
                             if (typeof createApp !== 'function') {
