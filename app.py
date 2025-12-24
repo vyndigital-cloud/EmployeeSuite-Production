@@ -2368,6 +2368,9 @@ def dashboard():
         if store and hasattr(store, 'shop_url') and store.shop_url:
             shop_domain = store.shop_url
     
+    # CRITICAL: Pass host parameter to template for App Bridge initialization
+    host_param = request.args.get('host', '')
+    
     return render_template_string(DASHBOARD_HTML, 
                                  trial_active=trial_active, 
                                  days_left=days_left, 
@@ -2376,7 +2379,8 @@ def dashboard():
                                  has_access=has_access,
                                  quick_stats=quick_stats,
                                  shop_domain=shop_domain,
-                                 SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''))
+                                 SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
+                                 host=host_param)
 
 
 @app.route('/cron/send-trial-warnings', methods=['GET', 'POST'])
