@@ -477,10 +477,10 @@ def callback():
                         host: '{host}'
                     }});
                     
-                    var Redirect = AppBridge.actions.Redirect;
-                    var redirect = Redirect.create(app);
-                    
-                    redirect.dispatch(Redirect.Action.APP, '/dashboard?shop={shop}&host={host}&embedded=1');
+                    // CRITICAL: Don't use App Bridge redirect for internal navigation
+                    // App Bridge redirect can cause iframe issues. Use regular navigation instead.
+                    // Since we're navigating to our own app URL, regular window.location works fine.
+                    window.location.href = '{embedded_url}';
                     redirectAttempted = true;
                 }} catch (e) {{
                     console.error('Redirect attempt ' + attemptCount + ' failed:', e);
