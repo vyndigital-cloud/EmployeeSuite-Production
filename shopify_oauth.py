@@ -127,7 +127,10 @@ def callback():
     # Exchange code for access token
     # CRITICAL: Log which API key is being used for OAuth (for debugging)
     current_api_key = os.getenv('SHOPIFY_API_KEY', 'NOT_SET')
-    logger.info(f"OAUTH DEBUG: Using API key for token exchange: {current_api_key[:8]}... (first 8 chars)")
+    if current_api_key and current_api_key != 'NOT_SET' and len(current_api_key) >= 8:
+        logger.info(f"OAUTH DEBUG: Using API key for token exchange: {current_api_key[:8]}... (length: {len(current_api_key)})")
+    else:
+        logger.error(f"OAUTH DEBUG: API key is NOT SET or invalid! current_api_key={current_api_key}")
     logger.info(f"OAUTH DEBUG: Shop: {shop}")
     
     access_token = exchange_code_for_token(shop, code)
@@ -156,9 +159,12 @@ def callback():
     
     # CRITICAL: Log which API key was used to generate this access_token
     current_api_key = os.getenv('SHOPIFY_API_KEY', 'NOT_SET')
-    api_key_preview = current_api_key[:8] if len(current_api_key) > 8 else current_api_key
-    logger.info(f"OAUTH COMPLETE: Generated new access_token using Partners API key: {api_key_preview}...")
-    logger.info(f"OAUTH COMPLETE: This access_token is tied to Partners app: {api_key_preview}...")
+    if current_api_key and current_api_key != 'NOT_SET' and len(current_api_key) >= 8:
+        api_key_preview = current_api_key[:8]
+        logger.info(f"OAUTH COMPLETE: Generated new access_token using Partners API key: {api_key_preview}... (length: {len(current_api_key)})")
+        logger.info(f"OAUTH COMPLETE: This access_token is tied to Partners app: {api_key_preview}...")
+    else:
+        logger.error(f"OAUTH COMPLETE: WARNING - API key is NOT SET or invalid! current_api_key={current_api_key}")
     
     # Store Shopify credentials with shop_id
     store = ShopifyStore.query.filter_by(shop_url=shop).first()
