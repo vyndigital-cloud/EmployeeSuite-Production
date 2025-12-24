@@ -585,6 +585,17 @@ RESET_PASSWORD_HTML = '''
 
 @auth_bp.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
+    # CRITICAL: For embedded apps, redirect to OAuth (no password reset in embedded mode)
+    shop = request.args.get('shop')
+    embedded = request.args.get('embedded')
+    host = request.args.get('host')
+    is_embedded = embedded == '1' or host or shop
+    if is_embedded and shop:
+        from flask import redirect, url_for
+        install_url = url_for('oauth.install', shop=shop, host=host) if host else url_for('oauth.install', shop=shop)
+        logger.info(f"Embedded app forgot-password request - redirecting to OAuth: {install_url}")
+        return redirect(install_url)
+    
     if request.method == 'POST':
         email = request.form.get('email', '').lower().strip()
         
