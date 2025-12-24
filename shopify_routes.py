@@ -397,8 +397,38 @@ def connect_store():
     if len(access_token) < 10:
         return redirect(url_for('shopify.shopify_settings', error='Invalid access token format.'))
     
+    # WARNING: Manual access tokens from old apps won't work with new Partners API key
+    # Recommend OAuth instead
+    logger.warning(f"Manual access token connection attempted for {shop_url} by user {current_user.id}")
+    logger.warning(f"NOTE: Manual tokens from old apps may not work with new Partners API key. OAuth is recommended.")
+    
     if ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first():
         return redirect(url_for('shopify.shopify_settings', error='You already have a connected store. Disconnect it first.'))
+    
+    # Validate the access_token works with current API key by testing a simple API call
+    try:
+        import requests
+        api_version = '2024-10'
+        test_url = f"https://{shop_url}/admin/api/{api_version}/shop.json"
+        headers = {
+            'X-Shopify-Access-Token': access_token,
+            'Content-Type': 'application/json'
+        }
+        test_response = requests.get(test_url, headers=headers, timeout=5)
+        
+        if test_response.status_code == 401:
+            # Invalid token - might be from old app
+            logger.warning(f"Access token test failed (401) for {shop_url} - likely from old app")
+            return redirect(url_for('shopify.shopify_settings', 
+                                  error='This access token appears to be invalid or from an old app. Please use the "Quick Connect" OAuth method above instead.'))
+        elif test_response.status_code != 200:
+            logger.warning(f"Access token test failed ({test_response.status_code}) for {shop_url}")
+            return redirect(url_for('shopify.shopify_settings', 
+                                  error=f'Access token validation failed (HTTP {test_response.status_code}). Please use the "Quick Connect" OAuth method instead.'))
+    except Exception as e:
+        logger.error(f"Error validating access token: {e}", exc_info=True)
+        # Continue anyway - validation is optional
+        pass
     
     new_store = ShopifyStore(
         user_id=current_user.id,
@@ -410,6 +440,7 @@ def connect_store():
     db.session.add(new_store)
     db.session.commit()
     
+    logger.info(f"Manual access token connection successful for {shop_url} by user {current_user.id}")
     return redirect(url_for('shopify.shopify_settings', success='Store connected successfully!'))
 
 @shopify_bp.route('/settings/shopify/disconnect', methods=['POST'])
