@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime, timedelta
+from sqlalchemy.orm import validates
 
 db = SQLAlchemy()
 
@@ -40,6 +41,34 @@ class ShopifyStore(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     uninstalled_at = db.Column(db.DateTime, nullable=True)  # When app was uninstalled
+    
+    @validates('access_token')
+    def validate_access_token(self, key, value):
+        """Validate access_token before setting - prevent None values"""
+        if value is None:
+            # Convert None to empty string to satisfy NOT NULL constraint
+            return ''
+        if not isinstance(value, str):
+            raise ValueError(f"access_token must be a string, got {type(value)}")
+        return value
+    
+    def disconnect(self):
+        """Disconnect store - clears token and marks inactive. Centralized state management."""
+        self.access_token = ''  # Use empty string (NOT NULL constraint)
+        self.is_active = False
+        self.charge_id = None
+        self.uninstalled_at = datetime.utcnow()
+    
+    def is_connected(self):
+        """Check if store is properly connected (has valid token and is active)"""
+        return self.is_active and bool(self.access_token and self.access_token.strip())
+    
+    def get_access_token(self):
+        """Get access token, returning None if empty/invalid (for validation checks)"""
+        token = self.access_token
+        if not token or not token.strip():
+            return None
+        return token
     
     def __repr__(self):
         return f'<ShopifyStore {self.shop_url}>'

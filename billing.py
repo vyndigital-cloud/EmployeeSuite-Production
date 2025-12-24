@@ -265,8 +265,8 @@ SUCCESS_HTML = '''
 def get_shop_and_token_for_user(user):
     """Get shop URL and access token for a user"""
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
-    if store:
-        return store.shop_url, store.access_token
+    if store and store.is_connected():
+        return store.shop_url, store.get_access_token()
     return None, None
 
 
@@ -508,14 +508,15 @@ def create_charge():
         return redirect(url_for('billing.subscribe', error='No Shopify store connected', shop=shop, host=host))
     
     shop_url = store.shop_url
-    access_token = store.access_token
     
-    # CRITICAL: Check if access_token exists (None or empty string)
-    if not access_token or access_token.strip() == '':
-        logger.error(f"No access_token found for store {shop_url} - user must reconnect")
+    # Use model method to check connection status
+    if not store.is_connected():
+        logger.error(f"No valid access_token found for store {shop_url} - user must reconnect")
         return redirect(url_for('shopify.shopify_settings', 
                               error='Store not connected. Please reconnect your store.',
                               shop=shop_url, host=host))
+    
+    access_token = store.get_access_token()
     
     # CRITICAL: Log which API key is being used for OAuth (for debugging)
     current_api_key = os.getenv('SHOPIFY_API_KEY', 'NOT_SET')
@@ -540,11 +541,8 @@ def create_charge():
         # CRITICAL: If "app owned by a shop" error, clear the access_token and force reinstall
         if 'owned by a shop' in error_msg.lower() or 'must be migrated' in error_msg.lower():
             logger.warning(f"Detected old app access_token for {shop_url} - clearing token to force reinstall")
-            # Clear the access_token so user must reinstall with new Partners app
-            # Use empty string instead of None (database column is NOT NULL)
-            store.access_token = ''
-            store.is_active = False
-            store.charge_id = None  # Clear any existing charge
+            # Use model method for consistent state management
+            store.disconnect()
             db.session.commit()
             logger.info(f"Cleared access_token for {shop_url} - user must reinstall with new Partners app")
             # Redirect to settings with clear message
