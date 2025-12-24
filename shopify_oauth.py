@@ -91,6 +91,22 @@ def install():
     # For App Store installations, Shopify will include 'host' parameter in callback
     # We store it in state to preserve it through OAuth flow
     host = request.args.get('host', '')
+    
+    # CRITICAL: Also check Referer header to detect embedded context if host param is missing
+    # This handles cases where other routes redirect to /install without passing host
+    if not host:
+        referer = request.headers.get('Referer', '')
+        if referer:
+            from urllib.parse import urlparse, parse_qs
+            try:
+                parsed = urlparse(referer)
+                query_params = parse_qs(parsed.query)
+                if 'host' in query_params:
+                    host = query_params['host'][0]
+                    logger.info(f"Detected embedded context from Referer header, host: {host[:20]}...")
+            except Exception as e:
+                logger.debug(f"Could not parse host from Referer: {e}")
+    
     state_data = shop
     if host:
         # Encode host in state for embedded app installations
@@ -109,14 +125,44 @@ def install():
     query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
     full_auth_url = f"{auth_url}?{query_string}"
     
-    # CRITICAL: If this is an embedded app (host parameter present), we MUST open OAuth in top-level window
+    # CRITICAL: Also check if we're being accessed from admin.shopify.com (embedded context)
+    # Even if host param is missing, if Referer is from admin.shopify.com, we're in an iframe
+    is_embedded = bool(host)
+    if not is_embedded:
+        referer = request.headers.get('Referer', '')
+        if referer and ('admin.shopify.com' in referer or 'myshopify.com' in referer):
+            # Likely embedded - try to extract host from referer or use a default
+            # If we can't get host, we'll use window.top.location.href fallback
+            is_embedded = True
+            logger.info(f"Detected embedded context from Referer: {referer[:50]}...")
+    
+    # CRITICAL: If this is an embedded app, we MUST open OAuth in top-level window
     # Shopify's OAuth redirects to accounts.shopify.com which has X-Frame-Options: deny
     # App Bridge Redirect allows us to navigate the top-level window from within an iframe
-    if host:
+    # ALWAYS use App Bridge redirect if embedded context detected
+    if is_embedded:
+        # If we have host, use it. Otherwise, try to extract from Referer or use fallback
+        if not host:
+            # Try one more time to extract from Referer URL params
+            referer = request.headers.get('Referer', '')
+            if referer:
+                from urllib.parse import urlparse, parse_qs
+                try:
+                    parsed = urlparse(referer)
+                    query_params = parse_qs(parsed.query)
+                    if 'host' in query_params:
+                        host = query_params['host'][0]
+                        logger.info(f"Extracted host from Referer: {host[:20]}...")
+                except Exception:
+                    pass
+        
+        # Use host if we have it, otherwise App Bridge redirect will use window.top.location fallback
         api_key = os.getenv('SHOPIFY_API_KEY', '')
         logger.info(f"Embedded OAuth install detected for {shop}, using App Bridge to open OAuth in top-level window")
         
-        # Render a page that uses App Bridge to redirect to OAuth in the top-level window
+        # If we have host, use App Bridge. Otherwise, use window.top.location fallback
+        if host:
+            # Render a page that uses App Bridge to redirect to OAuth in the top-level window
         redirect_html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -215,8 +261,34 @@ def install():
     </div>
 </body>
 </html>"""
-        from flask import Response
-        return Response(redirect_html, mimetype='text/html')
+            from flask import Response
+            return Response(redirect_html, mimetype='text/html')
+        else:
+            # Embedded but no host - use window.top.location fallback
+            redirect_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Connect Shopify Store - Employee Suite</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+        // Direct top-level redirect (no App Bridge needed)
+        if (window.top && window.top !== window) {{
+            window.top.location.href = '{full_auth_url}';
+        }} else {{
+            window.location.href = '{full_auth_url}';
+        }}
+    </script>
+    <noscript>
+        <meta http-equiv="refresh" content="0;url={full_auth_url}">
+    </noscript>
+</head>
+<body>
+    <p>Redirecting...</p>
+</body>
+</html>"""
+            from flask import Response
+            return Response(redirect_html, mimetype='text/html')
     
     # Non-embedded: regular redirect works fine
     return redirect(full_auth_url)
