@@ -140,28 +140,35 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///emp
 if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
     app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 # Performance optimizations - Optimized for speed
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_size': 2,  # Ultra-conservative to prevent connection exhaustion and segfaults
-    'max_overflow': 3,  # Minimal overflow for stability
+# Base engine options (work for all databases)
+engine_options = {
     'pool_pre_ping': True,  # CRITICAL: Verify connections before using (prevents segfaults)
-    'pool_recycle': 600,  # Recycle connections after 10 minutes (prevent stale connections)
-    'pool_timeout': 5,  # Shorter timeout for getting connection from pool
-    'connect_args': {
-        'connect_timeout': 3,  # Fast connection timeout
-        'options': '-c statement_timeout=20000'  # 20 second query timeout (prevent hangs)
-    },
     'echo': False,  # Disable SQL logging for performance
-    'isolation_level': 'READ_COMMITTED',  # Prevent deadlocks
 }
+
+# PostgreSQL-specific options
+if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql://'):
+    engine_options.update({
+        'pool_size': 2,  # Ultra-conservative to prevent connection exhaustion and segfaults
+        'max_overflow': 3,  # Minimal overflow for stability
+        'pool_recycle': 600,  # Recycle connections after 10 minutes (prevent stale connections)
+        'pool_timeout': 5,  # Shorter timeout for getting connection from pool
+        'connect_args': {
+            'connect_timeout': 3,  # Fast connection timeout
+            'options': '-c statement_timeout=20000'  # 20 second query timeout (prevent hangs)
+        },
+        'isolation_level': 'READ_COMMITTED',  # Prevent deadlocks
+    })
+
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = engine_options
 
 db.init_app(app)
 
 # Configure server-side sessions - optimized for embedded and standalone
 app.config['SESSION_PERMANENT'] = True
-# Session lifetime: 24 hours (embedded apps use tokens, standalone uses cookies)
-# Shorter lifetime = better security + Safari compatibility
-app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 hours (was 30 days)
+# Session lifetime is already set above (24 hours)
 bcrypt = Bcrypt(app)
 
 login_manager = LoginManager()
