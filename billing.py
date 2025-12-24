@@ -541,8 +541,10 @@ def create_charge():
         if 'owned by a shop' in error_msg.lower() or 'must be migrated' in error_msg.lower():
             logger.warning(f"Detected old app access_token for {shop_url} - clearing token to force reinstall")
             # Clear the access_token so user must reinstall with new Partners app
-            store.access_token = None
+            # Use empty string instead of None (database column is NOT NULL)
+            store.access_token = ''
             store.is_active = False
+            store.charge_id = None  # Clear any existing charge
             db.session.commit()
             logger.info(f"Cleared access_token for {shop_url} - user must reinstall with new Partners app")
             # Redirect to settings with clear message
