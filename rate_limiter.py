@@ -11,10 +11,13 @@ def get_remote_address_safe():
 
 def init_limiter(app):
     """Initialize rate limiter with global limit"""
+    # Increased from 200/hour to 1000/hour to avoid blocking legitimate users
+    # 200/hour (~3 req/min) was too restrictive for users doing legitimate work
+    # 1000/hour (~16 req/min) allows normal usage while still preventing abuse
     limiter = Limiter(
         app=app,
         key_func=get_remote_address_safe,
-        default_limits=["200 per hour"],
+        default_limits=["1000 per hour"],
         storage_uri="memory://",
         headers_enabled=True
     )
