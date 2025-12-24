@@ -2291,6 +2291,13 @@ def dashboard():
     # Users can click buttons to load data when they need it
     quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
     
+    # Store shop in session for API calls (if shop parameter is present)
+    if shop:
+        from flask import session
+        session['current_shop'] = shop
+        session.permanent = True
+        logger.info(f"Stored shop in session: {shop} for user {current_user.id if user_authenticated else 'anonymous'}")
+    
     # Get shop domain and API key for App Bridge initialization
     shop_domain = shop or ''
     if current_user.is_authenticated and has_shopify:
@@ -2310,6 +2317,11 @@ def dashboard():
             store = None
         if store:
             shop_domain = store.shop_url
+            # Also store in session if not already set
+            if shop_domain and not shop:
+                from flask import session
+                session['current_shop'] = shop_domain
+                session.permanent = True
     elif shop and has_shopify:
         store = None
         # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
