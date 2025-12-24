@@ -416,7 +416,17 @@ def login():
         return render_template_string(LOGIN_HTML, error="Invalid email or password", shop=shop, embedded=embedded, host=host)
     
     # GET request - render login page with embedded params preserved
-    return render_template_string(LOGIN_HTML, shop=shop, embedded=embedded, host=host)
+    # CRITICAL: Wrap in try/except to prevent 500 errors
+    try:
+        return render_template_string(LOGIN_HTML, shop=shop, embedded=embedded, host=host)
+    except Exception as e:
+        logger.error(f"Error rendering login page: {e}", exc_info=True)
+        # Fallback: render without params if template fails
+        try:
+            return render_template_string(LOGIN_HTML, shop=None, embedded=None, host=None)
+        except Exception:
+            # Last resort: return simple error page
+            return f"<h1>Login Error</h1><p>Please try again later.</p>", 500
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
