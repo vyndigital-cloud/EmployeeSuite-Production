@@ -116,7 +116,7 @@ def add_security_headers(response):
             + frame_ancestors +
             "frame-src https://checkout.stripe.com https://js.stripe.com; "
             "base-uri 'self'; "
-            "form-action 'self';"
+            "form-action 'self' https://employeesuite-production.onrender.com;"
         )
     else:
         # Regular page CSP - stricter security
@@ -130,7 +130,7 @@ def add_security_headers(response):
             + frame_ancestors +
             "frame-src https://checkout.stripe.com https://js.stripe.com; "
             "base-uri 'self'; "
-            "form-action 'self';"
+            "form-action 'self' https://employeesuite-production.onrender.com;"
         )
     response.headers['Content-Security-Policy'] = csp
     
