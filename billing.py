@@ -538,17 +538,18 @@ def create_charge():
         error_msg = result.get('error', 'Failed to create subscription')
         logger.error(f"Billing error for {shop_url}: {error_msg}")
         
-        # CRITICAL: If "app owned by a shop" error, clear the access_token and force reinstall
+        # CRITICAL: If "app owned by a shop" error, clear the access_token and redirect to OAuth
         if 'owned by a shop' in error_msg.lower() or 'must be migrated' in error_msg.lower():
-            logger.warning(f"Detected old app access_token for {shop_url} - clearing token to force reinstall")
+            logger.warning(f"Detected old app access_token for {shop_url} - clearing token and redirecting to OAuth")
             # Use model method for consistent state management
             store.disconnect()
             db.session.commit()
-            logger.info(f"Cleared access_token for {shop_url} - user must reinstall with new Partners app")
-            # Redirect to settings with clear message
-            return redirect(url_for('shopify.shopify_settings', 
-                                  error='Your app needs to be reinstalled with the new Partners app. Please disconnect and reconnect your store.',
-                                  shop=shop_url, host=host))
+            logger.info(f"Cleared access_token for {shop_url} - redirecting to OAuth install to get new token")
+            
+            # Automatically redirect to OAuth install flow to get a NEW access_token
+            install_url = url_for('oauth.install', shop=shop_url, host=host) if host else url_for('oauth.install', shop=shop_url)
+            logger.info(f"Redirecting {shop_url} to OAuth install: {install_url}")
+            return redirect(install_url)
         
         # Format error message for better user experience
         formatted_error = format_billing_error(error_msg)
