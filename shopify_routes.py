@@ -295,6 +295,12 @@ SETTINGS_HTML = '''
                     <span class="info-label">Connected</span>
                     <span class="info-value">{{ store.created_at.strftime('%B %d, %Y') }}</span>
                 </div>
+                <div class="info-row">
+                    <span class="info-label">Shopify Admin</span>
+                    <span class="info-value">
+                        <a href="https://admin.shopify.com/store/{{ store.shop_url.replace('.myshopify.com', '') }}" target="_blank" rel="noopener noreferrer" style="color: #008060; text-decoration: none; font-weight: 500;">Open in new tab →</a>
+                    </span>
+                </div>
             </div>
             <form method="POST" action="{{ url_for('shopify.disconnect_store') }}" style="margin-top: 20px;">
                 <button type="submit" class="btn btn-danger" onclick="return confirm('Disconnect store?')">Disconnect Store</button>
@@ -355,7 +361,8 @@ SETTINGS_HTML = '''
                         <div class="form-group">
                             <label class="form-label">Admin API Access Token</label>
                             <input type="password" name="access_token" class="form-input" placeholder="shpat_xxxxxxxxxxxx" required>
-                            <p class="form-help">Get this from: <strong>Shopify Admin → Settings → Apps and sales channels → Develop apps → Create app → Admin API access token</strong></p>
+                            <p class="form-help">Get this from: <strong>Shopify Admin → Settings → Apps and sales channels → Develop apps → Create app → Admin API access token</strong><br>
+                            <a href="https://admin.shopify.com" target="_blank" rel="noopener noreferrer" style="color: #008060; text-decoration: none; font-size: 13px; margin-top: 4px; display: inline-block;">Open Shopify Admin in new tab →</a></p>
                         </div>
                         <button type="submit" class="btn btn-primary" style="background: #0ea5e9;">Connect Store</button>
                     </form>
