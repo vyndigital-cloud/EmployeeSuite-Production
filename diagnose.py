@@ -75,3 +75,4 @@ print("="*50)
 print("\nIf you see errors above, those are the issues to fix.")
 print("If everything shows ✅, the app should work. What error are you seeing?")
 
+

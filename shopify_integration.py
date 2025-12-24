@@ -45,19 +45,59 @@ class ShopifyClient:
                     continue
                 return {"error": "Connection error - Cannot connect to Shopify. Check your internet connection."}
             except requests.exceptions.HTTPError as e:
+                # CRITICAL: Handle HTTP errors with proper error extraction
+                status_code = e.response.status_code if hasattr(e, 'response') and e.response else None
+                
                 # Don't retry on HTTP errors (4xx, 5xx) - these are permanent
-                if e.response.status_code == 401:
-                    return {"error": "Authentication failed - Please reconnect your store"}
-                elif e.response.status_code == 403:
-                    return {"error": "Access denied - Check your app permissions"}
-                elif e.response.status_code == 429:
+                if status_code == 401:
+                    # Authentication failed - token may be expired or revoked
+                    error_detail = "Authentication failed"
+                    try:
+                        if hasattr(e, 'response') and e.response:
+                            error_data = e.response.json()
+                            if isinstance(error_data, dict):
+                                error_detail = error_data.get('errors', {}).get('base', [error_detail])
+                                if isinstance(error_detail, list):
+                                    error_detail = error_detail[0] if error_detail else "Authentication failed"
+                            elif isinstance(error_data, str):
+                                error_detail = error_data
+                    except (ValueError, AttributeError, TypeError):
+                        pass
+                    return {"error": f"{error_detail} - Please reconnect your store", "auth_failed": True}
+                elif status_code == 403:
+                    error_detail = "Access denied"
+                    try:
+                        if hasattr(e, 'response') and e.response:
+                            error_data = e.response.json()
+                            if isinstance(error_data, dict):
+                                error_detail = error_data.get('errors', {}).get('base', [error_detail])
+                                if isinstance(error_detail, list):
+                                    error_detail = error_detail[0] if error_detail else "Access denied"
+                            elif isinstance(error_data, str):
+                                error_detail = error_data
+                    except (ValueError, AttributeError, TypeError):
+                        pass
+                    return {"error": f"{error_detail} - Check your app permissions"}
+                elif status_code == 429:
                     # Rate limit - wait but not too long
                     if attempt < retries - 1:
                         import time
                         time.sleep(min(2, 1 * (attempt + 1)))  # Max 2 seconds
                         continue
                     return {"error": "Rate limit exceeded - Please wait a moment and try again"}
-                return {"error": f"API error: {e.response.status_code}"}
+                elif status_code:
+                    error_detail = f"API error: {status_code}"
+                    try:
+                        if hasattr(e, 'response') and e.response:
+                            error_data = e.response.json()
+                            if isinstance(error_data, dict):
+                                error_detail = str(error_data.get('errors', error_detail))
+                            elif isinstance(error_data, str):
+                                error_detail = error_data
+                    except (ValueError, AttributeError, TypeError):
+                        pass
+                    return {"error": error_detail}
+                return {"error": f"API error: {status_code or 'Unknown'}"}
             except requests.exceptions.RequestException as e:
                 if attempt < retries - 1:
                     # Faster retries - max 0.5s delay
@@ -101,19 +141,59 @@ class ShopifyClient:
                     continue
                 return {"error": "Connection error - Cannot connect to Shopify. Check your internet connection."}
             except requests.exceptions.HTTPError as e:
+                # CRITICAL: Handle HTTP errors with proper error extraction
+                status_code = e.response.status_code if hasattr(e, 'response') and e.response else None
+                
                 # Don't retry on HTTP errors (4xx, 5xx) - these are permanent
-                if e.response.status_code == 401:
-                    return {"error": "Authentication failed - Please reconnect your store"}
-                elif e.response.status_code == 403:
-                    return {"error": "Access denied - Check your app permissions"}
-                elif e.response.status_code == 429:
+                if status_code == 401:
+                    # Authentication failed - token may be expired or revoked
+                    error_detail = "Authentication failed"
+                    try:
+                        if hasattr(e, 'response') and e.response:
+                            error_data = e.response.json()
+                            if isinstance(error_data, dict):
+                                error_detail = error_data.get('errors', {}).get('base', [error_detail])
+                                if isinstance(error_detail, list):
+                                    error_detail = error_detail[0] if error_detail else "Authentication failed"
+                            elif isinstance(error_data, str):
+                                error_detail = error_data
+                    except (ValueError, AttributeError, TypeError):
+                        pass
+                    return {"error": f"{error_detail} - Please reconnect your store", "auth_failed": True}
+                elif status_code == 403:
+                    error_detail = "Access denied"
+                    try:
+                        if hasattr(e, 'response') and e.response:
+                            error_data = e.response.json()
+                            if isinstance(error_data, dict):
+                                error_detail = error_data.get('errors', {}).get('base', [error_detail])
+                                if isinstance(error_detail, list):
+                                    error_detail = error_detail[0] if error_detail else "Access denied"
+                            elif isinstance(error_data, str):
+                                error_detail = error_data
+                    except (ValueError, AttributeError, TypeError):
+                        pass
+                    return {"error": f"{error_detail} - Check your app permissions"}
+                elif status_code == 429:
                     # Rate limit - wait but not too long
                     if attempt < retries - 1:
                         import time
                         time.sleep(min(2, 1 * (attempt + 1)))  # Max 2 seconds
                         continue
                     return {"error": "Rate limit exceeded - Please wait a moment and try again"}
-                return {"error": f"API error: {e.response.status_code}"}
+                elif status_code:
+                    error_detail = f"API error: {status_code}"
+                    try:
+                        if hasattr(e, 'response') and e.response:
+                            error_data = e.response.json()
+                            if isinstance(error_data, dict):
+                                error_detail = str(error_data.get('errors', error_detail))
+                            elif isinstance(error_data, str):
+                                error_detail = error_data
+                    except (ValueError, AttributeError, TypeError):
+                        pass
+                    return {"error": error_detail}
+                return {"error": f"API error: {status_code or 'Unknown'}"}
             except requests.exceptions.RequestException as e:
                 if attempt < retries - 1:
                     # Faster retries - max 0.5s delay

@@ -188,3 +188,4 @@ Track orders, monitor inventory, and analyze revenue for your Shopify store. Rea
 4. Proceed to next sections (Contact information, App testing information, etc.)
 
 
+

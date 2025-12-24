@@ -1,0 +1,83 @@
+# ✅ CHECKLIST #1: TECHNICAL REQUIREMENTS
+
+**Priority:** 🔴 **CRITICAL**  
+**Status:** ⚠️ **IN PROGRESS**  
+**Items:** 25 total
+
+---
+
+## 🔧 Core Technical Requirements
+
+### OAuth Flow
+- [x] OAuth installation route exists (`/install` or `/auth/install`)
+- [x] OAuth callback route exists (`/auth/callback`)
+- [ ] HMAC verification on OAuth callback
+- [ ] Access token exchange works
+- [ ] Shop information retrieved and stored
+- [ ] Error handling for OAuth failures
+
+### App Bridge Integration
+- [x] App Bridge JavaScript loaded (CDN or local)
+- [x] App Bridge initialized with API key
+- [x] Session token fetching implemented
+- [x] Embedded app detection works
+- [ ] App Bridge ready flag set correctly
+- [ ] Fallback for non-embedded access
+
+### Database
+- [x] Database models defined (`models.py`)
+- [x] Database migrations working
+- [x] Indexes on foreign keys
+- [x] Connection pooling configured
+- [ ] Session cleanup on teardown
+
+### API Integration
+- [x] Shopify API version specified (2024-10 or later)
+- [x] GraphQL API calls working
+- [x] REST API calls working
+- [ ] Rate limiting handled
+- [ ] Error retry logic implemented
+
+---
+
+## 🧪 Verification Commands
+
+```bash
+# Check OAuth routes
+grep -r "@app.route.*install\|@app.route.*callback" app.py shopify_oauth.py
+
+# Check App Bridge
+grep -r "app-bridge\|AppBridge\|getSessionToken" app.py templates/
+
+# Check database
+python3 -c "from app import app, db; app.app_context().push(); db.create_all(); print('✅ DB OK')"
+
+# Check API version
+grep -r "api_version\|API_VERSION\|2024" app.py shopify_oauth.py
+```
+
+---
+
+## 🔧 Auto-Fix Script
+
+Run: `./fix_technical_issues.sh`
+
+This will:
+- Verify OAuth routes exist
+- Check App Bridge initialization
+- Verify database models
+- Check API version
+- Fix any missing implementations
+
+---
+
+## ✅ Completion Status
+
+**0/25 items complete**
+
+**Next:** Move to [CHECKLIST #2: Security & Compliance](CHECKLIST_02_SECURITY.md)
+
+---
+
+**Last Verified:** Not yet verified
+

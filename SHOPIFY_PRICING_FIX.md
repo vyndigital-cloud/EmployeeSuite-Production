@@ -68,3 +68,4 @@ While you're in the Pricing section:
 3. You can proceed with app submission
 
 
+
