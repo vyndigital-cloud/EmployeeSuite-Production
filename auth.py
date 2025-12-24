@@ -338,7 +338,7 @@ def login():
     # If we have shop (from params or extracted), redirect to OAuth
     if is_embedded and shop:
         # Redirect to OAuth install flow (Shopify's embedded auth)
-        from flask import redirect, url_for
+        # Note: redirect and url_for are already imported at top of file
         install_url = url_for('oauth.install', shop=shop, host=host) if host else url_for('oauth.install', shop=shop)
         logger.info(f"Embedded app login request - redirecting to OAuth: {install_url}")
         return redirect(install_url)
