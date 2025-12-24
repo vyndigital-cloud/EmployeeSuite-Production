@@ -722,41 +722,62 @@ DASHBOARD_HTML = """
             
             // Initialize immediately when loaded
             script.onload = function() {
+                console.log('✅ App Bridge script loaded, waiting for initialization...');
                 try {
-                    // Wait for App Bridge to be available (max 2 seconds for Safari)
+                    // Wait for App Bridge to be available (increased timeout for slower networks)
                     var attempts = 0;
-                    var maxAttempts = 40; // 40 * 50ms = 2 seconds max (Safari needs more time)
+                    var maxAttempts = 100; // 100 * 100ms = 10 seconds max (increased for reliability)
                     
                     function init() {
                         attempts++;
+                        console.log('App Bridge init attempt', attempts, 'of', maxAttempts);
                         
-                        if (typeof window['app-bridge'] === 'undefined') {
+                        // Check multiple possible global names for App Bridge
+                        var AppBridge = window['app-bridge'] || window['ShopifyAppBridge'] || window.appBridge;
+                        
+                        if (typeof AppBridge === 'undefined') {
                             if (attempts < maxAttempts) {
-                                setTimeout(init, 50);
+                                setTimeout(init, 100); // Increased interval to 100ms
                                 return;
                             }
-                            console.error('❌ App Bridge not available after timeout');
+                            console.error('❌ App Bridge not available after timeout (checked window["app-bridge"], window["ShopifyAppBridge"], window.appBridge)');
+                            console.log('Available window properties:', Object.keys(window).filter(k => k.toLowerCase().includes('app') || k.toLowerCase().includes('bridge')));
                             window.shopifyApp = null;
                             window.appBridgeReady = true; // Mark as ready so buttons can show error
-                            showAppBridgeError('App Bridge failed to load. Please refresh the page.');
+                            showAppBridgeError('App Bridge failed to initialize. Please refresh the page.');
                             return;
                         }
                         
+                        console.log('✅ App Bridge object found:', typeof AppBridge);
+                        
                         try {
-                            var AppBridge = window['app-bridge'];
-                            if (!AppBridge || !AppBridge.default) {
+                            // Use the AppBridge we found in the check above
+                            if (!AppBridge) {
                                 if (attempts < maxAttempts) {
-                                    setTimeout(init, 50);
+                                    setTimeout(init, 100);
                                     return;
                                 }
-                                console.error('❌ App Bridge.default not available');
+                                console.error('❌ App Bridge object not available');
                                 window.shopifyApp = null;
                                 window.appBridgeReady = true;
                                 showAppBridgeError('App Bridge initialization failed. Please refresh the page.');
                                 return;
                             }
                             
-                            var createApp = AppBridge.default;
+                            // App Bridge v3 uses .default, older versions might use .create
+                            var createApp = AppBridge.default || AppBridge.create || AppBridge;
+                            if (typeof createApp !== 'function') {
+                                console.error('❌ App Bridge createApp is not a function:', typeof createApp);
+                                console.log('AppBridge object:', AppBridge);
+                                if (attempts < maxAttempts) {
+                                    setTimeout(init, 100);
+                                    return;
+                                }
+                                window.shopifyApp = null;
+                                window.appBridgeReady = true;
+                                showAppBridgeError('App Bridge initialization failed: createApp not found. Please refresh the page.');
+                                return;
+                            }
                             // Get API key from template or try to find it
                             var apiKey = '{{ SHOPIFY_API_KEY or "" }}';
                             
