@@ -1871,8 +1871,7 @@ def home():
         # Flask-Login sessions don't work in iframes, but session tokens do
         # CRITICAL: Always render HTML for embedded apps, never redirect
         if True:  # Always render for embedded apps
-            # Import dashboard function logic to render directly
-            from flask import render_template_string
+            # render_template_string is already imported at top of file
             
             # For embedded apps, get user info from store (if connected)
             # Session tokens will verify this in API calls
@@ -2017,7 +2016,7 @@ def home():
             logger.info(f"Store not connected for embedded app: {shop}, showing dashboard with connect prompt")
             
             # Render dashboard with safe defaults (no auth required)
-            from flask import render_template_string
+            # render_template_string is already imported at top of file
             has_access = False
             trial_active = False
             days_left = 0
@@ -2045,7 +2044,7 @@ def home():
     # If referer is from Shopify admin, treat as embedded
     if is_from_shopify_admin:
         # Render dashboard for embedded apps even without explicit params
-        from flask import render_template_string
+        # render_template_string is already imported at top of file
         return render_template_string(DASHBOARD_HTML, 
                                      trial_active=False, 
                                      days_left=0, 
@@ -2059,7 +2058,7 @@ def home():
     # For standalone access, redirect to Shopify OAuth install instead of login
     # OAuth users don't have passwords, so login page won't work for them
     # Show a page that explains they need to install via Shopify
-    from flask import render_template_string
+    # render_template_string is already imported at top of file
     return render_template_string("""
     <!DOCTYPE html>
     <html>
@@ -2152,7 +2151,7 @@ def dashboard():
     if is_embedded and not shop:
         logger.warning(f"Embedded app request but no shop param found - redirecting to install")
         # Can't redirect to OAuth without shop, show install message
-        from flask import render_template_string
+        # render_template_string is already imported at top of file
         return render_template_string("""
         <!DOCTYPE html>
         <html>
@@ -2198,6 +2197,8 @@ def dashboard():
             logger.info(f"Embedded app - no active store found for {shop}, redirecting to OAuth")
             install_url = url_for('oauth.install', shop=shop, host=host) if host else url_for('oauth.install', shop=shop)
             return redirect(install_url)
+    
+    # render_template_string is already imported at top of file - DO NOT import locally
     
     # For embedded requests, always render - never redirect
     # This prevents iframe breaking
