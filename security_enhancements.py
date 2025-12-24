@@ -168,7 +168,7 @@ from time import time
 _rate_limit_store = defaultdict(list)
 _rate_limit_cleanup = time()
 
-def rate_limit_by_ip(max_requests=100, window=3600):
+def rate_limit_by_ip(max_requests=500, window=3600):
     """Rate limit decorator based on IP address"""
     def decorator(f):
         @wraps(f)

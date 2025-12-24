@@ -230,7 +230,7 @@ app.register_blueprint(webhook_bp)
 app.register_blueprint(webhook_shopify_bp)
 app.register_blueprint(gdpr_bp)
 
-# Initialize rate limiter with global 200 req/hour
+# Initialize rate limiter with global 1000 req/hour (increased from 200 to allow legitimate usage)
 limiter = init_limiter(app)
 
 # Apply security headers and compression to all responses
