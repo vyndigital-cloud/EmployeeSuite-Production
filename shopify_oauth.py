@@ -107,7 +107,119 @@ def install():
     }
     
     query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
-    return redirect(f"{auth_url}?{query_string}")
+    full_auth_url = f"{auth_url}?{query_string}"
+    
+    # CRITICAL: If this is an embedded app (host parameter present), we MUST open OAuth in top-level window
+    # Shopify's OAuth redirects to accounts.shopify.com which has X-Frame-Options: deny
+    # App Bridge Redirect allows us to navigate the top-level window from within an iframe
+    if host:
+        api_key = os.getenv('SHOPIFY_API_KEY', '')
+        logger.info(f"Embedded OAuth install detected for {shop}, using App Bridge to open OAuth in top-level window")
+        
+        # Render a page that uses App Bridge to redirect to OAuth in the top-level window
+        redirect_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Connect Shopify Store - Employee Suite</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <script>
+        (function() {{
+            // Use App Bridge to redirect the TOP-LEVEL window to OAuth
+            // This prevents "accounts.shopify.com refused to connect" errors
+            try {{
+                var AppBridge = window['app-bridge'] || window['ShopifyAppBridge'] || window.appBridge;
+                if (AppBridge && AppBridge.default) {{
+                    var app = AppBridge.default({{
+                        apiKey: '{api_key}',
+                        host: '{host}'
+                    }});
+                    
+                    // Use App Bridge Redirect to navigate top-level window
+                    var Redirect = AppBridge.actions.Redirect;
+                    var redirect = Redirect.create(app);
+                    redirect.dispatch(Redirect.Action.REMOTE, '{full_auth_url}');
+                }} else {{
+                    // Fallback: direct top-level redirect
+                    if (window.top && window.top !== window) {{
+                        window.top.location.href = '{full_auth_url}';
+                    }} else {{
+                        window.location.href = '{full_auth_url}';
+                    }}
+                }}
+            }} catch (e) {{
+                console.error('App Bridge redirect error:', e);
+                // Fallback: direct top-level redirect
+                if (window.top && window.top !== window) {{
+                    window.top.location.href = '{full_auth_url}';
+                }} else {{
+                    window.location.href = '{full_auth_url}';
+                }}
+            }}
+        }})();
+    </script>
+    <noscript>
+        <meta http-equiv="refresh" content="0;url={full_auth_url}">
+    </noscript>
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f6f6f7;
+        }}
+        .container {{
+            text-align: center;
+            padding: 40px 24px;
+            max-width: 400px;
+        }}
+        .spinner {{
+            width: 48px;
+            height: 48px;
+            border: 3px solid #e1e3e5;
+            border-top-color: #008060;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 24px;
+        }}
+        @keyframes spin {{
+            to {{ transform: rotate(360deg); }}
+        }}
+        .title {{
+            font-size: 18px;
+            font-weight: 600;
+            color: #202223;
+            margin-bottom: 8px;
+        }}
+        .message {{
+            font-size: 14px;
+            color: #6d7175;
+            line-height: 1.5;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <div class="title">Connecting to Shopify</div>
+        <div class="message">Redirecting you to authorize the connection...</div>
+    </div>
+</body>
+</html>"""
+        from flask import Response
+        return Response(redirect_html, mimetype='text/html')
+    
+    # Non-embedded: regular redirect works fine
+    return redirect(full_auth_url)
 
 @oauth_bp.route('/auth/callback')
 def callback():

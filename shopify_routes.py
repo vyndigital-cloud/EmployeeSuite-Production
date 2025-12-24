@@ -320,6 +320,9 @@ SETTINGS_HTML = '''
                         <div style="flex: 1; min-width: 250px;">
                             <input type="text" id="shop_oauth" name="shop" class="form-input" placeholder="yourstore.myshopify.com" required style="width: 100%; font-size: 15px; padding: 12px;">
                             <p style="font-size: 12px; color: #737373; margin-top: 6px;">Enter your store domain (e.g., mystore.myshopify.com)</p>
+                            {% if request.args.get('host') %}
+                            <input type="hidden" name="host" value="{{ request.args.get('host') }}">
+                            {% endif %}
                         </div>
                         <div style="display: flex; align-items: flex-start;">
                             <button type="submit" class="btn btn-primary" style="white-space: nowrap; padding: 12px 24px; font-size: 15px; font-weight: 600; background: #0ea5e9; border: none; height: 44px;">Connect with Shopify</button>
