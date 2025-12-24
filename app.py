@@ -2327,7 +2327,7 @@ def dashboard():
     
     # Get shop domain and API key for App Bridge initialization
     shop_domain = shop or ''
-    if current_user.is_authenticated and has_shopify:
+    if user_authenticated and has_shopify:
         try:
             db.session.remove()
             store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
