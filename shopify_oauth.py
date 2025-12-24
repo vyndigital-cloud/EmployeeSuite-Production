@@ -145,17 +145,33 @@ def callback():
     shop_info = get_shop_info(shop, access_token)
     shop_id = shop_info.get('id') if shop_info else None
     
-    # Get or create user (for App Store, use shop domain as identifier)
-    user = User.query.filter_by(email=f"{shop}@shopify.com").first()
+    # Check if user is already logged in (e.g., manually connecting from settings page)
+    # If logged in, use their account; otherwise create/find shop-based user for App Store installs
+    user = None
+    try:
+        if current_user.is_authenticated:
+            user = current_user
+            logger.info(f"OAuth callback: Using existing logged-in user {user.email} (ID: {user.id})")
+    except Exception:
+        # current_user not loaded yet or not authenticated - will create/find shop-based user
+        pass
+    
     if not user:
-        from datetime import datetime, timedelta
-        user = User(
-            email=f"{shop}@shopify.com",
-            password_hash='',  # OAuth users don't have passwords
-            trial_ends_at=datetime.utcnow() + timedelta(days=7)
-        )
-        db.session.add(user)
-        db.session.commit()
+        # No logged-in user - this is likely an App Store installation
+        # Get or create user (for App Store, use shop domain as identifier)
+        user = User.query.filter_by(email=f"{shop}@shopify.com").first()
+        if not user:
+            from datetime import datetime, timedelta
+            user = User(
+                email=f"{shop}@shopify.com",
+                password_hash='',  # OAuth users don't have passwords
+                trial_ends_at=datetime.utcnow() + timedelta(days=7)
+            )
+            db.session.add(user)
+            db.session.commit()
+            logger.info(f"OAuth callback: Created new shop-based user {user.email} (ID: {user.id})")
+        else:
+            logger.info(f"OAuth callback: Found existing shop-based user {user.email} (ID: {user.id})")
     
     # CRITICAL: Log which API key was used to generate this access_token
     current_api_key = os.getenv('SHOPIFY_API_KEY', 'NOT_SET')
@@ -167,16 +183,23 @@ def callback():
         logger.error(f"OAUTH COMPLETE: WARNING - API key is NOT SET or invalid! current_api_key={current_api_key}")
     
     # Store Shopify credentials with shop_id
-    store = ShopifyStore.query.filter_by(shop_url=shop).first()
+    # CRITICAL: Find store by shop_url AND user_id to ensure we update the correct store
+    # This prevents updating stores owned by different users
+    store = ShopifyStore.query.filter_by(shop_url=shop, user_id=user.id).first()
+    if not store:
+        # If not found with user_id, check if store exists for this shop (might be from old flow)
+        store = ShopifyStore.query.filter_by(shop_url=shop).first()
+    
     if store:
         # CRITICAL: Always update access_token when reconnecting (gets new token from new Partners app)
         old_token_preview = store.access_token[:10] if store.access_token and len(store.access_token) > 10 else (store.access_token or "None")
         new_token_preview = access_token[:10] if len(access_token) > 10 else access_token
+        old_user_id = store.user_id
         store.access_token = access_token
         store.shop_id = shop_id
         store.is_active = True
-        store.user_id = user.id
-        logger.info(f"Updated existing store {shop} with new access_token (old: {old_token_preview}..., new: {new_token_preview}...)")
+        store.user_id = user.id  # Ensure it's linked to the correct user
+        logger.info(f"Updated existing store {shop} with new OAuth access_token (old: {old_token_preview}..., new: {new_token_preview}..., old_user_id: {old_user_id}, new_user_id: {user.id})")
     else:
         store = ShopifyStore(
             user_id=user.id,
@@ -187,7 +210,7 @@ def callback():
         )
         db.session.add(store)
         token_preview = access_token[:10] if len(access_token) > 10 else access_token
-        logger.info(f"Created new store {shop} with access_token: {token_preview}...")
+        logger.info(f"Created new store {shop} with OAuth access_token: {token_preview}... for user {user.id}")
     
     db.session.commit()
     
