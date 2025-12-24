@@ -63,14 +63,34 @@ def add_security_headers(response):
     # Only use CSP frame-ancestors to control iframe embedding
     if is_embedded:
         # For embedded apps: Allow iframe embedding from Shopify domains only
-        # CRITICAL: Use exact format Shopify requires - no wildcards in protocol
+        # CRITICAL: Include specific shop domain when available (more reliable than wildcard)
         # https://shopify.dev/docs/apps/store/security/iframe-protection
-        frame_ancestors = "frame-ancestors https://admin.shopify.com https://*.myshopify.com; "
+        shop = request.args.get('shop') or request.args.get('shop_domain') or ''
+        shop_clean = ''
+        
+        # Build frame-ancestors directive with specific shop domain if available
+        frame_ancestors_parts = ["https://admin.shopify.com"]
+        
+        # Add specific shop domain if we have it (more reliable than wildcard)
+        if shop:
+            # Ensure shop domain is in correct format (shop.myshopify.com)
+            shop_clean = shop.replace('https://', '').replace('http://', '').split('/')[0].split('?')[0]
+            if shop_clean.endswith('.myshopify.com'):
+                frame_ancestors_parts.append(f"https://{shop_clean}")
+            elif '.myshopify.com' not in shop_clean and shop_clean:
+                # If shop param doesn't include .myshopify.com, add it
+                frame_ancestors_parts.append(f"https://{shop_clean}.myshopify.com")
+                shop_clean = f"{shop_clean}.myshopify.com"
+        
+        # Always include wildcard pattern as fallback for compatibility
+        frame_ancestors_parts.append("https://*.myshopify.com")
+        
+        frame_ancestors = "frame-ancestors " + " ".join(frame_ancestors_parts) + "; "
         
         # Log for debugging
         has_shop_param = 'shop' in request.args
         has_host_param = 'host' in request.args
-        logger.info(f"🔓 ALLOWING IFRAME: path={request.path}, shop={has_shop_param}, host={has_host_param}")
+        logger.info(f"🔓 ALLOWING IFRAME: path={request.path}, shop={shop_clean if shop_clean else 'none'}, host={has_host_param}")
     else:
         # Regular pages - prevent ALL iframe embedding via CSP only
         frame_ancestors = "frame-ancestors 'none'; "
