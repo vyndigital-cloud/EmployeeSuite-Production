@@ -729,7 +729,7 @@ DASHBOARD_HTML = """
             // Load App Bridge - use versioned CDN for reliability
             console.log('🔄 Loading App Bridge from CDN...');
             var script = document.createElement('script');
-            script.src = 'https://cdn.shopify.com/shopifycloud/app-bridge/3.7.0/app-bridge.js';
+            script.src = 'https://cdn.shopify.com/shopifycloud/app-bridge.js';
             script.async = false; // Load synchronously for reliability
             script.crossOrigin = 'anonymous'; // CORS for CDN
             
@@ -824,7 +824,7 @@ DASHBOARD_HTML = """
                 console.error('❌ Failed to load App Bridge script from CDN');
                 // Try fallback: load from unversioned URL
                 var fallbackScript = document.createElement('script');
-                fallbackScript.src = 'https://cdn.shopify.com/shopifycloud/app-bridge/3.7.0/app-bridge.js';
+                fallbackScript.src = 'https://cdn.shopify.com/shopifycloud/app-bridge.js';
                 fallbackScript.async = false;
                 fallbackScript.crossOrigin = 'anonymous';
                 fallbackScript.onload = function() {

@@ -23,7 +23,7 @@ SUBSCRIBE_HTML = '''
     <title>Subscribe - Employee Suite</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="utf-8">
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge/3.7.0/app-bridge.js"></script>
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -192,7 +192,7 @@ SUCCESS_HTML = '''
     <title>Welcome - Employee Suite</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="refresh" content="3;url=/dashboard?shop={{ shop }}&host={{ host }}">
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge/3.7.0/app-bridge.js"></script>
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
