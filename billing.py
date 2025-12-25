@@ -127,6 +127,18 @@ SUBSCRIBE_HTML = '''
         <div class="error-banner" style="white-space: pre-line;">{{ error }}</div>
         {% endif %}
         
+        {% if not has_store %}
+        <div class="error-banner" style="background: #fff4f4; border: 1px solid #fecaca; border-left: 3px solid #d72c0d; padding: 16px 20px;">
+            <div style="font-weight: 600; color: #202223; margin-bottom: 8px; font-size: 15px;">⚠️ Connect Your Shopify Store First</div>
+            <div style="color: #6d7175; font-size: 14px; margin-bottom: 16px; line-height: 1.5;">
+                You need to connect your Shopify store before you can subscribe. This only takes 30 seconds.
+            </div>
+            <a href="/settings/shopify?shop={{ shop }}&host={{ host }}" style="display: inline-block; padding: 10px 20px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;">
+                Connect Store →
+            </a>
+        </div>
+        {% endif %}
+        
         {% if trial_active and not is_subscribed %}
         <div class="info-banner">
             <strong>{{ days_left }} day{{ 's' if days_left != 1 else '' }} left in your trial</strong><br>
