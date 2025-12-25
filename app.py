@@ -2753,17 +2753,21 @@ def dashboard():
         try:
             # CRITICAL: DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
             store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
-        except BaseException:
+        except BaseException as e:
+            # CRITICAL: Only rollback on exception, DO NOT call db.session.remove() - it can cause segfaults
+            # Let SQLAlchemy's pool_pre_ping handle connection validation automatically
             try:
                 db.session.rollback()
             except Exception:
                 pass
-            finally:
-                try:
-                    db.session.remove()
-                except Exception:
-                    pass
+            # DO NOT call db.session.remove() here - it corrupts connection state and causes segfaults
             store = None
+            # #region agent log
+            log_event('app.py:2755', 'Exception getting store for user', {
+                'user_id': current_user.id if user_authenticated else None,
+                'error': str(e)[:200]
+            }, 'DASHBOARD')
+            # #endregion
         if store:
             shop_domain = store.shop_url
             # Also store in session if not already set
@@ -2776,17 +2780,21 @@ def dashboard():
         # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
         try:
             store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
-        except BaseException:
+        except BaseException as e:
+            # CRITICAL: Only rollback on exception, DO NOT call db.session.remove() - it can cause segfaults
+            # Let SQLAlchemy's pool_pre_ping handle connection validation automatically
             try:
                 db.session.rollback()
             except Exception:
                 pass
-            finally:
-                try:
-                    db.session.remove()
-                except Exception:
-                    pass
+            # DO NOT call db.session.remove() here - it corrupts connection state and causes segfaults
             store = None
+            # #region agent log
+            log_event('app.py:2778', 'Exception getting store by shop_url', {
+                'shop': shop[:50] if shop else '',
+                'error': str(e)[:200]
+            }, 'DASHBOARD')
+            # #endregion
         if store and hasattr(store, 'shop_url') and store.shop_url:
             shop_domain = store.shop_url
     

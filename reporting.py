@@ -64,16 +64,21 @@ def generate_report(user_id=None, shop_url=None):
         except BaseException as db_error:
             # Catch ALL exceptions including segfault precursors
             logger.error(f"Database error fetching store for user {user_id}: {type(db_error).__name__}: {str(db_error)}", exc_info=True)
+            # CRITICAL: Only rollback on exception, DO NOT call db.session.remove() - it can cause segfaults
+            # Let SQLAlchemy's pool_pre_ping handle connection validation automatically
             try:
                 db.session.rollback()
             except Exception:
                 pass  # Ignore rollback errors to prevent cascading failures
-            finally:
-                # Always remove session to return connection to pool
-                try:
-                    db.session.remove()
-                except Exception:
-                    pass
+            # DO NOT call db.session.remove() here - it corrupts connection state and causes segfaults
+            # #region agent log
+            try:
+                import json
+                import time
+                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"SHOP_OWNERSHIP","location":"reporting.py:64","message":"Database exception in generate_report","data":{"user_id":user_id,"error":str(db_error)[:200]},"timestamp":int(time.time()*1000)})+'\n')
+            except: pass
+            # #endregion
             return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Database connection error</div><div style='margin-bottom: 12px;'>Please try again in a moment.</div></div></div>"}
         
         if not store:
