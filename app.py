@@ -3140,7 +3140,8 @@ def api_process_orders():
     login_user(user, remember=False)
     
     try:
-        result = process_orders()
+        # Pass user_id directly to prevent recursion from accessing current_user
+        result = process_orders(user_id=user_id)
         # #region agent log
         log_event('app.py:3057', 'process_orders completed', {
             'success': result.get('success') if isinstance(result, dict) else True,

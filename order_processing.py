@@ -3,17 +3,35 @@ from flask_login import current_user
 from models import ShopifyStore
 import requests
 
-def process_orders(creds_path='creds.json'):
+def process_orders(creds_path='creds.json', user_id=None):
+    # CRITICAL: Accept user_id as parameter to prevent recursion from accessing current_user
+    # This prevents "maximum recursion depth exceeded" errors
     # #region agent log
     try:
         import json
         import time
+        # Safely check authentication without triggering recursion
+        is_authenticated = False
+        try:
+            is_authenticated = hasattr(current_user, 'is_authenticated') and current_user.is_authenticated
+        except (RuntimeError, AttributeError, RecursionError):
+            pass  # Ignore recursion errors
         with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"PROCESS_ORDERS","location":"order_processing.py:6","message":"process_orders function entry","data":{"user_authenticated":current_user.is_authenticated if hasattr(current_user, 'is_authenticated') else False},"timestamp":int(time.time()*1000)})+'\n')
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"PROCESS_ORDERS","location":"order_processing.py:6","message":"process_orders function entry","data":{"user_authenticated":is_authenticated,"user_id_provided":bool(user_id)},"timestamp":int(time.time()*1000)})+'\n')
     except: pass
     # #endregion
     try:
-        if not current_user.is_authenticated:
+        # Get user_id - either from parameter or safely from current_user
+        if user_id is None:
+            try:
+                if not hasattr(current_user, 'is_authenticated') or not current_user.is_authenticated:
+                    return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading orders</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Authentication required</div><div style='margin-bottom: 12px;'>Please log in to access this feature.</div><a href='/login' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Log In →</a></div></div>"}
+                # Store user_id immediately to prevent recursion
+                user_id = getattr(current_user, 'id', None)
+            except (RuntimeError, AttributeError, RecursionError) as e:
+                return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading orders</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Authentication error</div><div style='margin-bottom: 12px;'>Please refresh the page and try again.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
+        
+        if not user_id:
             return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading orders</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Authentication required</div><div style='margin-bottom: 12px;'>Please log in to access this feature.</div><a href='/login' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Log In →</a></div></div>"}
         
         # #region agent log
@@ -21,10 +39,10 @@ def process_orders(creds_path='creds.json'):
             import json
             import time
             with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"PROCESS_ORDERS","location":"order_processing.py:11","message":"Before database query","data":{"user_id":current_user.id if hasattr(current_user, 'id') else None},"timestamp":int(time.time()*1000)})+'\n')
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"PROCESS_ORDERS","location":"order_processing.py:11","message":"Before database query","data":{"user_id":user_id},"timestamp":int(time.time()*1000)})+'\n')
         except: pass
         # #endregion
-        store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+        store = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first()
         # #region agent log
         try:
             import json
