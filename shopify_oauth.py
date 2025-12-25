@@ -467,13 +467,16 @@ def callback():
     # This is the ONLY reliable way to redirect in embedded apps
     if host:
         app_url = os.getenv('SHOPIFY_APP_URL', 'https://employeesuite-production.onrender.com')
-        dashboard_url = f"{app_url}/dashboard?shop={shop}&host={host}&embedded=1"
-        logger.info(f"OAuth complete for embedded app, redirecting to: {dashboard_url}")
+        # Redirect to settings page with success message so user sees confirmation
+        from flask import url_for
+        settings_url = url_for('shopify.shopify_settings', success='Store connected successfully!', shop=shop, host=host)
+        redirect_url = f"{app_url}{settings_url}"
+        logger.info(f"OAuth complete for embedded app, redirecting to: {redirect_url}")
         # #region agent log
         try:
             import json
             with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"N","location":"shopify_oauth.py:468","message":"OAuth redirect using top.location","data":{"has_host":bool(host),"host":host[:50] if host else "","shop":shop,"dashboard_url":dashboard_url},"timestamp":int(__import__('time').time()*1000)})+'\n')
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"N","location":"shopify_oauth.py:468","message":"OAuth redirect using top.location","data":{"has_host":bool(host),"host":host[:50] if host else "","shop":shop,"redirect_url":redirect_url},"timestamp":int(__import__('time').time()*1000)})+'\n')
         except: pass
         # #endregion
         
@@ -487,17 +490,17 @@ def callback():
     <script>
         // Break out of iframe immediately
         if (window.top !== window.self) {{
-            window.top.location.href = '{dashboard_url}';
+            window.top.location.href = '{redirect_url}';
         }} else {{
-            window.location.href = '{dashboard_url}';
+            window.location.href = '{redirect_url}';
         }}
     </script>
     <noscript>
-        <meta http-equiv="refresh" content="0;url={dashboard_url}">
+        <meta http-equiv="refresh" content="0;url={redirect_url}">
     </noscript>
 </head>
 <body>
-    <p>Redirecting... <a href="{dashboard_url}">Click here if not redirected</a></p>
+    <p>Redirecting... <a href="{redirect_url}">Click here if not redirected</a></p>
 </body>
 </html>"""
         from flask import Response

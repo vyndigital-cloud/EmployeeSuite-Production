@@ -1433,6 +1433,11 @@ DASHBOARD_HTML = """
                         throw new Error('Unable to get session token. Please refresh the page.');
                     }
                     console.log('✅ Got session token, making API request...');
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:1436','message':'Making process_orders API call','data':{'has_token':!!token,'token_length':token?token.length:0,'is_embedded':isEmbedded},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'P'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     return fetch('/api/process_orders', {
                         headers: {'Authorization': 'Bearer ' + token},
                         signal: controller.signal

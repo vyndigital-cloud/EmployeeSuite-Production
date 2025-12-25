@@ -747,7 +747,14 @@ def create_charge():
     # Redirect to Shopify's payment approval page
     # Merchant will approve/decline, then Shopify redirects back to return_url
     confirmation_url = result['confirmation_url']
-    return redirect(confirmation_url)
+    # For embedded apps, use safe_redirect to break out of iframe
+    # Shopify's confirmation URL is external, so we need to break out of iframe first
+    if host:
+        # Embedded mode - use safe_redirect to break out of iframe before going to Shopify
+        return safe_redirect(confirmation_url, shop=shop_url, host=host)
+    else:
+        # Standalone - regular redirect works
+        return redirect(confirmation_url)
 
 
 @billing_bp.route('/billing/confirm')
