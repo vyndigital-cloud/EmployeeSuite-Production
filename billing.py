@@ -488,26 +488,49 @@ def get_charge_status(shop_url, access_token, charge_id):
 
 
 @billing_bp.route('/subscribe')
-@login_required
 def subscribe():
     """Subscribe page - uses Shopify Billing API"""
     # Get shop context
     shop = request.args.get('shop', '')
     host = request.args.get('host', '')
     
+    # For embedded apps, check if there's a shop parameter and try to find user from store
+    # For standalone, use Flask-Login
+    user = None
+    try:
+        if current_user.is_authenticated:
+            user = current_user
+        elif shop:
+            # Try to find user from shop (for embedded apps)
+            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            if store and store.user:
+                user = store.user
+    except Exception:
+        pass
+    
+    # If no user found, show message about needing to connect store
+    if not user:
+        return render_template_string(SUBSCRIBE_HTML, 
+                                     trial_active=False, 
+                                     has_access=False,
+                                     days_left=0,
+                                     is_subscribed=False,
+                                     shop=shop,
+                                     host=host,
+                                     has_store=False,
+                                     error='Please connect your Shopify store first to subscribe.')
+    
     # Check if user has a connected store
-    store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+    store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     has_store = store is not None and store.is_connected()
     
     # If no shop param, try to get from user's store
-    if not shop:
-        shop_url, _ = get_shop_and_token_for_user(current_user)
-        if shop_url:
-            shop = shop_url
+    if not shop and store:
+        shop = store.shop_url
     
-    trial_active = current_user.is_trial_active()
-    has_access = current_user.has_access()
-    days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+    trial_active = user.is_trial_active()
+    has_access = user.has_access()
+    days_left = (user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
     
     # Get error from query params, but override with store connection error if needed
     error = request.args.get('error')
@@ -518,7 +541,7 @@ def subscribe():
                                  trial_active=trial_active, 
                                  has_access=has_access,
                                  days_left=days_left,
-                                 is_subscribed=current_user.is_subscribed,
+                                 is_subscribed=user.is_subscribed,
                                  shop=shop,
                                  host=host,
                                  has_store=has_store,
@@ -526,7 +549,6 @@ def subscribe():
 
 
 @billing_bp.route('/billing/create-charge', methods=['POST'])
-@login_required
 def create_charge():
     """
     Create a Shopify recurring charge
@@ -535,10 +557,27 @@ def create_charge():
     shop = request.form.get('shop') or request.args.get('shop', '')
     host = request.form.get('host') or request.args.get('host', '')
     
+    # For embedded apps, try to find user from shop parameter
+    # For standalone, use Flask-Login
+    user = None
+    try:
+        if current_user.is_authenticated:
+            user = current_user
+        elif shop:
+            # Try to find user from shop (for embedded apps)
+            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            if store and store.user:
+                user = store.user
+    except Exception:
+        pass
+    
+    if not user:
+        return redirect(url_for('billing.subscribe', error='Please connect your Shopify store first to subscribe.', shop=shop, host=host))
+    
     # Get store credentials
-    store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+    store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if not store:
-        logger.error(f"No active store found for user {current_user.id}")
+        logger.error(f"No active store found for user {user.id}")
         return redirect(url_for('billing.subscribe', error='No Shopify store connected', shop=shop, host=host))
     
     shop_url = store.shop_url
@@ -559,7 +598,7 @@ def create_charge():
     logger.info(f"BILLING DEBUG: Access token was created by OAuth using API key: {current_api_key[:8] if len(current_api_key) > 8 else current_api_key}...")
     
     # Check if already subscribed
-    if current_user.is_subscribed:
+    if user.is_subscribed:
         return redirect(f'/dashboard?shop={shop_url}&host={host}')
     
     # Build return URL for after Shopify approval
@@ -654,7 +693,7 @@ def confirm_charge():
         
         if activate_result.get('success'):
             # Update user subscription status
-            current_user.is_subscribed = True
+            user.is_subscribed = True
             store.charge_id = str(charge_id)
             db.session.commit()
             
@@ -671,7 +710,7 @@ def confirm_charge():
     
     elif status == 'active':
         # Already active
-        current_user.is_subscribed = True
+        user.is_subscribed = True
         store.charge_id = str(charge_id)
         db.session.commit()
         
