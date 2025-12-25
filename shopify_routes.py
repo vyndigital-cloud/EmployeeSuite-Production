@@ -403,24 +403,25 @@ def shopify_settings():
     # If no user found, redirect to install (for embedded) or show message
     if not user:
         if shop and host:
-            # Embedded mode - redirect to install
+            # Embedded mode - redirect to install using client-side redirect
             from flask import url_for
             install_url = url_for('oauth.install', shop=shop, host=host)
-            return render_template_string("""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <title>Install Required</title>
-                <script>
-                    window.location.href = '{{ install_url }}';
-                </script>
-            </head>
-            <body>
-                <p>Redirecting...</p>
-            </body>
-            </html>
-            """, install_url=install_url)
+            # Use string formatting instead of template to avoid iframe redirect issues
+            redirect_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Install Required</title>
+    <script>
+        window.top.location.href = '{install_url}';
+    </script>
+</head>
+<body>
+    <p>Redirecting to install...</p>
+    <a href="{install_url}" target="_top">Click here if redirect doesn't work</a>
+</body>
+</html>"""
+            return redirect_html
         else:
             # Standalone mode - redirect to login
             from flask import redirect, url_for
