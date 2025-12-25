@@ -657,7 +657,6 @@ def create_charge():
 
 
 @billing_bp.route('/billing/confirm')
-@login_required
 def confirm_charge():
     """
     Handle return from Shopify after merchant approves/declines charge
@@ -671,8 +670,25 @@ def confirm_charge():
         logger.warning("No charge_id in billing confirm callback")
         return redirect(url_for('billing.subscribe', error='Missing charge information', shop=shop, host=host))
     
+    # For embedded apps, try to find user from shop parameter
+    # For standalone, use Flask-Login
+    user = None
+    try:
+        if current_user.is_authenticated:
+            user = current_user
+        elif shop:
+            # Try to find user from shop (for embedded apps)
+            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            if store and store.user:
+                user = store.user
+    except Exception:
+        pass
+    
+    if not user:
+        return redirect(url_for('billing.subscribe', error='Please connect your Shopify store first to subscribe.', shop=shop, host=host))
+    
     # Get store credentials
-    store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+    store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if not store:
         return redirect(url_for('billing.subscribe', error='Store not found', shop=shop, host=host))
     
