@@ -2214,10 +2214,8 @@ def home():
                     except Exception:
                         pass
                     finally:
-                        try:
-                            db.session.remove()
-                        except Exception:
-                            pass
+                        # Removed db.session.remove() - causes segfaults
+                        pass
                     has_shopify = False
             
             # Skip slow API calls for embedded apps - just show empty stats
