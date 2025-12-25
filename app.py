@@ -3305,6 +3305,14 @@ def api_generate_report():
         # Get shop_url from request args, session, or None (will use first active store)
         from flask import session
         shop_url = request.args.get('shop') or session.get('current_shop') or None
+        # #region agent log
+        log_event('app.py:3307', 'Extracting shop_url for generate_report', {
+            'shop_from_args': request.args.get('shop'),
+            'shop_from_session': session.get('current_shop'),
+            'final_shop_url': shop_url,
+            'user_id': user_id
+        }, 'SHOP_EXTRACTION')
+        # #endregion
         if shop_url:
             logging.info(f"Step 4: Using shop_url from request/session: {shop_url}")
         else:
