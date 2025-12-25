@@ -298,9 +298,8 @@ def install():
         """)
     
     # Non-embedded: regular redirect works fine
-            # Render a page that uses App Bridge to redirect to OAuth in the top-level window
-            # CRITICAL: Wait for App Bridge to load before redirecting to prevent "refused to connect" errors
-            redirect_html = f"""<!DOCTYPE html>
+    return redirect(full_auth_url)
+@oauth_bp.route('/auth/callback')
 <html>
 <head>
     <meta charset="utf-8">
