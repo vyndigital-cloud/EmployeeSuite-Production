@@ -1478,18 +1478,33 @@ DASHBOARD_HTML = """
             
             fetchPromise
                 .then(r => {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:1480','message':'process_orders response','data':{'status':r.status,'ok':r.ok},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'P'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     // Check if request was cancelled
                     if (controller.signal.aborted) {
                         return null;
                     }
                     if (!r.ok) {
                         return r.json().then(function(err) {
+                            // #region agent log
+                            try {
+                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:1488','message':'process_orders error','data':{'error':err.error||'unknown'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'P'})}).catch(()=>{});
+                            } catch(e) {}
+                            // #endregion
                             throw new Error(err.error || 'Network error');
                         });
                     }
                     return r.json();
                 })
                 .then(d => {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:1496','message':'process_orders success','data':{'success':d?d.success:false},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'P'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     // Check if request was cancelled
                     if (!d) return;
                     
