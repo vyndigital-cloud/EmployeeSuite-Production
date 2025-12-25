@@ -282,7 +282,7 @@ class ShopifyClient:
                                     price
                                     inventoryItem {
                                         id
-                                        quantityAvailable
+                                        available
                                     }
                                 }
                             }
@@ -358,8 +358,8 @@ class ShopifyClient:
                             stock = 0
                             inventory_item = variant.get("inventoryItem")
                             if inventory_item and isinstance(inventory_item, dict):
-                                # Use quantityAvailable (direct field, more reliable)
-                                stock = inventory_item.get("quantityAvailable", 0) or 0
+                                # Use 'available' field (correct field name for InventoryItem type)
+                                stock = inventory_item.get("available", 0) or 0
                             
                             inventory.append({
                                 'product': product_title,
