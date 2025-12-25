@@ -410,12 +410,6 @@ def close_db(error):
         # CRITICAL: Never let teardown crash - response already sent
         # Silently ignore all errors to prevent segfaults
         pass
-        except Exception:
-            # Even rollback/remove can fail - just log and continue
-            pass
-        # CRITICAL: Disable gc.collect() in teardown - causes segfaults
-        # import gc
-        # gc.collect()  # DISABLED - causes segfaults after response
         logger.debug(f"Teardown error handled (non-critical): {type(e).__name__}")
     # CRITICAL: Do NOT access request or response here
     # This function is called during app context teardown, which can happen outside requests
