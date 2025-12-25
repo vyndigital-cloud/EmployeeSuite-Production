@@ -479,6 +479,8 @@ def callback():
         # #endregion
         
         # Professional OAuth redirect - matches Shopify's seamless flow
+        # CRITICAL: For embedded apps, MUST use App Bridge Redirect action
+        # window.location.href is blocked in iframes - causes "refused to connect"
         redirect_html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -486,6 +488,7 @@ def callback():
     <title>Employee Suite - Installation Complete</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge-actions.js"></script>
     <script>
         (function() {{
             var redirectAttempted = false;
@@ -498,13 +501,18 @@ def callback():
                 
                 try {{
                     var AppBridge = window['app-bridge'];
-                    if (!AppBridge || !AppBridge.default) {{
+                    var actions = window['app-bridge-actions'];
+                    if (!AppBridge || !AppBridge.default || !actions) {{
                         if (attemptCount < maxAttempts) {{
                             setTimeout(attemptRedirect, 200);
                             return;
                         }}
-                        // Final fallback
-                        window.location.href = '{embedded_url}';
+                        // Final fallback - try to break out of iframe
+                        if (window.top !== window.self) {{
+                            window.top.location.href = '{embedded_url}';
+                        }} else {{
+                            window.location.href = '{embedded_url}';
+                        }}
                         return;
                     }}
                     
@@ -513,18 +521,30 @@ def callback():
                         host: '{host}'
                     }});
                     
-                    // CRITICAL: Don't use App Bridge redirect for internal navigation
-                    // App Bridge redirect can cause iframe issues. Use regular navigation instead.
-                    // Since we're navigating to our own app URL, regular window.location works fine.
-                    window.location.href = '{embedded_url}';
+                    // CRITICAL: Use App Bridge Redirect action for embedded apps
+                    // This is the ONLY way to redirect in iframes without "refused to connect"
+                    var redirect = actions.Redirect.create(app);
+                    redirect.dispatch(actions.Redirect.Action.APP, '{embedded_url}');
                     redirectAttempted = true;
+                    
+                    // Log success for debugging
+                    console.log('App Bridge redirect dispatched successfully');
                 }} catch (e) {{
                     console.error('Redirect attempt ' + attemptCount + ' failed:', e);
                     if (attemptCount < maxAttempts) {{
                         setTimeout(attemptRedirect, 300);
                     }} else {{
-                        // Final fallback after all attempts
-                        window.location.href = '{embedded_url}';
+                        // Final fallback after all attempts - break out of iframe
+                        try {{
+                            if (window.top !== window.self) {{
+                                window.top.location.href = '{embedded_url}';
+                            }} else {{
+                                window.location.href = '{embedded_url}';
+                            }}
+                        }} catch (e2) {{
+                            // If even top.location fails, show manual link
+                            document.body.innerHTML = '<div style="text-align:center;padding:40px;"><h2>Installation Complete</h2><p>Please <a href=\\"{embedded_url}\\">click here</a> to continue.</p></div>';
+                        }}
                     }}
                 }}
             }}
@@ -535,7 +555,15 @@ def callback():
             // Fallback timeout (3 seconds)
             setTimeout(function() {{
                 if (!redirectAttempted) {{
-                    window.location.href = '{embedded_url}';
+                    try {{
+                        if (window.top !== window.self) {{
+                            window.top.location.href = '{embedded_url}';
+                        }} else {{
+                            window.location.href = '{embedded_url}';
+                        }}
+                    }} catch (e) {{
+                        document.body.innerHTML = '<div style="text-align:center;padding:40px;"><h2>Installation Complete</h2><p>Please <a href=\\"{embedded_url}\\">click here</a> to continue.</p></div>';
+                    }}
                 }}
             }}, 3000);
         }})();
