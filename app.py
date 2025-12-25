@@ -1946,7 +1946,7 @@ DASHBOARD_HTML = """
 
 @app.route('/')
 def home():
-    """Home page - SIMPLIFIED: Always render dashboard for embedded apps"""
+    """Home page - CRITICAL: Must render HTML, never redirect for embedded apps"""
     # Check if this is an embedded app request from Shopify
     shop = request.args.get('shop')
     embedded = request.args.get('embedded')
@@ -1954,11 +1954,18 @@ def home():
     
     # Check Referer header as Shopify sends requests from admin.shopify.com
     referer = request.headers.get('Referer', '')
-    is_from_shopify_admin = 'admin.shopify.com' in referer
+    is_from_shopify_admin = 'admin.shopify.com' in referer or '.myshopify.com' in referer
     
     # CRITICAL: For embedded apps, ALWAYS render dashboard - NEVER redirect
     # Redirects break iframes. Just render the dashboard HTML.
+    # IMPORTANT: When Shopify first loads the app, it might not have shop/host params yet
+    # But the referer will be from admin.shopify.com, so we detect that
     is_embedded = embedded == '1' or shop or host or is_from_shopify_admin
+    
+    # CRITICAL: If we're being loaded in an iframe from Shopify admin, ALWAYS treat as embedded
+    # Even without params, Shopify will add them via App Bridge
+    if not is_embedded and is_from_shopify_admin:
+        is_embedded = True
     
     if is_embedded:
         # For embedded apps, check if store is connected
