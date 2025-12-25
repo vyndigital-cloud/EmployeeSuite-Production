@@ -162,15 +162,27 @@ SUBSCRIBE_HTML = '''
             <form id="subscribe-form" method="POST" action="/billing/create-charge">
                 <input type="hidden" name="shop" value="{{ shop }}">
                 <input type="hidden" name="host" value="{{ host }}">
-                <button type="submit" class="btn" id="subscribe-btn">
-                    {% if not has_access %}Restore Access Now{% else %}Subscribe Now{% endif %}
+                <button type="submit" class="btn" id="subscribe-btn" {% if not has_store %}disabled{% endif %}>
+                    {% if not has_store %}
+                        Connect Store to Subscribe
+                    {% elif not has_access %}
+                        Restore Access Now
+                    {% else %}
+                        Subscribe Now
+                    {% endif %}
                 </button>
             </form>
             
+            {% if not has_store %}
+            <p style="text-align: center; font-size: 13px; color: #6d7175; margin-top: 12px;">
+                Click the button above to connect your store, then return here to subscribe.
+            </p>
+            {% else %}
             <p style="text-align: center; font-size: 12px; color: #6d7175; margin-top: 16px;">
                 Billed through your Shopify account. Cancel anytime from your Shopify admin.
             </p>
-        </div>
+            {% endif %}
+            
     </div>
     
     <script>
@@ -471,6 +483,10 @@ def subscribe():
     shop = request.args.get('shop', '')
     host = request.args.get('host', '')
     
+    # Check if user has a connected store
+    store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+    has_store = store is not None and store.is_connected()
+    
     # If no shop param, try to get from user's store
     if not shop:
         shop_url, _ = get_shop_and_token_for_user(current_user)
@@ -481,6 +497,11 @@ def subscribe():
     has_access = current_user.has_access()
     days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
     
+    # Get error from query params, but override with store connection error if needed
+    error = request.args.get('error')
+    if not has_store and not error:
+        error = 'No Shopify store connected'
+    
     return render_template_string(SUBSCRIBE_HTML, 
                                  trial_active=trial_active, 
                                  has_access=has_access,
@@ -488,7 +509,8 @@ def subscribe():
                                  is_subscribed=current_user.is_subscribed,
                                  shop=shop,
                                  host=host,
-                                 error=request.args.get('error'))
+                                 has_store=has_store,
+                                 error=error)
 
 
 @billing_bp.route('/billing/create-charge', methods=['POST'])
