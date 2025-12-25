@@ -2261,21 +2261,8 @@ def home():
                     except Exception:
                         pass
                     finally:
-                        try:
-                            db.session.remove()
-                        except Exception:
-                            pass
-                    store = None
-                except BaseException:
-                    try:
-                        db.session.rollback()
-                    except Exception:
+                        # Removed db.session.remove() - causes segfaults
                         pass
-                    finally:
-                        try:
-                            db.session.remove()
-                        except Exception:
-                            pass
                     store = None
                 if store and hasattr(store, 'shop_url') and store.shop_url:
                     shop_domain = store.shop_url
@@ -2289,10 +2276,8 @@ def home():
                     except Exception:
                         pass
                     finally:
-                        try:
-                            db.session.remove()
-                        except Exception:
-                            pass
+                        # Removed db.session.remove() - causes segfaults
+                        pass
                     store = None
                 if store and hasattr(store, 'shop_url') and store.shop_url:
                     shop_domain = store.shop_url
@@ -2716,21 +2701,8 @@ def dashboard():
                 except Exception:
                     pass
                 finally:
-                    try:
-                        db.session.remove()
-                    except Exception:
-                        pass
-                store = None
-            except BaseException:
-                try:
-                    db.session.rollback()
-                except Exception:
+                    # Removed db.session.remove() - causes segfaults
                     pass
-                finally:
-                    try:
-                        db.session.remove()
-                    except Exception:
-                        pass
                 store = None
             if store:
                 has_shopify = True
