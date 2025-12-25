@@ -2659,10 +2659,8 @@ def dashboard():
             except Exception:
                 pass
             finally:
-                try:
-                    db.session.remove()
-                except Exception:
-                    pass
+                # Removed db.session.remove() - causes segfaults
+                pass
             has_shopify = False
     else:
         # For embedded apps without auth, check by shop param
