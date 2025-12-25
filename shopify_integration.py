@@ -65,19 +65,24 @@ class ShopifyClient:
                         pass
                     return {"error": f"{error_detail} - Please reconnect your store", "auth_failed": True}
                 elif status_code == 403:
-                    error_detail = "Access denied"
+                    # Permission denied - missing scopes
+                    error_detail = "Access denied - Missing required permissions"
                     try:
                         if hasattr(e, 'response') and e.response:
                             error_data = e.response.json()
                             if isinstance(error_data, dict):
-                                error_detail = error_data.get('errors', {}).get('base', [error_detail])
-                                if isinstance(error_detail, list):
-                                    error_detail = error_detail[0] if error_detail else "Access denied"
+                                errors = error_data.get('errors', {})
+                                if isinstance(errors, dict):
+                                    error_detail = errors.get('base', [error_detail])
+                                    if isinstance(error_detail, list):
+                                        error_detail = error_detail[0] if error_detail else "Access denied - Missing required permissions"
+                                elif isinstance(errors, str):
+                                    error_detail = errors
                             elif isinstance(error_data, str):
                                 error_detail = error_data
                     except (ValueError, AttributeError, TypeError):
                         pass
-                    return {"error": f"{error_detail} - Check your app permissions"}
+                    return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
                 elif status_code == 429:
                     # Rate limit - wait but not too long
                     if attempt < retries - 1:
@@ -161,19 +166,24 @@ class ShopifyClient:
                         pass
                     return {"error": f"{error_detail} - Please reconnect your store", "auth_failed": True}
                 elif status_code == 403:
-                    error_detail = "Access denied"
+                    # Permission denied - missing scopes
+                    error_detail = "Access denied - Missing required permissions"
                     try:
                         if hasattr(e, 'response') and e.response:
                             error_data = e.response.json()
                             if isinstance(error_data, dict):
-                                error_detail = error_data.get('errors', {}).get('base', [error_detail])
-                                if isinstance(error_detail, list):
-                                    error_detail = error_detail[0] if error_detail else "Access denied"
+                                errors = error_data.get('errors', {})
+                                if isinstance(errors, dict):
+                                    error_detail = errors.get('base', [error_detail])
+                                    if isinstance(error_detail, list):
+                                        error_detail = error_detail[0] if error_detail else "Access denied - Missing required permissions"
+                                elif isinstance(errors, str):
+                                    error_detail = errors
                             elif isinstance(error_data, str):
                                 error_detail = error_data
                     except (ValueError, AttributeError, TypeError):
                         pass
-                    return {"error": f"{error_detail} - Check your app permissions"}
+                    return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
                 elif status_code == 429:
                     # Rate limit - wait but not too long
                     if attempt < retries - 1:
