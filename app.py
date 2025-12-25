@@ -2638,6 +2638,40 @@ def cron_database_backup():
         logger.error(f"Backup cron endpoint error: {e}", exc_info=True)
         return jsonify({"error": str(e), "success": False}), 500
 
+@app.route('/api-key-info')
+def api_key_info():
+    """Debug endpoint to show API key info (safe - only shows preview)"""
+    import os
+    api_key = os.getenv('SHOPIFY_API_KEY', 'NOT_SET')
+    api_secret = os.getenv('SHOPIFY_API_SECRET', 'NOT_SET')
+    
+    response = {
+        'api_key': {
+            'status': 'SET' if api_key != 'NOT_SET' and api_key else 'NOT_SET',
+            'preview': api_key[:8] + '...' if api_key and api_key != 'NOT_SET' and len(api_key) >= 8 else 'N/A',
+            'length': len(api_key) if api_key and api_key != 'NOT_SET' else 0,
+            'ends_with': api_key[-2:] if api_key and api_key != 'NOT_SET' and len(api_key) >= 2 else 'N/A'
+        },
+        'api_secret': {
+            'status': 'SET' if api_secret != 'NOT_SET' and api_secret else 'NOT_SET',
+            'preview': api_secret[:8] + '...' if api_secret and api_secret != 'NOT_SET' and len(api_secret) >= 8 else 'N/A',
+            'length': len(api_secret) if api_secret and api_secret != 'NOT_SET' else 0
+        },
+        'expected_api_key': '8c81ac3ce59f720a139b52f0c7b2ec32',
+        'expected_preview': '8c81ac3c...',
+        'expected_length': 32
+    }
+    
+    # Check if it matches expected
+    if api_key and api_key != 'NOT_SET':
+        response['api_key']['matches_expected'] = api_key == '8c81ac3ce59f720a139b52f0c7b2ec32'
+        response['api_key']['current_value'] = api_key  # Show full value for debugging
+    else:
+        response['api_key']['matches_expected'] = False
+        response['api_key']['current_value'] = 'NOT_SET'
+    
+    return jsonify(response)
+
 @app.route('/health')
 def health():
     """Health check endpoint for monitoring"""
