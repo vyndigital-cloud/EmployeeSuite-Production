@@ -609,6 +609,14 @@ def create_charge():
     Redirects merchant to Shopify's payment approval page
     """
     # #region agent log
+    try:
+        import json
+        import time
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"BILLING","location":"billing.py:605","message":"Create charge route accessed","data":{"method":request.method,"has_shop_form":bool(request.form.get('shop')),"has_host_form":bool(request.form.get('host'))},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
+    # #endregion
+    # #region agent log
     import json
     try:
         with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:

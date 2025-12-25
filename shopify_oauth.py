@@ -33,6 +33,14 @@ ACCESS_MODE = 'offline'
 @oauth_bp.route('/install')
 def install():
     """Initiate Shopify OAuth - Professional error handling"""
+    # #region agent log
+    try:
+        import json
+        import time
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"OAUTH","location":"shopify_oauth.py:33","message":"OAuth install route accessed","data":{"has_shop":bool(request.args.get('shop')),"has_host":bool(request.args.get('host')),"has_api_key":bool(SHOPIFY_API_KEY),"has_api_secret":bool(SHOPIFY_API_SECRET)},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
+    # #endregion
     # CRITICAL: Check API credentials before proceeding
     if not SHOPIFY_API_KEY or not SHOPIFY_API_SECRET:
         from flask import render_template_string

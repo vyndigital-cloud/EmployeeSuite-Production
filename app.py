@@ -48,12 +48,40 @@ if os.getpid() != 1:  # Not the main process (PID 1 is usually the main process)
 
 from flask import Flask, jsonify, render_template_string, redirect, url_for, request, session, Response
 
+# Comprehensive instrumentation helper
+def log_event(location, message, data=None, hypothesis_id='GENERAL'):
+    """Log event to debug log file"""
+    try:
+        import json
+        import time
+        log_entry = {
+            "sessionId": "debug-session",
+            "runId": "run1",
+            "hypothesisId": hypothesis_id,
+            "location": location,
+            "message": message,
+            "data": data or {},
+            "timestamp": int(time.time() * 1000)
+        }
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps(log_entry) + '\n')
+    except Exception:
+        pass  # Fail silently - don't break app if logging fails
+
 def safe_redirect(url, shop=None, host=None):
     """
     Safe redirect that works in both embedded and standalone contexts.
     For embedded apps, uses window.top.location.href to break out of iframe.
     For standalone, uses regular Flask redirect.
     """
+    # #region agent log
+    log_event('app.py:safe_redirect', 'safe_redirect called', {
+        'url': url[:100],
+        'has_shop': bool(shop),
+        'has_host': bool(host),
+        'is_embedded': bool(host) or bool(shop) or request.args.get('embedded') == '1'
+    }, 'REDIRECT')
+    # #endregion
     # Check if we're in an embedded context
     is_embedded = bool(host) or bool(shop) or request.args.get('embedded') == '1'
     
@@ -2359,6 +2387,15 @@ def home():
 
 @app.route('/dashboard')
 def dashboard():
+    # #region agent log
+    log_event('app.py:2380', 'Dashboard route accessed', {
+        'method': request.method,
+        'has_shop': bool(request.args.get('shop')),
+        'has_host': bool(request.args.get('host')),
+        'has_embedded': bool(request.args.get('embedded')),
+        'referer': request.headers.get('Referer', '')[:100] if request.headers.get('Referer') else ''
+    }, 'DASHBOARD')
+    # #endregion
     # Check if this is an embedded request (from Referer or params)
     referer = request.headers.get('Referer', '')
     is_from_shopify_admin = 'admin.shopify.com' in referer or 'myshopify.com' in referer
@@ -3010,6 +3047,13 @@ def get_authenticated_user():
 
 @app.route('/api/process_orders', methods=['GET', 'POST'])
 def api_process_orders():
+    # #region agent log
+    log_event('app.py:3031', 'process_orders API called', {
+        'method': request.method,
+        'has_auth_header': bool(request.headers.get('Authorization')),
+        'has_shop': bool(request.args.get('shop'))
+    }, 'API_PROCESS_ORDERS')
+    # #endregion
     # Get authenticated user (supports both Flask-Login and session tokens)
     user, error_response = get_authenticated_user()
     if error_response:
@@ -3035,6 +3079,12 @@ def api_process_orders():
     
     try:
         result = process_orders()
+        # #region agent log
+        log_event('app.py:3057', 'process_orders completed', {
+            'success': result.get('success') if isinstance(result, dict) else True,
+            'has_error': isinstance(result, dict) and 'error' in result
+        }, 'API_PROCESS_ORDERS')
+        # #endregion
         if isinstance(result, dict):
             return jsonify(result)
         else:
@@ -3059,6 +3109,13 @@ def api_process_orders():
 
 @app.route('/api/update_inventory', methods=['GET', 'POST'])
 def api_update_inventory():
+    # #region agent log
+    log_event('app.py:3080', 'update_inventory API called', {
+        'method': request.method,
+        'has_auth_header': bool(request.headers.get('Authorization')),
+        'has_shop': bool(request.args.get('shop'))
+    }, 'API_UPDATE_INVENTORY')
+    # #endregion
     # Get authenticated user (supports both Flask-Login and session tokens)
     user, error_response = get_authenticated_user()
     if error_response:
@@ -3085,6 +3142,12 @@ def api_update_inventory():
         from performance import clear_cache as clear_perf_cache
         clear_perf_cache('get_products')
         result = update_inventory()
+        # #region agent log
+        log_event('app.py:3107', 'update_inventory completed', {
+            'success': result.get('success') if isinstance(result, dict) else True,
+            'has_error': isinstance(result, dict) and 'error' in result
+        }, 'API_UPDATE_INVENTORY')
+        # #endregion
         if isinstance(result, dict):
             # Store inventory data in session for CSV export
             if result.get('success') and 'inventory_data' in result:
@@ -3114,6 +3177,13 @@ def api_update_inventory():
 @app.route('/api/generate_report', methods=['GET', 'POST'])
 def api_generate_report():
     """Generate revenue report with detailed crash logging"""
+    # #region agent log
+    log_event('app.py:3134', 'generate_report API called', {
+        'method': request.method,
+        'has_auth_header': bool(request.headers.get('Authorization')),
+        'has_shop': bool(request.args.get('shop'))
+    }, 'API_GENERATE_REPORT')
+    # #endregion
     user_id = None
     try:
         logging.info("=== REPORT GENERATION START ===")

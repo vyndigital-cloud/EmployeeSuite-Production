@@ -307,6 +307,14 @@ REGISTER_HTML = '''
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    # #region agent log
+    try:
+        import json
+        import time
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"AUTH","location":"auth.py:308","message":"Login route accessed","data":{"method":request.method,"has_shop":bool(request.args.get('shop') or request.form.get('shop')),"has_host":bool(request.args.get('host') or request.form.get('host'))},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
+    # #endregion
     # Get embedded parameters from both GET (URL params) and POST (form data)
     shop = request.args.get('shop') or request.form.get('shop')
     embedded = request.args.get('embedded') or request.form.get('embedded')
