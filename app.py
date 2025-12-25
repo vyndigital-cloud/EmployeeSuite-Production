@@ -251,6 +251,7 @@ login_manager.login_view = 'auth.login'
 def load_user(user_id):
     # CRITICAL: Protect against segfaults from corrupted connections
     # DO NOT call db.session.remove() before query - pool_pre_ping handle validation
+    # CRITICAL: Do NOT call db.session.remove() in finally - causes segfaults
     try:
         return User.query.get(int(user_id))
     except BaseException:
@@ -259,11 +260,7 @@ def load_user(user_id):
             db.session.rollback()
         except Exception:
             pass
-        finally:
-            try:
-                db.session.remove()
-            except Exception:
-                pass
+        # Removed db.session.remove() from finally - causes segfaults
         return None
 
 @login_manager.unauthorized_handler
