@@ -433,15 +433,32 @@ def shopify_settings():
                                  is_subscribed=user.is_subscribed if user else False)
 
 @shopify_bp.route('/settings/shopify/connect', methods=['POST'])
-@verify_session_token
-@login_required
 def connect_store():
+    """Connect store via manual token - works in both embedded and standalone modes"""
     shop_url = request.form.get('shop_url', '').strip()
     access_token = request.form.get('access_token', '').strip()
+    shop = request.form.get('shop') or request.args.get('shop', '')
+    host = request.form.get('host') or request.args.get('host', '')
+    
+    # Get authenticated user (works for both embedded and standalone)
+    user = None
+    try:
+        if current_user.is_authenticated:
+            user = current_user
+        elif shop:
+            # Try to find user from shop (for embedded apps)
+            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            if store and store.user:
+                user = store.user
+    except Exception:
+        pass
+    
+    if not user:
+        return redirect(url_for('shopify.shopify_settings', error='Authentication required', shop=shop, host=host))
     
     # Input validation
     if not shop_url or not access_token:
-        return redirect(url_for('shopify.shopify_settings', error='Store URL and access token are required.'))
+        return redirect(url_for('shopify.shopify_settings', error='Store URL and access token are required.', shop=shop, host=host))
     
     # Sanitize and validate shop URL
     shop_url = sanitize_input(shop_url)
@@ -450,19 +467,19 @@ def connect_store():
     
     # Validate Shopify URL format
     if not validate_url(shop_url):
-        return redirect(url_for('shopify.shopify_settings', error='Invalid Shopify store URL format. Use: yourstore.myshopify.com'))
+        return redirect(url_for('shopify.shopify_settings', error='Invalid Shopify store URL format. Use: yourstore.myshopify.com', shop=shop, host=host))
     
     # Validate access token (basic check - should be non-empty)
     if len(access_token) < 10:
-        return redirect(url_for('shopify.shopify_settings', error='Invalid access token format.'))
+        return redirect(url_for('shopify.shopify_settings', error='Invalid access token format.', shop=shop, host=host))
     
     # WARNING: Manual access tokens from old apps won't work with new Partners API key
     # Recommend OAuth instead
-    logger.warning(f"Manual access token connection attempted for {shop_url} by user {current_user.id}")
+    logger.warning(f"Manual access token connection attempted for {shop_url} by user {user.id}")
     logger.warning(f"NOTE: Manual tokens from old apps may not work with new Partners API key. OAuth is recommended.")
     
-    if ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first():
-        return redirect(url_for('shopify.shopify_settings', error='You already have a connected store. Disconnect it first.'))
+    if ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first():
+        return redirect(url_for('shopify.shopify_settings', error='You already have a connected store. Disconnect it first.', shop=shop, host=host))
     
     # Validate the access_token works with current API key by testing a simple API call
     try:
@@ -479,18 +496,18 @@ def connect_store():
             # Invalid token - might be from old app
             logger.warning(f"Access token test failed (401) for {shop_url} - likely from old app")
             return redirect(url_for('shopify.shopify_settings', 
-                                  error='This access token appears to be invalid or from an old app. Please use the "Quick Connect" OAuth method above instead.'))
+                                  error='This access token appears to be invalid or from an old app. Please use the "Quick Connect" OAuth method above instead.', shop=shop, host=host))
         elif test_response.status_code != 200:
             logger.warning(f"Access token test failed ({test_response.status_code}) for {shop_url}")
             return redirect(url_for('shopify.shopify_settings', 
-                                  error=f'Access token validation failed (HTTP {test_response.status_code}). Please use the "Quick Connect" OAuth method instead.'))
+                                  error=f'Access token validation failed (HTTP {test_response.status_code}). Please use the "Quick Connect" OAuth method instead.', shop=shop, host=host))
     except Exception as e:
         logger.error(f"Error validating access token: {e}", exc_info=True)
         # Continue anyway - validation is optional
         pass
     
     new_store = ShopifyStore(
-        user_id=current_user.id,
+        user_id=user.id,
         shop_url=shop_url,
         access_token=access_token,
         is_active=True
@@ -499,49 +516,86 @@ def connect_store():
     db.session.add(new_store)
     db.session.commit()
     
-    logger.info(f"Manual access token connection successful for {shop_url} by user {current_user.id}")
-    return redirect(url_for('shopify.shopify_settings', success='Store connected successfully!'))
+    logger.info(f"Manual access token connection successful for {shop_url} by user {user.id}")
+    return redirect(url_for('shopify.shopify_settings', success='Store connected successfully!', shop=shop, host=host))
 
 @shopify_bp.route('/settings/shopify/disconnect', methods=['POST'])
-@login_required
 def disconnect_store():
-    store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+    """Disconnect store - works in both embedded and standalone modes"""
+    shop = request.form.get('shop') or request.args.get('shop', '')
+    host = request.form.get('host') or request.args.get('host', '')
+    
+    # Get authenticated user (works for both embedded and standalone)
+    user = None
+    try:
+        if current_user.is_authenticated:
+            user = current_user
+        elif shop:
+            # Try to find user from shop (for embedded apps)
+            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            if store and store.user:
+                user = store.user
+    except Exception:
+        pass
+    
+    if not user:
+        return redirect(url_for('shopify.shopify_settings', error='Authentication required', shop=shop, host=host))
+    
+    store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if store:
         try:
             # Use model method for consistent state management
             store.disconnect()
             db.session.commit()
-            logger.info(f"Store {store.shop_url} disconnected and access_token cleared for user {current_user.id}")
-            return redirect(url_for('shopify.shopify_settings', success='Store disconnected successfully! You can now reconnect with the new Partners app.'))
+            logger.info(f"Store {store.shop_url} disconnected and access_token cleared for user {user.id}")
+            return redirect(url_for('shopify.shopify_settings', success='Store disconnected successfully! You can now reconnect with the new Partners app.', shop=shop, host=host))
         except Exception as e:
             logger.error(f"Error disconnecting store: {e}", exc_info=True)
             try:
                 db.session.rollback()
             except Exception:
                 pass
-            return redirect(url_for('shopify.shopify_settings', error='Error disconnecting store. Please try again.'))
-    return redirect(url_for('shopify.shopify_settings', error='No active store found.'))
+            return redirect(url_for('shopify.shopify_settings', error='Error disconnecting store. Please try again.', shop=shop, host=host))
+    return redirect(url_for('shopify.shopify_settings', error='No active store found.', shop=shop, host=host))
 
 @shopify_bp.route('/settings/shopify/cancel', methods=['POST'])
-@login_required
 def cancel_subscription():
-    """Cancel user's Shopify subscription"""
+    """Cancel user's Shopify subscription - works in both embedded and standalone modes"""
     import requests
     import os
     
-    if not current_user.is_subscribed:
-        return redirect(url_for('shopify.shopify_settings', error='No active subscription found.'))
+    shop = request.form.get('shop') or request.args.get('shop', '')
+    host = request.form.get('host') or request.args.get('host', '')
+    
+    # Get authenticated user (works for both embedded and standalone)
+    user = None
+    try:
+        if current_user.is_authenticated:
+            user = current_user
+        elif shop:
+            # Try to find user from shop (for embedded apps)
+            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            if store and store.user:
+                user = store.user
+    except Exception:
+        pass
+    
+    if not user:
+        return redirect(url_for('shopify.shopify_settings', error='Authentication required', shop=shop, host=host))
+    
+    if not user.is_subscribed:
+        return redirect(url_for('shopify.shopify_settings', error='No active subscription found.', shop=shop, host=host))
     
     # Get user's Shopify store
-    store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+    store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if not store:
-        return redirect(url_for('shopify.shopify_settings', error='No Shopify store connected.'))
+        return redirect(url_for('shopify.shopify_settings', error='No Shopify store connected.', shop=shop, host=host))
     
     if not store.charge_id:
         # No charge_id but marked as subscribed - just update the flag
-        current_user.is_subscribed = False
+        user.is_subscribed = False
         db.session.commit()
-        return redirect(url_for('shopify.shopify_settings', success='Subscription status updated.'))
+        return redirect(url_for('shopify.shopify_settings', success='Subscription status updated.', shop=shop, host=host))
     
     try:
         # Cancel via Shopify Billing API
@@ -556,7 +610,7 @@ def cancel_subscription():
         
         # 200 = cancelled, 404 = already cancelled/doesn't exist
         if response.status_code in [200, 404]:
-            current_user.is_subscribed = False
+            user.is_subscribed = False
             store.charge_id = None
             db.session.commit()
             
@@ -565,18 +619,18 @@ def cancel_subscription():
             # Send cancellation email
             try:
                 from email_service import send_cancellation_email
-                send_cancellation_email(current_user.email)
+                send_cancellation_email(user.email)
             except Exception as e:
                 logger.error(f"Failed to send cancellation email: {e}")
             
-            return redirect(url_for('shopify.shopify_settings', success='Subscription cancelled successfully. You will retain access until the end of your billing period.'))
+            return redirect(url_for('shopify.shopify_settings', success='Subscription cancelled successfully. You will retain access until the end of your billing period.', shop=shop, host=host))
         else:
             logger.error(f"Failed to cancel Shopify subscription: {response.status_code} - {response.text}")
-            return redirect(url_for('shopify.shopify_settings', error='Failed to cancel subscription. Please try again or contact support.'))
+            return redirect(url_for('shopify.shopify_settings', error='Failed to cancel subscription. Please try again or contact support.', shop=shop, host=host))
         
     except requests.exceptions.RequestException as e:
         logger.error(f"Request error during cancellation: {e}")
-        return redirect(url_for('shopify.shopify_settings', error=f'Network error: {str(e)}'))
+        return redirect(url_for('shopify.shopify_settings', error=f'Network error: {str(e)}', shop=shop, host=host))
     except Exception as e:
         logger.error(f"Unexpected error during cancellation: {e}")
-        return redirect(url_for('shopify.shopify_settings', error='An unexpected error occurred. Please contact support.'))
+        return redirect(url_for('shopify.shopify_settings', error='An unexpected error occurred. Please contact support.', shop=shop, host=host))

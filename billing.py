@@ -746,17 +746,32 @@ def confirm_charge():
 
 
 @billing_bp.route('/billing/cancel', methods=['POST'])
-@login_required  
 def cancel_subscription():
-    """Cancel Shopify subscription"""
+    """Cancel Shopify subscription - works in both embedded and standalone modes"""
     import requests
     
     shop = request.form.get('shop') or request.args.get('shop', '')
     host = request.form.get('host') or request.args.get('host', '')
     
-    store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+    # Get authenticated user (works for both embedded and standalone)
+    user = None
+    try:
+        if current_user.is_authenticated:
+            user = current_user
+        elif shop:
+            # Try to find user from shop (for embedded apps)
+            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            if store and store.user:
+                user = store.user
+    except Exception:
+        pass
+    
+    if not user:
+        return redirect(url_for('shopify.shopify_settings', error='Authentication required', shop=shop, host=host))
+    
+    store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if not store or not store.charge_id:
-        return redirect(url_for('shopify.shopify_settings', error='No active subscription found'))
+        return redirect(url_for('shopify.shopify_settings', error='No active subscription found', shop=shop, host=host))
     
     # Cancel via Shopify API
     url = f"https://{store.shop_url}/admin/api/{SHOPIFY_API_VERSION}/recurring_application_charges/{store.charge_id}.json"
@@ -769,17 +784,17 @@ def cancel_subscription():
         response = requests.delete(url, headers=headers, timeout=10)
         # 200 or 404 both mean success (404 = already cancelled)
         if response.status_code in [200, 404]:
-            current_user.is_subscribed = False
+            user.is_subscribed = False
             store.charge_id = None
             db.session.commit()
             logger.info(f"Subscription cancelled for {store.shop_url}")
-            return redirect(url_for('shopify.shopify_settings', success='Subscription cancelled'))
+            return redirect(url_for('shopify.shopify_settings', success='Subscription cancelled', shop=shop, host=host))
         else:
             logger.error(f"Failed to cancel subscription: {response.status_code}")
-            return redirect(url_for('shopify.shopify_settings', error='Failed to cancel subscription'))
+            return redirect(url_for('shopify.shopify_settings', error='Failed to cancel subscription', shop=shop, host=host))
     except Exception as e:
         logger.error(f"Error cancelling subscription: {e}")
-        return redirect(url_for('shopify.shopify_settings', error=str(e)))
+        return redirect(url_for('shopify.shopify_settings', error=str(e), shop=shop, host=host))
 
 
 # Legacy routes for backwards compatibility (redirect to new flow)
