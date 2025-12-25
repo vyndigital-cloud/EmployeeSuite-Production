@@ -210,11 +210,30 @@ def unauthorized():
     
     # CRITICAL: For embedded apps, redirect to OAuth (Shopify's embedded auth flow)
     # DO NOT redirect to login form - embedded apps use OAuth
+    # CRITICAL: Never use server-side redirect() - it causes iframe to load accounts.shopify.com
+    # Instead, redirect to /install route which handles App Bridge redirect properly
     if embedded == '1' or (shop and host):
         if shop:
             install_url = url_for('oauth.install', shop=shop, host=host) if host else url_for('oauth.install', shop=shop)
-            logger.info(f"Unauthorized embedded app request - redirecting to OAuth: {install_url}")
-            return redirect(install_url)
+            logger.info(f"Unauthorized embedded app request - redirecting to OAuth via install route: {install_url}")
+            # Use client-side redirect by rendering HTML that loads the install route
+            # The install route will handle App Bridge redirect properly
+            from flask import render_template_string
+            return render_template_string(f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>Redirecting...</title>
+                <script>
+                    window.location.href = '{install_url}';
+                </script>
+            </head>
+            <body>
+                <p>Redirecting...</p>
+            </body>
+            </html>
+            """)
     
     # For standalone access, redirect to login form
     return redirect(url_for('auth.login'))
@@ -2353,22 +2372,17 @@ def dashboard():
                 // Fallback: use window.top.location.href if App Bridge not available
                 if (attempts < maxAttempts) {{
                     setTimeout(redirectToOAuth, 100);
-                }} else {{
-                    console.warn('⚠️ App Bridge not available, using fallback redirect');
-                    // CRITICAL: Always redirect top-level window, never iframe
-                    try {{
-                        if (window.top && window.top !== window) {{
-                            console.log('Redirecting top-level window to:', installUrl);
-                            window.top.location.href = installUrl;
-                        }} else {{
-                            console.log('Redirecting current window to:', installUrl);
-                            window.location.href = installUrl;
-                        }}
-                    }} catch (e) {{
-                        console.error('❌ Redirect failed:', e);
-                        // Show manual link with target="_top" as last resort
-                        document.body.innerHTML = '<div style="padding: 40px; text-align: center; font-family: sans-serif; background: #fff; border-radius: 8px; max-width: 500px; margin: 40px auto;"><h2 style="color: #202223; margin-bottom: 16px;">Redirect Required</h2><p style="color: #6d7175; margin-bottom: 24px;">Please click the button below to continue.</p><a href="' + installUrl + '" target="_top" style="display: inline-block; background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">Continue</a></div>';
-                    }}
+                }                }} else {{
+                    console.warn('⚠️ App Bridge not available, showing button with target="_top"');
+                    // CRITICAL: Never use programmatic redirects - show button with target="_top" instead
+                    // This prevents "accounts.shopify.com refused to connect" error
+                    document.body.innerHTML = `
+                        <div style="padding: 40px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fff; border-radius: 8px; max-width: 500px; margin: 40px auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            <h2 style="color: #202223; margin-bottom: 16px; font-size: 20px;">Connect Your Shopify Store</h2>
+                            <p style="color: #6d7175; margin-bottom: 24px; line-height: 1.5;">Click the button below to authorize the connection. This will open in the top-level window.</p>
+                            <a href="${installUrl}" target="_top" style="display: inline-block; background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px; transition: background 0.2s;">Continue to Shopify Authorization →</a>
+                        </div>
+                    `;
                 }}
             }}
             

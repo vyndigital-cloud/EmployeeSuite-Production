@@ -580,10 +580,26 @@ def create_charge():
             db.session.commit()
             logger.info(f"Cleared access_token for {shop_url} - redirecting to OAuth install to get new token")
             
-            # Automatically redirect to OAuth install flow to get a NEW access_token
+            # CRITICAL: Never use server-side redirect() - it causes iframe to load accounts.shopify.com
+            # Use client-side redirect by rendering HTML that loads the install route
             install_url = url_for('oauth.install', shop=shop_url, host=host) if host else url_for('oauth.install', shop=shop_url)
-            logger.info(f"Redirecting {shop_url} to OAuth install: {install_url}")
-            return redirect(install_url)
+            logger.info(f"Redirecting {shop_url} to OAuth install via install route: {install_url}")
+            from flask import render_template_string
+            return render_template_string(f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>Redirecting...</title>
+                <script>
+                    window.location.href = '{install_url}';
+                </script>
+            </head>
+            <body>
+                <p>Redirecting...</p>
+            </body>
+            </html>
+            """)
         
         # Format error message for better user experience
         formatted_error = format_billing_error(error_msg)
