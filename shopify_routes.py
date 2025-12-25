@@ -275,6 +275,8 @@ SETTINGS_HTML = '''
                 </div>
             </div>
             <form method="POST" action="{{ url_for('shopify.cancel_subscription') }}" style="margin-top: 20px;">
+                {% if shop %}<input type="hidden" name="shop" value="{{ shop }}">{% endif %}
+                {% if host %}<input type="hidden" name="host" value="{{ host }}">{% endif %}
                 <button type="submit" class="btn btn-danger" onclick="return confirm('Cancel subscription? You will lose access to all features.')">Cancel Subscription</button>
             </form>
         </div>
@@ -303,6 +305,8 @@ SETTINGS_HTML = '''
                 </div>
             </div>
             <form method="POST" action="{{ url_for('shopify.disconnect_store') }}" style="margin-top: 20px;">
+                {% if shop %}<input type="hidden" name="shop" value="{{ shop }}">{% endif %}
+                {% if host %}<input type="hidden" name="host" value="{{ host }}">{% endif %}
                 <button type="submit" class="btn btn-danger" onclick="return confirm('Disconnect store?')">Disconnect Store</button>
             </form>
         </div>
@@ -353,6 +357,8 @@ SETTINGS_HTML = '''
                         <strong>When to use this:</strong> Only if you need to connect a development store, custom app, or if the Quick Connect above doesn't work for your setup.
                     </p>
                     <form method="POST" action="{{ url_for('shopify.connect_store') }}">
+                        {% if shop %}<input type="hidden" name="shop" value="{{ shop }}">{% endif %}
+                        {% if host %}<input type="hidden" name="host" value="{{ host }}">{% endif %}
                         <div class="form-group">
                             <label class="form-label">Store URL</label>
                             <input type="text" name="shop_url" placeholder="yourstore.myshopify.com" class="form-input" required>
