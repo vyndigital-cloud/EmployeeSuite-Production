@@ -19,6 +19,14 @@ class ShopifyClient:
         Make API request with automatic retry logic (professional standard)
         Retries on network errors with exponential backoff
         """
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:17","message":"_make_request ENTRY","data":{"endpoint":endpoint[:100],"shop_url":self.shop_url[:50],"retries":retries},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         url = f"https://{self.shop_url}/admin/api/{self.api_version}/{endpoint}"
         headers = self._get_headers()
         headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -27,9 +35,25 @@ class ShopifyClient:
         
         for attempt in range(retries):
             try:
+                # #region agent log
+                try:
+                    import json
+                    import time
+                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:30","message":"Before GET request","data":{"attempt":attempt+1,"url":url[:100]},"timestamp":int(time.time()*1000)})+'\n')
+                except: pass
+                # #endregion
                 response = requests.get(url, headers=headers, timeout=10)  # Reduced for faster failures
                 # CRITICAL: Check status code BEFORE raise_for_status to handle 403 properly
                 status_code = response.status_code
+                # #region agent log
+                try:
+                    import json
+                    import time
+                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:33","message":"After GET request","data":{"status_code":status_code,"attempt":attempt+1},"timestamp":int(time.time()*1000)})+'\n')
+                except: pass
+                # #endregion
                 if status_code == 403:
                     # Permission denied - missing scopes
                     error_detail = "Access denied - Missing required permissions"
@@ -138,6 +162,14 @@ class ShopifyClient:
         Make GraphQL request with automatic retry logic (professional standard)
         Retries on network errors with exponential backoff
         """
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:136","message":"_make_graphql_request ENTRY","data":{"shop_url":self.shop_url[:50],"has_variables":bool(variables),"retries":retries},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         url = f"https://{self.shop_url}/admin/api/{self.api_version}/graphql.json"
         headers = self._get_headers()
         headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -148,9 +180,25 @@ class ShopifyClient:
         
         for attempt in range(retries):
             try:
+                # #region agent log
+                try:
+                    import json
+                    import time
+                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:151","message":"Before GraphQL POST request","data":{"attempt":attempt+1,"url":url[:100]},"timestamp":int(time.time()*1000)})+'\n')
+                except: pass
+                # #endregion
                 response = requests.post(url, json=payload, headers=headers, timeout=10)  # Reduced from 15s for faster failures
                 # CRITICAL: Check status code BEFORE raise_for_status to handle 403 properly
                 status_code = response.status_code
+                # #region agent log
+                try:
+                    import json
+                    import time
+                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:154","message":"After GraphQL POST request","data":{"status_code":status_code,"attempt":attempt+1},"timestamp":int(time.time()*1000)})+'\n')
+                except: pass
+                # #endregion
                 if status_code == 403:
                     # Permission denied - missing scopes
                     error_detail = "Access denied - Missing required permissions"
@@ -260,6 +308,14 @@ class ShopifyClient:
         Get products using GraphQL (migrated from deprecated REST API)
         Returns same format as before for backward compatibility
         """
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:257","message":"get_products ENTRY","data":{"shop_url":self.shop_url[:50]},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         # GraphQL query to fetch products with variants and inventory
         # Migrated from deprecated REST API /products.json endpoint
         # Using GraphQL Admin API as required by Shopify (deadline: 2025-04-01)
@@ -303,7 +359,23 @@ class ShopifyClient:
             if cursor:
                 variables["after"] = cursor
             
+            # #region agent log
+            try:
+                import json
+                import time
+                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:306","message":"Before GraphQL request","data":{"has_cursor":bool(cursor)},"timestamp":int(time.time()*1000)})+'\n')
+            except: pass
+            # #endregion
             data = self._make_graphql_request(query, variables)
+            # #region agent log
+            try:
+                import json
+                import time
+                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:308","message":"After GraphQL request","data":{"has_error":isinstance(data,dict) and 'error' in data,"has_errors":isinstance(data,dict) and 'errors' in data,"has_data":isinstance(data,dict) and 'data' in data},"timestamp":int(time.time()*1000)})+'\n')
+            except: pass
+            # #endregion
             
             if "error" in data:
                 return {"error": data["error"]}

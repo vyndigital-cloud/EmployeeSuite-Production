@@ -5,6 +5,14 @@ from logging_config import logger
 
 def generate_report(user_id=None, shop_url=None):
     """Generate revenue report from Shopify data"""
+    # #region agent log
+    try:
+        import json
+        import time
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"reporting.py:6","message":"generate_report ENTRY","data":{"user_id_provided":bool(user_id),"user_id":user_id,"shop_url_provided":bool(shop_url),"shop_url":shop_url[:50] if shop_url else None},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
+    # #endregion
     # CRITICAL: Catch ALL exceptions including segfault precursors (BaseException)
     # This prevents worker crashes (code 139) from corrupting the entire process
     try:
@@ -85,6 +93,14 @@ def generate_report(user_id=None, shop_url=None):
             return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>No Shopify store connected</div><div style='margin-bottom: 12px;'>Connect your store to generate revenue reports and analytics.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Connect Store →</a></div></div>"}
         
         client = ShopifyClient(store.shop_url, store.access_token)
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"reporting.py:95","message":"Before API calls","data":{"shop_url":store.shop_url[:50]},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         
         # CRITICAL: Memory management - process in batches to prevent segfaults
         # Limit total memory usage by processing orders in chunks
@@ -98,8 +114,24 @@ def generate_report(user_id=None, shop_url=None):
         # Removing sessions manually can corrupt connection state and cause segfaults
         try:
             for iteration in range(max_iterations):
+                # #region agent log
+                try:
+                    import json
+                    import time
+                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"reporting.py:110","message":"Before _make_request call","data":{"iteration":iteration,"endpoint":endpoint},"timestamp":int(time.time()*1000)})+'\n')
+                except: pass
+                # #endregion
                 # Make request and get response
                 orders_data = client._make_request(endpoint)
+                # #region agent log
+                try:
+                    import json
+                    import time
+                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"reporting.py:112","message":"After _make_request call","data":{"iteration":iteration,"has_error":isinstance(orders_data,dict) and 'error' in orders_data,"has_orders":isinstance(orders_data,dict) and 'orders' in orders_data,"orders_count":len(orders_data.get('orders',[])) if isinstance(orders_data,dict) else 0},"timestamp":int(time.time()*1000)})+'\n')
+                except: pass
+                # #endregion
                 
                 if "error" in orders_data:
                     # If error on first request, check if it's authentication or permission failure

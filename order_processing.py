@@ -56,14 +56,38 @@ def process_orders(creds_path='creds.json', user_id=None):
             return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading orders</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>No Shopify store connected</div><div style='margin-bottom: 12px;'>Connect your store to view and manage orders.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Connect Store →</a></div></div>"}
         
         client = ShopifyClient(store.shop_url, store.access_token)
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"order_processing.py:58","message":"Before API calls","data":{"shop_url":store.shop_url[:50]},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         
         # Get ONLY unfulfilled/pending orders that need action
         # Filter for: financial_status=pending OR fulfillment_status=unfulfilled
         try:
             # Fetch orders with pending payment status
             pending_orders_data = client._make_request("orders.json?financial_status=pending&limit=250")
+            # #region agent log
+            try:
+                import json
+                import time
+                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"order_processing.py:64","message":"After pending orders call","data":{"has_error":isinstance(pending_orders_data,dict) and 'error' in pending_orders_data,"has_orders":isinstance(pending_orders_data,dict) and 'orders' in pending_orders_data},"timestamp":int(time.time()*1000)})+'\n')
+            except: pass
+            # #endregion
             # Fetch orders that are paid but unfulfilled
             unfulfilled_orders_data = client._make_request("orders.json?financial_status=paid&fulfillment_status=unfulfilled&limit=250")
+            # #region agent log
+            try:
+                import json
+                import time
+                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"order_processing.py:66","message":"After unfulfilled orders call","data":{"has_error":isinstance(unfulfilled_orders_data,dict) and 'error' in unfulfilled_orders_data,"has_orders":isinstance(unfulfilled_orders_data,dict) and 'orders' in unfulfilled_orders_data},"timestamp":int(time.time()*1000)})+'\n')
+            except: pass
+            # #endregion
         except requests.exceptions.Timeout:
             return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading orders</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Connection timeout</div><div style='margin-bottom: 12px;'>Shopify API is taking too long to respond. Please try again in a moment.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
         except requests.exceptions.ConnectionError:

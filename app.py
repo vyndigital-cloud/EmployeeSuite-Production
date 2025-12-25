@@ -3043,19 +3043,37 @@ def get_authenticated_user():
 @app.route('/api/process_orders', methods=['GET', 'POST'])
 def api_process_orders():
     # #region agent log
-    log_event('app.py:3031', 'process_orders API called', {
-        'method': request.method,
-        'has_auth_header': bool(request.headers.get('Authorization')),
-        'has_shop': bool(request.args.get('shop'))
-    }, 'API_PROCESS_ORDERS')
+    try:
+        import json
+        import time
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3043","message":"api_process_orders ENTRY","data":{"method":request.method,"has_auth_header":bool(request.headers.get('Authorization')),"has_shop":bool(request.args.get('shop'))},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
     # #endregion
     # Get authenticated user (supports both Flask-Login and session tokens)
     user, error_response = get_authenticated_user()
+    # #region agent log
+    try:
+        import json
+        import time
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3053","message":"After get_authenticated_user","data":{"user_found":bool(user),"has_error_response":bool(error_response)},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
+    # #endregion
     if error_response:
         return error_response
     
     # Check access
-    if not user.has_access():
+    has_access = user.has_access() if user else False
+    # #region agent log
+    try:
+        import json
+        import time
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3058","message":"Access check","data":{"has_access":has_access,"user_id":user.id if user and hasattr(user,'id') else None},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
+    # #endregion
+    if not has_access:
         return jsonify({
             'error': 'Subscription required',
             'success': False,
@@ -3073,13 +3091,23 @@ def api_process_orders():
     login_user(user, remember=False)
     
     try:
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3075","message":"Before calling process_orders","data":{"user_id":user_id},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         # Pass user_id directly to prevent recursion from accessing current_user
         result = process_orders(user_id=user_id)
         # #region agent log
-        log_event('app.py:3057', 'process_orders completed', {
-            'success': result.get('success') if isinstance(result, dict) else True,
-            'has_error': isinstance(result, dict) and 'error' in result
-        }, 'API_PROCESS_ORDERS')
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3080","message":"process_orders returned","data":{"is_dict":isinstance(result,dict),"has_success":isinstance(result,dict) and 'success' in result,"has_error":isinstance(result,dict) and 'error' in result,"result_keys":list(result.keys())[:5] if isinstance(result,dict) else []},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
         # #endregion
         if isinstance(result, dict):
             return jsonify(result)
@@ -3106,18 +3134,36 @@ def api_process_orders():
 @app.route('/api/update_inventory', methods=['GET', 'POST'])
 def api_update_inventory():
     # #region agent log
-    log_event('app.py:3080', 'update_inventory API called', {
-        'method': request.method,
-        'has_auth_header': bool(request.headers.get('Authorization')),
-        'has_shop': bool(request.args.get('shop'))
-    }, 'API_UPDATE_INVENTORY')
+    try:
+        import json
+        import time
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3106","message":"api_update_inventory ENTRY","data":{"method":request.method,"has_auth_header":bool(request.headers.get('Authorization')),"has_shop":bool(request.args.get('shop'))},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
     # #endregion
     # Get authenticated user (supports both Flask-Login and session tokens)
     user, error_response = get_authenticated_user()
+    # #region agent log
+    try:
+        import json
+        import time
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3116","message":"After get_authenticated_user","data":{"user_found":bool(user),"has_error_response":bool(error_response)},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
+    # #endregion
     if error_response:
         return error_response
     
-    if not user.has_access():
+    has_access = user.has_access() if user else False
+    # #region agent log
+    try:
+        import json
+        import time
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3120","message":"Access check","data":{"has_access":has_access,"user_id":user.id if user and hasattr(user,'id') else None},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
+    # #endregion
+    if not has_access:
         return jsonify({
             'error': 'Subscription required',
             'success': False,
@@ -3137,13 +3183,23 @@ def api_update_inventory():
         # Import at function level to avoid UnboundLocalError
         from performance import clear_cache as clear_perf_cache
         clear_perf_cache('get_products')
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3141","message":"Before calling update_inventory","data":{"user_id":user_id},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         # Pass user_id directly to prevent recursion from accessing current_user
         result = update_inventory(user_id=user_id)
         # #region agent log
-        log_event('app.py:3107', 'update_inventory completed', {
-            'success': result.get('success') if isinstance(result, dict) else True,
-            'has_error': isinstance(result, dict) and 'error' in result
-        }, 'API_UPDATE_INVENTORY')
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3147","message":"update_inventory returned","data":{"is_dict":isinstance(result,dict),"has_success":isinstance(result,dict) and 'success' in result,"has_error":isinstance(result,dict) and 'error' in result,"result_keys":list(result.keys())[:5] if isinstance(result,dict) else []},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
         # #endregion
         if isinstance(result, dict):
             # Store inventory data in session for CSV export
@@ -3175,11 +3231,12 @@ def api_update_inventory():
 def api_generate_report():
     """Generate revenue report with detailed crash logging"""
     # #region agent log
-    log_event('app.py:3134', 'generate_report API called', {
-        'method': request.method,
-        'has_auth_header': bool(request.headers.get('Authorization')),
-        'has_shop': bool(request.args.get('shop'))
-    }, 'API_GENERATE_REPORT')
+    try:
+        import json
+        import time
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3174","message":"api_generate_report ENTRY","data":{"method":request.method,"has_auth_header":bool(request.headers.get('Authorization')),"has_shop":bool(request.args.get('shop'))},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
     # #endregion
     user_id = None
     try:
@@ -3191,6 +3248,14 @@ def api_generate_report():
         # Get authenticated user (supports both Flask-Login and session tokens)
         logging.info("Step 1: Getting authenticated user...")
         user, error_response = get_authenticated_user()
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3193","message":"After get_authenticated_user","data":{"user_found":bool(user),"has_error_response":bool(error_response)},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         if error_response:
             logging.warning("Step 1 FAILED: Authentication error")
             return error_response
@@ -3201,7 +3266,16 @@ def api_generate_report():
         user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
         logging.info(f"Step 2: User ID extracted: {user_id}")
         
-        if not user.has_access():
+        has_access = user.has_access() if user else False
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3204","message":"Access check","data":{"has_access":has_access,"user_id":user_id},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
+        if not has_access:
             logging.warning(f"Step 2 FAILED: User {user_id} does not have access")
             return jsonify({
                 'error': 'Subscription required',
@@ -3226,12 +3300,12 @@ def api_generate_report():
         from flask import session
         shop_url = request.args.get('shop') or session.get('current_shop') or None
         # #region agent log
-        log_event('app.py:3307', 'Extracting shop_url for generate_report', {
-            'shop_from_args': request.args.get('shop'),
-            'shop_from_session': session.get('current_shop'),
-            'final_shop_url': shop_url,
-            'user_id': user_id
-        }, 'SHOP_EXTRACTION')
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3227","message":"Extracting shop_url","data":{"shop_from_args":request.args.get('shop'),"shop_from_session":session.get('current_shop'),"final_shop_url":shop_url,"user_id":user_id},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
         # #endregion
         if shop_url:
             logging.info(f"Step 4: Using shop_url from request/session: {shop_url}")
@@ -3244,11 +3318,27 @@ def api_generate_report():
         # Pass user_id and shop_url to avoid recursion and ensure correct store
         logging.info("Step 4a: Imported generate_report function")
         logging.info("Step 4b: Calling generate_report(user_id={}, shop_url={})...".format(user_id, shop_url))
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3248","message":"Before calling generate_report","data":{"user_id":user_id,"shop_url":shop_url},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         
         data = generate_report(user_id=user_id, shop_url=shop_url)
         
         logging.info(f"Step 4 SUCCESS: generate_report() returned, checking results...")
         logging.info(f"Step 4 result keys: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3250","message":"generate_report returned","data":{"is_dict":isinstance(data,dict),"has_error":isinstance(data,dict) and 'error' in data,"has_message":isinstance(data,dict) and 'message' in data,"result_keys":list(data.keys())[:5] if isinstance(data,dict) else []},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         
         if data.get('error') and data['error'] is not None:
             error_msg = data['error']
