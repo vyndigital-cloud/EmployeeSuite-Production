@@ -2376,7 +2376,13 @@ def dashboard():
                     console.warn('⚠️ App Bridge not available, showing button with target="_top"');
                     // CRITICAL: Never use programmatic redirects - show button with target="_top" instead
                     // This prevents "accounts.shopify.com refused to connect" error
-                    document.body.innerHTML = '<div style="padding: 40px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; background: #fff; border-radius: 8px; max-width: 500px; margin: 40px auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"><h2 style="color: #202223; margin-bottom: 16px; font-size: 20px;">Connect Your Shopify Store</h2><p style="color: #6d7175; margin-bottom: 24px; line-height: 1.5;">Click the button below to authorize the connection. This will open in the top-level window.</p><a href="' + installUrl + '" target="_top" style="display: inline-block; background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px; transition: background 0.2s;">Continue to Shopify Authorization →</a></div>';
+                    // Use string concatenation to build HTML (not template literals to avoid f-string conflicts)
+                    var html = '<div style="padding: 40px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, \\'Segoe UI\\', Roboto, sans-serif; background: #fff; border-radius: 8px; max-width: 500px; margin: 40px auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">';
+                    html += '<h2 style="color: #202223; margin-bottom: 16px; font-size: 20px;">Connect Your Shopify Store</h2>';
+                    html += '<p style="color: #6d7175; margin-bottom: 24px; line-height: 1.5;">Click the button below to authorize the connection. This will open in the top-level window.</p>';
+                    html += '<a href="' + installUrl + '" target="_top" style="display: inline-block; background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px; transition: background 0.2s;">Continue to Shopify Authorization →</a>';
+                    html += '</div>';
+                    document.body.innerHTML = html;
                 }}
             }}
             
