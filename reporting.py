@@ -102,10 +102,10 @@ def generate_report(user_id=None, shop_url=None):
                 orders_data = client._make_request(endpoint)
                 
                 if "error" in orders_data:
-                    # If error on first request, check if it's authentication failure
+                    # If error on first request, check if it's authentication or permission failure
                     if iteration == 0:
                         error_msg = orders_data['error']
-                        # Check for auth_failed flag from ShopifyClient
+                        # Check for auth_failed flag from ShopifyClient (401)
                         if orders_data.get('auth_failed') or "Authentication failed" in error_msg or "401" in str(orders_data):
                             logger.warning(f"Authentication failed for store {store.shop_url} (user {user_id}) - marking as inactive")
                             # Mark store as inactive - user needs to reconnect
@@ -122,7 +122,19 @@ def generate_report(user_id=None, shop_url=None):
                             finally:
                                 # Session cleanup handled by teardown_appcontext
                                 pass
-                            return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>Authentication failed - Please reconnect your store</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
+                            return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Authentication failed</div><div style='margin-bottom: 12px;'>Your store connection has expired. Please reconnect your store to continue.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Reconnect Store →</a></div></div>"}
+                        # Check for permission denied (403) - missing scopes
+                        elif "Access denied" in error_msg or "403" in str(orders_data) or "permission" in error_msg.lower() or "Check your app permissions" in error_msg:
+                            logger.warning(f"Permission denied (403) for store {store.shop_url} (user {user_id}) - missing required scopes")
+                            # #region agent log
+                            try:
+                                import json
+                                import time
+                                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"PERMISSIONS","location":"reporting.py:109","message":"403 permission denied","data":{"shop_url":store.shop_url,"user_id":user_id,"error":error_msg[:200]},"timestamp":int(time.time()*1000)})+'\n')
+                            except: pass
+                            # #endregion
+                            return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Permission denied</div><div style='margin-bottom: 12px;'>Your store connection is missing required permissions. Please disconnect and reconnect your store to grant the necessary access.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Reconnect Store →</a></div></div>"}
                         return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>{orders_data['error']}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
                     # Otherwise, we've fetched all available orders
                     break
