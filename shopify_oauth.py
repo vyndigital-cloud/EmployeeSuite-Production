@@ -319,6 +319,13 @@ def install():
 @oauth_bp.route('/auth/callback')
 def callback():
     """Handle Shopify OAuth callback"""
+    # #region agent log
+    try:
+        import json
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"M","location":"shopify_oauth.py:320","message":"OAuth callback entry","data":{"shop":request.args.get('shop',''),"code":bool(request.args.get('code')),"state":request.args.get('state',''),"host":request.args.get('host',''),"full_url":request.url,"referer":request.headers.get('Referer',''),"user_agent":request.headers.get('User-Agent','')[:100]},"timestamp":int(__import__('time').time()*1000)})+'\n')
+    except: pass
+    # #endregion
     # CRITICAL: Check API credentials before proceeding
     if not SHOPIFY_API_KEY or not SHOPIFY_API_SECRET:
         logger.error("OAuth callback failed: Missing API credentials")
@@ -463,6 +470,13 @@ def callback():
         api_key = os.getenv('SHOPIFY_API_KEY', '')
         embedded_url = f"{app_url}/dashboard?shop={shop}&host={host}&embedded=1"
         logger.info(f"OAuth complete for embedded app, redirecting to: {embedded_url}")
+        # #region agent log
+        try:
+            import json
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"M","location":"shopify_oauth.py:468","message":"OAuth redirect decision","data":{"has_host":bool(host),"host":host[:50] if host else "","shop":shop,"app_url":app_url,"embedded_url":embedded_url,"api_key_present":bool(api_key)},"timestamp":int(__import__('time').time()*1000)})+'\n')
+        except: pass
+        # #endregion
         
         # Professional OAuth redirect - matches Shopify's seamless flow
         redirect_html = f"""<!DOCTYPE html>
@@ -603,6 +617,13 @@ def callback():
         return Response(redirect_html, mimetype='text/html')
     
     # Non-embedded installation - regular redirect works fine
+    # #region agent log
+    try:
+        import json
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"M","location":"shopify_oauth.py:620","message":"OAuth non-embedded redirect","data":{"shop":shop,"has_host":False,"redirect_to":"/dashboard"},"timestamp":int(__import__('time').time()*1000)})+'\n')
+    except: pass
+    # #endregion
     return redirect('/dashboard')
 
 def verify_hmac(params):
