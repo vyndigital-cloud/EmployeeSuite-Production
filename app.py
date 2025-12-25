@@ -395,15 +395,28 @@ DASHBOARD_HTML = """
             -moz-osx-font-smoothing: grayscale;
             min-height: 100vh;
             line-height: 1.5;
+            margin: 0;
+            padding: 0;
         }
         
-        /* Header - Shopify Style */
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+        
+        /* Header - Hide in embedded mode (Shopify provides navigation) */
         .header {
             background: #ffffff;
             border-bottom: 1px solid #e1e3e5;
             position: sticky;
             top: 0;
             z-index: 100;
+        }
+        
+        /* Hide header when embedded - Shopify admin has its own nav */
+        body.embedded .header {
+            display: none !important;
         }
         .header-content {
             max-width: 1200px;
@@ -457,6 +470,21 @@ DASHBOARD_HTML = """
             max-width: 1200px;
             margin: 0 auto;
             padding: 32px 24px;
+        }
+        
+        /* Adjust container padding for embedded mode */
+        body.embedded .container {
+            padding: 20px 24px;
+        }
+        
+        /* Remove footer in embedded mode */
+        body.embedded footer {
+            display: none !important;
+        }
+        
+        /* Clean up body background for embedded */
+        body.embedded {
+            background: #ffffff;
         }
         
         .page-title {
@@ -705,6 +733,11 @@ DASHBOARD_HTML = """
             // Global flag to track App Bridge readiness
             window.appBridgeReady = false;
             window.isEmbedded = !!host;
+            
+            // Add embedded class to body for CSS targeting
+            if (window.isEmbedded) {
+                document.body.classList.add('embedded');
+            }
             
             // Only load if we have host (embedded mode)
             if (!host) {
