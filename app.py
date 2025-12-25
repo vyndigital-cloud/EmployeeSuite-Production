@@ -388,12 +388,17 @@ def close_db(error):
     # Any crashes here cause segfaults (code 139) because response is already sent
     from models import db
     try:
-        # CRITICAL: Always remove session to prevent segfaults from stale connections
+        # CRITICAL: Check if session exists and is bound before removing
+        # This prevents segfaults from trying to remove a corrupted session
         try:
-            db.session.remove()
-        except Exception as e:
-            # Non-critical - session might already be removed
-            logger.debug(f"Session remove failed (non-critical): {e}")
+            # Check if session is bound (has a connection)
+            if db.session.is_active:
+                # Only remove if session is active - prevents segfaults from corrupted connections
+                db.session.remove()
+        except (AttributeError, RuntimeError, Exception) as e:
+            # Non-critical - session might already be removed or connection is corrupted
+            # Silently ignore to prevent segfaults
+            pass
         
         # CRITICAL: Disable garbage collection in teardown - it can cause segfaults
         # Let Python's automatic GC handle it instead
@@ -403,15 +408,8 @@ def close_db(error):
     except BaseException as e:
         # Catch ALL exceptions including segfault precursors (SystemExit, KeyboardInterrupt, etc.)
         # CRITICAL: Never let teardown crash - response already sent
-        try:
-            try:
-                db.session.rollback()
-            except Exception:
-                pass
-            try:
-                db.session.remove()
-            except Exception:
-                pass
+        # Silently ignore all errors to prevent segfaults
+        pass
         except Exception:
             # Even rollback/remove can fail - just log and continue
             pass
