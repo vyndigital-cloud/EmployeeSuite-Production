@@ -2041,10 +2041,18 @@ DASHBOARD_HTML = """
                     
                     if (target && target.tagName === 'A' && target.href) {
                         var href = target.href;
-                        // Only process internal links
-                        if (href.startsWith(window.location.origin) || href.startsWith('/')) {
+                        // CRITICAL: For embedded mode, convert relative URLs to absolute URLs
+                        // This prevents Shopify from interpreting them as admin paths (404 errors)
+                        if (href.startsWith('/') && !href.startsWith('//')) {
+                            // Relative URL - convert to absolute using APP_URL or current origin
+                            var appUrl = '{{ APP_URL or "" }}' || window.location.origin;
+                            href = appUrl + href;
+                            target.href = href; // Update immediately
+                        }
+                        // Only process internal links (absolute URLs to our app)
+                        if (href.startsWith(window.location.origin) || (href.startsWith('https://') && href.includes('employeesuite-production.onrender.com'))) {
                             try {
-                                var url = new URL(href, window.location.origin);
+                                var url = new URL(href);
                                 // Preserve shop and host if they exist in current URL
                                 if (shop && !url.searchParams.has('shop')) {
                                     url.searchParams.set('shop', shop);
@@ -2052,8 +2060,8 @@ DASHBOARD_HTML = """
                                 if (host && !url.searchParams.has('host')) {
                                     url.searchParams.set('host', host);
                                 }
-                                // Update the href
-                                target.href = url.pathname + url.search + (url.hash || '');
+                                // Update the href with full absolute URL
+                                target.href = url.toString();
                             } catch (err) {
                                 // If URL parsing fails, try simple string manipulation
                                 if (shop || host) {
