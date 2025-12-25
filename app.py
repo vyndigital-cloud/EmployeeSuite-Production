@@ -2643,40 +2643,40 @@ def dashboard():
         days_left = 0
         is_subscribed = False
     
-    # Check if user has connected Shopify
+    # Check if user has connected Shopify - OPTIMIZED: Single query instead of multiple
     from models import ShopifyStore
-    if user_authenticated:
-        # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
+    store = None
+    has_shopify = False
+    shop_domain = shop or ''
+    
+    # OPTIMIZED: Single database query to get store (reduces from 3-4 queries to 1)
+    try:
+        if user_authenticated:
+            # Query by user_id first (most common case)
+            store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+        elif shop:
+            # Fallback: query by shop_url for embedded apps
+            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+        
+        if store:
+            has_shopify = True
+            shop_domain = store.shop_url if hasattr(store, 'shop_url') and store.shop_url else shop_domain
+    except BaseException as e:
+        # CRITICAL: Only rollback on exception, DO NOT call db.session.remove() - it can cause segfaults
         try:
-            has_shopify = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first() is not None
-        except BaseException:
-            try:
-                db.session.rollback()
-            except Exception:
-                pass
-            finally:
-                # Removed db.session.remove() - causes segfaults
-                pass
-            has_shopify = False
-    else:
-        # For embedded apps without auth, check by shop param
+            db.session.rollback()
+        except Exception:
+            pass
+        # DO NOT call db.session.remove() here - it corrupts connection state and causes segfaults
+        store = None
         has_shopify = False
-        if shop:
-            # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
-            try:
-                store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
-            except BaseException:
-                try:
-                    db.session.rollback()
-                except Exception:
-                    pass
-                finally:
-                    # Removed db.session.remove() - causes segfaults
-                    pass
-                store = None
-            if store:
-                has_shopify = True
-        is_subscribed = False
+        # #region agent log
+        log_event('app.py:2655', 'Exception getting store', {
+            'user_authenticated': user_authenticated,
+            'shop': shop[:50] if shop else '',
+            'error': str(e)[:200]
+        }, 'DASHBOARD')
+        # #endregion
     
     # Skip slow API calls on dashboard load - just show empty stats
     # This prevents the page from hanging while waiting for Shopify API
@@ -2684,69 +2684,11 @@ def dashboard():
     quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
     
     # Store shop in session for API calls (if shop parameter is present)
-    if shop:
+    if shop_domain:
         from flask import session
-        session['current_shop'] = shop
+        session['current_shop'] = shop_domain
         session.permanent = True
-        logger.info(f"Stored shop in session: {shop} for user {current_user.id if user_authenticated else 'anonymous'}")
-    
-    # Get shop domain and API key for App Bridge initialization
-    shop_domain = shop or ''
-    if user_authenticated and has_shopify:
-        # #region agent log
-        log_event('app.py:2745', 'Getting shop domain for authenticated user', {
-            'user_authenticated': user_authenticated,
-            'has_shopify': has_shopify,
-            'user_id': current_user.id if user_authenticated else None
-        }, 'DASHBOARD')
-        # #endregion
-        try:
-            # CRITICAL: DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
-            store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
-        except BaseException as e:
-            # CRITICAL: Only rollback on exception, DO NOT call db.session.remove() - it can cause segfaults
-            # Let SQLAlchemy's pool_pre_ping handle connection validation automatically
-            try:
-                db.session.rollback()
-            except Exception:
-                pass
-            # DO NOT call db.session.remove() here - it corrupts connection state and causes segfaults
-            store = None
-            # #region agent log
-            log_event('app.py:2755', 'Exception getting store for user', {
-                'user_id': current_user.id if user_authenticated else None,
-                'error': str(e)[:200]
-            }, 'DASHBOARD')
-            # #endregion
-        if store:
-            shop_domain = store.shop_url
-            # Also store in session if not already set
-            if shop_domain and not shop:
-                from flask import session
-                session['current_shop'] = shop_domain
-                session.permanent = True
-    elif shop and has_shopify:
-        store = None
-        # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
-        try:
-            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
-        except BaseException as e:
-            # CRITICAL: Only rollback on exception, DO NOT call db.session.remove() - it can cause segfaults
-            # Let SQLAlchemy's pool_pre_ping handle connection validation automatically
-            try:
-                db.session.rollback()
-            except Exception:
-                pass
-            # DO NOT call db.session.remove() here - it corrupts connection state and causes segfaults
-            store = None
-            # #region agent log
-            log_event('app.py:2778', 'Exception getting store by shop_url', {
-                'shop': shop[:50] if shop else '',
-                'error': str(e)[:200]
-            }, 'DASHBOARD')
-            # #endregion
-        if store and hasattr(store, 'shop_url') and store.shop_url:
-            shop_domain = store.shop_url
+        logger.info(f"Stored shop in session: {shop_domain} for user {current_user.id if user_authenticated else 'anonymous'}")
     
     # CRITICAL: Pass host parameter to template for App Bridge initialization
     host_param = request.args.get('host', '')
