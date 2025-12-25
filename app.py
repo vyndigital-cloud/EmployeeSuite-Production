@@ -2022,6 +2022,59 @@ DASHBOARD_HTML = """
                 'page_location': window.location.href
             });
         }
+        
+        // CRITICAL: Preserve shop and host parameters when clicking links in embedded mode
+        // This ensures navigation doesn't lose the embedded context
+        (function() {
+            if (window.isEmbedded) {
+                var urlParams = new URLSearchParams(window.location.search);
+                var shop = urlParams.get('shop');
+                var host = urlParams.get('host');
+                
+                // Intercept all link clicks and preserve shop/host parameters
+                document.addEventListener('click', function(e) {
+                    var target = e.target;
+                    // Find the closest anchor tag
+                    while (target && target.tagName !== 'A') {
+                        target = target.parentElement;
+                    }
+                    
+                    if (target && target.tagName === 'A' && target.href) {
+                        var href = target.href;
+                        // Only process internal links
+                        if (href.startsWith(window.location.origin) || href.startsWith('/')) {
+                            try {
+                                var url = new URL(href, window.location.origin);
+                                // Preserve shop and host if they exist in current URL
+                                if (shop && !url.searchParams.has('shop')) {
+                                    url.searchParams.set('shop', shop);
+                                }
+                                if (host && !url.searchParams.has('host')) {
+                                    url.searchParams.set('host', host);
+                                }
+                                // Update the href
+                                target.href = url.pathname + url.search + (url.hash || '');
+                            } catch (err) {
+                                // If URL parsing fails, try simple string manipulation
+                                if (shop || host) {
+                                    var separator = href.includes('?') ? '&' : '?';
+                                    var params = [];
+                                    if (shop && !href.includes('shop=')) {
+                                        params.push('shop=' + encodeURIComponent(shop));
+                                    }
+                                    if (host && !href.includes('host=')) {
+                                        params.push('host=' + encodeURIComponent(host));
+                                    }
+                                    if (params.length > 0) {
+                                        target.href = href + separator + params.join('&');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }, true); // Use capture phase to catch all clicks
+            }
+        })();
     </script>
 
     <footer style="margin-top: 64px; padding: 32px 24px; border-top: 1px solid #e1e3e5; text-align: center; background: #ffffff;">
@@ -2277,6 +2330,7 @@ def home():
                                          has_shopify=has_shopify, 
                                          has_access=has_access,
                                          quick_stats=quick_stats,
+                                         shop=shop_param,
                                          shop_domain=shop_domain,
                                          SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
                                          host=host_param)
