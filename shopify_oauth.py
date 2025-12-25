@@ -331,7 +331,6 @@ def callback():
     logger.info(f"OAUTH DEBUG: Shop: {shop}")
     
     access_token = exchange_code_for_token(shop, code)
-    
     if not access_token:
         return "Failed to get access token", 500
     
