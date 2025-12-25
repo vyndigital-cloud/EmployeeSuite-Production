@@ -2406,19 +2406,42 @@ def dashboard():
     # CRITICAL: If embedded but no shop param, try to extract from Referer
     if is_embedded and not shop and is_from_shopify_admin:
         try:
-            from urllib.parse import urlparse
+            from urllib.parse import urlparse, parse_qs
             parsed = urlparse(referer)
+            # Try extracting from netloc (e.g., employee-suite.myshopify.com)
             if 'myshopify.com' in parsed.netloc:
                 shop = parsed.netloc.split('.')[0] + '.myshopify.com'
+                logger.info(f"Extracted shop from Referer netloc: {shop}")
+            # Try extracting from path (e.g., /store/employee-suite/...)
             elif '/store/' in parsed.path:
                 shop_name = parsed.path.split('/store/')[1].split('/')[0]
                 shop = f"{shop_name}.myshopify.com"
-        except Exception:
+                logger.info(f"Extracted shop from Referer path: {shop}")
+            # Try extracting from query params in Referer
+            elif parsed.query:
+                query_params = parse_qs(parsed.query)
+                if 'shop' in query_params:
+                    shop = query_params['shop'][0]
+                    logger.info(f"Extracted shop from Referer query: {shop}")
+        except Exception as e:
+            logger.warning(f"Failed to extract shop from Referer: {e}")
             pass
     
-    # CRITICAL: For embedded apps without shop, redirect to OAuth immediately
+    # #region agent log
+    log_event('app.py:2420', 'Dashboard shop extraction check', {
+        'is_embedded': is_embedded,
+        'has_shop_after_extraction': bool(shop),
+        'shop': shop[:50] if shop else '',
+        'has_referer': bool(referer),
+        'referer': referer[:100] if referer else '',
+        'is_from_shopify_admin': is_from_shopify_admin
+    }, 'DASHBOARD')
+    # #endregion
+    
+    # CRITICAL: For embedded apps without shop, show install message
+    # But don't redirect - just show a helpful message
     if is_embedded and not shop:
-        logger.warning(f"Embedded app request but no shop param found - redirecting to install")
+        logger.warning(f"Embedded app request but no shop param found - showing install message")
         # Can't redirect to OAuth without shop, show install message
         # render_template_string is already imported at top of file
         return render_template_string("""
