@@ -706,6 +706,10 @@ def register_compliance_webhooks(shop, access_token):
             response = requests.post(url, json=payload, headers=headers, timeout=10)
             if response.status_code in [200, 201]:
                 logger.info(f"Successfully registered compliance webhook: {webhook['topic']} for shop {shop}")
+            elif response.status_code == 404:
+                # GDPR compliance webhooks must be registered in Partners Dashboard, not via Admin API
+                # This is expected for Partner apps - webhooks are already configured in app manifest
+                logger.debug(f"Compliance webhook {webhook['topic']} not available via Admin API (expected for Partner apps - register in Partners Dashboard)")
             else:
                 logger.warning(f"Failed to register webhook {webhook['topic']}: {response.status_code} - {response.text}")
         except Exception as e:
