@@ -431,16 +431,23 @@ def install():
 @oauth_bp.route('/auth/callback')
 def callback():
     """Handle Shopify OAuth callback"""
+    # CRITICAL: Check API credentials before proceeding
+    if not SHOPIFY_API_KEY or not SHOPIFY_API_SECRET:
+        logger.error("OAuth callback failed: Missing API credentials")
+        return "Configuration error: API credentials not set", 500
+    
     shop = request.args.get('shop')
     code = request.args.get('code')
     state = request.args.get('state')
     
     if not shop or not code:
+        logger.error(f"OAuth callback failed: Missing parameters - shop={bool(shop)}, code={bool(code)}")
         return "Missing required parameters", 400
     
     # Verify HMAC
     hmac_verified = verify_hmac(request.args)
     if not hmac_verified:
+        logger.error("OAuth callback failed: HMAC verification failed")
         return "HMAC verification failed", 403
     
     # Exchange code for access token
