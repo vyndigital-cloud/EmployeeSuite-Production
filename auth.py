@@ -341,7 +341,9 @@ def login():
         # Note: redirect and url_for are already imported at top of file
         install_url = url_for('oauth.install', shop=shop, host=host) if host else url_for('oauth.install', shop=shop)
         logger.info(f"Embedded app login request - redirecting to OAuth: {install_url}")
-        return redirect(install_url)
+        # Use safe_redirect for embedded apps to break out of iframe
+        from app import safe_redirect
+        return safe_redirect(install_url, shop=shop, host=host)
     
     # If embedded but no shop found, show error message instead of login form
     if is_embedded:
@@ -420,7 +422,10 @@ def login():
                 params = {'shop': shop, 'embedded': '1'}
                 if host:
                     params['host'] = host
-                return redirect(url_for('dashboard', **params))
+                dashboard_url = url_for('dashboard', **params)
+                # Use safe_redirect for embedded apps to break out of iframe
+                from app import safe_redirect
+                return safe_redirect(dashboard_url, shop=shop, host=host)
             # For standalone, redirect to dashboard
             # CRITICAL: Ensure session is saved before redirect
             try:
@@ -473,10 +478,19 @@ def register():
         
         # Register: Use remember cookie for standalone, session tokens for embedded
         is_embedded = request.args.get('embedded') == '1' or request.args.get('host')
+        shop = request.args.get('shop')
+        host = request.args.get('host')
         login_user(new_user, remember=not is_embedded)  # No remember cookie in embedded mode
         session.permanent = True
         session.modified = True  # Force immediate session save (Safari compatibility)
-        return redirect(url_for('dashboard'))
+        dashboard_url = url_for('dashboard')
+        if shop:
+            dashboard_url += f'?shop={shop}'
+            if host:
+                dashboard_url += f'&host={host}&embedded=1'
+        # Use safe_redirect for embedded apps to break out of iframe
+        from app import safe_redirect
+        return safe_redirect(dashboard_url, shop=shop, host=host)
     
     return render_template_string(REGISTER_HTML)
 

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template_string, request, redirect, url_for, flash
+from flask import Blueprint, render_template_string, request, redirect, url_for, flash, Response
 from flask_login import login_required, current_user
 from models import db, ShopifyStore
 from access_control import require_access
@@ -7,6 +7,43 @@ from session_token_verification import verify_session_token
 from logging_config import logger
 
 shopify_bp = Blueprint('shopify', __name__)
+
+def safe_redirect(url, shop=None, host=None):
+    """
+    Safe redirect that works in both embedded and standalone contexts.
+    For embedded apps, uses window.top.location.href to break out of iframe.
+    For standalone, uses regular Flask redirect.
+    """
+    # Check if we're in an embedded context
+    is_embedded = bool(host) or bool(shop) or request.args.get('embedded') == '1'
+    
+    if is_embedded:
+        # Embedded app - use window.top.location.href to break out of iframe
+        redirect_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Redirecting...</title>
+    <script>
+        // Break out of iframe immediately
+        if (window.top !== window.self) {{
+            window.top.location.href = '{url}';
+        }} else {{
+            window.location.href = '{url}';
+        }}
+    </script>
+    <noscript>
+        <meta http-equiv="refresh" content="0;url={url}">
+    </noscript>
+</head>
+<body>
+    <p>Redirecting... <a href="{url}">Click here if not redirected</a></p>
+</body>
+</html>"""
+        return Response(redirect_html, mimetype='text/html')
+    else:
+        # Standalone - use regular Flask redirect
+        return redirect(url)
 
 SETTINGS_HTML = '''
 <!DOCTYPE html>
@@ -468,11 +505,13 @@ def connect_store():
         pass
     
     if not user:
-        return redirect(url_for('shopify.shopify_settings', error='Authentication required', shop=shop, host=host))
+        settings_url = url_for('shopify.shopify_settings', error='Authentication required', shop=shop, host=host)
+        return safe_redirect(settings_url, shop=shop, host=host)
     
     # Input validation
     if not shop_url or not access_token:
-        return redirect(url_for('shopify.shopify_settings', error='Store URL and access token are required.', shop=shop, host=host))
+        settings_url = url_for('shopify.shopify_settings', error='Store URL and access token are required.', shop=shop, host=host)
+        return safe_redirect(settings_url, shop=shop, host=host)
     
     # Sanitize and validate shop URL
     shop_url = sanitize_input(shop_url)
@@ -481,11 +520,13 @@ def connect_store():
     
     # Validate Shopify URL format
     if not validate_url(shop_url):
-        return redirect(url_for('shopify.shopify_settings', error='Invalid Shopify store URL format. Use: yourstore.myshopify.com', shop=shop, host=host))
+        settings_url = url_for('shopify.shopify_settings', error='Invalid Shopify store URL format. Use: yourstore.myshopify.com', shop=shop, host=host)
+        return safe_redirect(settings_url, shop=shop, host=host)
     
     # Validate access token (basic check - should be non-empty)
     if len(access_token) < 10:
-        return redirect(url_for('shopify.shopify_settings', error='Invalid access token format.', shop=shop, host=host))
+        settings_url = url_for('shopify.shopify_settings', error='Invalid access token format.', shop=shop, host=host)
+        return safe_redirect(settings_url, shop=shop, host=host)
     
     # WARNING: Manual access tokens from old apps won't work with new Partners API key
     # Recommend OAuth instead
@@ -493,7 +534,8 @@ def connect_store():
     logger.warning(f"NOTE: Manual tokens from old apps may not work with new Partners API key. OAuth is recommended.")
     
     if ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first():
-        return redirect(url_for('shopify.shopify_settings', error='You already have a connected store. Disconnect it first.', shop=shop, host=host))
+        settings_url = url_for('shopify.shopify_settings', error='You already have a connected store. Disconnect it first.', shop=shop, host=host)
+        return safe_redirect(settings_url, shop=shop, host=host)
     
     # Validate the access_token works with current API key by testing a simple API call
     try:
@@ -509,12 +551,14 @@ def connect_store():
         if test_response.status_code == 401:
             # Invalid token - might be from old app
             logger.warning(f"Access token test failed (401) for {shop_url} - likely from old app")
-            return redirect(url_for('shopify.shopify_settings', 
-                                  error='This access token appears to be invalid or from an old app. Please use the "Quick Connect" OAuth method above instead.', shop=shop, host=host))
+            settings_url = url_for('shopify.shopify_settings', 
+                                  error='This access token appears to be invalid or from an old app. Please use the "Quick Connect" OAuth method above instead.', shop=shop, host=host)
+            return safe_redirect(settings_url, shop=shop, host=host)
         elif test_response.status_code != 200:
             logger.warning(f"Access token test failed ({test_response.status_code}) for {shop_url}")
-            return redirect(url_for('shopify.shopify_settings', 
-                                  error=f'Access token validation failed (HTTP {test_response.status_code}). Please use the "Quick Connect" OAuth method instead.', shop=shop, host=host))
+            settings_url = url_for('shopify.shopify_settings', 
+                                  error=f'Access token validation failed (HTTP {test_response.status_code}). Please use the "Quick Connect" OAuth method instead.', shop=shop, host=host)
+            return safe_redirect(settings_url, shop=shop, host=host)
     except Exception as e:
         logger.error(f"Error validating access token: {e}", exc_info=True)
         # Continue anyway - validation is optional
@@ -531,7 +575,8 @@ def connect_store():
     db.session.commit()
     
     logger.info(f"Manual access token connection successful for {shop_url} by user {user.id}")
-    return redirect(url_for('shopify.shopify_settings', success='Store connected successfully!', shop=shop, host=host))
+    settings_url = url_for('shopify.shopify_settings', success='Store connected successfully!', shop=shop, host=host)
+    return safe_redirect(settings_url, shop=shop, host=host)
 
 @shopify_bp.route('/settings/shopify/disconnect', methods=['POST'])
 def disconnect_store():
@@ -553,7 +598,8 @@ def disconnect_store():
         pass
     
     if not user:
-        return redirect(url_for('shopify.shopify_settings', error='Authentication required', shop=shop, host=host))
+        settings_url = url_for('shopify.shopify_settings', error='Authentication required', shop=shop, host=host)
+        return safe_redirect(settings_url, shop=shop, host=host)
     
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if store:
@@ -562,15 +608,18 @@ def disconnect_store():
             store.disconnect()
             db.session.commit()
             logger.info(f"Store {store.shop_url} disconnected and access_token cleared for user {user.id}")
-            return redirect(url_for('shopify.shopify_settings', success='Store disconnected successfully! You can now reconnect with the new Partners app.', shop=shop, host=host))
+            settings_url = url_for('shopify.shopify_settings', success='Store disconnected successfully! You can now reconnect with the new Partners app.', shop=shop, host=host)
+            return safe_redirect(settings_url, shop=shop, host=host)
         except Exception as e:
             logger.error(f"Error disconnecting store: {e}", exc_info=True)
             try:
                 db.session.rollback()
             except Exception:
                 pass
-            return redirect(url_for('shopify.shopify_settings', error='Error disconnecting store. Please try again.', shop=shop, host=host))
-    return redirect(url_for('shopify.shopify_settings', error='No active store found.', shop=shop, host=host))
+            settings_url = url_for('shopify.shopify_settings', error='Error disconnecting store. Please try again.', shop=shop, host=host)
+            return safe_redirect(settings_url, shop=shop, host=host)
+    settings_url = url_for('shopify.shopify_settings', error='No active store found.', shop=shop, host=host)
+    return safe_redirect(settings_url, shop=shop, host=host)
 
 @shopify_bp.route('/settings/shopify/cancel', methods=['POST'])
 def cancel_subscription():
@@ -595,21 +644,25 @@ def cancel_subscription():
         pass
     
     if not user:
-        return redirect(url_for('shopify.shopify_settings', error='Authentication required', shop=shop, host=host))
+        settings_url = url_for('shopify.shopify_settings', error='Authentication required', shop=shop, host=host)
+        return safe_redirect(settings_url, shop=shop, host=host)
     
     if not user.is_subscribed:
-        return redirect(url_for('shopify.shopify_settings', error='No active subscription found.', shop=shop, host=host))
+        settings_url = url_for('shopify.shopify_settings', error='No active subscription found.', shop=shop, host=host)
+        return safe_redirect(settings_url, shop=shop, host=host)
     
     # Get user's Shopify store
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if not store:
-        return redirect(url_for('shopify.shopify_settings', error='No Shopify store connected.', shop=shop, host=host))
+        settings_url = url_for('shopify.shopify_settings', error='No Shopify store connected.', shop=shop, host=host)
+        return safe_redirect(settings_url, shop=shop, host=host)
     
     if not store.charge_id:
         # No charge_id but marked as subscribed - just update the flag
         user.is_subscribed = False
         db.session.commit()
-        return redirect(url_for('shopify.shopify_settings', success='Subscription status updated.', shop=shop, host=host))
+        settings_url = url_for('shopify.shopify_settings', success='Subscription status updated.', shop=shop, host=host)
+        return safe_redirect(settings_url, shop=shop, host=host)
     
     try:
         # Cancel via Shopify Billing API
@@ -637,14 +690,18 @@ def cancel_subscription():
             except Exception as e:
                 logger.error(f"Failed to send cancellation email: {e}")
             
-            return redirect(url_for('shopify.shopify_settings', success='Subscription cancelled successfully. You will retain access until the end of your billing period.', shop=shop, host=host))
+            settings_url = url_for('shopify.shopify_settings', success='Subscription cancelled successfully. You will retain access until the end of your billing period.', shop=shop, host=host)
+            return safe_redirect(settings_url, shop=shop, host=host)
         else:
             logger.error(f"Failed to cancel Shopify subscription: {response.status_code} - {response.text}")
-            return redirect(url_for('shopify.shopify_settings', error='Failed to cancel subscription. Please try again or contact support.', shop=shop, host=host))
+            settings_url = url_for('shopify.shopify_settings', error='Failed to cancel subscription. Please try again or contact support.', shop=shop, host=host)
+            return safe_redirect(settings_url, shop=shop, host=host)
         
     except requests.exceptions.RequestException as e:
         logger.error(f"Request error during cancellation: {e}")
-        return redirect(url_for('shopify.shopify_settings', error=f'Network error: {str(e)}', shop=shop, host=host))
+        settings_url = url_for('shopify.shopify_settings', error=f'Network error: {str(e)}', shop=shop, host=host)
+        return safe_redirect(settings_url, shop=shop, host=host)
     except Exception as e:
         logger.error(f"Unexpected error during cancellation: {e}")
-        return redirect(url_for('shopify.shopify_settings', error='An unexpected error occurred. Please contact support.', shop=shop, host=host))
+        settings_url = url_for('shopify.shopify_settings', error='An unexpected error occurred. Please contact support.', shop=shop, host=host)
+        return safe_redirect(settings_url, shop=shop, host=host)

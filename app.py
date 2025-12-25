@@ -46,7 +46,44 @@ if os.getpid() != 1:  # Not the main process (PID 1 is usually the main process)
     except Exception:
         pass
 
-from flask import Flask, jsonify, render_template_string, redirect, url_for, request, session
+from flask import Flask, jsonify, render_template_string, redirect, url_for, request, session, Response
+
+def safe_redirect(url, shop=None, host=None):
+    """
+    Safe redirect that works in both embedded and standalone contexts.
+    For embedded apps, uses window.top.location.href to break out of iframe.
+    For standalone, uses regular Flask redirect.
+    """
+    # Check if we're in an embedded context
+    is_embedded = bool(host) or bool(shop) or request.args.get('embedded') == '1'
+    
+    if is_embedded:
+        # Embedded app - use window.top.location.href to break out of iframe
+        redirect_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Redirecting...</title>
+    <script>
+        // Break out of iframe immediately
+        if (window.top !== window.self) {{
+            window.top.location.href = '{url}';
+        }} else {{
+            window.location.href = '{url}';
+        }}
+    </script>
+    <noscript>
+        <meta http-equiv="refresh" content="0;url={url}">
+    </noscript>
+</head>
+<body>
+    <p>Redirecting... <a href="{url}">Click here if not redirected</a></p>
+</body>
+</html>"""
+        return Response(redirect_html, mimetype='text/html')
+    else:
+        # Standalone - use regular Flask redirect
+        return redirect(url)
 from flask_login import LoginManager, login_required, current_user, login_user
 from flask_bcrypt import Bcrypt
 import logging
@@ -217,30 +254,11 @@ def unauthorized():
     
     # CRITICAL: For embedded apps, redirect to OAuth (Shopify's embedded auth flow)
     # DO NOT redirect to login form - embedded apps use OAuth
-    # CRITICAL: Never use server-side redirect() - it causes iframe to load accounts.shopify.com
-    # Instead, redirect to /install route which handles App Bridge redirect properly
     if embedded == '1' or (shop and host):
         if shop:
             install_url = url_for('oauth.install', shop=shop, host=host) if host else url_for('oauth.install', shop=shop)
             logger.info(f"Unauthorized embedded app request - redirecting to OAuth via install route: {install_url}")
-            # Use client-side redirect by rendering HTML that loads the install route
-            # The install route will handle App Bridge redirect properly
-            from flask import render_template_string
-            return render_template_string(f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <title>Redirecting...</title>
-                <script>
-                    window.location.href = '{install_url}';
-                </script>
-            </head>
-            <body>
-                <p>Redirecting...</p>
-            </body>
-            </html>
-            """)
+            return safe_redirect(install_url, shop=shop, host=host)
     
     # For standalone access, redirect to login form
     return redirect(url_for('auth.login'))
@@ -2218,7 +2236,15 @@ def home():
     # Regular (non-embedded) request handling
     if current_user.is_authenticated:
         # If user is authenticated, always go to dashboard (even if embedded params missing)
-        return redirect(url_for('dashboard'))
+        # Check if we have embedded params to preserve them
+        shop_param = request.args.get('shop')
+        host_param = request.args.get('host')
+        dashboard_url = url_for('dashboard')
+        if shop_param:
+            dashboard_url += f'?shop={shop_param}'
+            if host_param:
+                dashboard_url += f'&host={host_param}&embedded=1'
+        return safe_redirect(dashboard_url, shop=shop_param, host=host_param)
     
     # Check if this might be an embedded request that lost its params
     # If referer is from Shopify admin, treat as embedded
