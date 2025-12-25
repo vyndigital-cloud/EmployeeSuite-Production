@@ -12,6 +12,13 @@ oauth_bp = Blueprint('oauth', __name__)
 
 SHOPIFY_API_KEY = os.getenv('SHOPIFY_API_KEY')
 SHOPIFY_API_SECRET = os.getenv('SHOPIFY_API_SECRET')
+
+# CRITICAL: Validate API credentials are set
+if not SHOPIFY_API_KEY:
+    logger.error("❌ CRITICAL: SHOPIFY_API_KEY environment variable is not set! OAuth will fail.")
+if not SHOPIFY_API_SECRET:
+    logger.error("❌ CRITICAL: SHOPIFY_API_SECRET environment variable is not set! OAuth will fail.")
+
 # App Store required scopes - only request what you need (Shopify requirement)
 SCOPES = 'read_products,read_inventory,read_orders'
 REDIRECT_URI = os.getenv('SHOPIFY_REDIRECT_URI', 'https://employeesuite-production.onrender.com/auth/callback')
@@ -22,6 +29,60 @@ ACCESS_MODE = 'offline'
 @oauth_bp.route('/install')
 def install():
     """Initiate Shopify OAuth - Professional error handling"""
+    # CRITICAL: Check API credentials before proceeding
+    if not SHOPIFY_API_KEY or not SHOPIFY_API_SECRET:
+        from flask import render_template_string
+        logger.error("OAuth install failed: Missing API credentials")
+        return render_template_string("""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Configuration Error - Employee Suite</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                    margin: 0;
+                    background: #f6f6f7;
+                }
+                .container {
+                    text-align: center;
+                    padding: 40px 24px;
+                    max-width: 500px;
+                }
+                .error-icon {
+                    font-size: 48px;
+                    margin-bottom: 16px;
+                }
+                .title {
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #d72c0d;
+                    margin-bottom: 12px;
+                }
+                .message {
+                    font-size: 14px;
+                    color: #6d7175;
+                    line-height: 1.5;
+                    margin-bottom: 24px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="error-icon">⚠️</div>
+                <div class="title">Configuration Error</div>
+                <div class="message">SHOPIFY_API_KEY or SHOPIFY_API_SECRET is not set. Please check your deployment environment variables.</div>
+            </div>
+        </body>
+        </html>
+        """), 500
+    
     shop = request.args.get('shop', '').strip()
     
     if not shop:
