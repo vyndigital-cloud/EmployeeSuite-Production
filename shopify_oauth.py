@@ -280,12 +280,31 @@ def install():
                         }});
                         
                         // Use App Bridge Redirect to navigate top-level window
+                        // CRITICAL: Use REMOTE action to redirect top-level window, not iframe
                         var Redirect = AppBridge.actions.Redirect;
                         var redirect = Redirect.create(app);
+                        
+                        // CRITICAL: Use REMOTE action - this redirects the top-level window, not the iframe
                         redirect.dispatch(Redirect.Action.REMOTE, '{full_auth_url}');
                         
                         redirected = true;
-                        console.log('✅ Using App Bridge Redirect to:', '{full_auth_url}');
+                        console.log('✅ Using App Bridge Redirect.REMOTE to:', '{full_auth_url}');
+                        
+                        // Also set a backup timeout in case REMOTE doesn't work
+                        setTimeout(function() {{
+                            // If still in iframe after 2 seconds, force top-level redirect
+                            if (window.top && window.top !== window) {{
+                                console.warn('⚠️ Still in iframe after App Bridge redirect, forcing top-level redirect');
+                                try {{
+                                    window.top.location.href = '{full_auth_url}';
+                                }} catch (e) {{
+                                    console.error('❌ Top-level redirect blocked:', e);
+                                    // Show manual link as last resort
+                                    document.body.innerHTML = '<div style="padding: 40px; text-align: center; font-family: sans-serif;"><h2>Redirect Required</h2><p>Your browser blocked the automatic redirect. Please <a href="{full_auth_url}" target="_top">click here</a> to continue.</p></div>';
+                                }}
+                            }}
+                        }}, 2000);
+                        
                         return;
                     }}
                 }} catch (e) {{
@@ -308,22 +327,44 @@ def install():
                 
                 console.log('🔄 Using fallback redirect method');
                 
-                // CRITICAL: Use window.top.location for embedded, window.location for standalone
+                // CRITICAL: Always redirect top-level window, never iframe
+                // This prevents "accounts.shopify.com refused to connect" error
                 try {{
                     // Check if we're in an iframe
                     if (window.top && window.top !== window) {{
-                        // We're in an iframe - redirect top window
-                        console.log('Redirecting top window to:', '{full_auth_url}');
-                        window.top.location.href = '{full_auth_url}';
+                        // We're in an iframe - MUST redirect top window, not iframe
+                        console.log('🔄 Redirecting top-level window (not iframe) to:', '{full_auth_url}');
+                        
+                        // Try multiple methods to ensure top-level redirect
+                        try {{
+                            // Method 1: Direct top location
+                            window.top.location.href = '{full_auth_url}';
+                        }} catch (e1) {{
+                            console.warn('Method 1 failed, trying method 2:', e1);
+                            try {{
+                                // Method 2: Replace location
+                                window.top.location.replace('{full_auth_url}');
+                            }} catch (e2) {{
+                                console.warn('Method 2 failed, trying method 3:', e2);
+                                try {{
+                                    // Method 3: Assign location
+                                    window.top.location = '{full_auth_url}';
+                                }} catch (e3) {{
+                                    console.error('All redirect methods failed:', e3);
+                                    // Last resort: show message with target="_top" link
+                                    document.body.innerHTML = '<div style="padding: 40px; text-align: center; font-family: sans-serif; background: #fff; border-radius: 8px; max-width: 500px; margin: 40px auto;"><h2 style="color: #202223; margin-bottom: 16px;">Redirect Required</h2><p style="color: #6d7175; margin-bottom: 24px;">Your browser blocked the automatic redirect. Please click the button below to continue.</p><a href="{full_auth_url}" target="_top" style="display: inline-block; background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">Continue to Shopify Authorization</a></div>';
+                                }}
+                            }}
+                        }}
                     }} else {{
                         // Standalone - redirect current window
                         console.log('Redirecting current window to:', '{full_auth_url}');
                         window.location.href = '{full_auth_url}';
                     }}
                 }} catch (e) {{
-                    console.error('❌ Redirect failed:', e);
-                    // Last resort: show message and link
-                    document.body.innerHTML = '<div style="padding: 40px; text-align: center; font-family: sans-serif;"><h2>Redirect Required</h2><p>Please <a href="{full_auth_url}">click here</a> to continue.</p></div>';
+                    console.error('❌ All redirect methods failed:', e);
+                    // Last resort: show message and link with target="_top"
+                    document.body.innerHTML = '<div style="padding: 40px; text-align: center; font-family: sans-serif; background: #fff; border-radius: 8px; max-width: 500px; margin: 40px auto;"><h2 style="color: #202223; margin-bottom: 16px;">Redirect Required</h2><p style="color: #6d7175; margin-bottom: 24px;">Please click the button below to authorize the connection.</p><a href="{full_auth_url}" target="_top" style="display: inline-block; background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">Continue to Shopify Authorization</a></div>';
                 }}
             }}
             

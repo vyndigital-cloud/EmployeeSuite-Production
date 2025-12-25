@@ -2336,12 +2336,14 @@ def dashboard():
                 attempts++;
                 var AppBridge = window['app-bridge'] || window['ShopifyAppBridge'] || window.appBridge;
                 
-                if (AppBridge && host && apiKey) {{
+                if (AppBridge && host && apiKey && AppBridge.default && AppBridge.actions && AppBridge.actions.Redirect) {{
                     try {{
-                        var app = AppBridge.default ? AppBridge.default({{ apiKey: apiKey, host: host }}) : AppBridge.create({{ apiKey: apiKey, host: host }});
+                        var app = AppBridge.default({{ apiKey: apiKey, host: host }});
                         var Redirect = AppBridge.actions.Redirect;
                         var redirect = Redirect.create(app);
+                        // CRITICAL: Use REMOTE action to redirect top-level window, not iframe
                         redirect.dispatch(Redirect.Action.REMOTE, installUrl);
+                        console.log('✅ App Bridge REMOTE redirect dispatched to:', installUrl);
                         return;
                     }} catch (e) {{
                         console.error('App Bridge redirect error:', e);
@@ -2352,10 +2354,20 @@ def dashboard():
                 if (attempts < maxAttempts) {{
                     setTimeout(redirectToOAuth, 100);
                 }} else {{
-                    if (window.top && window.top !== window) {{
-                        window.top.location.href = installUrl;
-                    }} else {{
-                        window.location.href = installUrl;
+                    console.warn('⚠️ App Bridge not available, using fallback redirect');
+                    // CRITICAL: Always redirect top-level window, never iframe
+                    try {{
+                        if (window.top && window.top !== window) {{
+                            console.log('Redirecting top-level window to:', installUrl);
+                            window.top.location.href = installUrl;
+                        }} else {{
+                            console.log('Redirecting current window to:', installUrl);
+                            window.location.href = installUrl;
+                        }}
+                    }} catch (e) {{
+                        console.error('❌ Redirect failed:', e);
+                        // Show manual link with target="_top" as last resort
+                        document.body.innerHTML = '<div style="padding: 40px; text-align: center; font-family: sans-serif; background: #fff; border-radius: 8px; max-width: 500px; margin: 40px auto;"><h2 style="color: #202223; margin-bottom: 16px;">Redirect Required</h2><p style="color: #6d7175; margin-bottom: 24px;">Please click the button below to continue.</p><a href="' + installUrl + '" target="_top" style="display: inline-block; background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">Continue</a></div>';
                     }}
                 }}
             }}
