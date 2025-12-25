@@ -28,6 +28,26 @@ class ShopifyClient:
         for attempt in range(retries):
             try:
                 response = requests.get(url, headers=headers, timeout=10)  # Reduced for faster failures
+                # CRITICAL: Check status code BEFORE raise_for_status to handle 403 properly
+                status_code = response.status_code
+                if status_code == 403:
+                    # Permission denied - missing scopes
+                    error_detail = "Access denied - Missing required permissions"
+                    try:
+                        error_data = response.json()
+                        if isinstance(error_data, dict):
+                            errors = error_data.get('errors', {})
+                            if isinstance(errors, dict):
+                                error_detail = errors.get('base', [error_detail])
+                                if isinstance(error_detail, list):
+                                    error_detail = error_detail[0] if error_detail else "Access denied - Missing required permissions"
+                            elif isinstance(errors, str):
+                                error_detail = errors
+                        elif isinstance(error_data, str):
+                            error_detail = error_data
+                    except (ValueError, AttributeError, TypeError):
+                        pass
+                    return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
                 response.raise_for_status()
                 return response.json()
             except requests.exceptions.Timeout:
@@ -129,6 +149,26 @@ class ShopifyClient:
         for attempt in range(retries):
             try:
                 response = requests.post(url, json=payload, headers=headers, timeout=10)  # Reduced from 15s for faster failures
+                # CRITICAL: Check status code BEFORE raise_for_status to handle 403 properly
+                status_code = response.status_code
+                if status_code == 403:
+                    # Permission denied - missing scopes
+                    error_detail = "Access denied - Missing required permissions"
+                    try:
+                        error_data = response.json()
+                        if isinstance(error_data, dict):
+                            errors = error_data.get('errors', {})
+                            if isinstance(errors, dict):
+                                error_detail = errors.get('base', [error_detail])
+                                if isinstance(error_detail, list):
+                                    error_detail = error_detail[0] if error_detail else "Access denied - Missing required permissions"
+                            elif isinstance(errors, str):
+                                error_detail = errors
+                        elif isinstance(error_data, str):
+                            error_detail = error_data
+                    except (ValueError, AttributeError, TypeError):
+                        pass
+                    return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
                 response.raise_for_status()
                 return response.json()
             except requests.exceptions.Timeout:
