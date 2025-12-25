@@ -1414,8 +1414,10 @@ DASHBOARD_HTML = """
                 });
             } else {
                 // Not embedded - use regular fetch (Flask-Login handles auth)
+                // CRITICAL: Include credentials (cookies) for standalone access
                 fetchPromise = fetch('/api/process_orders', {
-                    signal: controller.signal
+                    signal: controller.signal,
+                    credentials: 'include'  // Include cookies for Flask-Login
                 });
             }
             
@@ -1595,8 +1597,10 @@ DASHBOARD_HTML = """
                 });
             } else {
                 // Not embedded - use regular fetch (Flask-Login handles auth)
+                // CRITICAL: Include credentials (cookies) for standalone access
                 fetchPromise = fetch('/api/update_inventory', {
-                    signal: controller.signal
+                    signal: controller.signal,
+                    credentials: 'include'  // Include cookies for Flask-Login
                 });
             }
             
@@ -1797,11 +1801,13 @@ DASHBOARD_HTML = """
                 });
             } else {
                 // Not embedded - use regular fetch (Flask-Login handles auth)
+                // CRITICAL: Include credentials (cookies) for standalone access
                 // Get shop from URL or use current shop
                 const shopUrl = new URLSearchParams(window.location.search).get('shop') || '';
                 const reportUrl = shopUrl ? `/api/generate_report?shop=${encodeURIComponent(shopUrl)}` : '/api/generate_report';
                 fetchPromise = fetch(reportUrl, {
-                    signal: controller.signal
+                    signal: controller.signal,
+                    credentials: 'include'  // Include cookies for Flask-Login
                 });
             }
             
