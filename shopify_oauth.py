@@ -290,20 +290,9 @@ def install():
                         redirected = true;
                         console.log('✅ Using App Bridge Redirect.REMOTE to:', '{full_auth_url}');
                         
-                        // Also set a backup timeout in case REMOTE doesn't work
-                        setTimeout(function() {{
-                            // If still in iframe after 2 seconds, force top-level redirect
-                            if (window.top && window.top !== window) {{
-                                console.warn('⚠️ Still in iframe after App Bridge redirect, forcing top-level redirect');
-                                try {{
-                                    window.top.location.href = '{full_auth_url}';
-                                }} catch (e) {{
-                                    console.error('❌ Top-level redirect blocked:', e);
-                                    // Show manual link as last resort
-                                    document.body.innerHTML = '<div style="padding: 40px; text-align: center; font-family: sans-serif;"><h2>Redirect Required</h2><p>Your browser blocked the automatic redirect. Please <a href="{full_auth_url}" target="_top">click here</a> to continue.</p></div>';
-                                }}
-                            }}
-                        }}, 2000);
+                        // REMOVED: Backup timeout with window.top.location.href
+                        // This can cause "accounts.shopify.com refused to connect" error
+                        // App Bridge Redirect.Action.REMOTE should work, if not, user will see fallback button
                         
                         return;
                     }}
@@ -325,46 +314,27 @@ def install():
                 if (redirected) return; // Prevent double redirect
                 redirected = true;
                 
-                console.log('🔄 Using fallback redirect method');
+                console.log('🔄 Using fallback redirect method - showing clickable button');
                 
-                // CRITICAL: Always redirect top-level window, never iframe
-                // This prevents "accounts.shopify.com refused to connect" error
-                try {{
-                    // Check if we're in an iframe
-                    if (window.top && window.top !== window) {{
-                        // We're in an iframe - MUST redirect top window, not iframe
-                        console.log('🔄 Redirecting top-level window (not iframe) to:', '{full_auth_url}');
-                        
-                        // Try multiple methods to ensure top-level redirect
-                        try {{
-                            // Method 1: Direct top location
-                            window.top.location.href = '{full_auth_url}';
-                        }} catch (e1) {{
-                            console.warn('Method 1 failed, trying method 2:', e1);
-                            try {{
-                                // Method 2: Replace location
-                                window.top.location.replace('{full_auth_url}');
-                            }} catch (e2) {{
-                                console.warn('Method 2 failed, trying method 3:', e2);
-                                try {{
-                                    // Method 3: Assign location
-                                    window.top.location = '{full_auth_url}';
-                                }} catch (e3) {{
-                                    console.error('All redirect methods failed:', e3);
-                                    // Last resort: show message with target="_top" link
-                                    document.body.innerHTML = '<div style="padding: 40px; text-align: center; font-family: sans-serif; background: #fff; border-radius: 8px; max-width: 500px; margin: 40px auto;"><h2 style="color: #202223; margin-bottom: 16px;">Redirect Required</h2><p style="color: #6d7175; margin-bottom: 24px;">Your browser blocked the automatic redirect. Please click the button below to continue.</p><a href="{full_auth_url}" target="_top" style="display: inline-block; background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">Continue to Shopify Authorization</a></div>';
-                                }}
-                            }}
-                        }}
-                    }} else {{
-                        // Standalone - redirect current window
-                        console.log('Redirecting current window to:', '{full_auth_url}');
-                        window.location.href = '{full_auth_url}';
-                    }}
-                }} catch (e) {{
-                    console.error('❌ All redirect methods failed:', e);
-                    // Last resort: show message and link with target="_top"
-                    document.body.innerHTML = '<div style="padding: 40px; text-align: center; font-family: sans-serif; background: #fff; border-radius: 8px; max-width: 500px; margin: 40px auto;"><h2 style="color: #202223; margin-bottom: 16px;">Redirect Required</h2><p style="color: #6d7175; margin-bottom: 24px;">Please click the button below to authorize the connection.</p><a href="{full_auth_url}" target="_top" style="display: inline-block; background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">Continue to Shopify Authorization</a></div>';
+                // CRITICAL: Never use programmatic redirects from iframe to accounts.shopify.com
+                // Instead, show a button that uses target="_top" to open in top-level window
+                // This prevents "accounts.shopify.com refused to connect" error completely
+                
+                // Check if we're in an iframe
+                if (window.top && window.top !== window) {{
+                    // We're in an iframe - show button with target="_top" (never programmatic redirect)
+                    console.log('🔄 Showing button with target="_top" to avoid iframe loading issue');
+                    document.body.innerHTML = `
+                        <div style="padding: 40px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fff; border-radius: 8px; max-width: 500px; margin: 40px auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            <h2 style="color: #202223; margin-bottom: 16px; font-size: 20px;">Connect Your Shopify Store</h2>
+                            <p style="color: #6d7175; margin-bottom: 24px; line-height: 1.5;">Click the button below to authorize the connection. This will open in a new window.</p>
+                            <a href="{full_auth_url}" target="_top" style="display: inline-block; background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px; transition: background 0.2s;">Continue to Shopify Authorization →</a>
+                        </div>
+                    `;
+                }} else {{
+                    // Standalone - redirect current window (safe outside iframe)
+                    console.log('Redirecting current window to:', '{full_auth_url}');
+                    window.location.href = '{full_auth_url}';
                 }}
             }}
             
