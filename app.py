@@ -2141,21 +2141,8 @@ def home():
                 except Exception:
                     pass
                 finally:
-                    try:
-                        db.session.remove()
-                    except Exception:
-                        pass
-                store = None
-            except BaseException:
-                try:
-                    db.session.rollback()
-                except Exception:
+                    # Removed db.session.remove() - causes segfaults
                     pass
-                finally:
-                    try:
-                        db.session.remove()
-                    except Exception:
-                        pass
                 store = None
             if store and hasattr(store, 'user') and store.user:
                 user = store.user
