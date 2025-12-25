@@ -205,10 +205,9 @@ def install():
             is_embedded = True
             logger.info(f"Detected embedded context from Referer: {referer[:50]}...")
     
-    # CRITICAL: If this is an embedded app, we MUST open OAuth in top-level window
-    # Shopify's OAuth redirects to accounts.shopify.com which has X-Frame-Options: deny
-    # App Bridge Redirect allows us to navigate the top-level window from within an iframe
-    # ALWAYS use App Bridge redirect if embedded context detected
+    # SIMPLEST SOLUTION: If embedded, show a link that opens in new window
+    # No JavaScript, no redirects, no App Bridge complexity - just a simple link
+    # This avoids ALL iframe loading issues
     if is_embedded:
         # If we have host, use it. Otherwise, try to extract from Referer or use fallback
         if not host:
@@ -225,12 +224,80 @@ def install():
                 except Exception:
                     pass
         
-        # Use host if we have it, otherwise App Bridge redirect will use window.top.location fallback
-        api_key = os.getenv('SHOPIFY_API_KEY', '')
-        logger.info(f"Embedded OAuth install detected for {shop}, using App Bridge to open OAuth in top-level window")
+        logger.info(f"Embedded OAuth install detected for {shop}, showing link to open OAuth in new window")
         
-        # If we have host, use App Bridge. Otherwise, use window.top.location fallback
-        if host:
+        # SIMPLEST FIX: Just show a link that opens in a new window
+        # No JavaScript redirects, no App Bridge complexity - just works
+        from flask import render_template_string
+        return render_template_string(f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Connect Shopify Store - Employee Suite</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                * {{
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }}
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                    margin: 0;
+                    background: #f6f6f7;
+                }}
+                .container {{
+                    text-align: center;
+                    padding: 40px 24px;
+                    max-width: 500px;
+                    background: #fff;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                }}
+                h1 {{
+                    font-size: 20px;
+                    font-weight: 600;
+                    color: #202223;
+                    margin-bottom: 16px;
+                }}
+                p {{
+                    font-size: 14px;
+                    color: #6d7175;
+                    line-height: 1.5;
+                    margin-bottom: 24px;
+                }}
+                .btn {{
+                    display: inline-block;
+                    background: #008060;
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 6px;
+                    text-decoration: none;
+                    font-weight: 500;
+                    font-size: 14px;
+                    transition: background 0.2s;
+                }}
+                .btn:hover {{
+                    background: #006e52;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Connect Your Shopify Store</h1>
+                <p>Click the button below to authorize the connection. This will open in a new window.</p>
+                <a href="{full_auth_url}" target="_blank" class="btn">Continue to Shopify Authorization →</a>
+            </div>
+        </body>
+        </html>
+        """)
+    
+    # Non-embedded: regular redirect works fine
             # Render a page that uses App Bridge to redirect to OAuth in the top-level window
             # CRITICAL: Wait for App Bridge to load before redirecting to prevent "refused to connect" errors
             redirect_html = f"""<!DOCTYPE html>
