@@ -254,7 +254,7 @@ SETTINGS_HTML = '''
         <div class="banner-error">{{ error }}</div>
         {% endif %}
         
-        {% if current_user.is_subscribed %}
+        {% if is_subscribed %}
         <div class="card">
             <div class="card-header">
                 <h2 class="card-title">Subscription</h2>
@@ -376,12 +376,61 @@ SETTINGS_HTML = '''
 '''
 
 @shopify_bp.route('/settings/shopify')
-@verify_session_token
-@login_required
-@require_access
 def shopify_settings():
-    store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
-    return render_template_string(SETTINGS_HTML, store=store, success=request.args.get('success'), error=request.args.get('error'))
+    """Shopify settings page - works in both embedded and standalone modes"""
+    shop = request.args.get('shop', '')
+    host = request.args.get('host', '')
+    
+    # Get authenticated user (works for both embedded and standalone)
+    user = None
+    try:
+        if current_user.is_authenticated:
+            user = current_user
+        elif shop:
+            # Try to find user from shop (for embedded apps)
+            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            if store and store.user:
+                user = store.user
+    except Exception:
+        pass
+    
+    # If no user found, redirect to install (for embedded) or show message
+    if not user:
+        if shop and host:
+            # Embedded mode - redirect to install
+            from flask import url_for
+            install_url = url_for('oauth.install', shop=shop, host=host)
+            return render_template_string("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>Install Required</title>
+                <script>
+                    window.location.href = '{{ install_url }}';
+                </script>
+            </head>
+            <body>
+                <p>Redirecting...</p>
+            </body>
+            </html>
+            """, install_url=install_url)
+        else:
+            # Standalone mode - redirect to login
+            from flask import redirect, url_for
+            return redirect(url_for('auth.login'))
+    
+    # Get user's store
+    store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
+    
+    # Pass shop and host to template for links, and user subscription status
+    return render_template_string(SETTINGS_HTML, 
+                                 store=store, 
+                                 success=request.args.get('success'), 
+                                 error=request.args.get('error'),
+                                 shop=shop,
+                                 host=host,
+                                 is_subscribed=user.is_subscribed if user else False)
 
 @shopify_bp.route('/settings/shopify/connect', methods=['POST'])
 @verify_session_token
