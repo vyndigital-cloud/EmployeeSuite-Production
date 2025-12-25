@@ -21,6 +21,10 @@ if not SHOPIFY_API_SECRET:
 
 # App Store required scopes - only request what you need (Shopify requirement)
 SCOPES = 'read_products,read_inventory,read_orders'
+# CRITICAL: Shopify only allows ONE redirect URI in Partners Dashboard
+# We MUST always use the production URL: https://employeesuite-production.onrender.com/auth/callback
+# Even when running locally, OAuth callbacks will go to production, then you can test locally after OAuth completes
+# This is the standard approach since Shopify doesn't support multiple redirect URIs
 REDIRECT_URI = os.getenv('SHOPIFY_REDIRECT_URI', 'https://employeesuite-production.onrender.com/auth/callback')
 # Access mode: offline = persistent token, online = session-based token
 # Use offline for background operations (webhooks, cron jobs)
@@ -84,7 +88,13 @@ def install():
         """), 500
     
     shop = request.args.get('shop', '').strip()
-    
+    # #region agent log
+    import json
+    try:
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"I","location":"shopify_oauth.py:86","message":"Install route called","data":{"shop":shop,"has_shop":bool(shop),"has_api_key":bool(SHOPIFY_API_KEY),"has_api_secret":bool(SHOPIFY_API_SECRET),"redirect_uri":REDIRECT_URI},"timestamp":int(__import__('time').time()*1000)})+'\n')
+    except: pass
+    # #endregion
     if not shop:
         from flask import render_template_string
         return render_template_string("""
@@ -187,6 +197,13 @@ def install():
     # Shopify requires exact match, but values must be properly encoded in the query string
     # Log the redirect URI being used for debugging
     logger.info(f"OAuth install: Using redirect_uri={REDIRECT_URI} (must match Partners Dashboard exactly)")
+    # #region agent log
+    try:
+        import json
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"I","location":"shopify_oauth.py:202","message":"OAuth URL generated","data":{"redirect_uri":REDIRECT_URI,"shop":shop,"auth_url":auth_url},"timestamp":int(__import__('time').time()*1000)})+'\n')
+    except: pass
+    # #endregion
     
     query_string = '&'.join([f"{k}={quote(str(v), safe='')}" for k, v in params.items()])
     full_auth_url = f"{auth_url}?{query_string}"

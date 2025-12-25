@@ -246,7 +246,32 @@ def unauthorized():
     return redirect(url_for('auth.login'))
 
 app.register_blueprint(auth_bp)
+# #region agent log
+try:
+    import json
+    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"K","location":"app.py:249","message":"Registering shopify_bp blueprint","data":{"blueprint_name":shopify_bp.name,"has_routes":hasattr(shopify_bp,'deferred_functions'),"blueprint_file":shopify_bp.import_name},"timestamp":int(__import__('time').time()*1000)})+'\n')
+except Exception as e:
+    try:
+        import json
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"K","location":"app.py:249","message":"ERROR logging blueprint registration","data":{"error":str(e)},"timestamp":int(__import__('time').time()*1000)})+'\n')
+    except: pass
+# #endregion
 app.register_blueprint(shopify_bp)
+# #region agent log
+try:
+    import json
+    shopify_routes = [str(rule) for rule in app.url_map.iter_rules() if 'shopify' in str(rule)]
+    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"K","location":"app.py:250","message":"Shopify blueprint registered","data":{"registered_routes":shopify_routes,"total_routes":len(list(app.url_map.iter_rules()))},"timestamp":int(__import__('time').time()*1000)})+'\n')
+except Exception as e:
+    try:
+        import json
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"K","location":"app.py:250","message":"ERROR logging route registration","data":{"error":str(e)},"timestamp":int(__import__('time').time()*1000)})+'\n')
+    except: pass
+# #endregion
 app.register_blueprint(billing_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(legal_bp)
@@ -2698,6 +2723,37 @@ def api_key_info():
     
     return jsonify(response)
 
+@app.route('/test-shopify-route')
+def test_shopify_route():
+    """Test route to verify app is picking up changes"""
+    # #region agent log
+    try:
+        import json
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"K","location":"app.py:test_shopify_route","message":"Test route called","data":{"timestamp":int(__import__('time').time()*1000)},"timestamp":int(__import__('time').time()*1000)})+'\n')
+    except: pass
+    # #endregion
+    return jsonify({"status": "ok", "message": "App is picking up changes", "shopify_routes": [str(rule) for rule in app.url_map.iter_rules() if 'shopify' in str(rule)]})
+
+@app.route('/debug-routes')
+def debug_routes():
+    """Debug endpoint to see what routes are registered"""
+    # #region agent log
+    try:
+        import json
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"K","location":"app.py:debug_routes","message":"Debug routes endpoint called","data":{"timestamp":int(__import__('time').time()*1000)},"timestamp":int(__import__('time').time()*1000)})+'\n')
+    except: pass
+    # #endregion
+    all_routes = [{"rule": str(rule.rule), "endpoint": rule.endpoint, "methods": list(rule.methods)} for rule in app.url_map.iter_rules()]
+    shopify_routes = [r for r in all_routes if 'shopify' in r['rule'].lower()]
+    return jsonify({
+        "total_routes": len(all_routes),
+        "shopify_routes": shopify_routes,
+        "shopify_routes_count": len(shopify_routes),
+        "all_routes": all_routes[:50]  # First 50 routes
+    })
+
 @app.route('/health')
 def health():
     """Health check endpoint for monitoring"""
@@ -3145,6 +3201,13 @@ def api_generate_report():
 @app.errorhandler(404)
 def not_found(error):
     """404 error handler - professional error page"""
+    # #region agent log
+    try:
+        import json
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"K","location":"app.py:3158","message":"404 error handler called","data":{"path":request.path,"endpoint":request.endpoint,"method":request.method,"url":request.url},"timestamp":int(__import__('time').time()*1000)})+'\n')
+    except: pass
+    # #endregion
     log_security_event('404_error', f"Path: {request.path}", 'INFO')
     
     # Return JSON for API requests, HTML for browser requests
@@ -3562,6 +3625,16 @@ def init_db():
 
 # Run on import (for Render/Gunicorn)
 init_db()
+
+# #region agent log
+# Log app startup to verify routes are registered
+try:
+    import json
+    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+        shopify_routes = [str(rule) for rule in app.url_map.iter_rules() if 'shopify' in str(rule)]
+        f.write(json.dumps({"sessionId":"debug-session","runId":"startup","hypothesisId":"K","location":"app.py:__main__","message":"App starting - checking routes","data":{"shopify_routes":shopify_routes,"total_routes":len(list(app.url_map.iter_rules())),"app_file":__file__},"timestamp":int(__import__('time').time()*1000)})+'\n')
+except: pass
+# #endregion
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))

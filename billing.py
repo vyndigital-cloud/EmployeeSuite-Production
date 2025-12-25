@@ -346,7 +346,13 @@ def create_recurring_charge(shop_url, access_token, return_url):
     This is MANDATORY for Shopify App Store apps
     """
     import requests
-    
+    # #region agent log
+    import json
+    try:
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"J","location":"billing.py:343","message":"Create recurring charge start","data":{"shop_url":shop_url,"has_token":bool(access_token),"return_url":return_url},"timestamp":int(__import__('time').time()*1000)})+'\n')
+    except: pass
+    # #endregion
     url = f"https://{shop_url}/admin/api/{SHOPIFY_API_VERSION}/recurring_application_charges.json"
     headers = {
         'X-Shopify-Access-Token': access_token,
@@ -372,12 +378,23 @@ def create_recurring_charge(shop_url, access_token, return_url):
     
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=15)
-        
+        # #region agent log
+        try:
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"J","location":"billing.py:374","message":"Billing API response","data":{"status_code":response.status_code,"has_response":bool(response.text)},"timestamp":int(__import__('time').time()*1000)})+'\n')
+        except: pass
+        # #endregion
         # Log request details for debugging
         logger.info(f"Creating charge for {shop_url}, status: {response.status_code}")
         
         # If error, capture the actual response body
         if not response.ok:
+            # #region agent log
+            try:
+                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"J","location":"billing.py:380","message":"Billing API error","data":{"status_code":response.status_code,"response_text":response.text[:300]},"timestamp":int(__import__('time').time()*1000)})+'\n')
+            except: pass
+            # #endregion
             try:
                 error_data = response.json()
                 # CRITICAL: Handle both dict and string error_data
@@ -554,6 +571,13 @@ def create_charge():
     Create a Shopify recurring charge
     Redirects merchant to Shopify's payment approval page
     """
+    # #region agent log
+    import json
+    try:
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"J","location":"billing.py:551","message":"Create charge called","data":{"method":request.method,"has_shop_form":"shop" in request.form,"has_host_form":"host" in request.form,"shop":request.form.get('shop') or request.args.get('shop',''),"host":request.form.get('host') or request.args.get('host','')},"timestamp":int(__import__('time').time()*1000)})+'\n')
+    except: pass
+    # #endregion
     shop = request.form.get('shop') or request.args.get('shop', '')
     host = request.form.get('host') or request.args.get('host', '')
     
@@ -572,11 +596,23 @@ def create_charge():
         pass
     
     if not user:
+        # #region agent log
+        try:
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"J","location":"billing.py:574","message":"No user found for create charge","data":{"shop":shop},"timestamp":int(__import__('time').time()*1000)})+'\n')
+        except: pass
+        # #endregion
         return redirect(url_for('billing.subscribe', error='Please connect your Shopify store first to subscribe.', shop=shop, host=host))
     
     # Get store credentials
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if not store:
+        # #region agent log
+        try:
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"J","location":"billing.py:579","message":"No store found for user","data":{"user_id":user.id},"timestamp":int(__import__('time').time()*1000)})+'\n')
+        except: pass
+        # #endregion
         logger.error(f"No active store found for user {user.id}")
         return redirect(url_for('billing.subscribe', error='No Shopify store connected', shop=shop, host=host))
     
@@ -584,12 +620,24 @@ def create_charge():
     
     # Use model method to check connection status
     if not store.is_connected():
+        # #region agent log
+        try:
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"J","location":"billing.py:586","message":"Store not connected","data":{"shop_url":shop_url},"timestamp":int(__import__('time').time()*1000)})+'\n')
+        except: pass
+        # #endregion
         logger.error(f"No valid access_token found for store {shop_url} - user must reconnect")
         return redirect(url_for('shopify.shopify_settings', 
                               error='Store not connected. Please reconnect your store.',
                               shop=shop_url, host=host))
     
     access_token = store.get_access_token()
+    # #region agent log
+    try:
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"J","location":"billing.py:592","message":"Store found, creating charge","data":{"shop_url":shop_url,"has_token":bool(access_token)},"timestamp":int(__import__('time').time()*1000)})+'\n')
+    except: pass
+    # #endregion
     
     # CRITICAL: Log which API key is being used for OAuth (for debugging)
     current_api_key = os.getenv('SHOPIFY_API_KEY', 'NOT_SET')
@@ -606,7 +654,12 @@ def create_charge():
     
     # Create recurring charge via Shopify Billing API
     result = create_recurring_charge(shop_url, access_token, return_url)
-    
+    # #region agent log
+    try:
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"J","location":"billing.py:608","message":"Charge creation result","data":{"success":result.get('success'),"has_error":"error" in result,"error":result.get('error','')[:200] if "error" in result else ""},"timestamp":int(__import__('time').time()*1000)})+'\n')
+    except: pass
+    # #endregion
     if not result.get('success'):
         error_msg = result.get('error', 'Failed to create subscription')
         logger.error(f"Billing error for {shop_url}: {error_msg}")
