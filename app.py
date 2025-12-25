@@ -2133,6 +2133,7 @@ def home():
             
             # CRITICAL: Pass host parameter to template for App Bridge initialization
             host_param = request.args.get('host', '')
+            shop_param = shop_domain or shop or request.args.get('shop', '')
             
             return render_template_string(DASHBOARD_HTML, 
                                          trial_active=trial_active, 
@@ -2141,6 +2142,7 @@ def home():
                                          has_shopify=has_shopify, 
                                          has_access=has_access,
                                          quick_stats=quick_stats,
+                                         shop=shop_param,
                                          shop_domain=shop_domain,
                                          SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
                                          host=host_param)
@@ -2186,6 +2188,7 @@ def home():
         # render_template_string is already imported at top of file
         # CRITICAL: Pass host parameter to template for App Bridge initialization
         host_param = request.args.get('host', '')
+        shop_param = shop or request.args.get('shop', '')
         
         return render_template_string(DASHBOARD_HTML, 
                                      trial_active=False, 
@@ -2194,7 +2197,8 @@ def home():
                                      has_shopify=False, 
                                      has_access=False,
                                      quick_stats={'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0},
-                                     shop_domain=shop or '',
+                                     shop=shop_param,
+                                     shop_domain=shop_param,
                                      SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
                                      host=host_param)
     
@@ -2582,6 +2586,7 @@ def dashboard():
     
     # CRITICAL: Pass host parameter to template for App Bridge initialization
     host_param = request.args.get('host', '')
+    shop_param = shop_domain or shop or request.args.get('shop', '')
     
     return render_template_string(DASHBOARD_HTML, 
                                  trial_active=trial_active, 
@@ -2590,6 +2595,7 @@ def dashboard():
                                  has_shopify=has_shopify, 
                                  has_access=has_access,
                                  quick_stats=quick_stats,
+                                 shop=shop_param,
                                  shop_domain=shop_domain,
                                  SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
                                  host=host_param)
