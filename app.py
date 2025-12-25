@@ -3201,7 +3201,8 @@ def api_update_inventory():
         # Import at function level to avoid UnboundLocalError
         from performance import clear_cache as clear_perf_cache
         clear_perf_cache('get_products')
-        result = update_inventory()
+        # Pass user_id directly to prevent recursion from accessing current_user
+        result = update_inventory(user_id=user_id)
         # #region agent log
         log_event('app.py:3107', 'update_inventory completed', {
             'success': result.get('success') if isinstance(result, dict) else True,

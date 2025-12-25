@@ -4,16 +4,23 @@ from shopify_integration import ShopifyClient
 from logging_config import logger
 import requests
 
-def check_inventory():
+def check_inventory(user_id=None):
     """Check inventory levels and return low stock alerts"""
-    # Check if current_user is available and authenticated
-    try:
-        if not current_user or not hasattr(current_user, 'id') or not current_user.is_authenticated:
-            return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Authentication required</div><div style='margin-bottom: 12px;'>Please log in to access this feature.</div><a href='/login' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Log In →</a></div></div>"}
-    except Exception:
+    # CRITICAL: Accept user_id as parameter to prevent recursion from accessing current_user
+    # Get user_id - either from parameter or safely from current_user
+    if user_id is None:
+        try:
+            if not hasattr(current_user, 'is_authenticated') or not current_user.is_authenticated:
+                return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Authentication required</div><div style='margin-bottom: 12px;'>Please log in to access this feature.</div><a href='/login' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Log In →</a></div></div>"}
+            # Store user_id immediately to prevent recursion
+            user_id = getattr(current_user, 'id', None)
+        except (RuntimeError, AttributeError, RecursionError) as e:
+            return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Authentication error</div><div style='margin-bottom: 12px;'>Please refresh the page and try again.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
+    
+    if not user_id:
         return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Authentication required</div><div style='margin-bottom: 12px;'>Please log in to access this feature.</div><a href='/login' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Log In →</a></div></div>"}
     
-    store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+    store = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first()
     
     if not store:
         return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>No Shopify store connected</div><div style='margin-bottom: 12px;'>Connect your store to check inventory levels and get low-stock alerts.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Connect Store →</a></div></div>"}
@@ -36,7 +43,7 @@ def check_inventory():
             error_msg = products['error']
             # If authentication failed, mark store as inactive
             if "Authentication failed" in error_msg or "401" in str(products):
-                logger.warning(f"Authentication failed for store {store.shop_url} (user {current_user.id}) - marking as inactive")
+                logger.warning(f"Authentication failed for store {store.shop_url} (user {user_id}) - marking as inactive")
                 try:
                     store.is_active = False
                     db.session.commit()
@@ -122,19 +129,20 @@ def check_inventory():
     except Exception as e:
         return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Unexpected error</div><div style='margin-bottom: 12px;'>{str(e)}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
 
-def update_inventory():
+def update_inventory(user_id=None):
     """Update inventory - wrapper for check_inventory"""
+    # CRITICAL: Accept user_id as parameter to prevent recursion
     try:
         # Try to use Flask application context if available
         from flask import has_app_context, current_app
         if has_app_context():
-            return check_inventory()
+            return check_inventory(user_id=user_id)
         else:
             # If no app context, return a helpful error message
             return {"success": False, "error": "This function requires a Flask application context. Please call it from within a Flask route or with app.app_context()."}
     except ImportError:
         # If Flask is not available, try without context (will fail gracefully)
         try:
-            return check_inventory()
+            return check_inventory(user_id=user_id)
         except Exception as e:
             return {"success": False, "error": f"Function requires Flask application context: {str(e)}"}
