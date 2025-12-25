@@ -2311,10 +2311,105 @@ def dashboard():
                 pass
         
         # If no active store found or store is not connected, redirect to OAuth install flow
+        # CRITICAL: Use App Bridge redirect to avoid "accounts.shopify.com refused to connect" error
         if not store or not store.is_connected():
-            logger.info(f"Embedded app - no active store found for {shop}, redirecting to OAuth")
-            install_url = url_for('oauth.install', shop=shop, host=host) if host else url_for('oauth.install', shop=shop)
-            return redirect(install_url)
+            logger.info(f"Embedded app - no active store found for {shop}, redirecting to OAuth via App Bridge")
+            from urllib.parse import quote
+            install_url = f"/install?shop={quote(shop)}" + (f"&host={quote(host)}" if host else "")
+            # Render HTML page that uses App Bridge to redirect in top-level window
+            return render_template_string(f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Connecting Store - Employee Suite</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <script>
+        (function() {{
+            var host = '{host or ''}';
+            var apiKey = '{os.getenv("SHOPIFY_API_KEY", "")}';
+            var installUrl = '{install_url}';
+            var attempts = 0;
+            var maxAttempts = 100;
+            
+            function redirectToOAuth() {{
+                attempts++;
+                var AppBridge = window['app-bridge'] || window['ShopifyAppBridge'] || window.appBridge;
+                
+                if (AppBridge && host && apiKey) {{
+                    try {{
+                        var app = AppBridge.default ? AppBridge.default({{ apiKey: apiKey, host: host }}) : AppBridge.create({{ apiKey: apiKey, host: host }});
+                        var Redirect = AppBridge.actions.Redirect;
+                        var redirect = Redirect.create(app);
+                        redirect.dispatch(Redirect.Action.REMOTE, installUrl);
+                        return;
+                    }} catch (e) {{
+                        console.error('App Bridge redirect error:', e);
+                    }}
+                }}
+                
+                // Fallback: use window.top.location.href if App Bridge not available
+                if (attempts < maxAttempts) {{
+                    setTimeout(redirectToOAuth, 100);
+                }} else {{
+                    if (window.top && window.top !== window) {{
+                        window.top.location.href = installUrl;
+                    }} else {{
+                        window.location.href = installUrl;
+                    }}
+                }}
+            }}
+            
+            // Start redirect attempt
+            redirectToOAuth();
+        }})();
+    </script>
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f6f6f7;
+        }}
+        .container {{
+            text-align: center;
+            padding: 40px 24px;
+        }}
+        .spinner {{
+            width: 24px;
+            height: 24px;
+            border: 2px solid #e1e3e5;
+            border-top: 2px solid #008060;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 24px;
+        }}
+        @keyframes spin {{
+            to {{ transform: rotate(360deg); }}
+        }}
+        .title {{
+            font-size: 18px;
+            font-weight: 600;
+            color: #202223;
+            margin-bottom: 8px;
+        }}
+        .message {{
+            font-size: 14px;
+            color: #6d7175;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <div class="title">Connecting to Shopify</div>
+        <div class="message">Redirecting you to authorize the connection...</div>
+    </div>
+</body>
+</html>""")
     
     # render_template_string is already imported at top of file - DO NOT import locally
     
