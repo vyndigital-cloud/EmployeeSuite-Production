@@ -1026,8 +1026,8 @@ DASHBOARD_HTML = """
                 <span>Employee Suite</span>
             </a>
             <div class="header-nav">
-                <a href="/settings/shopify" class="nav-btn">Settings</a>
-                <a href="{{ url_for('billing.subscribe') }}" class="nav-btn nav-btn-primary">Subscribe</a>
+                <a href="/settings/shopify{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="nav-btn">Settings</a>
+                <a href="{{ url_for('billing.subscribe') }}{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="nav-btn nav-btn-primary">Subscribe</a>
                 <a href="/logout" class="nav-btn">Logout</a>
             </div>
         </div>
@@ -1053,7 +1053,7 @@ DASHBOARD_HTML = """
                 <h3>Subscription Required</h3>
                 <p>Your trial has ended. Subscribe now to continue using Employee Suite.</p>
             </div>
-            <a href="{{ url_for('billing.subscribe') }}" class="banner-action">Subscribe Now</a>
+            <a href="{{ url_for('billing.subscribe') }}{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="banner-action">Subscribe Now</a>
         </div>
         {% elif trial_active and not is_subscribed %}
         <div class="banner banner-warning" style="justify-content: space-between; align-items: center;">
@@ -1248,7 +1248,7 @@ DASHBOARD_HTML = """
                     <h3 style="color: #dc2626; margin-bottom: 12px; font-size: 20px;">Subscription Required</h3>
                     <p style="color: #991b1b; margin-bottom: 8px; font-size: 15px;">Your trial has ended.</p>
                     <p style="color: #737373; margin-bottom: 24px; font-size: 14px;">Subscribe now to continue using all Employee Suite features.</p>
-                    <a href="{{ url_for('billing.subscribe') }}" style="display: inline-block; background: #0a0a0a; color: #fff; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.2s;">Subscribe Now →</a>
+                    <a href="{{ url_for('billing.subscribe') }}{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="display: inline-block; background: #0a0a0a; color: #fff; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.2s;">Subscribe Now →</a>
                     <p style="color: #737373; margin-top: 16px; font-size: 13px;">$29/month • 7-day money-back guarantee</p>
                 </div>
             `;
