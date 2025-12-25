@@ -2743,8 +2743,15 @@ def dashboard():
     # Get shop domain and API key for App Bridge initialization
     shop_domain = shop or ''
     if user_authenticated and has_shopify:
+        # #region agent log
+        log_event('app.py:2745', 'Getting shop domain for authenticated user', {
+            'user_authenticated': user_authenticated,
+            'has_shopify': has_shopify,
+            'user_id': current_user.id if user_authenticated else None
+        }, 'DASHBOARD')
+        # #endregion
         try:
-            db.session.remove()
+            # CRITICAL: DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
             store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
         except BaseException:
             try:
@@ -2786,6 +2793,17 @@ def dashboard():
     # CRITICAL: Pass host parameter to template for App Bridge initialization
     host_param = request.args.get('host', '')
     shop_param = shop_domain or shop or request.args.get('shop', '')
+    
+    # #region agent log
+    log_event('app.py:2790', 'Rendering dashboard template', {
+        'user_authenticated': user_authenticated,
+        'has_shopify': has_shopify,
+        'has_access': has_access,
+        'is_subscribed': is_subscribed,
+        'shop_param': shop_param[:50] if shop_param else '',
+        'has_host': bool(host_param)
+    }, 'DASHBOARD')
+    # #endregion
     
     return render_template_string(DASHBOARD_HTML, 
                                  trial_active=trial_active, 
