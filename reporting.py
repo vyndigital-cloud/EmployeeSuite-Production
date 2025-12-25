@@ -124,7 +124,7 @@ def generate_report(user_id=None, shop_url=None):
                                 pass
                             return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Authentication failed</div><div style='margin-bottom: 12px;'>Your store connection has expired. Please reconnect your store to continue.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Reconnect Store →</a></div></div>"}
                         # Check for permission denied (403) - missing scopes
-                        elif "Access denied" in error_msg or "403" in str(orders_data) or "permission" in error_msg.lower() or "Check your app permissions" in error_msg:
+                        elif orders_data.get('permission_denied') or "Access denied" in error_msg or "403" in str(orders_data) or "permission" in error_msg.lower() or "Check your app permissions" in error_msg or "Missing required permissions" in error_msg:
                             logger.warning(f"Permission denied (403) for store {store.shop_url} (user {user_id}) - missing required scopes")
                             # #region agent log
                             try:
