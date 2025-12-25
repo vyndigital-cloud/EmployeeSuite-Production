@@ -463,25 +463,55 @@ def callback():
         logger.info(f"OAuth login for standalone access (cookie auth)")
     
     # If host is present, this is an embedded app installation (App Store)
-    # CRITICAL: Use Shopify App Bridge for navigation within embedded apps
-    # Regular redirects and window.top.location can cause "refused to connect" errors
+    # SIMPLEST FIX: Use window.top.location.href to break out of iframe
+    # This is the ONLY reliable way to redirect in embedded apps
     if host:
         app_url = os.getenv('SHOPIFY_APP_URL', 'https://employeesuite-production.onrender.com')
-        api_key = os.getenv('SHOPIFY_API_KEY', '')
-        embedded_url = f"{app_url}/dashboard?shop={shop}&host={host}&embedded=1"
-        logger.info(f"OAuth complete for embedded app, redirecting to: {embedded_url}")
+        dashboard_url = f"{app_url}/dashboard?shop={shop}&host={host}&embedded=1"
+        logger.info(f"OAuth complete for embedded app, redirecting to: {dashboard_url}")
         # #region agent log
         try:
             import json
             with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"M","location":"shopify_oauth.py:468","message":"OAuth redirect decision","data":{"has_host":bool(host),"host":host[:50] if host else "","shop":shop,"app_url":app_url,"embedded_url":embedded_url,"api_key_present":bool(api_key)},"timestamp":int(__import__('time').time()*1000)})+'\n')
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"N","location":"shopify_oauth.py:468","message":"OAuth redirect using top.location","data":{"has_host":bool(host),"host":host[:50] if host else "","shop":shop,"dashboard_url":dashboard_url},"timestamp":int(__import__('time').time()*1000)})+'\n')
         except: pass
         # #endregion
         
-        # Professional OAuth redirect - matches Shopify's seamless flow
-        # CRITICAL: For embedded apps, MUST use App Bridge Redirect action
-        # window.location.href is blocked in iframes - causes "refused to connect"
+        # SIMPLEST POSSIBLE: Just use window.top.location.href to break out of iframe
+        # No App Bridge, no complex JavaScript - just works
         redirect_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Redirecting...</title>
+    <script>
+        // Break out of iframe immediately
+        if (window.top !== window.self) {{
+            window.top.location.href = '{dashboard_url}';
+        }} else {{
+            window.location.href = '{dashboard_url}';
+        }}
+    </script>
+    <noscript>
+        <meta http-equiv="refresh" content="0;url={dashboard_url}">
+    </noscript>
+</head>
+<body>
+    <p>Redirecting... <a href="{dashboard_url}">Click here if not redirected</a></p>
+</body>
+</html>"""
+        from flask import Response
+        return Response(redirect_html, mimetype='text/html')
+    
+    # Non-embedded installation - regular redirect works fine
+    # #region agent log
+    try:
+        import json
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"M","location":"shopify_oauth.py:620","message":"OAuth non-embedded redirect","data":{"shop":shop,"has_host":False,"redirect_to":"/dashboard"},"timestamp":int(__import__('time').time()*1000)})+'\n')
+    except: pass
+    # #endregion
+    return redirect('/dashboard')
 <html>
 <head>
     <meta charset="utf-8">
