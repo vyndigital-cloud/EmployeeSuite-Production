@@ -414,6 +414,19 @@ def callback():
     # Register mandatory compliance webhooks (Shopify requirement)
     register_compliance_webhooks(shop, access_token)
     
+    # Handle redirect after OAuth - check if this is an embedded app (App Store installation)
+    # Shopify sends 'host' parameter for embedded apps
+    # Extract host BEFORE using it for login logic
+    host = request.args.get('host')
+    
+    # Also check state for host (in case it was passed through from install endpoint)
+    state = request.args.get('state', '')
+    if state and '||' in state and not host:
+        # State contains shop||host format
+        parts = state.split('||', 1)
+        if len(parts) == 2:
+            host = unquote(parts[1])
+    
     # Log user in - for OAuth (embedded apps), use session tokens, not remember cookies
     # Session tokens are primary auth for embedded apps, cookies are secondary
     is_embedded = bool(host)  # If host is present, this is embedded
@@ -425,18 +438,6 @@ def callback():
         logger.info(f"OAuth login for embedded app (session token auth)")
     else:
         logger.info(f"OAuth login for standalone access (cookie auth)")
-    
-    # Handle redirect after OAuth - check if this is an embedded app (App Store installation)
-    # Shopify sends 'host' parameter for embedded apps
-    host = request.args.get('host')
-    
-    # Also check state for host (in case it was passed through from install endpoint)
-    state = request.args.get('state', '')
-    if state and '||' in state and not host:
-        # State contains shop||host format
-        parts = state.split('||', 1)
-        if len(parts) == 2:
-            host = unquote(parts[1])
     
     # If host is present, this is an embedded app installation (App Store)
     # CRITICAL: Use Shopify App Bridge for navigation within embedded apps
