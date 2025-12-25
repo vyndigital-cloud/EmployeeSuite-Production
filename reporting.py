@@ -26,10 +26,36 @@ def generate_report(user_id=None, shop_url=None):
             # If shop_url is provided, use it to find the specific store; otherwise use first active store for user
             if shop_url:
                 logger.info(f"Generating report for shop_url: {shop_url}, user_id: {user_id}")
+                # #region agent log
+                try:
+                    import json
+                    import time
+                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"SHOP_OWNERSHIP","location":"reporting.py:27","message":"Checking shop ownership","data":{"shop_url":shop_url,"user_id":user_id},"timestamp":int(time.time()*1000)})+'\n')
+                except: pass
+                # #endregion
                 store = ShopifyStore.query.filter_by(shop_url=shop_url, is_active=True).first()
+                # #region agent log
+                try:
+                    import json
+                    import time
+                    store_owner = store.user_id if store else None
+                    all_stores_for_user = [s.shop_url for s in ShopifyStore.query.filter_by(user_id=user_id, is_active=True).all()] if user_id else []
+                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"SHOP_OWNERSHIP","location":"reporting.py:30","message":"Shop ownership check result","data":{"shop_url":shop_url,"user_id":user_id,"store_found":bool(store),"store_owner":store_owner,"stores_for_user":all_stores_for_user},"timestamp":int(time.time()*1000)})+'\n')
+                except: pass
+                # #endregion
                 # Verify the store belongs to this user (security check)
                 if store and store.user_id != user_id:
                     logger.warning(f"Shop {shop_url} does not belong to user {user_id}, denying access")
+                    # #region agent log
+                    try:
+                        import json
+                        import time
+                        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"SHOP_OWNERSHIP","location":"reporting.py:32","message":"Shop ownership mismatch","data":{"shop_url":shop_url,"user_id":user_id,"store_owner":store.user_id if store else None},"timestamp":int(time.time()*1000)})+'\n')
+                    except: pass
+                    # #endregion
                     store = None
             else:
                 # Fallback: use first active store for user
