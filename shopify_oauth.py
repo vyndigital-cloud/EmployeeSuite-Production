@@ -352,7 +352,12 @@ def install():
         }})();
     </script>
     <noscript>
-        <meta http-equiv="refresh" content="0;url={full_auth_url}">
+        <!-- REMOVED meta refresh to prevent iframe loading of accounts.shopify.com -->
+        <div style="padding: 40px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+            <h2 style="color: #202223; margin-bottom: 16px;">JavaScript Required</h2>
+            <p style="color: #6d7175; margin-bottom: 24px;">Please enable JavaScript to connect your Shopify store.</p>
+            <a href="{full_auth_url}" target="_top" style="display: inline-block; background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; margin-top: 16px;">Continue to Shopify Authorization</a>
+        </div>
     </noscript>
     <style>
         * {{
@@ -410,27 +415,76 @@ def install():
             from flask import Response
             return Response(redirect_html, mimetype='text/html')
         else:
-            # Embedded but no host - use window.top.location fallback
+            # Embedded but no host - show button instead of programmatic redirect
+            # This prevents "accounts.shopify.com refused to connect" error
             redirect_html = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <title>Connect Shopify Store - Employee Suite</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f6f6f7;
+        }}
+        .container {{
+            text-align: center;
+            padding: 40px 24px;
+            max-width: 500px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }}
+        h2 {{
+            color: #202223;
+            margin-bottom: 16px;
+            font-size: 20px;
+        }}
+        p {{
+            color: #6d7175;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }}
+        .btn {{
+            display: inline-block;
+            background: #008060;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            transition: background 0.2s;
+        }}
+        .btn:hover {{
+            background: #006e52;
+        }}
+    </style>
     <script>
-        // Direct top-level redirect (no App Bridge needed)
-        if (window.top && window.top !== window) {{
-            window.top.location.href = '{full_auth_url}';
-        }} else {{
+        // Only redirect if NOT in iframe (standalone mode)
+        if (window.top === window) {{
             window.location.href = '{full_auth_url}';
         }}
+        // If in iframe, show button (don't try programmatic redirect)
     </script>
-    <noscript>
-        <meta http-equiv="refresh" content="0;url={full_auth_url}">
-    </noscript>
 </head>
 <body>
-    <p>Redirecting...</p>
+    <div class="container">
+        <h2>Connect Your Shopify Store</h2>
+        <p>Click the button below to authorize the connection. This will open in the top-level window.</p>
+        <a href="{full_auth_url}" target="_top" class="btn">Continue to Shopify Authorization →</a>
+    </div>
 </body>
 </html>"""
             from flask import Response
