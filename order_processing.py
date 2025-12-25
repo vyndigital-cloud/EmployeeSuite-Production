@@ -4,11 +4,35 @@ from models import ShopifyStore
 import requests
 
 def process_orders(creds_path='creds.json'):
+    # #region agent log
+    try:
+        import json
+        import time
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"PROCESS_ORDERS","location":"order_processing.py:6","message":"process_orders function entry","data":{"user_authenticated":current_user.is_authenticated if hasattr(current_user, 'is_authenticated') else False},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
+    # #endregion
     try:
         if not current_user.is_authenticated:
             return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading orders</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Authentication required</div><div style='margin-bottom: 12px;'>Please log in to access this feature.</div><a href='/login' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Log In →</a></div></div>"}
         
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"PROCESS_ORDERS","location":"order_processing.py:11","message":"Before database query","data":{"user_id":current_user.id if hasattr(current_user, 'id') else None},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"PROCESS_ORDERS","location":"order_processing.py:11","message":"After database query","data":{"store_found":bool(store),"has_shop_url":bool(store and store.shop_url) if store else False},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         
         if not store:
             return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading orders</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>No Shopify store connected</div><div style='margin-bottom: 12px;'>Connect your store to view and manage orders.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Connect Store →</a></div></div>"}
@@ -92,7 +116,24 @@ def process_orders(creds_path='creds.json'):
         html += f"<div style='color: #a3a3a3; font-size: 10px; margin-top: 12px; text-align: right;'>Updated: {timestamp}</div>"
         html += "</div>"
         
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"PROCESS_ORDERS","location":"order_processing.py:95","message":"process_orders returning success","data":{"html_length":len(html)},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
+        
         return {"success": True, "message": html}
         
     except Exception as e:
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"PROCESS_ORDERS","location":"order_processing.py:98","message":"process_orders exception","data":{"error":str(e)[:200]},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading orders</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Unexpected error</div><div style='margin-bottom: 12px;'>{str(e)}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
