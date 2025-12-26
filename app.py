@@ -1495,7 +1495,7 @@ DASHBOARD_HTML = """
                         <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"processOrders\"]'); if (btn) setTimeout(function(){processOrders(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
                     </div>
                 `;
-            // Removed early return - proceedWithApiCall will be called when ready// Removed early return - proceedWithApiCall will be called when ready
+            // Removed early return - proceedWithApiCall will be called when ready
             
             // Extract API call logic into function (called when Promise resolves or App Bridge ready)
             function proceedWithApiCall() {
@@ -1740,6 +1740,9 @@ DASHBOARD_HTML = """
                     `;
                 });
         }
+        
+        // Ensure function is in global scope
+        window.processOrders = processOrders;
         
         function updateInventory(button) {
             // #region agent log
@@ -2057,6 +2060,8 @@ DASHBOARD_HTML = """
                 });
         }
         
+        // Ensure function is in global scope
+        window.updateInventory = updateInventory;
         
         function generateReport(button) {
             // #region agent log
@@ -2345,6 +2350,9 @@ DASHBOARD_HTML = """
                     }
                 });
         }
+        
+        // Ensure function is in global scope
+        window.generateReport = generateReport;
         
         // Keyboard shortcuts for power users
         document.addEventListener('keydown', function(e) {
