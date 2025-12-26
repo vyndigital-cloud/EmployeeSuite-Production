@@ -838,7 +838,7 @@ DASHBOARD_HTML = """
             
             var script = document.createElement('script');
             script.src = 'https://cdn.shopify.com/shopifycloud/app-bridge.js';
-            script.async = false; // Load synchronously for reliability
+            script.async = true; // Load asynchronously for better performance
             script.crossOrigin = 'anonymous'; // CORS for CDN
             
             // Initialize immediately when loaded
@@ -847,7 +847,7 @@ DASHBOARD_HTML = """
                 try {
                     // Wait for App Bridge to be available (increased timeout for slower networks)
                     var attempts = 0;
-                    var maxAttempts = 150; // 150 * 100ms = 15 seconds max
+                    var maxAttempts = 30; // 30 * 50ms = 1.5 seconds max (optimized)
                     
                     function init() {
                         attempts++;
@@ -860,7 +860,7 @@ DASHBOARD_HTML = """
                         
                         if (typeof AppBridge === 'undefined' || !AppBridge) {
                             if (attempts < maxAttempts) {
-                                setTimeout(init, 100);
+                                setTimeout(init, 50); // Optimized: reduced from 100ms
                                 return;
                             }
                             console.error('❌ App Bridge not available after timeout');
@@ -888,7 +888,7 @@ DASHBOARD_HTML = """
                                 console.error('❌ App Bridge createApp is not a function:', typeof createApp);
                                 console.log('AppBridge object:', AppBridge);
                                 if (attempts < maxAttempts) {
-                                    setTimeout(init, 100);
+                                    setTimeout(init, 50); // Optimized: reduced from 100ms
                                     return;
                                 }
                                 window.shopifyApp = null;
@@ -1367,6 +1367,11 @@ DASHBOARD_HTML = """
         }
         
         function processOrders(button) {
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Button clicked','data':{'isEmbedded':window.isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            } catch(e) {}
+            // #endregion
             // Prevent rapid clicks (debounce)
             if (debounceTimers.processOrders) {
                 return; // Already processing
@@ -1403,6 +1408,11 @@ DASHBOARD_HTML = """
             
             // CRITICAL: Wait for App Bridge to be ready before making requests
             if (isEmbedded && !window.appBridgeReady) {
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'App Bridge not ready','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
                 setButtonLoading(button, false);
                 document.getElementById('output').innerHTML = `
                     <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
@@ -1415,29 +1425,45 @@ DASHBOARD_HTML = """
             }
             
             if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Starting token retrieval','data':{'isEmbedded':isEmbedded,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
                 // In embedded mode, we MUST have session token - retry up to 3 times
                 var retryCount = 0;
-                var maxRetries = 3;
+                var maxRetries = 2; // Optimized: reduced from 3
                 
                 function getTokenWithRetry() {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:getTokenWithRetry','message':'Calling getSessionToken','data':{'retryCount':retryCount,'maxRetries':maxRetries},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     return window.shopifyApp.getSessionToken().then(function(token) {
+                        // #region agent log
+                        try {
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:getTokenWithRetry','message':'getSessionToken resolved','data':{'has_token':!!token,'token_length':token?token.length:0,'retryCount':retryCount},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                        } catch(e) {}
+                        // #endregion
                         if (!token && retryCount < maxRetries) {
                             retryCount++;
                             return new Promise(function(resolve, reject) {
-                                setTimeout(function() {
-                                    getTokenWithRetry().then(resolve).catch(reject);
-                                }, 300);
+                                setTimeout(function() { getTokenWithRetry().then(resolve).catch(reject); }, 100); // Optimized: reduced from 300ms
                             });
                         }
                         return token;
                     }).catch(function(err) {
+                        // #region agent log
+                        try {
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:getTokenWithRetry','message':'getSessionToken error','data':{'error':err.message||'unknown','retryCount':retryCount,'maxRetries':maxRetries},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                        } catch(e) {}
+                        // #endregion
                         // If error and haven't exceeded retries, retry
                         if (retryCount < maxRetries) {
                             retryCount++;
                             return new Promise(function(resolve, reject) {
-                                setTimeout(function() {
-                                    getTokenWithRetry().then(resolve).catch(reject);
-                                }, 300);
+                                setTimeout(function() { getTokenWithRetry().then(resolve).catch(reject); }, 100); // Optimized: reduced from 300ms
                             });
                         }
                         // Max retries exceeded, throw error
@@ -1452,14 +1478,30 @@ DASHBOARD_HTML = """
                     console.log('✅ Got session token, making API request...');
                     // #region agent log
                     try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:1436','message':'Making process_orders API call','data':{'has_token':!!token,'token_length':token?token.length:0,'is_embedded':isEmbedded},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'P'})}).catch(()=>{});
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Making API fetch request','data':{'has_token':!!token,'token_length':token?token.length:0,'is_embedded':isEmbedded,'url':'/api/process_orders'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
                     } catch(e) {}
                     // #endregion
-                    return fetch('/api/process_orders', {
+                    // CRITICAL: Use absolute URL in embedded mode to prevent iframe URL resolution issues
+                    var apiUrl = '/api/process_orders';
+                    if (isEmbedded) {
+                        var appUrl = '{{ APP_URL or "" }}' || window.location.origin;
+                        apiUrl = appUrl + '/api/process_orders';
+                    }
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'About to fetch','data':{'url':apiUrl,'isAbsolute':apiUrl.startsWith('http'),'hasAuthHeader':true},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
+                    return fetch(apiUrl, {
                         headers: {'Authorization': 'Bearer ' + token},
                         signal: controller.signal
                     });
                 }).catch(function(err) {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Token retrieval failed','data':{'error':err.message||'unknown','errorName':err.name||'unknown'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     // Don't show error if request was cancelled
                     if (err.name === 'AbortError') {
                         return;
@@ -1485,6 +1527,11 @@ DASHBOARD_HTML = """
                     throw err; // Stop execution
                 });
             } else {
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Not embedded - using cookie auth','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
                 // Not embedded - use regular fetch (Flask-Login handles auth)
                 // CRITICAL: Include credentials (cookies) for standalone access
                 fetchPromise = fetch('/api/process_orders', {
@@ -1497,7 +1544,7 @@ DASHBOARD_HTML = """
                 .then(r => {
                     // #region agent log
                     try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:1480','message':'process_orders response','data':{'status':r.status,'ok':r.ok},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'P'})}).catch(()=>{});
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Fetch response received','data':{'status':r.status,'ok':r.ok,'statusText':r.statusText,'headers':Object.fromEntries(r.headers.entries())},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
                     } catch(e) {}
                     // #endregion
                     // Check if request was cancelled
@@ -1508,7 +1555,7 @@ DASHBOARD_HTML = """
                         return r.json().then(function(err) {
                             // #region agent log
                             try {
-                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:1488','message':'process_orders error','data':{'error':err.error||'unknown'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'P'})}).catch(()=>{});
+                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'API returned error','data':{'status':r.status,'error':err.error||'unknown','errorObj':err},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
                             } catch(e) {}
                             // #endregion
                             throw new Error(err.error || 'Network error');
@@ -1561,6 +1608,11 @@ DASHBOARD_HTML = """
                     }
                 })
                 .catch(err => {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Fetch catch error','data':{'error':err.message||'unknown','errorName':err.name||'unknown','stack':err.stack?err.stack.substring(0,200):'no stack'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     setButtonLoading(button, false);
                     console.error('❌ API request error:', err);
                     var errorDetails = '';
@@ -1580,6 +1632,11 @@ DASHBOARD_HTML = """
         }
         
         function updateInventory(button) {
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Button clicked','data':{'isEmbedded':window.isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            } catch(e) {}
+            // #endregion
             // Prevent rapid clicks (debounce)
             if (debounceTimers.updateInventory) {
                 return; // Already processing
@@ -1616,6 +1673,11 @@ DASHBOARD_HTML = """
             
             // CRITICAL: Wait for App Bridge to be ready before making requests
             if (isEmbedded && !window.appBridgeReady) {
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'App Bridge not ready','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
                 setButtonLoading(button, false);
                 document.getElementById('output').innerHTML = `
                     <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
@@ -1628,29 +1690,45 @@ DASHBOARD_HTML = """
             }
             
             if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Starting token retrieval','data':{'isEmbedded':isEmbedded,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
                 // In embedded mode, we MUST have session token - retry up to 3 times
                 var retryCount = 0;
-                var maxRetries = 3;
+                var maxRetries = 2; // Optimized: reduced from 3
                 
                 function getTokenWithRetry() {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory:getTokenWithRetry','message':'Calling getSessionToken','data':{'retryCount':retryCount,'maxRetries':maxRetries},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     return window.shopifyApp.getSessionToken().then(function(token) {
+                        // #region agent log
+                        try {
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory:getTokenWithRetry','message':'getSessionToken resolved','data':{'has_token':!!token,'token_length':token?token.length:0,'retryCount':retryCount},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                        } catch(e) {}
+                        // #endregion
                         if (!token && retryCount < maxRetries) {
                             retryCount++;
                             return new Promise(function(resolve, reject) {
-                                setTimeout(function() {
-                                    getTokenWithRetry().then(resolve).catch(reject);
-                                }, 300);
+                                setTimeout(function() { getTokenWithRetry().then(resolve).catch(reject); }, 100); // Optimized: reduced from 300ms
                             });
                         }
                         return token;
                 }).catch(function(err) {
+                        // #region agent log
+                        try {
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory:getTokenWithRetry','message':'getSessionToken error','data':{'error':err.message||'unknown','retryCount':retryCount,'maxRetries':maxRetries},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                        } catch(e) {}
+                        // #endregion
                         // If error and haven't exceeded retries, retry
                         if (retryCount < maxRetries) {
                             retryCount++;
                             return new Promise(function(resolve, reject) {
-                                setTimeout(function() {
-                                    getTokenWithRetry().then(resolve).catch(reject);
-                                }, 300);
+                                setTimeout(function() { getTokenWithRetry().then(resolve).catch(reject); }, 100); // Optimized: reduced from 300ms
                             });
                         }
                         // Max retries exceeded, throw error
@@ -1662,11 +1740,27 @@ DASHBOARD_HTML = """
                     if (!token) {
                         throw new Error('Unable to get session token. Please refresh the page.');
                     }
-                    return fetch('/api/update_inventory', {
+                    // CRITICAL: Use absolute URL in embedded mode to prevent iframe URL resolution issues
+                    var apiUrl = '/api/update_inventory';
+                    if (isEmbedded) {
+                        var appUrl = '{{ APP_URL or "" }}' || window.location.origin;
+                        apiUrl = appUrl + '/api/update_inventory';
+                    }
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Making API fetch request','data':{'has_token':!!token,'token_length':token?token.length:0,'is_embedded':isEmbedded,'url':apiUrl,'isAbsolute':apiUrl.startsWith('http')},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
+                    return fetch(apiUrl, {
                         headers: {'Authorization': 'Bearer ' + token},
                         signal: controller.signal
                     });
                 }).catch(function(err) {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Token retrieval failed','data':{'error':err.message||'unknown','errorName':err.name||'unknown'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     // Don't show error if request was cancelled
                     if (err.name === 'AbortError') {
                         return;
@@ -1683,6 +1777,11 @@ DASHBOARD_HTML = """
                     throw err; // Stop execution
                 });
             } else {
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Not embedded - using cookie auth','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
                 // Not embedded - use regular fetch (Flask-Login handles auth)
                 // CRITICAL: Include credentials (cookies) for standalone access
                 fetchPromise = fetch('/api/update_inventory', {
@@ -1693,6 +1792,11 @@ DASHBOARD_HTML = """
             
             fetchPromise
                 .then(r => {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Fetch response received','data':{'status':r.status,'ok':r.ok,'statusText':r.statusText},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     // Check if request was cancelled
                     if (controller.signal.aborted) {
                         return null;
@@ -1755,6 +1859,11 @@ DASHBOARD_HTML = """
                     }
                 })
                 .catch(err => {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Fetch catch error','data':{'error':err.message||'unknown','errorName':err.name||'unknown','stack':err.stack?err.stack.substring(0,200):'no stack'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     // Don't show error if request was cancelled
                     if (err.name === 'AbortError') {
                         return;
@@ -1781,6 +1890,11 @@ DASHBOARD_HTML = """
         }
         
         function generateReport(button) {
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'Button clicked','data':{'isEmbedded':window.isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            } catch(e) {}
+            // #endregion
             // Prevent rapid clicks (debounce)
             if (debounceTimers.generateReport) {
                 return; // Already processing
@@ -1817,6 +1931,11 @@ DASHBOARD_HTML = """
             
             // CRITICAL: Wait for App Bridge to be ready before making requests
             if (isEmbedded && !window.appBridgeReady) {
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'App Bridge not ready','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
                 setButtonLoading(button, false);
                 document.getElementById('output').innerHTML = `
                     <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
@@ -1829,29 +1948,45 @@ DASHBOARD_HTML = """
             }
             
             if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'Starting token retrieval','data':{'isEmbedded':isEmbedded,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
                 // In embedded mode, we MUST have session token - retry up to 3 times
                 var retryCount = 0;
-                var maxRetries = 3;
+                var maxRetries = 2; // Optimized: reduced from 3
                 
                 function getTokenWithRetry() {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport:getTokenWithRetry','message':'Calling getSessionToken','data':{'retryCount':retryCount,'maxRetries':maxRetries},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     return window.shopifyApp.getSessionToken().then(function(token) {
+                        // #region agent log
+                        try {
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport:getTokenWithRetry','message':'getSessionToken resolved','data':{'has_token':!!token,'token_length':token?token.length:0,'retryCount':retryCount},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                        } catch(e) {}
+                        // #endregion
                         if (!token && retryCount < maxRetries) {
                             retryCount++;
                             return new Promise(function(resolve, reject) {
-                                setTimeout(function() {
-                                    getTokenWithRetry().then(resolve).catch(reject);
-                                }, 300);
+                                setTimeout(function() { getTokenWithRetry().then(resolve).catch(reject); }, 100); // Optimized: reduced from 300ms
                             });
                         }
                         return token;
                 }).catch(function(err) {
+                        // #region agent log
+                        try {
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport:getTokenWithRetry','message':'getSessionToken error','data':{'error':err.message||'unknown','retryCount':retryCount,'maxRetries':maxRetries},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                        } catch(e) {}
+                        // #endregion
                         // If error and haven't exceeded retries, retry
                         if (retryCount < maxRetries) {
                             retryCount++;
                             return new Promise(function(resolve, reject) {
-                                setTimeout(function() {
-                                    getTokenWithRetry().then(resolve).catch(reject);
-                                }, 300);
+                                setTimeout(function() { getTokenWithRetry().then(resolve).catch(reject); }, 100); // Optimized: reduced from 300ms
                             });
                         }
                         // Max retries exceeded, throw error
@@ -1865,12 +2000,27 @@ DASHBOARD_HTML = """
                     }
                     // Get shop from URL or use current shop
                     const shopUrl = new URLSearchParams(window.location.search).get('shop') || '';
-                    const reportUrl = shopUrl ? `/api/generate_report?shop=${encodeURIComponent(shopUrl)}` : '/api/generate_report';
+                    var reportUrl = shopUrl ? `/api/generate_report?shop=${encodeURIComponent(shopUrl)}` : '/api/generate_report';
+                    // CRITICAL: Use absolute URL in embedded mode to prevent iframe URL resolution issues
+                    if (isEmbedded) {
+                        var appUrl = '{{ APP_URL or "" }}' || window.location.origin;
+                        reportUrl = appUrl + reportUrl;
+                    }
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'Making API fetch request','data':{'has_token':!!token,'token_length':token?token.length:0,'is_embedded':isEmbedded,'url':reportUrl,'isAbsolute':reportUrl.startsWith('http')},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     return fetch(reportUrl, {
                         headers: {'Authorization': 'Bearer ' + token},
                         signal: controller.signal
                     });
                 }).catch(function(err) {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'Token retrieval failed','data':{'error':err.message||'unknown','errorName':err.name||'unknown'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     // Don't show error if request was cancelled
                     if (err.name === 'AbortError') {
                         return;
@@ -1887,6 +2037,11 @@ DASHBOARD_HTML = """
                     throw err; // Stop execution
                 });
             } else {
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'Not embedded - using cookie auth','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
                 // Not embedded - use regular fetch (Flask-Login handles auth)
                 // CRITICAL: Include credentials (cookies) for standalone access
                 // Get shop from URL or use current shop
@@ -1900,6 +2055,11 @@ DASHBOARD_HTML = """
             
             fetchPromise
                 .then(r => {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'Fetch response received','data':{'status':r.status,'ok':r.ok,'statusText':r.statusText},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     // Check if request was cancelled
                     if (controller.signal.aborted) {
                         return null;
@@ -1938,6 +2098,11 @@ DASHBOARD_HTML = """
                     }
                 })
                 .catch(err => {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'Fetch catch error','data':{'error':err.message||'unknown','errorName':err.name||'unknown','stack':err.stack?err.stack.substring(0,200):'no stack'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     // Don't show error if request was cancelled
                     if (err.name === 'AbortError') {
                         return;
@@ -2258,6 +2423,7 @@ def home():
             host_param = request.args.get('host', '')
             shop_param = shop_domain or shop or request.args.get('shop', '')
             
+            APP_URL = os.getenv('APP_URL', request.url_root.rstrip('/'))
             return render_template_string(DASHBOARD_HTML, 
                                          trial_active=trial_active, 
                                          days_left=days_left, 
@@ -2268,6 +2434,7 @@ def home():
                                          shop=shop_param,
                                          shop_domain=shop_domain,
                                          SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
+                                         APP_URL=APP_URL,
                                          host=host_param)
         else:
             # Not logged in - for embedded apps, render dashboard with connect prompt
@@ -2288,6 +2455,7 @@ def home():
             # CRITICAL: Pass host parameter to template for App Bridge initialization
             host_param = request.args.get('host', '')
             
+            APP_URL = os.getenv('APP_URL', request.url_root.rstrip('/'))
             return render_template_string(DASHBOARD_HTML, 
                                          trial_active=trial_active, 
                                          days_left=days_left, 
@@ -2298,6 +2466,7 @@ def home():
                                          shop=shop_param,
                                          shop_domain=shop_domain,
                                          SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
+                                         APP_URL=APP_URL,
                                          host=host_param)
     
     # Regular (non-embedded) request handling
@@ -2321,6 +2490,7 @@ def home():
         # CRITICAL: Pass host parameter to template for App Bridge initialization
         host_param = request.args.get('host', '')
         shop_param = shop or request.args.get('shop', '')
+        APP_URL = os.getenv('APP_URL', request.url_root.rstrip('/'))
         
         return render_template_string(DASHBOARD_HTML, 
                                      trial_active=False, 
@@ -2332,6 +2502,7 @@ def home():
                                      shop=shop_param,
                                      shop_domain=shop_param,
                                      SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
+                                     APP_URL=APP_URL,
                                      host=host_param)
     
     # For standalone access, redirect to Shopify OAuth install instead of login
@@ -2705,6 +2876,7 @@ def dashboard():
     }, 'DASHBOARD')
     # #endregion
     
+    APP_URL = os.getenv('APP_URL', request.url_root.rstrip('/'))
     return render_template_string(DASHBOARD_HTML, 
                                  trial_active=trial_active, 
                                  days_left=days_left, 
@@ -2715,6 +2887,7 @@ def dashboard():
                                  shop=shop_param,
                                  shop_domain=shop_domain,
                                  SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
+                                 APP_URL=APP_URL,
                                  host=host_param)
 
 
