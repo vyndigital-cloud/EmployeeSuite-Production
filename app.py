@@ -416,9 +416,15 @@ def close_db(error):
 @app.before_request
 def validate_request_security():
     """Validate incoming requests for security - minimal checks only"""
+    # Skip database initialization for health checks (used by Render for deployment verification)
     # Skip validation for static files, health checks
     if request.endpoint in ('static', 'health') or request.endpoint is None:
         return
+    
+    # Ensure database is initialized (lazy initialization - non-blocking)
+    # Only initialize on actual requests, not health checks
+    ensure_db_initialized()
+    
     
     # Skip for webhook endpoints (they have HMAC verification)
     # Note: Both /webhook/ (singular) and /webhooks/ (plural) are used
@@ -4007,11 +4013,54 @@ def init_db():
         except Exception as e:
             logger.error(f"Database initialization error: {e}")
 
-# Run on import (for Render/Gunicorn)
-init_db()
+# Lazy database initialization - don't block app startup
+# CRITICAL: Render deployment timeout fix - don't initialize DB on import
+_db_initialized = False
 
-# #region agent log
-# Log app startup to verify routes are registered
+def ensure_db_initialized():
+    """Lazy database initialization - called on first request"""
+    global _db_initialized
+    # #region agent log
+    try:
+        import json
+        log_path = '/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log'
+        with open(log_path, 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"deploy-verify","hypothesisId":"A","location":"app.py:ensure_db_initialized","message":"ensure_db_initialized called","data":{"_db_initialized":_db_initialized},"timestamp":int(__import__("time").time()*1000)})+'\n')
+    except: pass
+    # #endregion
+    if _db_initialized:
+        return
+    try:
+        # #region agent log
+        try:
+            import json
+            log_path = '/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log'
+            with open(log_path, 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"deploy-verify","hypothesisId":"A","location":"app.py:ensure_db_initialized","message":"Starting init_db","data":{},"timestamp":int(__import__("time").time()*1000)})+'\n')
+        except: pass
+        # #endregion
+        init_db()
+        _db_initialized = True
+        logger.info("✅ Database initialized successfully")
+        # #region agent log
+        try:
+            import json
+            log_path = '/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log'
+            with open(log_path, 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"deploy-verify","hypothesisId":"A","location":"app.py:ensure_db_initialized","message":"init_db completed","data":{},"timestamp":int(__import__("time").time()*1000)})+'\n')
+        except: pass
+        # #endregion
+    except Exception as e:
+        logger.warning(f"Database initialization deferred: {e}")
+        # #region agent log
+        try:
+            import json
+            log_path = '/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log'
+            with open(log_path, 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"deploy-verify","hypothesisId":"A","location":"app.py:ensure_db_initialized","message":"init_db failed","data":{"error":str(e)},"timestamp":int(__import__("time").time()*1000)})+'\n')
+        except: pass
+        # #endregion
+
 try:
     import json
     with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
