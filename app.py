@@ -2061,6 +2061,13 @@ DASHBOARD_HTML = """
                 });
         }
         
+        
+        // App Bridge is ready - call proceedWithApiCall now that function is defined
+        if (!isEmbedded || window.appBridgeReady) {
+            proceedWithApiCall();
+            return; // Exit - proceedWithApiCall handles everything
+        }
+        
         function generateReport(button) {
             // #region agent log
             try {
