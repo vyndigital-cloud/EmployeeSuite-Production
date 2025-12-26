@@ -1619,6 +1619,12 @@ DASHBOARD_HTML = """
                 });
             }
             
+            // App Bridge is ready - call proceedWithApiCall
+            if (!isEmbedded || window.appBridgeReady) {
+                proceedWithApiCall();
+                return; // Exit - proceedWithApiCall handles everything
+            }
+
             // Execute the Promise chain
             fetchPromise
                 .then(r => {
