@@ -42,3 +42,4 @@ If Partners Dashboard shows a different redirect URI, that's why OAuth is failin
 3. Save
 4. Uninstall and reinstall the app
 
+

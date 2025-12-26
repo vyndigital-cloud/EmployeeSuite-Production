@@ -1558,13 +1558,33 @@ DASHBOARD_HTML = """
                         return null;
                     }
                     if (!r.ok) {
-                        return r.json().then(function(err) {
+                        // #region agent log
+                        try {
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'API error response','data':{'status':r.status,'statusText':r.statusText,'contentType':r.headers.get('content-type')||'unknown'},"timestamp":Date.now(),sessionId:'debug-session',runId:'api-error-debug',hypothesisId:'A'})}).catch(()=>{});
+                        } catch(e) {}
+                        // #endregion
+                        // Try to parse JSON, but handle non-JSON responses
+                        return r.text().then(function(text) {
                             // #region agent log
                             try {
-                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'API returned error','data':{'status':r.status,'error':err.error||'unknown','errorObj':err},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Error response text','data':{'status':r.status,'textLength':text.length,'textPreview':text.substring(0,200),'isJson':text.trim().startsWith('{')},"timestamp":Date.now(),sessionId:'debug-session',runId:'api-error-debug',hypothesisId:'B'})}).catch(()=>{});
                             } catch(e) {}
                             // #endregion
-                            throw new Error(err.error || 'Network error');
+                            var err = {};
+                            try {
+                                err = JSON.parse(text);
+                            } catch(e) {
+                                // Not JSON - use text as error message
+                                err = {error: text || 'Unknown error', message: text || 'Unknown error'};
+                            }
+                            // Extract error from multiple possible fields
+                            var errorMsg = err.error || err.message || err.detail || err.description || (typeof err === 'string' ? err : 'API error unknown');
+                            // #region agent log
+                            try {
+                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Extracted error message','data':{'status':r.status,'errorMsg':errorMsg,'errKeys':Object.keys(err),'errError':err.error,'errMessage':err.message},"timestamp":Date.now(),sessionId:'debug-session',runId:'api-error-debug',hypothesisId:'C'})}).catch(()=>{});
+                            } catch(e) {}
+                            // #endregion
+                            throw new Error(errorMsg);
                         });
                     }
                     return r.json();
@@ -1808,12 +1828,28 @@ DASHBOARD_HTML = """
                         return null;
                     }
                     if (!r.ok) {
+                        // #region agent log
+                        try {
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'API error response','data':{'status':r.status,'statusText':r.statusText},"timestamp":Date.now(),sessionId:'debug-session',runId:'api-error-debug',hypothesisId:'A'})}).catch(()=>{});
+                        } catch(e) {}
+                        // #endregion
                         return r.text().then(text => {
+                            // #region agent log
+                            try {
+                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Error response text','data':{'status':r.status,'textLength':text.length,'textPreview':text.substring(0,200)},"timestamp":Date.now(),sessionId:'debug-session',runId:'api-error-debug',hypothesisId:'B'})}).catch(()=>{});
+                            } catch(e) {}
+                            // #endregion
                             try {
                                 var json = JSON.parse(text);
-                                throw new Error(json.error || 'Request failed');
+                                var errorMsg = json.error || json.message || json.detail || json.description || 'Request failed';
+                                // #region agent log
+                                try {
+                                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Extracted error','data':{'errorMsg':errorMsg,'jsonKeys':Object.keys(json)},"timestamp":Date.now(),sessionId:'debug-session',runId:'api-error-debug',hypothesisId:'C'})}).catch(()=>{});
+                                } catch(e) {}
+                                // #endregion
+                                throw new Error(errorMsg);
                             } catch (e) {
-                                if (e.message) throw e;
+                                if (e.message && e.message !== 'Request failed') throw e;
                                 throw new Error(text || 'Network error');
                             }
                         });

@@ -197,8 +197,9 @@ def install():
         'client_id': SHOPIFY_API_KEY,
         'scope': SCOPES,
         'redirect_uri': REDIRECT_URI,  # Must match Partners Dashboard exactly - no query params
-        'state': state_data,
-        'grant_options[]': ACCESS_MODE  # Request offline (persistent) access token
+        'state': state_data
+        # Modern OAuth flow: grant_options[] removed - access mode configured in Partners Dashboard
+        # Dashboard shows "Use legacy install flow: false" - using modern flow
     }
     
     # CRITICAL: URL-encode all parameter values, especially redirect_uri

@@ -80,3 +80,4 @@ But Shopify **validates** the redirect_uri parameter against what's configured i
 
 **Bottom line: This MUST be fixed in Partners Dashboard - code changes won't help.**
 
+

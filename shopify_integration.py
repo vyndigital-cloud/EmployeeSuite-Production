@@ -57,20 +57,56 @@ class ShopifyClient:
                 if status_code == 403:
                     # Permission denied - missing scopes
                     error_detail = "Access denied - Missing required permissions"
+                    response_text = ""
                     try:
+                        response_text = response.text[:500]  # Get first 500 chars for logging
                         error_data = response.json()
+                        # #region agent log
+                        try:
+                            import json
+                            import time
+                            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                                f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"A","location":"shopify_integration.py:403-direct","message":"403 response received","data":{"endpoint":endpoint,"shop_url":self.shop_url,"response_text":response_text,"error_data_keys":list(error_data.keys()) if isinstance(error_data,dict) else "not_dict"},"timestamp":int(time.time()*1000)})+'\n')
+                        except: pass
+                        # #endregion
                         if isinstance(error_data, dict):
                             errors = error_data.get('errors', {})
                             if isinstance(errors, dict):
-                                error_detail = errors.get('base', [error_detail])
+                                # Try multiple error fields
+                                error_detail = errors.get('base', errors.get('message', errors.get('error', [error_detail])))
                                 if isinstance(error_detail, list):
                                     error_detail = error_detail[0] if error_detail else "Access denied - Missing required permissions"
+                                elif not error_detail:
+                                    error_detail = "Access denied - Missing required permissions"
                             elif isinstance(errors, str):
                                 error_detail = errors
+                            elif isinstance(errors, list) and errors:
+                                error_detail = errors[0] if isinstance(errors[0], str) else str(errors[0])
+                            # Also check top-level error fields
+                            if error_detail == "Access denied - Missing required permissions":
+                                error_detail = error_data.get('message', error_data.get('error', error_detail))
                         elif isinstance(error_data, str):
                             error_detail = error_data
-                    except (ValueError, AttributeError, TypeError):
-                        pass
+                    except (ValueError, AttributeError, TypeError) as parse_error:
+                        # #region agent log
+                        try:
+                            import json
+                            import time
+                            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                                f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"B","location":"shopify_integration.py:403-parse","message":"Failed to parse 403 response","data":{"endpoint":endpoint,"parse_error":str(parse_error),"response_text":response_text[:200]},"timestamp":int(time.time()*1000)})+'\n')
+                        except: pass
+                        # #endregion
+                        # Use response text if JSON parsing failed
+                        if response_text:
+                            error_detail = response_text[:200] if len(response_text) < 200 else response_text[:200] + "..."
+                    # #region agent log
+                    try:
+                        import json
+                        import time
+                        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                            f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"C","location":"shopify_integration.py:403-return","message":"Returning 403 error","data":{"endpoint":endpoint,"error_detail":error_detail[:200],"status_code":403},"timestamp":int(time.time()*1000)})+'\n')
+                    except: pass
+                    # #endregion
                     return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
                 response.raise_for_status()
                 return response.json()
@@ -111,27 +147,54 @@ class ShopifyClient:
                 elif status_code == 403:
                     # Permission denied - missing scopes
                     error_detail = "Access denied - Missing required permissions"
+                    response_text = ""
                     try:
-                        if hasattr(e, 'response') and e.response:
-                            error_data = e.response.json()
-                            if isinstance(error_data, dict):
-                                errors = error_data.get('errors', {})
-                                if isinstance(errors, dict):
-                                    error_detail = errors.get('base', [error_detail])
-                                    if isinstance(error_detail, list):
-                                        error_detail = error_detail[0] if error_detail else "Access denied - Missing required permissions"
-                                elif isinstance(errors, str):
-                                    error_detail = errors
-                            elif isinstance(error_data, str):
-                                error_detail = error_data
-                    except (ValueError, AttributeError, TypeError):
-                        pass
+                        response_text = response.text[:500]  # Get first 500 chars for logging
+                        error_data = response.json()
+                        # #region agent log
+                        try:
+                            import json
+                            import time
+                            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                                f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"A","location":"shopify_integration.py:403-direct","message":"403 response received","data":{"endpoint":endpoint,"shop_url":self.shop_url,"response_text":response_text,"error_data_keys":list(error_data.keys()) if isinstance(error_data,dict) else "not_dict"},"timestamp":int(time.time()*1000)})+'\n')
+                        except: pass
+                        # #endregion
+                        if isinstance(error_data, dict):
+                            errors = error_data.get('errors', {})
+                            if isinstance(errors, dict):
+                                # Try multiple error fields
+                                error_detail = errors.get('base', errors.get('message', errors.get('error', [error_detail])))
+                                if isinstance(error_detail, list):
+                                    error_detail = error_detail[0] if error_detail else "Access denied - Missing required permissions"
+                                elif not error_detail:
+                                    error_detail = "Access denied - Missing required permissions"
+                            elif isinstance(errors, str):
+                                error_detail = errors
+                            elif isinstance(errors, list) and errors:
+                                error_detail = errors[0] if isinstance(errors[0], str) else str(errors[0])
+                            # Also check top-level error fields
+                            if error_detail == "Access denied - Missing required permissions":
+                                error_detail = error_data.get('message', error_data.get('error', error_detail))
+                        elif isinstance(error_data, str):
+                            error_detail = error_data
+                    except (ValueError, AttributeError, TypeError) as parse_error:
+                        # #region agent log
+                        try:
+                            import json
+                            import time
+                            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                                f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"B","location":"shopify_integration.py:403-parse","message":"Failed to parse 403 response","data":{"endpoint":endpoint,"parse_error":str(parse_error),"response_text":response_text[:200]},"timestamp":int(time.time()*1000)})+'\n')
+                        except: pass
+                        # #endregion
+                        # Use response text if JSON parsing failed
+                        if response_text:
+                            error_detail = response_text[:200] if len(response_text) < 200 else response_text[:200] + "..."
                     # #region agent log
                     try:
                         import json
                         import time
                         with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"shopify_integration.py:111","message":"403 permission denied in API call","data":{"endpoint":endpoint,"shop_url":self.shop_url,"error_detail":error_detail[:200],"status_code":403},"timestamp":int(time.time()*1000)})+'\n')
+                            f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"C","location":"shopify_integration.py:403-return","message":"Returning 403 error","data":{"endpoint":endpoint,"error_detail":error_detail[:200],"status_code":403},"timestamp":int(time.time()*1000)})+'\n')
                     except: pass
                     # #endregion
                     return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
@@ -210,20 +273,56 @@ class ShopifyClient:
                 if status_code == 403:
                     # Permission denied - missing scopes
                     error_detail = "Access denied - Missing required permissions"
+                    response_text = ""
                     try:
+                        response_text = response.text[:500]  # Get first 500 chars for logging
                         error_data = response.json()
+                        # #region agent log
+                        try:
+                            import json
+                            import time
+                            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                                f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"A","location":"shopify_integration.py:403-direct","message":"403 response received","data":{"endpoint":endpoint,"shop_url":self.shop_url,"response_text":response_text,"error_data_keys":list(error_data.keys()) if isinstance(error_data,dict) else "not_dict"},"timestamp":int(time.time()*1000)})+'\n')
+                        except: pass
+                        # #endregion
                         if isinstance(error_data, dict):
                             errors = error_data.get('errors', {})
                             if isinstance(errors, dict):
-                                error_detail = errors.get('base', [error_detail])
+                                # Try multiple error fields
+                                error_detail = errors.get('base', errors.get('message', errors.get('error', [error_detail])))
                                 if isinstance(error_detail, list):
                                     error_detail = error_detail[0] if error_detail else "Access denied - Missing required permissions"
+                                elif not error_detail:
+                                    error_detail = "Access denied - Missing required permissions"
                             elif isinstance(errors, str):
                                 error_detail = errors
+                            elif isinstance(errors, list) and errors:
+                                error_detail = errors[0] if isinstance(errors[0], str) else str(errors[0])
+                            # Also check top-level error fields
+                            if error_detail == "Access denied - Missing required permissions":
+                                error_detail = error_data.get('message', error_data.get('error', error_detail))
                         elif isinstance(error_data, str):
                             error_detail = error_data
-                    except (ValueError, AttributeError, TypeError):
-                        pass
+                    except (ValueError, AttributeError, TypeError) as parse_error:
+                        # #region agent log
+                        try:
+                            import json
+                            import time
+                            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                                f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"B","location":"shopify_integration.py:403-parse","message":"Failed to parse 403 response","data":{"endpoint":endpoint,"parse_error":str(parse_error),"response_text":response_text[:200]},"timestamp":int(time.time()*1000)})+'\n')
+                        except: pass
+                        # #endregion
+                        # Use response text if JSON parsing failed
+                        if response_text:
+                            error_detail = response_text[:200] if len(response_text) < 200 else response_text[:200] + "..."
+                    # #region agent log
+                    try:
+                        import json
+                        import time
+                        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                            f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"C","location":"shopify_integration.py:403-return","message":"Returning 403 error","data":{"endpoint":endpoint,"error_detail":error_detail[:200],"status_code":403},"timestamp":int(time.time()*1000)})+'\n')
+                    except: pass
+                    # #endregion
                     return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
                 response.raise_for_status()
                 return response.json()
@@ -264,27 +363,54 @@ class ShopifyClient:
                 elif status_code == 403:
                     # Permission denied - missing scopes
                     error_detail = "Access denied - Missing required permissions"
+                    response_text = ""
                     try:
-                        if hasattr(e, 'response') and e.response:
-                            error_data = e.response.json()
-                            if isinstance(error_data, dict):
-                                errors = error_data.get('errors', {})
-                                if isinstance(errors, dict):
-                                    error_detail = errors.get('base', [error_detail])
-                                    if isinstance(error_detail, list):
-                                        error_detail = error_detail[0] if error_detail else "Access denied - Missing required permissions"
-                                elif isinstance(errors, str):
-                                    error_detail = errors
-                            elif isinstance(error_data, str):
-                                error_detail = error_data
-                    except (ValueError, AttributeError, TypeError):
-                        pass
+                        response_text = response.text[:500]  # Get first 500 chars for logging
+                        error_data = response.json()
+                        # #region agent log
+                        try:
+                            import json
+                            import time
+                            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                                f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"A","location":"shopify_integration.py:403-direct","message":"403 response received","data":{"endpoint":endpoint,"shop_url":self.shop_url,"response_text":response_text,"error_data_keys":list(error_data.keys()) if isinstance(error_data,dict) else "not_dict"},"timestamp":int(time.time()*1000)})+'\n')
+                        except: pass
+                        # #endregion
+                        if isinstance(error_data, dict):
+                            errors = error_data.get('errors', {})
+                            if isinstance(errors, dict):
+                                # Try multiple error fields
+                                error_detail = errors.get('base', errors.get('message', errors.get('error', [error_detail])))
+                                if isinstance(error_detail, list):
+                                    error_detail = error_detail[0] if error_detail else "Access denied - Missing required permissions"
+                                elif not error_detail:
+                                    error_detail = "Access denied - Missing required permissions"
+                            elif isinstance(errors, str):
+                                error_detail = errors
+                            elif isinstance(errors, list) and errors:
+                                error_detail = errors[0] if isinstance(errors[0], str) else str(errors[0])
+                            # Also check top-level error fields
+                            if error_detail == "Access denied - Missing required permissions":
+                                error_detail = error_data.get('message', error_data.get('error', error_detail))
+                        elif isinstance(error_data, str):
+                            error_detail = error_data
+                    except (ValueError, AttributeError, TypeError) as parse_error:
+                        # #region agent log
+                        try:
+                            import json
+                            import time
+                            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                                f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"B","location":"shopify_integration.py:403-parse","message":"Failed to parse 403 response","data":{"endpoint":endpoint,"parse_error":str(parse_error),"response_text":response_text[:200]},"timestamp":int(time.time()*1000)})+'\n')
+                        except: pass
+                        # #endregion
+                        # Use response text if JSON parsing failed
+                        if response_text:
+                            error_detail = response_text[:200] if len(response_text) < 200 else response_text[:200] + "..."
                     # #region agent log
                     try:
                         import json
                         import time
                         with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"shopify_integration.py:111","message":"403 permission denied in API call","data":{"endpoint":endpoint,"shop_url":self.shop_url,"error_detail":error_detail[:200],"status_code":403},"timestamp":int(time.time()*1000)})+'\n')
+                            f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"C","location":"shopify_integration.py:403-return","message":"Returning 403 error","data":{"endpoint":endpoint,"error_detail":error_detail[:200],"status_code":403},"timestamp":int(time.time()*1000)})+'\n')
                     except: pass
                     # #endregion
                     return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
