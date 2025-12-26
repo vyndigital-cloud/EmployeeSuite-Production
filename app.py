@@ -826,6 +826,22 @@ DASHBOARD_HTML = """
             window.appBridgeReady = false;
             window.isEmbedded = !!host;
             
+            // PERFECTED: Promise-based App Bridge ready system
+            window.appBridgeReadyPromise = null;
+            window.appBridgeReadyResolve = null;
+            window.appBridgeReadyReject = null;
+            
+            // Create Promise for App Bridge readiness
+            window.appBridgeReadyPromise = new Promise(function(resolve, reject) {
+                window.appBridgeReadyResolve = resolve;
+                window.appBridgeReadyReject = reject;
+            });
+            
+            // Helper function to wait for App Bridge (used by buttons)
+            window.waitForAppBridge = function() {
+                return window.appBridgeReadyPromise;
+            };
+            
             // Add embedded class to body for CSS targeting
             if (window.isEmbedded) {
                 document.body.classList.add('embedded');
@@ -835,6 +851,10 @@ DASHBOARD_HTML = """
             if (!host) {
                 window.shopifyApp = null;
                 window.appBridgeReady = true; // Not embedded, so "ready" (won't use it)
+                // Resolve immediately for non-embedded mode
+                if (window.appBridgeReadyResolve) {
+                    window.appBridgeReadyResolve({ ready: true, embedded: false });
+                }
                 return;
             }
             
@@ -952,6 +972,21 @@ DASHBOARD_HTML = """
                                     console.log('✅ App object:', window.shopifyApp ? 'created' : 'failed');
                                     window.appBridgeReady = true;
                                     
+                                    // PERFECTED: Resolve Promise and dispatch event
+                                    if (window.appBridgeReadyResolve) {
+                                        window.appBridgeReadyResolve({
+                                            ready: true,
+                                            embedded: true,
+                                            app: window.shopifyApp
+                                        });
+                                    }
+                                    
+                                    // Dispatch custom event for App Bridge ready
+                                    var readyEvent = new CustomEvent('appbridge:ready', {
+                                        detail: { app: window.shopifyApp, embedded: true }
+                                    });
+                                    window.dispatchEvent(readyEvent);
+                                    
                                     // Enable buttons now that App Bridge is ready
                                     enableEmbeddedButtons();
                                 } catch (initError) {
@@ -1063,6 +1098,31 @@ DASHBOARD_HTML = """
             function enableEmbeddedButtons() {
                 // Buttons are enabled by default, but we can add visual feedback
                 console.log('✅ Embedded app ready - buttons enabled');
+                
+                // PERFECTED: Remove loading states from buttons
+                var buttons = document.querySelectorAll('.card-btn');
+                buttons.forEach(function(btn) {
+                    btn.disabled = false;
+                    var loading = btn.querySelector('.loading-spinner');
+                    if (loading) {
+                        loading.style.display = 'none';
+                    }
+                });
+            }
+            
+            // PERFECTED: Reject Promise on errors (so buttons know initialization failed)
+            function rejectAppBridgePromise(reason) {
+                if (window.appBridgeReadyReject) {
+                    window.appBridgeReadyReject(new Error(reason || 'App Bridge initialization failed'));
+                }
+                // Also resolve with error state so buttons can still work (graceful degradation)
+                if (window.appBridgeReadyResolve) {
+                    window.appBridgeReadyResolve({
+                        ready: false,
+                        embedded: true,
+                        error: reason || 'App Bridge initialization failed'
+                    });
+                }
             }
         })();
     </script>
@@ -1375,7 +1435,59 @@ DASHBOARD_HTML = """
             }
         }
         
-        function processOrders(button) {
+        
+            // PERFECTED: Helper function to wait for App Bridge and proceed with API call
+            function waitForAppBridgeAndProceed(callback) {
+                if (!window.isEmbedded) {
+                    // Not embedded, proceed immediately
+                    callback();
+                    return;
+                }
+                
+                // Wait for App Bridge Promise
+                if (window.waitForAppBridge) {
+                    window.waitForAppBridge().then(function(bridgeState) {
+                        if (bridgeState.ready && bridgeState.app) {
+                            callback();
+                        } else {
+                            setButtonLoading(button, false);
+                            document.getElementById('output').innerHTML = `
+                                <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                                    <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">⏳ App Bridge Not Ready</div>
+                                    <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${bridgeState.error || 'App Bridge initialization failed. Please refresh the page.'}</div>
+                                    <button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>
+                                </div>
+                            `;
+                        }
+                    }).catch(function(error) {
+                        setButtonLoading(button, false);
+                        document.getElementById('output').innerHTML = `
+                            <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;">
+                                <div style="font-size: 15px; font-weight: 600; color: #d72c0d; margin-bottom: 8px;">❌ App Bridge Error</div>
+                                <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${error.message || 'App Bridge initialization failed. Please refresh the page.'}</div>
+                                <button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    // Fallback: wait a bit and retry
+                    setTimeout(function() {
+                        if (window.appBridgeReady) {
+                            callback();
+                        } else {
+                            setButtonLoading(button, false);
+                            document.getElementById('output').innerHTML = `
+                                <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                                    <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">⏳ Initializing App...</div>
+                                    <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please wait while the app initializes. This should only take a moment.</div>
+                                    <button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>
+                                </div>
+                            `;
+                        }
+                    }, 500);
+                }
+            }
+function processOrders(button) {
             // #region agent log
             try {
                 fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Button clicked','data':{'isEmbedded':window.isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
@@ -1415,25 +1527,9 @@ DASHBOARD_HTML = """
             var fetchPromise;
             var isEmbedded = window.isEmbedded; // Use global flag
             
-            // CRITICAL: Wait for App Bridge to be ready before making requests
-            if (isEmbedded && !window.appBridgeReady) {
-                // #region agent log
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'App Bridge not ready','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
-                setButtonLoading(button, false);
-                document.getElementById('output').innerHTML = `
-                    <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
-                        <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">⏳ Initializing App...</div>
-                        <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please wait while the app initializes. This should only take a moment.</div>
-                        <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"processOrders\"]'); if (btn) setTimeout(function(){processOrders(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
-                    </div>
-                `;
-                return;
-            }
-            
-            if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
+            // PERFECTED: Wait for App Bridge Promise before making requests
+            function proceedWithApiCall() {
+                if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
                 // #region agent log
                 try {
                     fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Starting token retrieval','data':{'isEmbedded':isEmbedded,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
