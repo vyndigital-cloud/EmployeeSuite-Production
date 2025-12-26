@@ -1207,7 +1207,7 @@ DASHBOARD_HTML = """
                 <div class="card-title">Order Processing</div>
                 <div class="card-description">View pending and unfulfilled Shopify orders. Monitor order status and payment information.</div>
                 {% if has_access %}
-                <button class="card-btn" onclick="processOrders(this)" aria-label="View pending orders">
+                <button class="card-btn" data-action="processOrders" aria-label="View pending orders">
                     <span>View Orders</span>
                     <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
@@ -1224,7 +1224,7 @@ DASHBOARD_HTML = """
                 <div class="card-title">Inventory Management</div>
                 <div class="card-description">Monitor stock levels across all products. Get low-stock alerts and complete inventory visibility.</div>
                 {% if has_access %}
-                <button class="card-btn" onclick="updateInventory(this)" aria-label="Check inventory levels">
+                <button class="card-btn" data-action="updateInventory" aria-label="Check inventory levels">
                     <span>Check Inventory</span>
                     <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
@@ -1241,7 +1241,7 @@ DASHBOARD_HTML = """
                 <div class="card-title">Revenue Analytics</div>
                 <div class="card-description">Generate revenue reports with product-level breakdown and insights.</div>
                 {% if has_access %}
-                <button class="card-btn" onclick="generateReport(this)" aria-label="Generate revenue report">
+                <button class="card-btn" data-action="generateReport" aria-label="Generate revenue report">
                     <span>Generate Report</span>
                     <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
@@ -2382,7 +2382,47 @@ DASHBOARD_HTML = """
         })();
         // #endregion
         
-        // Keyboard shortcuts for power users
+        
+        // Attach event listeners to dashboard buttons (more reliable than onclick)
+        (function() {
+            function attachButtonListeners() {
+                var processBtn = document.querySelector('.card-btn[data-action="processOrders"]');
+                var inventoryBtn = document.querySelector('.card-btn[data-action="updateInventory"]');
+                var reportBtn = document.querySelector('.card-btn[data-action="generateReport"]');
+                
+                if (processBtn && typeof window.processOrders === 'function') {
+                    processBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        window.processOrders(this);
+                    });
+                }
+                
+                if (inventoryBtn && typeof window.updateInventory === 'function') {
+                    inventoryBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        window.updateInventory(this);
+                    });
+                }
+                
+                if (reportBtn && typeof window.generateReport === 'function') {
+                    reportBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        window.generateReport(this);
+                    });
+                }
+            }
+            
+            // Try immediately and after DOM ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', attachButtonListeners);
+            } else {
+                attachButtonListeners();
+            }
+            // Also try after a delay in case buttons load late
+            setTimeout(attachButtonListeners, 500);
+        })();
+        
+// Keyboard shortcuts for power users
         document.addEventListener('keydown', function(e) {
             // Ctrl/Cmd + 1 = Process Orders
             if ((e.ctrlKey || e.metaKey) && e.key === '1') {
