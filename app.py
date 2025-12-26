@@ -1262,6 +1262,15 @@ DASHBOARD_HTML = """
     </div>
     
     <script>
+        // #region agent log - EARLY SCRIPT EXECUTION CHECK
+        (function() {
+            try {
+                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:script_start',message:'Script block executing',data:{'timestamp':Date.now(),'readyState':document.readyState},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-v2',hypothesisId:'SCRIPT_EXEC'})}).catch(()=>{});
+            } catch(e) {
+                console.error('Debug log error:', e);
+            }
+        })();
+        // #endregion
         // Professional request management - prevent duplicate requests and cancel previous ones
         var activeRequests = {
             processOrders: null,
@@ -2353,6 +2362,25 @@ DASHBOARD_HTML = """
         
         // Ensure function is in global scope
         window.generateReport = generateReport;
+        // #region agent log - VERIFY WINDOW ASSIGNMENTS
+        (function() {
+            setTimeout(function() {
+                try {
+                    var funcCheck = {
+                        processOrders: typeof window.processOrders,
+                        updateInventory: typeof window.updateInventory,
+                        generateReport: typeof window.generateReport,
+                        processOrdersDirect: typeof processOrders,
+                        updateInventoryDirect: typeof updateInventory,
+                        generateReportDirect: typeof generateReport
+                    };
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:window_check','message':'Window function check','data':funcCheck,"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-v2',hypothesisId:'WINDOW_CHECK'})}).catch(()=>{});
+                } catch(e) {
+                    console.error('Window check error:', e);
+                }
+            }, 100);
+        })();
+        // #endregion
         
         // Keyboard shortcuts for power users
         document.addEventListener('keydown', function(e) {
@@ -2908,6 +2936,15 @@ def dashboard():
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <script>
+        // #region agent log - EARLY SCRIPT EXECUTION CHECK
+        (function() {
+            try {
+                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:script_start','message':'Script block executing','data':{'timestamp':Date.now(),'readyState':document.readyState},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-v2',hypothesisId:'SCRIPT_EXEC'})}).catch(()=>{});
+            } catch(e) {
+                console.error('Debug log error:', e);
+            }
+        })();
+        // #endregion
         (function() {{
             var host = '{host or ''}';
             var apiKey = '{os.getenv("SHOPIFY_API_KEY", "")}';
