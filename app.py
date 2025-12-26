@@ -2976,16 +2976,7 @@ def dashboard():
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <script>
-        // #region agent log - EARLY SCRIPT EXECUTION CHECK
-        (function() {
-            try {
-                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:script_start','message':'Script block executing','data':{'timestamp':Date.now(),'readyState':document.readyState},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-v2',hypothesisId:'SCRIPT_EXEC'})}).catch(()=>{});
-            } catch(e) {
-                console.error('Debug log error:', e);
-            }
-        })();
-        // #endregion
-        (function() {{
+(function() {{
             var host = '{host or ''}';
             var apiKey = '{os.getenv("SHOPIFY_API_KEY", "")}';
             var installUrl = '{install_url}';
