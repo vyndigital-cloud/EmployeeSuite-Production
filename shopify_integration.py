@@ -352,7 +352,15 @@ class ShopifyClient:
                                     id
                                     sku
                                     price
-                                    quantityAvailable
+                                    inventoryItem {
+                                        inventoryLevels(first: 1) {
+                                            edges {
+                                                node {
+                                                    available
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -440,8 +448,17 @@ class ShopifyClient:
                             price = f"${price_value}" if price_value != '0' else 'N/A'
                             
                             # Get inventory quantity from GraphQL structure
-                            # Use 'quantityAvailable' field directly on variant (correct field name)
-                            stock = variant.get("quantityAvailable", 0) or 0
+                            # For Admin API, use inventoryItem.inventoryLevels.available
+                            stock = 0
+                            inventory_item = variant.get("inventoryItem")
+                            if inventory_item and isinstance(inventory_item, dict):
+                                inventory_levels = inventory_item.get("inventoryLevels", {})
+                                if inventory_levels and isinstance(inventory_levels, dict):
+                                    edges = inventory_levels.get("edges", [])
+                                    if edges and len(edges) > 0:
+                                        node = edges[0].get("node", {})
+                                        if node and isinstance(node, dict):
+                                            stock = node.get("available", 0) or 0
                             
                             inventory.append({
                                 'product': product_title,
