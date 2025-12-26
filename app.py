@@ -1253,6 +1253,9 @@ DASHBOARD_HTML = """
             generateReport: null
         };
         
+        // Get APP_URL from template or use current origin (FIXED: was using template literal incorrectly)
+        var APP_URL = '{{ APP_URL|default("") }}' || window.location.origin;
+        
         // Network status detection with visual indicator
         var isOnline = navigator.onLine;
         function updateConnectionStatus() {
@@ -1424,7 +1427,7 @@ DASHBOARD_HTML = """
                     <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
                         <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">⏳ Initializing App...</div>
                         <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please wait while the app initializes. This should only take a moment.</div>
-                        <button onclick="setTimeout(function(){processOrders(this);}, 500)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
+                        <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"processOrders\"]'); if (btn) setTimeout(function(){processOrders(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
                     </div>
                 `;
                 return;
@@ -1490,8 +1493,7 @@ DASHBOARD_HTML = """
                     // CRITICAL: Use absolute URL in embedded mode to prevent iframe URL resolution issues
                     var apiUrl = '/api/process_orders';
                     if (isEmbedded) {
-                        var appUrl = '{{ APP_URL or "" }}' || window.location.origin;
-                        apiUrl = appUrl + '/api/process_orders';
+                        apiUrl = APP_URL + '/api/process_orders';
                     }
                     // #region agent log
                     try {
@@ -1600,7 +1602,10 @@ DASHBOARD_HTML = """
                     
                     setButtonLoading(button, false);
                     activeRequests.processOrders = null;
-                    debounceTimers.processOrders = null;
+                    if (debounceTimers.processOrders) {
+                        clearTimeout(debounceTimers.processOrders);
+                        debounceTimers.processOrders = null;
+                    }
                     
                     if (d.success) {
                         const icon = '✅';
@@ -1640,6 +1645,11 @@ DASHBOARD_HTML = """
                     } catch(e) {}
                     // #endregion
                     setButtonLoading(button, false);
+                    activeRequests.processOrders = null;
+                    if (debounceTimers.processOrders) {
+                        clearTimeout(debounceTimers.processOrders);
+                        debounceTimers.processOrders = null;
+                    }
                     console.error('❌ API request error:', err);
                     var errorDetails = '';
                     if (err.message) {
@@ -1709,7 +1719,7 @@ DASHBOARD_HTML = """
                     <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
                         <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">⏳ Initializing App...</div>
                         <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please wait while the app initializes. This should only take a moment.</div>
-                        <button onclick="setTimeout(function(){updateInventory(this);}, 500)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
+                        <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"updateInventory\"]'); if (btn) setTimeout(function(){updateInventory(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
                     </div>
                 `;
                 return;
@@ -1769,8 +1779,7 @@ DASHBOARD_HTML = """
                     // CRITICAL: Use absolute URL in embedded mode to prevent iframe URL resolution issues
                     var apiUrl = '/api/update_inventory';
                     if (isEmbedded) {
-                        var appUrl = '{{ APP_URL or "" }}' || window.location.origin;
-                        apiUrl = appUrl + '/api/update_inventory';
+                        apiUrl = APP_URL + '/api/update_inventory';
                     }
                     // #region agent log
                     try {
@@ -1862,7 +1871,10 @@ DASHBOARD_HTML = """
                     
                     setButtonLoading(button, false);
                     activeRequests.updateInventory = null;
-                    debounceTimers.updateInventory = null;
+                    if (debounceTimers.updateInventory) {
+                        clearTimeout(debounceTimers.updateInventory);
+                        debounceTimers.updateInventory = null;
+                    }
                     
                     if (d.success) {
                         const icon = '✅';
@@ -1913,7 +1925,10 @@ DASHBOARD_HTML = """
                     
                     setButtonLoading(button, false);
                     activeRequests.updateInventory = null;
-                    debounceTimers.updateInventory = null;
+                    if (debounceTimers.updateInventory) {
+                        clearTimeout(debounceTimers.updateInventory);
+                        debounceTimers.updateInventory = null;
+                    }
                     
                     var errorMessage = 'Unable to connect to server. Please check your internet connection and try again.';
                     if (!isOnline) {
@@ -1983,7 +1998,7 @@ DASHBOARD_HTML = """
                     <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
                         <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">⏳ Initializing App...</div>
                         <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please wait while the app initializes. This should only take a moment.</div>
-                        <button onclick="setTimeout(function(){generateReport(this);}, 500)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
+                        <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"generateReport\"]'); if (btn) setTimeout(function(){generateReport(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
                     </div>
                 `;
                 return;
@@ -2045,8 +2060,7 @@ DASHBOARD_HTML = """
                     var reportUrl = shopUrl ? `/api/generate_report?shop=${encodeURIComponent(shopUrl)}` : '/api/generate_report';
                     // CRITICAL: Use absolute URL in embedded mode to prevent iframe URL resolution issues
                     if (isEmbedded) {
-                        var appUrl = '{{ APP_URL or "" }}' || window.location.origin;
-                        reportUrl = appUrl + reportUrl;
+                        reportUrl = APP_URL + reportUrl;
                     }
                     // #region agent log
                     try {
@@ -2120,7 +2134,10 @@ DASHBOARD_HTML = """
                     
                     setButtonLoading(button, false);
                     activeRequests.generateReport = null;
-                    debounceTimers.generateReport = null;
+                    if (debounceTimers.generateReport) {
+                        clearTimeout(debounceTimers.generateReport);
+                        debounceTimers.generateReport = null;
+                    }
                     
                     // Check if the HTML contains an error message (from backend)
                     if (html.includes('Error Loading revenue') || html.includes('No Shopify store connected')) {
@@ -2152,7 +2169,10 @@ DASHBOARD_HTML = """
                     
                     setButtonLoading(button, false);
                     activeRequests.generateReport = null;
-                    debounceTimers.generateReport = null;
+                    if (debounceTimers.generateReport) {
+                        clearTimeout(debounceTimers.generateReport);
+                        debounceTimers.generateReport = null;
+                    }
                     
                     // Check if error message is HTML (from backend) or plain text (network error)
                     if (err.message && err.message.includes('Error Loading revenue')) {
