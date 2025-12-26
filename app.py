@@ -1576,6 +1576,14 @@ function processOrders(button) {
                     });
                 }
                 
+            
+            // CRITICAL FIX: Actually call proceedWithApiCall via waitForAppBridgeAndProceed
+            waitForAppBridgeAndProceed(proceedWithApiCall);
+            return; // Exit - proceedWithApiCall handles everything via Promise chain inside
+        }
+        
+        // OLD CODE BELOW - should not execute (kept for reference)
+        if (false) {
                 fetchPromise = getTokenWithRetry().then(function(token) {
                     if (!token) {
                         throw new Error('Unable to get session token. Please refresh the page.');
@@ -1644,6 +1652,19 @@ function processOrders(button) {
                 });
             }
             
+            
+            fetchPromise
+                .then(r => {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Fetch response received','data':{'status':r.status,'ok':r.ok,'statusText':r.statusText,'headers':Object.fromEntries(r.headers.entries())},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{}
+                    // CRITICAL FIX: Actually call proceedWithApiCall via waitForAppBridgeAndProceed
+            waitForAppBridgeAndProceed(proceedWithApiCall);
+            return; // Exit - proceedWithApiCall handles everything via Promise chain inside
+        }
+        
+        // OLD CODE BELOW - should not execute (kept for reference)
+        if (false) {
             fetchPromise
                 .then(r => {
                     // #region agent log
@@ -1868,6 +1889,14 @@ function processOrders(button) {
                     });
                 }
                 
+            
+            // CRITICAL FIX: Actually call proceedWithApiCall via waitForAppBridgeAndProceed
+            waitForAppBridgeAndProceed(proceedWithApiCall);
+            return; // Exit - proceedWithApiCall handles everything via Promise chain inside
+        }
+        
+        // OLD CODE BELOW - should not execute (kept for reference)
+        if (false) {
                 fetchPromise = getTokenWithRetry().then(function(token) {
                     if (!token) {
                         throw new Error('Unable to get session token. Please refresh the page.');
@@ -1921,6 +1950,14 @@ function processOrders(button) {
                 });
             }
             
+            
+            // CRITICAL FIX: Actually call proceedWithApiCall via waitForAppBridgeAndProceed
+            waitForAppBridgeAndProceed(proceedWithApiCall);
+            return; // Exit - proceedWithApiCall handles everything via Promise chain inside
+        }
+        
+        // OLD CODE BELOW - should not execute (kept for reference)
+        if (false) {
             fetchPromise
                 .then(r => {
                     // #region agent log
@@ -2147,6 +2184,14 @@ function processOrders(button) {
                     });
                 }
                 
+            
+            // CRITICAL FIX: Actually call proceedWithApiCall via waitForAppBridgeAndProceed
+            waitForAppBridgeAndProceed(proceedWithApiCall);
+            return; // Exit - proceedWithApiCall handles everything via Promise chain inside
+        }
+        
+        // OLD CODE BELOW - should not execute (kept for reference)
+        if (false) {
                 fetchPromise = getTokenWithRetry().then(function(token) {
                     if (!token) {
                         throw new Error('Unable to get session token. Please refresh the page.');
@@ -2205,6 +2250,14 @@ function processOrders(button) {
                 });
             }
             
+            
+            // CRITICAL FIX: Actually call proceedWithApiCall via waitForAppBridgeAndProceed
+            waitForAppBridgeAndProceed(proceedWithApiCall);
+            return; // Exit - proceedWithApiCall handles everything via Promise chain inside
+        }
+        
+        // OLD CODE BELOW - should not execute (kept for reference)
+        if (false) {
             fetchPromise
                 .then(r => {
                     // #region agent log
