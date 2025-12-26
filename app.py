@@ -1401,6 +1401,11 @@ DASHBOARD_HTML = """
         function processOrders(button) {
             // #region agent log
             try {
+                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'FUNCTION_START','data':{'debounce_timer':!!debounceTimers.processOrders,'is_embedded':window.isEmbedded,'app_bridge_ready':window.appBridgeReady},"timestamp":Date.now(),sessionId:'debug-session',runId:'frozen-debug',hypothesisId:'A'})}).catch(()=>{});
+            } catch(e) {}
+            // #endregion
+            // #region agent log
+            try {
                 fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Button clicked','data':{'isEmbedded':window.isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
             } catch(e) {}
             // #endregion
@@ -1448,7 +1453,12 @@ DASHBOARD_HTML = """
                             window.shopifyApp = bridgeState.app;
                             window.appBridgeReady = true;
                             // Continue with API call directly (don't retry function - skip debounce)
-                            proceedWithApiCall();
+                            // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'CALLING_proceedWithApiCall','data':{'is_embedded':isEmbedded,'app_bridge_ready':window.appBridgeReady,'has_shopify_app':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'frozen-debug',hypothesisId:'B'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
+                proceedWithApiCall();
                         } else {
                             setButtonLoading(button, false);
                             document.getElementById('output').innerHTML = `
@@ -1485,11 +1495,15 @@ DASHBOARD_HTML = """
                         <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"processOrders\"]'); if (btn) setTimeout(function(){processOrders(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
                     </div>
                 `;
-                return;}}
-            return;
+            // Removed early return - proceedWithApiCall will be called when ready// Removed early return - proceedWithApiCall will be called when ready
             
             // Extract API call logic into function (called when Promise resolves or App Bridge ready)
             function proceedWithApiCall() {
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:proceedWithApiCall','message':'FUNCTION_START','data':{'is_embedded':isEmbedded,'app_bridge_ready':window.appBridgeReady,'has_shopify_app':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'frozen-debug',hypothesisId:'C'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
                 if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
                 // #region agent log
                 try {
@@ -1811,8 +1825,7 @@ DASHBOARD_HTML = """
                         <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please wait while the app initializes. This should only take a moment.</div>
                         <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"updateInventory\"]'); if (btn) setTimeout(function(){updateInventory(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
                     </div>
-                `;
-                return;}
+                `;// Removed early return - proceedWithApiCall will be called when ready
             
             // Extract API call logic into function (called when Promise resolves or App Bridge ready)
             function proceedWithApiCall() {
@@ -1922,7 +1935,7 @@ DASHBOARD_HTML = """
             
             // Should not reach here
             if (false) {
-                fetchPromise {
+                // Old code removed
                     // #region agent log
                     try {
                         fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Fetch response received','data':{'status':r.status,'ok':r.ok,'statusText':r.statusText},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
@@ -2128,8 +2141,7 @@ DASHBOARD_HTML = """
                         <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please wait while the app initializes. This should only take a moment.</div>
                         <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"generateReport\"]'); if (btn) setTimeout(function(){generateReport(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
                     </div>
-                `;
-                return;}
+                `;// Removed early return - proceedWithApiCall will be called when ready
             
             // Extract API call logic into function (called when Promise resolves or App Bridge ready)
             function proceedWithApiCall() {
@@ -2244,7 +2256,7 @@ DASHBOARD_HTML = """
             
             // Should not reach here
             if (false) {
-                fetchPromise {
+                // Old code removed
                     // #region agent log
                     try {
                         fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'Fetch response received','data':{'status':r.status,'ok':r.ok,'statusText':r.statusText},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
