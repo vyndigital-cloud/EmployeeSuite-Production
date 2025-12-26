@@ -205,11 +205,21 @@ def install():
     # Shopify requires exact match, but values must be properly encoded in the query string
     # Log the redirect URI being used for debugging
     logger.info(f"OAuth install: Using redirect_uri={REDIRECT_URI} (must match Partners Dashboard exactly)")
+    logger.info(f"OAuth install: Requesting scopes: {SCOPES}")
     # #region agent log
     try:
         import json
+        import time
         with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"I","location":"shopify_oauth.py:202","message":"OAuth URL generated","data":{"redirect_uri":REDIRECT_URI,"shop":shop,"auth_url":auth_url},"timestamp":int(__import__('time').time()*1000)})+'\n')
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"shopify_oauth.py:198","message":"OAuth scope request","data":{"requested_scopes":SCOPES,"shop":shop,"api_key_preview":SHOPIFY_API_KEY[:8] if SHOPIFY_API_KEY else None},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
+    # #endregion
+    # #region agent log
+    try:
+        import json
+        import time
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"I","location":"shopify_oauth.py:202","message":"OAuth URL generated","data":{"redirect_uri":REDIRECT_URI,"shop":shop,"auth_url":auth_url},"timestamp":int(time.time()*1000)})+'\n')
     except: pass
     # #endregion
     
@@ -218,6 +228,13 @@ def install():
     
     # Log the full OAuth URL (without sensitive data) for debugging
     logger.debug(f"OAuth install: Generated auth URL for shop {shop}")
+    # Log scope parameter to verify it's in the URL
+    scope_in_url = f"scope={quote(SCOPES, safe='')}" in query_string
+    logger.info(f"OAuth install: Scope parameter in URL: {scope_in_url}")
+    if not scope_in_url:
+        logger.error(f"❌ CRITICAL: Scope parameter missing from OAuth URL! Query string: {query_string[:200]}")
+    else:
+        logger.info(f"✅ OAuth install: Scope parameter correctly included in URL")
     
     # CRITICAL: Also check if we're being accessed from admin.shopify.com (embedded context)
     # Even if host param is missing, if Referer is from admin.shopify.com, we're in an iframe
@@ -561,14 +578,56 @@ def exchange_code_for_token(shop, code):
         if response.status_code == 200:
             try:
                 data = response.json()
-                return data.get('access_token') if isinstance(data, dict) else None
+                access_token = data.get('access_token') if isinstance(data, dict) else None
+                granted_scopes = data.get('scope', '') if isinstance(data, dict) else ''
+                # #region agent log
+                try:
+                    import json
+                    import time
+                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"shopify_oauth.py:564","message":"OAuth token exchange success","data":{"shop":shop,"requested_scopes":SCOPES,"granted_scopes":granted_scopes,"scopes_match":granted_scopes == SCOPES or set(granted_scopes.split(',')) == set(SCOPES.split(','))},"timestamp":int(time.time()*1000)})+'\n')
+                except: pass
+                # #endregion
+                if access_token:
+                    logger.info(f"OAuth token exchange: Requested scopes: {SCOPES}")
+                    logger.info(f"OAuth token exchange: Granted scopes: {granted_scopes}")
+                    # Check if scopes match (order doesn't matter)
+                    requested_set = set([s.strip() for s in SCOPES.split(',')])
+                    granted_set = set([s.strip() for s in granted_scopes.split(',')]) if granted_scopes else set()
+                    if requested_set != granted_set:
+                        missing = requested_set - granted_set
+                        extra = granted_set - requested_set
+                        logger.error(f"⚠️ SCOPE MISMATCH: Requested {SCOPES} but got {granted_scopes}")
+                        if missing:
+                            logger.error(f"⚠️ MISSING SCOPES: {missing}")
+                        if extra:
+                            logger.warning(f"⚠️ EXTRA SCOPES: {extra}")
+                    else:
+                        logger.info(f"✅ Scopes match: {granted_scopes}")
+                return access_token
             except (ValueError, KeyError) as e:
                 logger.error(f"Error parsing access token response: {e}")
                 return None
         
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"shopify_oauth.py:572","message":"OAuth token exchange failed","data":{"shop":shop,"status_code":response.status_code,"response_text":response.text[:200] if hasattr(response, 'text') else None},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         return None
     except requests.exceptions.RequestException as e:
         logger.error(f"Error requesting access token: {e}")
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"shopify_oauth.py:575","message":"OAuth token exchange exception","data":{"shop":shop,"error":str(e)[:200]},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         return None
 
 def get_shop_info(shop, access_token):

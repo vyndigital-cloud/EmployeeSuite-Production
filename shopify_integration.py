@@ -126,6 +126,14 @@ class ShopifyClient:
                                 error_detail = error_data
                     except (ValueError, AttributeError, TypeError):
                         pass
+                    # #region agent log
+                    try:
+                        import json
+                        import time
+                        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"shopify_integration.py:111","message":"403 permission denied in API call","data":{"endpoint":endpoint,"shop_url":self.shop_url,"error_detail":error_detail[:200],"status_code":403},"timestamp":int(time.time()*1000)})+'\n')
+                    except: pass
+                    # #endregion
                     return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
                 elif status_code == 429:
                     # Rate limit - wait but not too long
@@ -271,6 +279,14 @@ class ShopifyClient:
                                 error_detail = error_data
                     except (ValueError, AttributeError, TypeError):
                         pass
+                    # #region agent log
+                    try:
+                        import json
+                        import time
+                        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"shopify_integration.py:111","message":"403 permission denied in API call","data":{"endpoint":endpoint,"shop_url":self.shop_url,"error_detail":error_detail[:200],"status_code":403},"timestamp":int(time.time()*1000)})+'\n')
+                    except: pass
+                    # #endregion
                     return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
                 elif status_code == 429:
                     # Rate limit - wait but not too long
@@ -336,10 +352,7 @@ class ShopifyClient:
                                     id
                                     sku
                                     price
-                                    inventoryItem {
-                                        id
-                                        available
-                                    }
+                                    quantityAvailable
                                 }
                             }
                         }
@@ -427,11 +440,8 @@ class ShopifyClient:
                             price = f"${price_value}" if price_value != '0' else 'N/A'
                             
                             # Get inventory quantity from GraphQL structure
-                            stock = 0
-                            inventory_item = variant.get("inventoryItem")
-                            if inventory_item and isinstance(inventory_item, dict):
-                                # Use 'available' field (correct field name for InventoryItem type)
-                                stock = inventory_item.get("available", 0) or 0
+                            # Use 'quantityAvailable' field directly on variant (correct field name)
+                            stock = variant.get("quantityAvailable", 0) or 0
                             
                             inventory.append({
                                 'product': product_title,
