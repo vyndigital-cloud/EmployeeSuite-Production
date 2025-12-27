@@ -241,10 +241,19 @@ def handle_all_exceptions(e):
     """Catch and log EVERY exception with full details"""
     from flask import request, jsonify
     import traceback
+    import json
+    import time
     
     error_type = type(e).__name__
     error_message = str(e)
     error_location = f"{request.endpoint or 'unknown'}:{request.method}"
+    
+    # #region agent log
+    try:
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:handle_all_exceptions","message":"Python exception caught","data":{"error_type":error_type,"error_message":error_message[:200],"error_location":error_location,"url":request.url[:100],"method":request.method,"endpoint":request.endpoint or "unknown","stack_trace":traceback.format_exc()[:500]},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
+    # #endregion
     
     # Get full request context
     error_data = {
@@ -1040,40 +1049,40 @@ DASHBOARD_HTML = """
                             }
                             
                             // Initialize App Bridge
-                            window.shopifyApp = createApp({
+                                    window.shopifyApp = createApp({
                                 apiKey: apiKey,
                                 host: host
                             });
                             
-                            console.log('✅ App Bridge initialized successfully!');
-                            window.appBridgeReady = true;
-                            
-                            // Resolve Promise
-                            if (window.appBridgeReadyResolve) {
-                                window.appBridgeReadyResolve({
-                                    ready: true,
-                                    embedded: true,
-                                    app: window.shopifyApp
-                                });
-                            }
-                            
-                            // Dispatch event
-                            window.dispatchEvent(new CustomEvent('appbridge:ready', {
-                                detail: { app: window.shopifyApp, embedded: true }
-                            }));
-                            
-                            // Enable buttons now that App Bridge is ready
-                            enableEmbeddedButtons();
-                        } else {
+                                    console.log('✅ App Bridge initialized successfully!');
+                                    window.appBridgeReady = true;
+                                    
+                                    // Resolve Promise
+                                    if (window.appBridgeReadyResolve) {
+                                        window.appBridgeReadyResolve({
+                                            ready: true,
+                                            embedded: true,
+                                            app: window.shopifyApp
+                                        });
+                                    }
+                                    
+                                    // Dispatch event
+                                    window.dispatchEvent(new CustomEvent('appbridge:ready', {
+                                        detail: { app: window.shopifyApp, embedded: true }
+                                    }));
+                                    
+                                    // Enable buttons now that App Bridge is ready
+                                    enableEmbeddedButtons();
+                            } else {
                             console.error('❌ App Bridge object not found after Safari delay');
+                                window.shopifyApp = null;
+                                window.appBridgeReady = true;
+                            showAppBridgeError('App Bridge script loaded but object not found. Please refresh the page.');
+                            }
+                        } catch (e) {
+                        console.error('❌ App Bridge initialization error:', e);
                             window.shopifyApp = null;
                             window.appBridgeReady = true;
-                            showAppBridgeError('App Bridge script loaded but object not found. Please refresh the page.');
-                        }
-                    } catch (e) {
-                        console.error('❌ App Bridge initialization error:', e);
-                        window.shopifyApp = null;
-                        window.appBridgeReady = true;
                         showAppBridgeError('App Bridge error: ' + (e.message || 'Unknown error'));
                     }
                 }, 100); // Safari needs this delay
@@ -1172,17 +1181,17 @@ DASHBOARD_HTML = """
         // Defer analytics loading - wrapped to silently fail in iframes
         window.addEventListener('load', function() {
             try {
-                var script = document.createElement('script');
-                script.async = true;
-                script.src = 'https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3';
-                document.head.appendChild(script);
-                
-                script.onload = function() {
+            var script = document.createElement('script');
+            script.async = true;
+            script.src = 'https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3';
+            document.head.appendChild(script);
+            
+            script.onload = function() {
                     try {
-                        window.dataLayer = window.dataLayer || [];
-                        function gtag(){dataLayer.push(arguments);}
-                        gtag('js', new Date());
-                        gtag('config', 'G-RBBQ4X7FJ3');
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-RBBQ4X7FJ3');
                     } catch (e) {
                         // GA blocked in iframe - suppress error silently
                     }
@@ -1390,6 +1399,12 @@ DASHBOARD_HTML = """
         // Uses originalConsoleError to prevent infinite recursion
         function logJavaScriptError(errorType, errorMessage, errorLocation, errorData, stackTrace) {
             try {
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:logJavaScriptError','message':'JavaScript error captured','data':{'error_type':errorType,'error_message':errorMessage.substring(0,200),'error_location':errorLocation,'has_stack':!!stackTrace,'stack_preview':stackTrace ? stackTrace.substring(0,300) : 'none','error_data_keys':Object.keys(errorData || {})},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(function(){});
+                } catch(e) {}
+                // #endregion
+                
                 var errorLog = {
                     timestamp: new Date().toISOString(),
                     error_type: errorType,
@@ -1448,6 +1463,13 @@ DASHBOARD_HTML = """
         
         // Unhandled promise rejection handler - Enhanced to prevent freezing
         window.addEventListener('unhandledrejection', function(event) {
+            // #region agent log
+            try {
+                var error = event.reason;
+                var errorMsg = error ? (error.message || error.toString() || 'Unhandled promise rejection') : 'Unknown promise rejection';
+                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:unhandledrejection','message':'Unhandled promise rejection','data':{'error_message':errorMsg.substring(0,200),'error_type':error ? error.name : 'none','has_stack':!!(error && error.stack)},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(function(){});
+            } catch(e) {}
+            // #endregion
             var error = event.reason;
             var errorMessage = error ? (error.message || error.toString() || 'Unhandled promise rejection') : 'Unknown promise rejection';
             var stackTrace = error && error.stack ? error.stack : 'No stack trace';
@@ -3814,6 +3836,14 @@ def get_authenticated_user():
 @app.route('/api/process_orders', methods=['GET', 'POST'])
 def api_process_orders():
     """Process orders endpoint with enhanced logging"""
+    # #region agent log
+    try:
+        import json
+        import time
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"app.py:api_process_orders","message":"API endpoint entry","data":{"method":request.method,"path":request.path,"has_auth":bool(request.headers.get("Authorization")),"has_shop":bool(request.args.get("shop"))},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
+    # #endregion
     logger.info('=== PROCESS ORDERS REQUEST START ===')
     logger.info(f'Request method: {request.method}')
     logger.info(f'Request path: {request.path}')
@@ -3910,6 +3940,14 @@ def api_process_orders():
 @app.route('/api/update_inventory', methods=['GET', 'POST'])
 def api_update_inventory():
     """Update inventory endpoint with enhanced logging"""
+    # #region agent log
+    try:
+        import json
+        import time
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"app.py:api_update_inventory","message":"API endpoint entry","data":{"method":request.method,"path":request.path,"has_auth":bool(request.headers.get("Authorization")),"has_shop":bool(request.args.get("shop"))},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
+    # #endregion
     logger.info('=== UPDATE INVENTORY REQUEST START ===')
     logger.info(f'Request method: {request.method}')
     logger.info(f'Request path: {request.path}')
@@ -4015,6 +4053,14 @@ def api_update_inventory():
 @app.route('/api/generate_report', methods=['GET', 'POST'])
 def api_generate_report():
     """Generate revenue report with detailed crash logging"""
+    # #region agent log
+    try:
+        import json
+        import time
+        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"app.py:api_generate_report","message":"API endpoint entry","data":{"method":request.method,"path":request.path,"has_auth":bool(request.headers.get("Authorization")),"has_shop":bool(request.args.get("shop"))},"timestamp":int(time.time()*1000)})+'\n')
+    except: pass
+    # #endregion
     logger.info('=== GENERATE REPORT REQUEST START ===')
     logger.info(f'Request method: {request.method}')
     logger.info(f'Request path: {request.path}')
