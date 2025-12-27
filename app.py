@@ -2822,14 +2822,47 @@ DASHBOARD_HTML = """
             } catch(e) {}
             // #endregion
             
+            // CRITICAL: Add EARLY click listener to catch ALL clicks before anything else
+            // This will help us see if clicks are being intercepted
+            document.addEventListener('click', function(e) {
+                console.log('🔍 EARLY CLICK DETECTED:', {
+                    target: e.target.tagName,
+                    targetClass: e.target.className,
+                    targetId: e.target.id,
+                    isButton: e.target.tagName === 'BUTTON',
+                    hasDataAction: e.target.hasAttribute('data-action'),
+                    closestButton: e.target.closest('.card-btn[data-action]') ? 'FOUND' : 'NOT_FOUND',
+                    eventPhase: e.eventPhase === 1 ? 'CAPTURE' : e.eventPhase === 2 ? 'TARGET' : 'BUBBLE',
+                    defaultPrevented: e.defaultPrevented,
+                    propagationStopped: false // Can't check this, but log anyway
+                });
+            }, true); // Capture phase - fires FIRST
+            
             // Attach click listener to document for event delegation (per external feedback)
             document.addEventListener('click', function(e) {
+                console.log('🔍 DELEGATION LISTENER FIRED:', {
+                    target: e.target.tagName,
+                    targetClass: e.target.className,
+                    eventPhase: e.eventPhase === 1 ? 'CAPTURE' : e.eventPhase === 2 ? 'TARGET' : 'BUBBLE'
+                });
+                
                 // Find the closest button with data-action attribute
                 var btn = e.target.closest('.card-btn[data-action]');
-                if (!btn) return; // Exit if clicked element is not a button
+                if (!btn) {
+                    console.log('🔍 Not a button click - target:', e.target.tagName, 'class:', e.target.className);
+                    return; // Exit if clicked element is not a button
+                }
                 
                 var action = btn.getAttribute('data-action');
                 console.log('✅ Button clicked: ', action); // Log button click (per external feedback)
+                console.log('🔍 Button details:', {
+                    action: action,
+                    disabled: btn.disabled,
+                    tagName: btn.tagName,
+                    className: btn.className,
+                    id: btn.id,
+                    innerHTML: btn.innerHTML.substring(0, 50)
+                });
                 
                 // Check CSS/pointer-events issues
                 var computedStyle = window.getComputedStyle(btn);
@@ -2912,9 +2945,33 @@ DASHBOARD_HTML = """
             
             console.log('✅ Event delegation listener attached successfully');
             
+            // CRITICAL: Add direct button test listeners as backup
+            // This will help us verify if buttons are clickable at all
+            var testButtons = document.querySelectorAll('.card-btn[data-action]');
+            console.log('🔍 Found buttons for direct testing:', testButtons.length);
+            testButtons.forEach(function(btn, index) {
+                var action = btn.getAttribute('data-action');
+                console.log('🔍 Button ' + index + ':', {
+                    action: action,
+                    disabled: btn.disabled,
+                    className: btn.className
+                });
+                
+                // Add direct click listener as backup test
+                btn.addEventListener('click', function(e) {
+                    console.log('🔍 DIRECT BUTTON LISTENER FIRED for:', action);
+                    console.log('🔍 Direct listener details:', {
+                        action: action,
+                        disabled: btn.disabled,
+                        defaultPrevented: e.defaultPrevented,
+                        propagationStopped: false
+                    });
+                }, true); // Capture phase
+            });
+            
             // #region agent log
             try {
-                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:DOMContentLoaded','message':'Event delegation attached successfully','data':{'readyState':document.readyState},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-external-feedback',hypothesisId:'DELEGATION_ATTACHED'})}).catch(()=>{});
+                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:DOMContentLoaded','message':'Event delegation attached successfully','data':{'readyState':document.readyState,'testButtonsCount':testButtons.length},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-external-feedback',hypothesisId:'DELEGATION_ATTACHED'})}).catch(()=>{});
             } catch(e) {}
             // #endregion
         });
