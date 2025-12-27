@@ -1163,7 +1163,7 @@ DASHBOARD_HTML = """
             var appBridgeScript = document.querySelector('script[src*="app-bridge.js"]');
             // #region agent log
             try {
-                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:AppBridge:check_script','message':'Checking for App Bridge script tag','data':{'script_exists':!!appBridgeScript,'script_src':appBridgeScript ? appBridgeScript.src : 'none','has_app_bridge':!!window['app-bridge'],'all_scripts':Array.from(document.querySelectorAll('script')).map(s => s.src || 'inline').slice(0,5)},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
+                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:AppBridge:check_script','message':'Checking for App Bridge script tag','data':{'script_exists':!!appBridgeScript,'script_src':appBridgeScript ? appBridgeScript.src : 'none','has_shopify':!!window.shopify,'has_app_bridge':!!window['app-bridge'],'all_scripts':Array.from(document.querySelectorAll('script')).map(s => s.src || 'inline').slice(0,5)},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
             } catch(e) {}
             // #endregion
             
