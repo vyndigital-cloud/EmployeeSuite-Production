@@ -146,7 +146,7 @@ def add_security_headers(response):
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.shopify.com; "
             "font-src 'self' https://fonts.gstatic.com data:; "
             "img-src 'self' data: https:; "
-            "connect-src 'self' http://127.0.0.1:7242 https://api.stripe.com https://*.myshopify.com https://admin.shopify.com https://accounts.shopify.com https://www.google-analytics.com https://shopify.com; "
+            "connect-src 'self' http://127.0.0.1:7242 https://api.stripe.com https://*.myshopify.com https://admin.shopify.com https://accounts.shopify.com https://www.google-analytics.com https://www.googletagmanager.com https://shopify.com; "
             + frame_ancestors +
             "frame-src https://checkout.stripe.com https://js.stripe.com; "
             "base-uri 'self'; "
@@ -160,7 +160,7 @@ def add_security_headers(response):
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com; "
             "img-src 'self' data: https:; "
-            "connect-src 'self' http://127.0.0.1:7242 https://api.stripe.com https://*.myshopify.com https://www.google-analytics.com; "
+            "connect-src 'self' http://127.0.0.1:7242 https://api.stripe.com https://*.myshopify.com https://www.google-analytics.com https://www.googletagmanager.com; "
             + frame_ancestors +
             "frame-src https://checkout.stripe.com https://js.stripe.com; "
             "base-uri 'self'; "

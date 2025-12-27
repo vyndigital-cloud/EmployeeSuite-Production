@@ -1169,19 +1169,31 @@ DASHBOARD_HTML = """
     
     <!-- Google Analytics - Load after page renders -->
     <script>
-        // Defer analytics loading
+        // Defer analytics loading - wrapped to silently fail in iframes
         window.addEventListener('load', function() {
-            var script = document.createElement('script');
-            script.async = true;
-            script.src = 'https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3';
-            document.head.appendChild(script);
-            
-            script.onload = function() {
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-RBBQ4X7FJ3');
-            };
+            try {
+                var script = document.createElement('script');
+                script.async = true;
+                script.src = 'https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3';
+                document.head.appendChild(script);
+                
+                script.onload = function() {
+                    try {
+                        window.dataLayer = window.dataLayer || [];
+                        function gtag(){dataLayer.push(arguments);}
+                        gtag('js', new Date());
+                        gtag('config', 'G-RBBQ4X7FJ3');
+                    } catch (e) {
+                        // GA blocked in iframe - suppress error silently
+                    }
+                };
+                
+                script.onerror = function() {
+                    // GA script failed to load (likely blocked in iframe) - suppress error
+                };
+            } catch (e) {
+                // GA initialization failed - suppress error silently
+            }
         });
     </script>
     
@@ -2535,6 +2547,13 @@ DASHBOARD_HTML = """
                     .catch(function(error) {
                         var endTime = Date.now();
                         var duration = endTime - startTime;
+                        
+                        // Skip logging GA errors - they're expected to fail in iframes
+                        if (typeof url === 'string' && 
+                            (url.includes('google-analytics.com') || url.includes('googletagmanager.com'))) {
+                            // GA blocked in iframe - silently ignore
+                            throw error;
+                        }
                         
                         // Only log errors for API requests
                         if (typeof url === 'string' && (url.includes('/api/') || url.startsWith('http'))) {
