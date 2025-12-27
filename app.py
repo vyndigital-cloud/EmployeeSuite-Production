@@ -238,6 +238,134 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = engine_options
 
 db.init_app(app)
 
+# ============================================================================
+# COMPREHENSIVE ERROR LOGGING SYSTEM - Capture EVERY error crumb
+# ============================================================================
+from logging_config import log_comprehensive_error, logger
+
+# Global error handler for ALL exceptions
+@app.errorhandler(Exception)
+def handle_all_exceptions(e):
+    """Catch and log EVERY exception with full details"""
+    from flask import request, jsonify
+    import traceback
+    
+    error_type = type(e).__name__
+    error_message = str(e)
+    error_location = f"{request.endpoint or 'unknown'}:{request.method}"
+    
+    # Get full request context
+    error_data = {
+        'url': request.url,
+        'method': request.method,
+        'endpoint': request.endpoint,
+        'args': dict(request.args),
+        'form_data': dict(request.form) if request.form else None,
+        'headers': dict(request.headers),
+        'remote_addr': request.remote_addr,
+        'user_agent': request.headers.get('User-Agent'),
+        'referer': request.headers.get('Referer'),
+    }
+    
+    # Log with full stack trace
+    exc_info = sys.exc_info()
+    log_comprehensive_error(error_type, error_message, error_location, error_data, exc_info)
+    
+    # Return appropriate response
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': error_message,
+            'error_type': error_type,
+            'location': error_location
+        }), 500
+    else:
+        return f"<h1>Error: {error_message}</h1><pre>{traceback.format_exc()}</pre>", 500
+
+# Specific error handlers for common error types
+@app.errorhandler(404)
+def handle_404(e):
+    """Log 404 errors with full context"""
+    from flask import request
+    error_data = {
+        'url': request.url,
+        'method': request.method,
+        'referer': request.headers.get('Referer'),
+        'user_agent': request.headers.get('User-Agent'),
+    }
+    log_comprehensive_error('404', str(e), f"{request.endpoint or 'unknown'}:{request.method}", error_data)
+    return str(e), 404
+
+@app.errorhandler(500)
+def handle_500(e):
+    """Log 500 errors with full context"""
+    from flask import request
+    import traceback
+    error_data = {
+        'url': request.url,
+        'method': request.method,
+        'endpoint': request.endpoint,
+        'args': dict(request.args),
+    }
+    exc_info = sys.exc_info()
+    log_comprehensive_error('500', str(e), f"{request.endpoint or 'unknown'}:{request.method}", error_data, exc_info)
+    return str(e), 500
+
+@app.errorhandler(400)
+def handle_400(e):
+    """Log 400 errors with full context"""
+    from flask import request
+    error_data = {
+        'url': request.url,
+        'method': request.method,
+        'args': dict(request.args),
+        'form_data': dict(request.form) if request.form else None,
+    }
+    log_comprehensive_error('400', str(e), f"{request.endpoint or 'unknown'}:{request.method}", error_data)
+    return str(e), 400
+
+# Database error handler - catch before general handler
+from sqlalchemy.exc import SQLAlchemyError
+
+def handle_database_error_specifically(e):
+    """Specifically catch database errors with detailed logging"""
+    if isinstance(e, SQLAlchemyError):
+        from flask import request
+        error_data = {
+            'url': request.url,
+            'method': request.method,
+            'database_error': True,
+            'error_code': getattr(e, 'code', None),
+            'statement': getattr(e, 'statement', None),
+            'params': getattr(e, 'params', None),
+        }
+        exc_info = sys.exc_info()
+        log_comprehensive_error('DatabaseError', str(e), f"{request.endpoint or 'unknown'}:{request.method}", error_data, exc_info)
+
+# After request handler to log all responses
+@app.after_request
+def log_response(response):
+    """Log all responses, especially errors"""
+    if response.status_code >= 400:
+        from flask import request
+        error_data = {
+            'status_code': response.status_code,
+            'url': request.url,
+            'method': request.method,
+            'response_size': len(response.get_data()),
+        }
+        log_comprehensive_error(
+            f'HTTP_{response.status_code}',
+            f"HTTP {response.status_code} response",
+            f"{request.endpoint or 'unknown'}:{request.method}",
+            error_data
+        )
+    return response
+
+# ============================================================================
+# END COMPREHENSIVE ERROR LOGGING SYSTEM
+# ============================================================================
+
 # Configure server-side sessions - optimized for embedded and standalone
 app.config['SESSION_PERMANENT'] = True
 # Session lifetime is already set above (24 hours)
@@ -1262,6 +1390,123 @@ DASHBOARD_HTML = """
     </div>
     
     <script>
+        // ============================================================================
+        // COMPREHENSIVE JAVASCRIPT ERROR LOGGING - Capture EVERY error crumb
+        // ============================================================================
+        
+        // Function to log JavaScript errors to backend
+        function logJavaScriptError(errorType, errorMessage, errorLocation, errorData, stackTrace) {
+            try {
+                var errorLog = {
+                    timestamp: new Date().toISOString(),
+                    error_type: errorType,
+                    error_message: errorMessage,
+                    error_location: errorLocation,
+                    stack_trace: stackTrace,
+                    error_data: errorData || {},
+                    user_agent: navigator.userAgent,
+                    url: window.location.href,
+                    referer: document.referrer,
+                    viewport: {
+                        width: window.innerWidth,
+                        height: window.innerHeight
+                    },
+                    session_id: 'js-session-' + Date.now()
+                };
+                
+                // Send to backend error logging endpoint
+                fetch('/api/log_error', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(errorLog),
+                    credentials: 'include'
+                }).catch(function(err) {
+                    // If logging fails, at least log to console
+                    console.error('Failed to log error to backend:', err);
+                    console.error('Original error:', errorLog);
+                });
+                
+                // Also log to console for immediate visibility
+                console.error('[ERROR LOGGED]', errorType, ':', errorMessage);
+                console.error('Location:', errorLocation);
+                console.error('Stack:', stackTrace);
+                if (errorData) console.error('Data:', errorData);
+            } catch (e) {
+                // Last resort - log to console
+                console.error('Error logging system failed:', e);
+                console.error('Original error:', errorMessage);
+            }
+        }
+        
+        // Global error handler - catches ALL unhandled errors
+        window.addEventListener('error', function(event) {
+            logJavaScriptError(
+                'JavaScriptError',
+                event.message || 'Unknown error',
+                event.filename + ':' + event.lineno + ':' + event.colno,
+                {
+                    error: event.error ? event.error.toString() : null,
+                    type: event.type,
+                    target: event.target ? event.target.tagName : null
+                },
+                event.error ? (event.error.stack || 'No stack trace') : 'No stack trace'
+            );
+        }, true); // Use capture phase to catch all errors
+        
+        // Unhandled promise rejection handler
+        window.addEventListener('unhandledrejection', function(event) {
+            var error = event.reason;
+            var errorMessage = error ? (error.message || error.toString() || 'Unhandled promise rejection') : 'Unknown promise rejection';
+            var stackTrace = error && error.stack ? error.stack : 'No stack trace';
+            
+            logJavaScriptError(
+                'UnhandledPromiseRejection',
+                errorMessage,
+                'Promise rejection',
+                {
+                    reason: error ? error.toString() : null,
+                    promise: event.promise ? event.promise.toString() : null
+                },
+                stackTrace
+            );
+        });
+        
+        // Console error interceptor (catches console.error calls)
+        var originalConsoleError = console.error;
+        console.error = function() {
+            var args = Array.prototype.slice.call(arguments);
+            var errorMessage = args.map(function(arg) {
+                if (typeof arg === 'object') {
+                    try {
+                        return JSON.stringify(arg);
+                    } catch(e) {
+                        return arg.toString();
+                    }
+                }
+                return String(arg);
+            }).join(' ');
+            
+            logJavaScriptError(
+                'ConsoleError',
+                errorMessage,
+                'console.error',
+                {arguments: args},
+                new Error().stack || 'No stack trace'
+            );
+            
+            // Call original console.error
+            originalConsoleError.apply(console, args);
+        };
+        
+        // Try-catch wrapper for async functions
+        window.addEventListener('unhandledrejection', function(event) {
+            // Already handled above, but ensure we catch everything
+        });
+        
+        // ============================================================================
+        // END COMPREHENSIVE JAVASCRIPT ERROR LOGGING
+        // ============================================================================
+        
         // #region agent log - EARLY SCRIPT EXECUTION CHECK
         (function() {
             try {
@@ -3502,6 +3747,52 @@ def health():
         "checks": checks,
         "timestamp": datetime.utcnow().isoformat()
     }), 200 if overall_status == "healthy" else 500
+
+@app.route('/api/log_error', methods=['POST'])
+def log_error():
+    """API endpoint to receive JavaScript errors from frontend"""
+    try:
+        from flask import request, jsonify
+        error_data = request.get_json()
+        
+        if not error_data:
+            return jsonify({'success': False, 'error': 'No error data provided'}), 400
+        
+        # Log the JavaScript error with comprehensive details
+        error_type = error_data.get('error_type', 'UnknownError')
+        error_message = error_data.get('error_message', 'Unknown error')
+        error_location = error_data.get('error_location', 'unknown')
+        stack_trace = error_data.get('stack_trace', 'No stack trace')
+        
+        # Add request context
+        full_error_data = {
+            **error_data,
+            'request_url': request.url,
+            'request_method': request.method,
+            'remote_addr': request.remote_addr,
+            'referer': request.headers.get('Referer'),
+        }
+        
+        log_comprehensive_error(
+            f'JS_{error_type}',
+            error_message,
+            error_location,
+            full_error_data,
+            None  # No Python exc_info for JS errors
+        )
+        
+        return jsonify({'success': True, 'message': 'Error logged'}), 200
+        
+    except Exception as e:
+        # Even error logging can fail - log it
+        log_comprehensive_error(
+            'ErrorLoggingFailed',
+            str(e),
+            'log_error endpoint',
+            {'original_error_data': str(request.get_json()) if request.is_json else None},
+            sys.exc_info()
+        )
+        return jsonify({'success': False, 'error': 'Failed to log error'}), 500
 
 @app.route('/api/docs')
 def api_docs():
