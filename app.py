@@ -1180,12 +1180,12 @@ DASHBOARD_HTML = """
                 return;
             }
             
-            // Check if already loaded
-            if (window['app-bridge']) {
+            // Check if already loaded (both new and old API)
+            if (window.shopify || window['app-bridge']) {
                 // Already loaded
                 // #region agent log
                 try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:AppBridge:already_loaded','message':'App Bridge already available','data':{'has_app_bridge':true},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:AppBridge:already_loaded','message':'App Bridge already available','data':{'has_shopify':!!window.shopify,'has_app_bridge':!!window['app-bridge']},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
                 } catch(e) {}
                 // #endregion
                 initAppBridge();
