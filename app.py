@@ -1732,16 +1732,7 @@ DASHBOARD_HTML = """
         }
         
         function processOrders(button) {
-            // #region agent log
-            try {
-                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'FUNCTION_START','data':{'debounce_timer':!!debounceTimers.processOrders,'is_embedded':window.isEmbedded,'app_bridge_ready':window.appBridgeReady},"timestamp":Date.now(),sessionId:'debug-session',runId:'frozen-debug',hypothesisId:'A'})}).catch(()=>{});
-            } catch(e) {}
-            // #endregion
-            // #region agent log
-            try {
-                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Button clicked','data':{'isEmbedded':window.isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            } catch(e) {}
-            // #endregion
+            // Debug logging removed for performance - only log errors if needed
             // Prevent rapid clicks (debounce)
             if (debounceTimers.processOrders) {
                 return; // Already processing
@@ -1833,33 +1824,15 @@ DASHBOARD_HTML = """
             
             // Extract API call logic into function (called when Promise resolves or App Bridge ready)
             function proceedWithApiCall() {
-                // #region agent log
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:proceedWithApiCall','message':'FUNCTION_START','data':{'is_embedded':isEmbedded,'app_bridge_ready':window.appBridgeReady,'has_shopify_app':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'frozen-debug',hypothesisId:'C'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
+                // Debug logging removed for performance
                 if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
-                // #region agent log
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Starting token retrieval','data':{'isEmbedded':isEmbedded,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
                 // In embedded mode, we MUST have session token - retry up to 3 times
                 var retryCount = 0;
                 var maxRetries = 2; // Optimized: reduced from 3
                 
                 function getTokenWithRetry() {
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:getTokenWithRetry','message':'Calling getSessionToken','data':{'retryCount':retryCount,'maxRetries':maxRetries},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
+                    // Debug logging removed for performance
                     return window.shopifyApp.getSessionToken().then(function(token) {
-                        // #region agent log
-                        try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:getTokenWithRetry','message':'getSessionToken resolved','data':{'has_token':!!token,'token_length':token?token.length:0,'retryCount':retryCount},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                        } catch(e) {}
-                        // #endregion
                         if (!token && retryCount < maxRetries) {
                             retryCount++;
                             return new Promise(function(resolve, reject) {
@@ -1868,11 +1841,7 @@ DASHBOARD_HTML = """
                         }
                         return token;
                     }).catch(function(err) {
-                        // #region agent log
-                        try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:getTokenWithRetry','message':'getSessionToken error','data':{'error':err.message||'unknown','retryCount':retryCount,'maxRetries':maxRetries},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                        } catch(e) {}
-                        // #endregion
+                        // Debug logging removed for performance - only log if max retries exceeded
                         // If error and haven't exceeded retries, retry
                         if (retryCount < maxRetries) {
                             retryCount++;
@@ -1889,32 +1858,18 @@ DASHBOARD_HTML = """
                     if (!token) {
                         throw new Error('Unable to get session token. Please refresh the page.');
                     }
-                    console.log('✅ Got session token, making API request...');
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Making API fetch request','data':{'has_token':!!token,'token_length':token?token.length:0,'is_embedded':isEmbedded,'url':'/api/process_orders'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
                     // CRITICAL: Use absolute URL in embedded mode to prevent iframe URL resolution issues
                     var apiUrl = '/api/process_orders';
                     if (isEmbedded) {
                         apiUrl = APP_URL + '/api/process_orders';
                     }
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'About to fetch','data':{'url':apiUrl,'isAbsolute':apiUrl.startsWith('http'),'hasAuthHeader':true},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
+                    // Debug logging removed for performance
                     return fetch(apiUrl, {
                         headers: {'Authorization': 'Bearer ' + token},
                         signal: controller.signal
                     });
                 }).catch(function(err) {
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Token retrieval failed','data':{'error':err.message||'unknown','errorName':err.name||'unknown'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
+                    // Debug logging removed for performance
                     // Don't show error if request was cancelled
                     if (err.name === 'AbortError') {
                         return;
@@ -1940,11 +1895,7 @@ DASHBOARD_HTML = """
                     throw err; // Stop execution
                 });
                 } else {
-                // #region agent log
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Not embedded - using cookie auth','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
+                // Debug logging removed for performance
                 // Not embedded - use regular fetch (Flask-Login handles auth)
                 // CRITICAL: Include credentials (cookies) for standalone access
                 fetchPromise = fetch('/api/process_orders', {
@@ -1956,11 +1907,7 @@ DASHBOARD_HTML = """
             // Execute the Promise chain
             fetchPromise
                 .then(r => {
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Fetch response received','data':{'status':r.status,'ok':r.ok,'statusText':r.statusText,'headers':Object.fromEntries(r.headers.entries())},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
+                    // Debug logging removed for performance
                     // Check if request was cancelled
                     if (controller.signal.aborted) {
                         return null;
@@ -2124,11 +2071,7 @@ DASHBOARD_HTML = """
         // #endregion
         
         function updateInventory(button) {
-            // #region agent log
-            try {
-                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Button clicked','data':{'isEmbedded':window.isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            } catch(e) {}
-            // #endregion
+            // Debug logging removed for performance - only log errors if needed
             // Prevent rapid clicks (debounce)
             if (debounceTimers.updateInventory) {
                 return; // Already processing
@@ -2271,11 +2214,7 @@ DASHBOARD_HTML = """
                     if (isEmbedded) {
                         apiUrl = APP_URL + '/api/update_inventory';
                     }
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Making API fetch request','data':{'has_token':!!token,'token_length':token?token.length:0,'is_embedded':isEmbedded,'url':apiUrl,'isAbsolute':apiUrl.startsWith('http')},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
+                    // Debug logging removed for performance
                     return fetch(apiUrl, {
                         headers: {'Authorization': 'Bearer ' + token},
                         signal: controller.signal
@@ -2455,11 +2394,7 @@ DASHBOARD_HTML = """
         // #endregion
         
         function generateReport(button) {
-            // #region agent log
-            try {
-                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'Button clicked','data':{'isEmbedded':window.isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            } catch(e) {}
-            // #endregion
+            // Debug logging removed for performance - only log errors if needed
             // Prevent rapid clicks (debounce)
             if (debounceTimers.generateReport) {
                 return; // Already processing
@@ -2604,11 +2539,7 @@ DASHBOARD_HTML = """
                     if (isEmbedded) {
                         reportUrl = APP_URL + reportUrl;
                     }
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'Making API fetch request','data':{'has_token':!!token,'token_length':token?token.length:0,'is_embedded':isEmbedded,'url':reportUrl,'isAbsolute':reportUrl.startsWith('http')},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
+                    // Debug logging removed for performance
                     return fetch(reportUrl, {
                         headers: {'Authorization': 'Bearer ' + token},
                         signal: controller.signal
@@ -2810,24 +2741,32 @@ DASHBOARD_HTML = """
         
         
         // ============================================================================
-        // NETWORK REQUEST LOGGING - Capture all API requests
+        // NETWORK REQUEST LOGGING - Capture all API requests (OPTIMIZED)
         // ============================================================================
         // Intercept fetch requests to log network activity
+        // CRITICAL: Skip debug endpoint to prevent infinite loops and performance issues
         (function() {
             var originalFetch = window.fetch;
             window.fetch = function(...args) {
                 var url = args[0];
                 var options = args[1] || {};
                 var method = options.method || 'GET';
+                
+                // CRITICAL: Skip logging for debug endpoint to prevent performance issues
+                if (typeof url === 'string' && url.includes('127.0.0.1:7242')) {
+                    return originalFetch.apply(this, args);
+                }
+                
                 var startTime = Date.now();
                 
-                console.log('🌐 Network Request:', {
-                    url: url,
-                    method: method,
-                    headers: options.headers || {},
-                    hasBody: !!options.body,
-                    timestamp: new Date().toISOString()
-                });
+                // Only log API requests, not all requests (reduces noise)
+                if (typeof url === 'string' && (url.includes('/api/') || url.startsWith('http'))) {
+                    console.log('🌐 Network Request:', {
+                        url: url,
+                        method: method,
+                        timestamp: new Date().toISOString()
+                    });
+                }
                 
                 // Call original fetch
                 return originalFetch.apply(this, args)
@@ -2835,31 +2774,20 @@ DASHBOARD_HTML = """
                         var endTime = Date.now();
                         var duration = endTime - startTime;
                         
-                        console.log('🌐 Network Response:', {
-                            url: url,
-                            method: method,
-                            status: response.status,
-                            statusText: response.statusText,
-                            ok: response.ok,
-                            duration: duration + 'ms',
-                            headers: Object.fromEntries(response.headers.entries()),
-                            timestamp: new Date().toISOString()
-                        });
-                        
-                        // Clone response to read body without consuming it
-                        var clonedResponse = response.clone();
-                        clonedResponse.text().then(function(text) {
-                            console.log('🌐 Response Body:', {
-                                url: url,
-                                method: method,
-                                bodyLength: text.length,
-                                bodyPreview: text.substring(0, 200),
-                                isError: !response.ok,
-                                timestamp: new Date().toISOString()
-                            });
-                        }).catch(function(err) {
-                            console.warn('🌐 Could not read response body:', err);
-                        });
+                        // Only log API responses, and only if there's an error or slow response
+                        if (typeof url === 'string' && (url.includes('/api/') || url.startsWith('http'))) {
+                            if (!response.ok || duration > 1000) {
+                                console.log('🌐 Network Response:', {
+                                    url: url,
+                                    method: method,
+                                    status: response.status,
+                                    statusText: response.statusText,
+                                    ok: response.ok,
+                                    duration: duration + 'ms',
+                                    timestamp: new Date().toISOString()
+                                });
+                            }
+                        }
                         
                         return response;
                     })
@@ -2867,15 +2795,17 @@ DASHBOARD_HTML = """
                         var endTime = Date.now();
                         var duration = endTime - startTime;
                         
-                        console.error('🌐 Network Error:', {
-                            url: url,
-                            method: method,
-                            error: error.message || 'Unknown error',
-                            errorName: error.name || 'Unknown',
-                            duration: duration + 'ms',
-                            timestamp: new Date().toISOString(),
-                            stack: error.stack ? error.stack.substring(0, 300) : 'no stack'
-                        });
+                        // Only log errors for API requests
+                        if (typeof url === 'string' && (url.includes('/api/') || url.startsWith('http'))) {
+                            console.error('🌐 Network Error:', {
+                                url: url,
+                                method: method,
+                                error: error.message || 'Unknown error',
+                                errorName: error.name || 'Unknown',
+                                duration: duration + 'ms',
+                                timestamp: new Date().toISOString()
+                            });
+                        }
                         
                         throw error;
                     });
@@ -2935,92 +2865,48 @@ DASHBOARD_HTML = """
             // #endregion
             
             // CRITICAL: Add EARLY click listener to catch ALL clicks before anything else
-            // This will help us see if clicks are being intercepted
+            // OPTIMIZED: Only log button clicks to reduce performance impact
             document.addEventListener('click', function(e) {
-                // #region agent log - HYPOTHESIS C: Early click detection
+                // Only log if it's actually a button click (reduces noise)
+                var closestBtn = e.target.closest('.card-btn[data-action]');
+                if (!closestBtn) return; // Skip non-button clicks
+                
+                // #region agent log - HYPOTHESIS C: Early click detection (button only)
                 try {
-                    var closestBtn = e.target.closest('.card-btn[data-action]');
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:earlyClick','message':'EARLY CLICK DETECTED','data':{'target':e.target.tagName,'targetClass':e.target.className,'targetId':e.target.id || 'no-id','isButton':e.target.tagName === 'BUTTON','hasDataAction':e.target.hasAttribute('data-action'),'closestButtonFound':!!closestBtn,'closestButtonAction':closestBtn ? closestBtn.getAttribute('data-action') : null,'eventPhase':e.eventPhase === 1 ? 'CAPTURE' : e.eventPhase === 2 ? 'TARGET' : 'BUBBLE','defaultPrevented':e.defaultPrevented},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'C'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:earlyClick','message':'EARLY BUTTON CLICK','data':{'action':closestBtn.getAttribute('data-action'),'target':e.target.tagName},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'C'})}).catch(()=>{});
                 } catch(e) {}
                 // #endregion
-                console.log('🔍 EARLY CLICK DETECTED:', {
-                    target: e.target.tagName,
-                    targetClass: e.target.className,
-                    targetId: e.target.id,
-                    isButton: e.target.tagName === 'BUTTON',
-                    hasDataAction: e.target.hasAttribute('data-action'),
-                    closestButton: e.target.closest('.card-btn[data-action]') ? 'FOUND' : 'NOT_FOUND',
-                    eventPhase: e.eventPhase === 1 ? 'CAPTURE' : e.eventPhase === 2 ? 'TARGET' : 'BUBBLE',
-                    defaultPrevented: e.defaultPrevented,
-                    propagationStopped: false // Can't check this, but log anyway
-                });
             }, true); // Capture phase - fires FIRST
             
             // Attach click listener to document for event delegation (per external feedback)
             document.addEventListener('click', function(e) {
-                console.log('🔍 DELEGATION LISTENER FIRED:', {
-                    target: e.target.tagName,
-                    targetClass: e.target.className,
-                    eventPhase: e.eventPhase === 1 ? 'CAPTURE' : e.eventPhase === 2 ? 'TARGET' : 'BUBBLE'
-                });
-                
                 // Find the closest button with data-action attribute
                 var btn = e.target.closest('.card-btn[data-action]');
                 if (!btn) {
-                    console.log('🔍 Not a button click - target:', e.target.tagName, 'class:', e.target.className);
-                    return; // Exit if clicked element is not a button
+                    return; // Exit if clicked element is not a button (no logging to reduce noise)
                 }
                 
-                // ENHANCED LOGGING: Capture state before action
+                // ENHANCED LOGGING: Capture state before action (OPTIMIZED - minimal logging)
                 var action = btn.getAttribute('data-action');
-                console.log('🔍 Button clicked:', btn); // Log the clicked button element
-                console.log('🔍 Current state before action:', {
-                    action: action,
-                    isDisabled: btn.disabled,
-                    computedStyle: {
-                        pointerEvents: window.getComputedStyle(btn).pointerEvents,
-                        display: window.getComputedStyle(btn).display,
-                        visibility: window.getComputedStyle(btn).visibility,
-                        zIndex: window.getComputedStyle(btn).zIndex,
-                        cursor: window.getComputedStyle(btn).cursor
-                    },
-                    buttonElement: {
-                        tagName: btn.tagName,
-                        className: btn.className,
-                        id: btn.id,
-                        innerHTML: btn.innerHTML.substring(0, 50),
-                        disabled: btn.disabled,
-                        hasDataAction: btn.hasAttribute('data-action')
-                    },
-                    eventDetails: {
-                        target: e.target.tagName,
-                        targetClass: e.target.className,
-                        eventPhase: e.eventPhase === 1 ? 'CAPTURE' : e.eventPhase === 2 ? 'TARGET' : 'BUBBLE',
-                        defaultPrevented: e.defaultPrevented,
-                        timeStamp: e.timeStamp
-                    }
-                });
+                console.log('✅ Button clicked:', action);
                 
-                // Check CSS/pointer-events issues
+                // Check CSS/pointer-events issues (only log if there's a problem)
                 var computedStyle = window.getComputedStyle(btn);
                 var pointerEvents = computedStyle.pointerEvents;
                 var display = computedStyle.display;
                 var visibility = computedStyle.visibility;
-                var zIndex = computedStyle.zIndex;
                 
-                if (pointerEvents === 'none') {
-                    console.warn('⚠️ Button has pointer-events: none - click may be blocked');
-                }
-                if (display === 'none') {
-                    console.warn('⚠️ Button has display: none - button is hidden');
-                }
-                if (visibility === 'hidden') {
-                    console.warn('⚠️ Button has visibility: hidden - button is hidden');
+                if (pointerEvents === 'none' || display === 'none' || visibility === 'hidden') {
+                    console.warn('⚠️ Button CSS issue:', {
+                        pointerEvents: pointerEvents,
+                        display: display,
+                        visibility: visibility
+                    });
                 }
                 
-                // #region agent log
+                // #region agent log - Only log button clicks (reduced frequency)
                 try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:click','message':'Button clicked via delegation','data':{'action':action,'buttonDisabled':btn.disabled,'targetTag':e.target.tagName,'hasProcessOrders':typeof window.processOrders,'hasUpdateInventory':typeof window.updateInventory,'hasGenerateReport':typeof window.generateReport,'pointerEvents':pointerEvents,'display':display,'visibility':visibility,'zIndex':zIndex},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-external-feedback',hypothesisId:'CLICK'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:click','message':'Button clicked','data':{'action':action,'disabled':btn.disabled},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'CLICK'})}).catch(()=>{});
                 } catch(e) {}
                 // #endregion
                 
@@ -3038,48 +2924,16 @@ DASHBOARD_HTML = """
                     return;
                 }
                 
-                // ENHANCED LOGGING: Log state after validation, before function call
-                console.log('🔍 State after validation:', {
-                    action: action,
-                    isDisabled: btn.disabled,
-                    functionExists: typeof window[action] === 'function',
-                    functionType: typeof window[action]
-                });
-                
                 // Route to appropriate function based on data-action (per external feedback)
                 // Enhanced error handling to prevent application freezing
-                // #region agent log - HYPOTHESIS D: Function lookup before call
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:beforeCall','message':'Before function call','data':{'action':action,'windowActionExists':typeof window[action],'windowActionIsFunction':typeof window[action] === 'function','windowActionValue':window[action] ? 'exists' : 'undefined'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'D'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
                 if (window[action] && typeof window[action] === 'function') {
                     try {
                         console.log('✅ Calling function:', action);
-                        // #region agent log - HYPOTHESIS D: Function execution start
-                        try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:functionCall','message':'Function execution START','data':{'action':action,'buttonId':btn.id || 'no-id','buttonClass':btn.className},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'D'})}).catch(()=>{});
-                        } catch(e) {}
-                        // #endregion
-                        // ENHANCED LOGGING: Capture state immediately after function call
-                        var beforeCallTime = Date.now();
                         window[action](btn); // Call the corresponding function
-                        var afterCallTime = Date.now();
-                        // #region agent log - HYPOTHESIS D: Function execution success
-                        try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:functionCall','message':'Function execution SUCCESS','data':{'action':action,'executionTime':(afterCallTime - beforeCallTime),'buttonDisabled':btn.disabled},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'D'})}).catch(()=>{});
-                        } catch(e) {}
-                        // #endregion
-                        console.log('✅ Function called successfully:', action, 'Execution time:', (afterCallTime - beforeCallTime) + 'ms');
-                        console.log('🔍 State after function call:', {
-                            action: action,
-                            buttonDisabled: btn.disabled,
-                            outputElement: document.getElementById('output') ? 'exists' : 'missing'
-                        });
                     } catch(err) {
-                        // #region agent log - HYPOTHESIS D: Function execution error
+                        // #region agent log - HYPOTHESIS D: Function execution error (only log errors)
                         try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:functionCall','message':'Function execution ERROR','data':{'action':action,'errorName':err.name,'errorMessage':err.message,'errorStack':err.stack ? err.stack.substring(0,200) : 'no stack'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'D'})}).catch(()=>{});
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:functionCall','message':'Function execution ERROR','data':{'action':action,'errorName':err.name,'errorMessage':err.message},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'D'})}).catch(()=>{});
                         } catch(e) {}
                         // #endregion
                         // Catch synchronous errors to prevent freezing
