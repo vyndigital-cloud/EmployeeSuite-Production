@@ -2642,10 +2642,39 @@ DASHBOARD_HTML = """
         // Use event delegation - attach ONE listener to document that handles ALL button clicks
         // This works even if buttons are added dynamically or listeners fail to attach
         // FIXED: Always wait for DOMContentLoaded to ensure DOM and dependencies are ready
-        document.addEventListener('DOMContentLoaded', function() {
+        // FIXED: Verify functions exist before setting up listener (per external feedback)
+        document.addEventListener('DOMContentLoaded', function setupEventDelegation() {
+            console.log('✅ DOMContentLoaded fired');
+            
+            // Verify functions are assigned to window before setting up listener
+            var functionsReady = typeof window.processOrders === 'function' &&
+                                 typeof window.updateInventory === 'function' &&
+                                 typeof window.generateReport === 'function';
+            
+            if (!functionsReady) {
+                console.error('❌ Functions not ready yet. Retrying in 100ms...');
+                console.log('Function status:', {
+                    processOrders: typeof window.processOrders,
+                    updateInventory: typeof window.updateInventory,
+                    generateReport: typeof window.generateReport
+                });
+                // Retry after short delay
+                setTimeout(setupEventDelegation, 100);
+                return;
+            }
+            
+            console.log('✅ All functions ready:', {
+                processOrders: typeof window.processOrders,
+                updateInventory: typeof window.updateInventory,
+                generateReport: typeof window.generateReport
+            });
+            
+            var buttonsFound = document.querySelectorAll('.card-btn[data-action]').length;
+            console.log('✅ Buttons found:', buttonsFound);
+            
             // #region agent log
             try {
-                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:DOMContentLoaded','message':'DOMContentLoaded fired - setting up event delegation','data':{'readyState':document.readyState,'hasProcessOrders':typeof window.processOrders,'hasUpdateInventory':typeof window.updateInventory,'hasGenerateReport':typeof window.generateReport,'buttonsFound':document.querySelectorAll('.card-btn[data-action]').length,'appBridgeReady':typeof window.appBridgeReady !== 'undefined' ? window.appBridgeReady : 'undefined'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-domcontentloaded',hypothesisId:'DOM_READY'})}).catch(()=>{});
+                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:DOMContentLoaded','message':'DOMContentLoaded fired - setting up event delegation','data':{'readyState':document.readyState,'hasProcessOrders':typeof window.processOrders,'hasUpdateInventory':typeof window.updateInventory,'hasGenerateReport':typeof window.generateReport,'buttonsFound':buttonsFound,'appBridgeReady':typeof window.appBridgeReady !== 'undefined' ? window.appBridgeReady : 'undefined'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-external-feedback',hypothesisId:'DOM_READY'})}).catch(()=>{});
             } catch(e) {}
             // #endregion
             
@@ -2655,41 +2684,51 @@ DASHBOARD_HTML = """
                 var btn = e.target.closest('.card-btn[data-action]');
                 if (!btn) return; // Not a button click
                 
+                var action = btn.getAttribute('data-action');
+                console.log('✅ Button click detected:', action);
+                
                 // #region agent log
                 try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:click','message':'Button clicked via delegation','data':{'action':btn.getAttribute('data-action'),'buttonDisabled':btn.disabled,'targetTag':e.target.tagName,'hasProcessOrders':typeof window.processOrders,'hasUpdateInventory':typeof window.updateInventory,'hasGenerateReport':typeof window.generateReport},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-domcontentloaded',hypothesisId:'CLICK'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:click','message':'Button clicked via delegation','data':{'action':action,'buttonDisabled':btn.disabled,'targetTag':e.target.tagName,'hasProcessOrders':typeof window.processOrders,'hasUpdateInventory':typeof window.updateInventory,'hasGenerateReport':typeof window.generateReport},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-external-feedback',hypothesisId:'CLICK'})}).catch(()=>{});
                 } catch(e) {}
                 // #endregion
                 
                 e.preventDefault(); // Prevent any default behavior
                 e.stopPropagation();
                 
-                var action = btn.getAttribute('data-action');
                 if (!action) return; // No action specified
                 
                 // Check if button is disabled
                 if (btn.disabled) {
-                    console.warn('Button is disabled, ignoring click');
+                    console.warn('⚠️ Button is disabled, ignoring click');
                     return;
                 }
                 
                 // Route to appropriate function based on data-action
-                // Assuming functions are assigned globally
                 if (window[action] && typeof window[action] === 'function') {
+                    console.log('✅ Calling function:', action);
                     window[action](btn); // Call the appropriate function
                 } else {
-                    console.error('Function not found for action:', action);
+                    console.error('❌ Function not found for action:', action);
+                    console.error('Available functions:', {
+                        processOrders: typeof window.processOrders,
+                        updateInventory: typeof window.updateInventory,
+                        generateReport: typeof window.generateReport,
+                        requestedAction: typeof window[action]
+                    });
                     // #region agent log
                     try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:click','message':'Function not found','data':{'action':action,'hasProcessOrders':typeof window.processOrders,'hasUpdateInventory':typeof window.updateInventory,'hasGenerateReport':typeof window.generateReport,'windowActionType':typeof window[action]},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-domcontentloaded',hypothesisId:'FUNC_MISSING'})}).catch(()=>{});
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:click','message':'Function not found','data':{'action':action,'hasProcessOrders':typeof window.processOrders,'hasUpdateInventory':typeof window.updateInventory,'hasGenerateReport':typeof window.generateReport,'windowActionType':typeof window[action]},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-external-feedback',hypothesisId:'FUNC_MISSING'})}).catch(()=>{});
                     } catch(e) {}
                     // #endregion
                 }
             }, true); // Use capture phase to catch early
             
+            console.log('✅ Event delegation listener attached successfully');
+            
             // #region agent log
             try {
-                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:DOMContentLoaded','message':'Event delegation attached successfully','data':{'readyState':document.readyState},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-domcontentloaded',hypothesisId:'DELEGATION_ATTACHED'})}).catch(()=>{});
+                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:DOMContentLoaded','message':'Event delegation attached successfully','data':{'readyState':document.readyState},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-external-feedback',hypothesisId:'DELEGATION_ATTACHED'})}).catch(()=>{});
             } catch(e) {}
             // #endregion
         });
