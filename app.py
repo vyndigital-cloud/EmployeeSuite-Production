@@ -1615,24 +1615,23 @@ DASHBOARD_HTML = """
                     `;
                     throw err; // Stop execution
                 });
-            } else {
-                // #region agent log
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Not embedded - using cookie auth','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
-                // Not embedded - use regular fetch (Flask-Login handles auth)
-                // CRITICAL: Include credentials (cookies) for standalone access
-                fetchPromise = fetch('/api/process_orders', {
-                    signal: controller.signal,
-                    credentials: 'include'
-                });
-            }
-            
-            }
-
-            // Execute the Promise chain
-            fetchPromise
+                } // Close if (isEmbedded && ...) block
+                } else {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Not embedded - using cookie auth','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
+                    // Not embedded - use regular fetch (Flask-Login handles auth)
+                    // CRITICAL: Include credentials (cookies) for standalone access
+                    fetchPromise = fetch('/api/process_orders', {
+                        signal: controller.signal,
+                        credentials: 'include'
+                    });
+                }
+                
+                // Execute the Promise chain
+                fetchPromise
                 .then(r => {
                     // #region agent log
                     try {
@@ -1749,7 +1748,11 @@ DASHBOARD_HTML = """
                         </div>
                     `;
                 });
-        }
+            } // Close proceedWithApiCall function
+            
+            // Call proceedWithApiCall to execute the promise chain
+            proceedWithApiCall();
+            } // Close processOrders function
         
         // Ensure function is in global scope
         window.processOrders = processOrders;
@@ -1946,13 +1949,9 @@ DASHBOARD_HTML = """
                 });
             }
             
-            // App Bridge is ready (or not embedded) - proceed with API call
-            proceedWithApiCall();
-            return; // Exit - proceedWithApiCall handles everything
-            
-            // Should not reach here
-            if (false) {
-                // Old code removed
+            // Execute the Promise chain
+            fetchPromise
+                .then(r => {
                     // #region agent log
                     try {
                         fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Fetch response received','data':{'status':r.status,'ok':r.ok,'statusText':r.statusText},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
@@ -2070,6 +2069,10 @@ DASHBOARD_HTML = """
                         </div>
                     `;
                 });
+            } // Close proceedWithApiCall function
+            
+            // Call proceedWithApiCall to execute the promise chain
+            proceedWithApiCall();
         }
         
         // Ensure function is in global scope
@@ -2272,13 +2275,9 @@ DASHBOARD_HTML = """
                 });
             }
             
-            // App Bridge is ready (or not embedded) - proceed with API call
-            proceedWithApiCall();
-            return; // Exit - proceedWithApiCall handles everything
-            
-            // Should not reach here
-            if (false) {
-                // Old code removed
+            // Execute the Promise chain
+            fetchPromise
+                .then(r => {
                     // #region agent log
                     try {
                         fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'Fetch response received','data':{'status':r.status,'ok':r.ok,'statusText':r.statusText},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
@@ -2363,6 +2362,10 @@ DASHBOARD_HTML = """
                         `;
                     }
                 });
+            } // Close proceedWithApiCall function
+            
+            // Call proceedWithApiCall to execute the promise chain
+            proceedWithApiCall();
         }
         
         // Ensure function is in global scope
