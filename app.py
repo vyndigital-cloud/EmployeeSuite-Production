@@ -1038,9 +1038,40 @@ DASHBOARD_HTML = """
                     // #endregion
                     
                     try {
-                        if (window['app-bridge']) {
-                            var createApp = window['app-bridge'].default;
-                            
+                        // Check for both new API (shopify global) and old API (window['app-bridge'])
+                        var AppBridge = window.shopify || window['app-bridge'] || window['ShopifyAppBridge'];
+                        var createApp = null;
+                        
+                        if (AppBridge) {
+                            // New API: shopify global (no initialization needed)
+                            if (window.shopify && typeof window.shopify === 'object') {
+                                // New API - shopify global is available, no createApp needed
+                                window.shopifyApp = window.shopify;
+                                // #region agent log
+                                try {
+                                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:AppBridge:new_api','message':'Using new App Bridge API (shopify global)','data':{'has_shopify':!!window.shopify},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
+                                } catch(e) {}
+                                // #endregion
+                                console.log('✅ App Bridge initialized successfully (new API)!');
+                                window.appBridgeReady = true;
+                                if (window.appBridgeReadyResolve) {
+                                    window.appBridgeReadyResolve({
+                                        ready: true,
+                                        embedded: true,
+                                        app: window.shopifyApp
+                                    });
+                                }
+                                window.dispatchEvent(new CustomEvent('appbridge:ready', {
+                                    detail: { app: window.shopifyApp, embedded: true }
+                                }));
+                                enableEmbeddedButtons();
+                                return;
+                            }
+                            // Old API: window['app-bridge'] with createApp
+                            createApp = AppBridge.default || AppBridge.create || AppBridge;
+                        }
+                        
+                        if (createApp && typeof createApp === 'function') {
                             // Get API key from template
                             var apiKey = '{{ SHOPIFY_API_KEY or "" }}'.trim();
                             if (!apiKey || apiKey === '') {
@@ -1064,7 +1095,7 @@ DASHBOARD_HTML = """
                                 return;
                             }
                             
-                            // Initialize App Bridge
+                            // Initialize App Bridge (old API)
                             window.shopifyApp = createApp({
                                 apiKey: apiKey,
                                 host: host
@@ -1072,7 +1103,7 @@ DASHBOARD_HTML = """
                             
                             // #region agent log
                             try {
-                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:AppBridge:success','message':'App Bridge initialized successfully','data':{'has_shopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
+                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:AppBridge:success','message':'App Bridge initialized successfully (old API)','data':{'has_shopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
                             } catch(e) {}
                             // #endregion
                             
@@ -1095,7 +1126,7 @@ DASHBOARD_HTML = """
                             
                             // Enable buttons now that App Bridge is ready
                             enableEmbeddedButtons();
-                        } else if (attempt < delays.length - 1) {
+                        } else if (!AppBridge && attempt < delays.length - 1) {
                             // Try again with longer delay
                             attempt++;
                             setTimeout(tryInit, delays[attempt] - delays[attempt - 1]);
