@@ -2386,29 +2386,89 @@ DASHBOARD_HTML = """
         // Attach event listeners to dashboard buttons (more reliable than onclick)
         (function() {
             function attachButtonListeners() {
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'attachButtonListeners called','data':{'readyState':document.readyState,'hasProcessOrders':typeof window.processOrders,'hasUpdateInventory':typeof window.updateInventory,'hasGenerateReport':typeof window.generateReport},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'A'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
+                
                 var processBtn = document.querySelector('.card-btn[data-action="processOrders"]');
                 var inventoryBtn = document.querySelector('.card-btn[data-action="updateInventory"]');
                 var reportBtn = document.querySelector('.card-btn[data-action="generateReport"]');
                 
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'Buttons found','data':{'processBtn':!!processBtn,'inventoryBtn':!!inventoryBtn,'reportBtn':!!reportBtn,'allButtons':document.querySelectorAll('.card-btn[data-action]').length},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'B'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
+                
                 if (processBtn && typeof window.processOrders === 'function') {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'Attaching processOrders listener','data':{'hasListener':processBtn.onclick!==null,'listenerCount':'unknown'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'C'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     processBtn.addEventListener('click', function(e) {
+                        // #region agent log
+                        try {
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners:processOrders_click','message':'processOrders button clicked','data':{'target':e.target.tagName,'defaultPrevented':e.defaultPrevented},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'D'})}).catch(()=>{});
+                        } catch(e) {}
+                        // #endregion
                         e.preventDefault();
                         window.processOrders(this);
                     });
+                } else {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'processOrders listener NOT attached','data':{'hasBtn':!!processBtn,'hasFunc':typeof window.processOrders,'funcType':typeof window.processOrders},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'E'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                 }
                 
                 if (inventoryBtn && typeof window.updateInventory === 'function') {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'Attaching updateInventory listener','data':{},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'C'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     inventoryBtn.addEventListener('click', function(e) {
+                        // #region agent log
+                        try {
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners:updateInventory_click','message':'updateInventory button clicked','data':{'target':e.target.tagName,'defaultPrevented':e.defaultPrevented},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'D'})}).catch(()=>{});
+                        } catch(e) {}
+                        // #endregion
                         e.preventDefault();
                         window.updateInventory(this);
                     });
+                } else {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'updateInventory listener NOT attached','data':{'hasBtn':!!inventoryBtn,'hasFunc':typeof window.updateInventory,'funcType':typeof window.updateInventory},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'E'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                 }
                 
                 if (reportBtn && typeof window.generateReport === 'function') {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'Attaching generateReport listener','data':{},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'C'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     reportBtn.addEventListener('click', function(e) {
+                        // #region agent log
+                        try {
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners:generateReport_click','message':'generateReport button clicked','data':{'target':e.target.tagName,'defaultPrevented':e.defaultPrevented},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'D'})}).catch(()=>{});
+                        } catch(e) {}
+                        // #endregion
                         e.preventDefault();
                         window.generateReport(this);
                     });
+                } else {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'generateReport listener NOT attached','data':{'hasBtn':!!reportBtn,'hasFunc':typeof window.generateReport,'funcType':typeof window.generateReport},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'E'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                 }
             }
             
@@ -2421,6 +2481,18 @@ DASHBOARD_HTML = """
             // Also try after a delay in case buttons load late
             setTimeout(attachButtonListeners, 500);
         })();
+        
+        // #region agent log - Document-level click handler to detect ANY button clicks
+        document.addEventListener('click', function(e) {
+            var target = e.target;
+            var btn = target.closest('.card-btn[data-action]');
+            if (btn) {
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:document_click','message':'Card button clicked (document level)','data':{'action':btn.getAttribute('data-action'),'hasListener':btn.onclick!==null,'tagName':target.tagName},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'F'})}).catch(()=>{});
+                } catch(e) {}
+            }
+        }, true);
+        // #endregion
         
 // Keyboard shortcuts for power users
         document.addEventListener('keydown', function(e) {
