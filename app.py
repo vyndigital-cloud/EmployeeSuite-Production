@@ -4093,12 +4093,15 @@ def api_generate_report():
         
         if data.get('error') and data['error'] is not None:
             error_html = data['error']
-            logger.warning(f'Step 5d ERROR: Report generation returned error')
+            logger.warning(f'Step 5d: Report generation returned error (handled gracefully)')
             if 'No Shopify store connected' in error_html:
                 logger.info(f'Generate report: No store connected for user {user_id}')
+            elif 'Permission denied' in error_html or 'missing required permissions' in error_html.lower():
+                # This is expected - user needs to reconnect with proper scopes
+                logger.info(f'Generate report: Missing permissions for user {user_id} - user will be prompted to reconnect')
             else:
-                logger.error(f'Generate report error for user {user_id}')
-            logger.error('=== GENERATE REPORT REQUEST FAILED: Report Error ===')
+                logger.warning(f'Generate report error for user {user_id}: {error_html[:100]}...')
+            # Don't log as error - this is a handled, user-facing error (not a system error)
             # Return HTML directly with 200 status so frontend can render it
             return error_html, 200, {'Content-Type': 'text/html'}
         
