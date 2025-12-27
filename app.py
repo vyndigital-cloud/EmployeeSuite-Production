@@ -50,7 +50,7 @@ from flask import Flask, jsonify, render_template_string, redirect, url_for, req
 
 # Comprehensive instrumentation helper
 def log_event(location, message, data=None, hypothesis_id='GENERAL'):
-    """Log event to debug log file"""
+    """Log event using proper logging framework"""
     try:
         import json
         import time
@@ -63,10 +63,10 @@ def log_event(location, message, data=None, hypothesis_id='GENERAL'):
             "data": data or {},
             "timestamp": int(time.time() * 1000)
         }
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps(log_entry) + '\n')
-    except Exception:
-        pass  # Fail silently - don't break app if logging fails
+        # Use logging framework instead of file writes
+        logger.info(f"DEBUG_EVENT: {json.dumps(log_entry)}")
+    except Exception as e:
+        logger.error(f"Failed to log event: {e}")
 
 def safe_redirect(url, shop=None, host=None):
     """
@@ -1842,7 +1842,7 @@ DASHBOARD_HTML = """
                     `;
                     throw err; // Stop execution
                 });
-                } else {
+            } else {
                 // Debug logging removed for performance
                 // Not embedded - use regular fetch (Flask-Login handles auth)
                 // CRITICAL: Include credentials (cookies) for standalone access
@@ -3516,10 +3516,18 @@ def cron_database_backup():
         logger.error(f"Backup cron endpoint error: {e}", exc_info=True)
         return jsonify({"error": str(e), "success": False}), 500
 
+def is_debug_enabled():
+    """Check if debug endpoints should be enabled"""
+    env = os.getenv('ENVIRONMENT', 'production')
+    debug = os.getenv('DEBUG', 'False').lower() == 'true'
+    return env == 'development' or debug
+
 @app.route('/api-key-info')
 def api_key_info():
-    """Debug endpoint to show API key info (safe - only shows preview)"""
-    import os
+    """Debug endpoint - ONLY works in development"""
+    if not is_debug_enabled():
+        return jsonify({"error": "Not available in production"}), 403
+    
     api_key = os.getenv('SHOPIFY_API_KEY', 'NOT_SET')
     api_secret = os.getenv('SHOPIFY_API_SECRET', 'NOT_SET')
     
@@ -3528,26 +3536,14 @@ def api_key_info():
             'status': 'SET' if api_key != 'NOT_SET' and api_key else 'NOT_SET',
             'preview': api_key[:8] + '...' if api_key and api_key != 'NOT_SET' and len(api_key) >= 8 else 'N/A',
             'length': len(api_key) if api_key and api_key != 'NOT_SET' else 0,
-            'ends_with': api_key[-2:] if api_key and api_key != 'NOT_SET' and len(api_key) >= 2 else 'N/A'
         },
         'api_secret': {
             'status': 'SET' if api_secret != 'NOT_SET' and api_secret else 'NOT_SET',
             'preview': api_secret[:8] + '...' if api_secret and api_secret != 'NOT_SET' and len(api_secret) >= 8 else 'N/A',
             'length': len(api_secret) if api_secret and api_secret != 'NOT_SET' else 0
-        },
-        'expected_api_key': '8c81ac3ce59f720a139b52f0c7b2ec32',
-        'expected_preview': '8c81ac3c...',
-        'expected_length': 32
+        }
     }
-    
-    # Check if it matches expected
-    if api_key and api_key != 'NOT_SET':
-        response['api_key']['matches_expected'] = api_key == '8c81ac3ce59f720a139b52f0c7b2ec32'
-        response['api_key']['current_value'] = api_key  # Show full value for debugging
-    else:
-        response['api_key']['matches_expected'] = False
-        response['api_key']['current_value'] = 'NOT_SET'
-    
+    # REMOVED: full API key exposure
     return jsonify(response)
 
 @app.route('/test-shopify-route')
@@ -3557,7 +3553,10 @@ def test_shopify_route():
 
 @app.route('/debug-routes')
 def debug_routes():
-    """Debug endpoint to see what routes are registered"""
+    """Debug endpoint - ONLY works in development"""
+    if not is_debug_enabled():
+        return jsonify({"error": "Not available in production"}), 403
+    
     all_routes = [{"rule": str(rule.rule), "endpoint": rule.endpoint, "methods": list(rule.methods)} for rule in app.url_map.iter_rules()]
     shopify_routes = [r for r in all_routes if 'shopify' in r['rule'].lower()]
     return jsonify({
@@ -3835,42 +3834,42 @@ def api_process_orders():
     
     
     try:
-        # Get authenticated user (supports both Flask-Login and session tokens)
+    # Get authenticated user (supports both Flask-Login and session tokens)
         logger.info('Step 1: Getting authenticated user...')
-        user, error_response = get_authenticated_user()
+    user, error_response = get_authenticated_user()
         
-        if error_response:
+    if error_response:
             logger.warning('Step 1 FAILED: Authentication error')
             logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
-            return error_response
-        
+        return error_response
+    
         logger.info(f'Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, "email") else "N/A"}')
-        
-        # Check access
+    
+    # Check access
         logger.info('Step 2: Checking user access...')
-        has_access = user.has_access() if user else False
+    has_access = user.has_access() if user else False
         
-        if not has_access:
+    if not has_access:
             logger.warning(f'Step 2 FAILED: User {user.id if hasattr(user, "id") else "N/A"} does not have access')
-            return jsonify({
-                'error': 'Subscription required',
-                'success': False,
-                'action': 'subscribe',
-                'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
-                'subscribe_url': url_for('billing.subscribe')
-            }), 403
-        
+        return jsonify({
+            'error': 'Subscription required',
+            'success': False,
+            'action': 'subscribe',
+            'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
+            'subscribe_url': url_for('billing.subscribe')
+        }), 403
+    
         logger.info(f'Step 2 SUCCESS: User {user.id if hasattr(user, "id") else "N/A"} has access')
-        
-        # Store user ID before login_user to avoid recursion issues
-        user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+    
+    # Store user ID before login_user to avoid recursion issues
+    user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
         logger.info(f'Step 3: User ID extracted: {user_id}')
-        
-        # Temporarily set current_user for process_orders() function
-        # (it expects current_user to be set)
+    
+    # Temporarily set current_user for process_orders() function
+    # (it expects current_user to be set)
         logger.info('Step 4: Logging in user...')
-        from flask_login import login_user
-        login_user(user, remember=False)
+    from flask_login import login_user
+    login_user(user, remember=False)
         logger.info('Step 4 SUCCESS: User logged in')
         
         
@@ -3931,42 +3930,42 @@ def api_update_inventory():
     
     
     try:
-        # Get authenticated user (supports both Flask-Login and session tokens)
+    # Get authenticated user (supports both Flask-Login and session tokens)
         logger.info('Step 1: Getting authenticated user...')
-        user, error_response = get_authenticated_user()
+    user, error_response = get_authenticated_user()
         
-        if error_response:
+    if error_response:
             logger.warning('Step 1 FAILED: Authentication error')
             logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
-            return error_response
-        
+        return error_response
+    
         logger.info(f'Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, "email") else "N/A"}')
         
         logger.info('Step 2: Checking user access...')
-        has_access = user.has_access() if user else False
+    has_access = user.has_access() if user else False
         
-        if not has_access:
+    if not has_access:
             logger.warning(f'Step 2 FAILED: User {user.id if hasattr(user, "id") else "N/A"} does not have access')
-            return jsonify({
-                'error': 'Subscription required',
-                'success': False,
-                'action': 'subscribe',
-                'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
-                'subscribe_url': url_for('billing.subscribe')
-            }), 403
-        
+        return jsonify({
+            'error': 'Subscription required',
+            'success': False,
+            'action': 'subscribe',
+            'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
+            'subscribe_url': url_for('billing.subscribe')
+        }), 403
+    
         logger.info(f'Step 2 SUCCESS: User {user.id if hasattr(user, "id") else "N/A"} has access')
-        
-        # Store user ID before login_user to avoid recursion issues
-        user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+    
+    # Store user ID before login_user to avoid recursion issues
+    user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
         logger.info(f'Step 3: User ID extracted: {user_id}')
-        
-        # Set current_user for update_inventory() function
+    
+    # Set current_user for update_inventory() function
         logger.info('Step 4: Logging in user...')
-        from flask_login import login_user
-        login_user(user, remember=False)
+    from flask_login import login_user
+    login_user(user, remember=False)
         logger.info('Step 4 SUCCESS: User logged in')
-        
+    
         # Import at function level to avoid UnboundLocalError
         logger.info('Step 5: Clearing cache...')
         from performance import clear_cache as clear_perf_cache
@@ -4604,10 +4603,10 @@ def ensure_db_initialized():
 
 try:
     import json
-    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
         shopify_routes = [str(rule) for rule in app.url_map.iter_rules() if 'shopify' in str(rule)]
-        f.write(json.dumps({"sessionId":"debug-session","runId":"startup","hypothesisId":"K","location":"app.py:__main__","message":"App starting - checking routes","data":{"shopify_routes":shopify_routes,"total_routes":len(list(app.url_map.iter_rules())),"app_file":__file__},"timestamp":int(__import__('time').time()*1000)})+'\n')
-except: pass
+    logger.info(f"App starting - Shopify routes: {len(shopify_routes)}, Total routes: {len(list(app.url_map.iter_rules()))}")
+except Exception as e:
+    logger.error(f"Failed to log startup info: {e}")
 # #endregion
 
 if __name__ == '__main__':
