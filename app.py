@@ -1508,11 +1508,14 @@ DASHBOARD_HTML = """
             );
         }, true); // Use capture phase to catch all errors
         
-        // Unhandled promise rejection handler
+        // Unhandled promise rejection handler - Enhanced to prevent freezing
         window.addEventListener('unhandledrejection', function(event) {
             var error = event.reason;
             var errorMessage = error ? (error.message || error.toString() || 'Unhandled promise rejection') : 'Unknown promise rejection';
             var stackTrace = error && error.stack ? error.stack : 'No stack trace';
+            
+            console.error('❌ Unhandled promise rejection:', error);
+            console.error('This may cause the application to freeze. Error:', errorMessage);
             
             logJavaScriptError(
                 'UnhandledPromiseRejection',
@@ -1524,6 +1527,20 @@ DASHBOARD_HTML = """
                 },
                 stackTrace
             );
+            
+            // Prevent default browser error handling and application freeze
+            event.preventDefault();
+            
+            // Show user-friendly error message if possible
+            try {
+                var outputEl = document.getElementById('output');
+                if (outputEl) {
+                    outputEl.innerHTML = '<div style="padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;"><div style="font-size: 15px; font-weight: 600; color: #d72c0d; margin-bottom: 8px;">⚠️ An error occurred</div><div style="font-size: 14px; color: #6d7175;">Please refresh the page and try again.</div></div>';
+                }
+            } catch(e) {
+                // If showing error fails, at least log it
+                console.error('Failed to show error message:', e);
+            }
         });
         
         // Console error interceptor (catches console.error calls)
@@ -2052,17 +2069,21 @@ DASHBOARD_HTML = """
                     }
                 })
                 .catch(err => {
-                    // Enhanced error handling per external feedback
-                    console.error('❌ Fetch operation error:', {
+                    // Enhanced error handling per external feedback - prevent application freezing
+                    console.error('❌ Failed to process orders:', err);
+                    console.error('Error details:', {
                         message: err.message,
                         name: err.name,
                         stack: err.stack ? err.stack.substring(0, 300) : 'no stack'
                     });
+                    
                     // #region agent log
                     try {
                         fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Fetch catch error','data':{'error':err.message||'unknown','errorName':err.name||'unknown','stack':err.stack?err.stack.substring(0,200):'no stack'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
                     } catch(e) {}
                     // #endregion
+                    
+                    // Always re-enable button and clear timers to prevent freezing
                     setButtonLoading(button, false);
                     activeRequests.processOrders = null;
                     if (debounceTimers.processOrders) {
@@ -2848,10 +2869,32 @@ DASHBOARD_HTML = """
                 }
                 
                 // Route to appropriate function based on data-action (per external feedback)
+                // Enhanced error handling to prevent application freezing
                 if (window[action] && typeof window[action] === 'function') {
-                    window[action](btn); // Call the corresponding function
-                    console.log('✅ Function called successfully:', action);
-            } else {
+                    try {
+                        console.log('✅ Calling function:', action);
+                        window[action](btn); // Call the corresponding function
+                        console.log('✅ Function called successfully:', action);
+                    } catch(err) {
+                        // Catch synchronous errors to prevent freezing
+                        console.error('❌ Error executing function:', action, err);
+                        console.error('Error details:', {
+                            message: err.message,
+                            name: err.name,
+                            stack: err.stack ? err.stack.substring(0, 300) : 'no stack'
+                        });
+                        // Show user-friendly error message
+                        var outputEl = document.getElementById('output');
+                        if (outputEl) {
+                            outputEl.innerHTML = '<div style="padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;"><div style="font-size: 15px; font-weight: 600; color: #d72c0d; margin-bottom: 8px;">❌ Error</div><div style="font-size: 14px; color: #6d7175;">An error occurred: ' + (err.message || 'Unknown error') + '</div></div>';
+                        }
+                        // Re-enable button
+                        btn.disabled = false;
+                        if (btn.dataset.originalText) {
+                            btn.innerHTML = btn.dataset.originalText;
+                        }
+                    }
+                } else {
                     console.error('Function not found for action:', action); // Log error for missing function (per external feedback)
                     console.error('Available functions:', {
                         processOrders: typeof window.processOrders,
