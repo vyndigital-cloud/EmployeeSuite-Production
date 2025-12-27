@@ -4603,7 +4603,7 @@ def ensure_db_initialized():
 
 try:
     import json
-        shopify_routes = [str(rule) for rule in app.url_map.iter_rules() if 'shopify' in str(rule)]
+    shopify_routes = [str(rule) for rule in app.url_map.iter_rules() if 'shopify' in str(rule)]
     logger.info(f"App starting - Shopify routes: {len(shopify_routes)}, Total routes: {len(list(app.url_map.iter_rules()))}")
 except Exception as e:
     logger.error(f"Failed to log startup info: {e}")
