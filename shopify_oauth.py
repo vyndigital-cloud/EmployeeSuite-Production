@@ -495,8 +495,17 @@ def callback():
         app_url = os.getenv('SHOPIFY_APP_URL', 'https://employeesuite-production.onrender.com')
         # Redirect to settings page with success message so user sees confirmation
         from flask import url_for
-        settings_url = url_for('shopify.shopify_settings', success='Store connected successfully!', shop=shop, host=host)
-        redirect_url = f"{app_url}{settings_url}"
+        from urllib.parse import quote
+        
+        # CRITICAL: Properly encode URL parameters to prevent "couldn't load page" errors
+        # Build URL manually to ensure proper encoding
+        base_url = f"{app_url}/settings/shopify"
+        params = []
+        params.append(f"success={quote('Store connected successfully!')}")
+        params.append(f"shop={quote(shop)}")
+        params.append(f"host={quote(host)}")
+        redirect_url = f"{base_url}?{'&'.join(params)}"
+        
         logger.info(f"OAuth complete for embedded app, redirecting to: {redirect_url}")
         # #region agent log
         try:
@@ -506,30 +515,135 @@ def callback():
         except: pass
         # #endregion
         
-        # SIMPLEST POSSIBLE: Just use window.top.location.href to break out of iframe
-        # No App Bridge, no complex JavaScript - just works
+        # ENHANCED: Multiple redirect attempts with error handling
+        # This prevents "couldn't load page" errors by trying multiple methods
+        import json as json_module
+        redirect_url_json = json_module.dumps(redirect_url)
         redirect_html = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <title>Redirecting...</title>
-    <script>
-        // Break out of iframe immediately
-        if (window.top !== window.self) {{
-            window.top.location.href = '{redirect_url}';
-        }} else {{
-            window.location.href = '{redirect_url}';
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f6f6f7;
+            text-align: center;
         }}
+        .container {{
+            padding: 40px 24px;
+            max-width: 500px;
+        }}
+        .spinner {{
+            border: 3px solid #e1e3e5;
+            border-top: 3px solid #008060;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }}
+        @keyframes spin {{
+            0% {{ transform: rotate(0deg); }}
+            100% {{ transform: rotate(360deg); }}
+        }}
+        .message {{
+            font-size: 14px;
+            color: #6d7175;
+            margin-bottom: 20px;
+        }}
+        .btn {{
+            display: inline-block;
+            padding: 10px 20px;
+            background: #008060;
+            color: #fff;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }}
+    </style>
+    <script>
+        var redirectUrl = {redirect_url_json};
+        var attempts = 0;
+        var maxAttempts = 3;
+        
+        function tryRedirect() {{
+            attempts++;
+            console.log('Redirect attempt', attempts, 'to:', redirectUrl);
+            
+            try {{
+                // Method 1: Try window.top.location.href (breaks out of iframe)
+                if (window.top !== window.self) {{
+                    window.top.location.href = redirectUrl;
+                }} else {{
+                    window.location.href = redirectUrl;
+                }}
+                
+                // If redirect doesn't happen within 2 seconds, try next method
+                setTimeout(function() {{
+                    if (attempts < maxAttempts) {{
+                        // Method 2: Try window.location.replace (more reliable)
+                        try {{
+                            if (window.top !== window.self) {{
+                                window.top.location.replace(redirectUrl);
+                            }} else {{
+                                window.location.replace(redirectUrl);
+                            }}
+                        }} catch (e) {{
+                            console.error('Redirect method 2 failed:', e);
+                            if (attempts < maxAttempts) {{
+                                // Method 3: Show manual link
+                                document.getElementById('manual-link').style.display = 'block';
+                                document.getElementById('spinner').style.display = 'none';
+                            }}
+                        }}
+                    }} else {{
+                        // All attempts failed - show manual link
+                        document.getElementById('manual-link').style.display = 'block';
+                        document.getElementById('spinner').style.display = 'none';
+                    }}
+                }}, 2000);
+            }} catch (e) {{
+                console.error('Redirect failed:', e);
+                // Show manual link on error
+                document.getElementById('manual-link').style.display = 'block';
+                document.getElementById('spinner').style.display = 'none';
+            }}
+        }}
+        
+        // Start redirect immediately
+        tryRedirect();
+        
+        // Fallback: Also try on page load
+        window.addEventListener('load', function() {{
+            if (attempts === 0) {{
+                tryRedirect();
+            }}
+        }});
     </script>
     <noscript>
         <meta http-equiv="refresh" content="0;url={redirect_url}">
     </noscript>
 </head>
 <body>
-    <p>Redirecting... <a href="{redirect_url}">Click here if not redirected</a></p>
+    <div class="container">
+        <div id="spinner" class="spinner"></div>
+        <div class="message">Connecting your store...</div>
+        <div id="manual-link" style="display: none;">
+            <p style="font-size: 14px; color: #6d7175; margin-bottom: 16px;">If you're not redirected automatically, click below:</p>
+            <a href="{redirect_url}" class="btn">Continue to Settings →</a>
+        </div>
+    </div>
 </body>
 </html>"""
         from flask import Response
+        import json
         return Response(redirect_html, mimetype='text/html')
     
     # Non-embedded installation - regular redirect works fine
