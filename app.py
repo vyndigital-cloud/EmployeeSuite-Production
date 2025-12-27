@@ -2385,11 +2385,33 @@ DASHBOARD_HTML = """
         
         // Attach event listeners to dashboard buttons (more reliable than onclick)
         (function() {
+            // Track if listeners are already attached to prevent duplicates
+            var listenersAttached = {
+                processOrders: false,
+                updateInventory: false,
+                generateReport: false
+            };
+            
             function attachButtonListeners() {
                 // #region agent log
                 try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'attachButtonListeners called','data':{'readyState':document.readyState,'hasProcessOrders':typeof window.processOrders,'hasUpdateInventory':typeof window.updateInventory,'hasGenerateReport':typeof window.generateReport},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'A'})}).catch(()=>{});
-                } catch(e) {}
+                    var btnState = {};
+                    var processBtn = document.querySelector('.card-btn[data-action="processOrders"]');
+                    var inventoryBtn = document.querySelector('.card-btn[data-action="updateInventory"]');
+                    var reportBtn = document.querySelector('.card-btn[data-action="generateReport"]');
+                    if (processBtn) {
+                        btnState.processBtn = {
+                            disabled: processBtn.disabled,
+                            stylePointerEvents: window.getComputedStyle(processBtn).pointerEvents,
+                            styleZIndex: window.getComputedStyle(processBtn).zIndex,
+                            hasOnclick: !!processBtn.onclick,
+                            offsetParent: !!processBtn.offsetParent
+                        };
+                    }
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'attachButtonListeners called','data':{'readyState':document.readyState,'hasProcessOrders':typeof window.processOrders,'hasUpdateInventory':typeof window.updateInventory,'hasGenerateReport':typeof window.generateReport,'listenersAttached':listenersAttached,'btnState':btnState},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug-v2',hypothesisId:'A'})}).catch(()=>{});
+                } catch(e) {
+                    console.error('Debug log error:', e);
+                }
                 // #endregion
                 
                 var processBtn = document.querySelector('.card-btn[data-action="processOrders"]');
@@ -2398,108 +2420,111 @@ DASHBOARD_HTML = """
                 
                 // #region agent log
                 try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'Buttons found','data':{'processBtn':!!processBtn,'inventoryBtn':!!inventoryBtn,'reportBtn':!!reportBtn,'allButtons':document.querySelectorAll('.card-btn[data-action]').length},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'B'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'Buttons found','data':{'processBtn':!!processBtn,'inventoryBtn':!!inventoryBtn,'reportBtn':!!reportBtn,'allButtons':document.querySelectorAll('.card-btn[data-action]').length,'processBtnDisabled':processBtn?processBtn.disabled:null,'processBtnStyle':processBtn?window.getComputedStyle(processBtn).pointerEvents:null},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug-v2',hypothesisId:'B'})}).catch(()=>{});
                 } catch(e) {}
                 // #endregion
                 
-                if (processBtn && typeof window.processOrders === 'function') {
+                if (processBtn && typeof window.processOrders === 'function' && !listenersAttached.processOrders) {
                     // #region agent log
                     try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'Attaching processOrders listener','data':{'hasListener':processBtn.onclick!==null,'listenerCount':'unknown'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'C'})}).catch(()=>{});
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'Attaching processOrders listener','data':{'disabled':processBtn.disabled,'pointerEvents':window.getComputedStyle(processBtn).pointerEvents},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug-v2',hypothesisId:'C'})}).catch(()=>{});
                     } catch(e) {}
                     // #endregion
-                    // Remove any existing listeners first to prevent duplicates
-                    var newProcessBtn = processBtn.cloneNode(true);
-                    processBtn.parentNode.replaceChild(newProcessBtn, processBtn);
-                    processBtn = newProcessBtn;
                     
                     processBtn.addEventListener('click', function(e) {
                         // #region agent log
                         try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners:processOrders_click','message':'processOrders button clicked','data':{'target':e.target.tagName,'currentTarget':e.currentTarget.tagName,'defaultPrevented':e.defaultPrevented},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'D'})}).catch(()=>{});
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners:processOrders_click','message':'processOrders button clicked','data':{'target':e.target.tagName,'currentTarget':e.currentTarget.tagName,'defaultPrevented':e.defaultPrevented,'buttonDisabled':e.currentTarget.disabled},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug-v2',hypothesisId:'D'})}).catch(()=>{});
                         } catch(e) {}
                         // #endregion
                         e.preventDefault();
                         e.stopPropagation();
                         var btn = e.currentTarget || this;
+                        if (btn.disabled) {
+                            console.warn('Button is disabled, ignoring click');
+                            return;
+                        }
                         if (typeof window.processOrders === 'function') {
                             window.processOrders(btn);
                         } else {
                             console.error('processOrders function not found');
                         }
-                    });
+                    }, true); // Use capture phase
+                    listenersAttached.processOrders = true;
                 } else {
                     // #region agent log
                     try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'processOrders listener NOT attached','data':{'hasBtn':!!processBtn,'hasFunc':typeof window.processOrders,'funcType':typeof window.processOrders},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'E'})}).catch(()=>{});
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'processOrders listener NOT attached','data':{'hasBtn':!!processBtn,'hasFunc':typeof window.processOrders,'funcType':typeof window.processOrders,'alreadyAttached':listenersAttached.processOrders},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug-v2',hypothesisId:'E'})}).catch(()=>{});
                     } catch(e) {}
                     // #endregion
                 }
                 
-                if (inventoryBtn && typeof window.updateInventory === 'function') {
+                if (inventoryBtn && typeof window.updateInventory === 'function' && !listenersAttached.updateInventory) {
                     // #region agent log
                     try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'Attaching updateInventory listener','data':{},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'C'})}).catch(()=>{});
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'Attaching updateInventory listener','data':{},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug-v2',hypothesisId:'C'})}).catch(()=>{});
                     } catch(e) {}
                     // #endregion
-                    // Remove any existing listeners first to prevent duplicates
-                    var newInventoryBtn = inventoryBtn.cloneNode(true);
-                    inventoryBtn.parentNode.replaceChild(newInventoryBtn, inventoryBtn);
-                    inventoryBtn = newInventoryBtn;
                     
                     inventoryBtn.addEventListener('click', function(e) {
                         // #region agent log
                         try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners:updateInventory_click','message':'updateInventory button clicked','data':{'target':e.target.tagName,'currentTarget':e.currentTarget.tagName,'defaultPrevented':e.defaultPrevented},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'D'})}).catch(()=>{});
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners:updateInventory_click','message':'updateInventory button clicked','data':{'target':e.target.tagName,'currentTarget':e.currentTarget.tagName,'defaultPrevented':e.defaultPrevented,'buttonDisabled':e.currentTarget.disabled},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug-v2',hypothesisId:'D'})}).catch(()=>{});
                         } catch(e) {}
                         // #endregion
                         e.preventDefault();
                         e.stopPropagation();
                         var btn = e.currentTarget || this;
+                        if (btn.disabled) {
+                            console.warn('Button is disabled, ignoring click');
+                            return;
+                        }
                         if (typeof window.updateInventory === 'function') {
                             window.updateInventory(btn);
                         } else {
                             console.error('updateInventory function not found');
                         }
-                    });
+                    }, true); // Use capture phase
+                    listenersAttached.updateInventory = true;
                 } else {
                     // #region agent log
                     try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'updateInventory listener NOT attached','data':{'hasBtn':!!inventoryBtn,'hasFunc':typeof window.updateInventory,'funcType':typeof window.updateInventory},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'E'})}).catch(()=>{});
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'updateInventory listener NOT attached','data':{'hasBtn':!!inventoryBtn,'hasFunc':typeof window.updateInventory,'funcType':typeof window.updateInventory,'alreadyAttached':listenersAttached.updateInventory},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug-v2',hypothesisId:'E'})}).catch(()=>{});
                     } catch(e) {}
                     // #endregion
                 }
                 
-                if (reportBtn && typeof window.generateReport === 'function') {
+                if (reportBtn && typeof window.generateReport === 'function' && !listenersAttached.generateReport) {
                     // #region agent log
                     try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'Attaching generateReport listener','data':{},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'C'})}).catch(()=>{});
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'Attaching generateReport listener','data':{},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug-v2',hypothesisId:'C'})}).catch(()=>{});
                     } catch(e) {}
                     // #endregion
-                    // Remove any existing listeners first to prevent duplicates
-                    var newReportBtn = reportBtn.cloneNode(true);
-                    reportBtn.parentNode.replaceChild(newReportBtn, reportBtn);
-                    reportBtn = newReportBtn;
                     
                     reportBtn.addEventListener('click', function(e) {
                         // #region agent log
                         try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners:generateReport_click','message':'generateReport button clicked','data':{'target':e.target.tagName,'currentTarget':e.currentTarget.tagName,'defaultPrevented':e.defaultPrevented},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'D'})}).catch(()=>{});
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners:generateReport_click','message':'generateReport button clicked','data':{'target':e.target.tagName,'currentTarget':e.currentTarget.tagName,'defaultPrevented':e.defaultPrevented,'buttonDisabled':e.currentTarget.disabled},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug-v2',hypothesisId:'D'})}).catch(()=>{});
                         } catch(e) {}
                         // #endregion
                         e.preventDefault();
                         e.stopPropagation();
                         var btn = e.currentTarget || this;
+                        if (btn.disabled) {
+                            console.warn('Button is disabled, ignoring click');
+                            return;
+                        }
                         if (typeof window.generateReport === 'function') {
                             window.generateReport(btn);
                         } else {
                             console.error('generateReport function not found');
                         }
-                    });
+                    }, true); // Use capture phase
+                    listenersAttached.generateReport = true;
                 } else {
                     // #region agent log
                     try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'generateReport listener NOT attached','data':{'hasBtn':!!reportBtn,'hasFunc':typeof window.generateReport,'funcType':typeof window.generateReport},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'E'})}).catch(()=>{});
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:attachButtonListeners','message':'generateReport listener NOT attached','data':{'hasBtn':!!reportBtn,'hasFunc':typeof window.generateReport,'funcType':typeof window.generateReport,'alreadyAttached':listenersAttached.generateReport},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug-v2',hypothesisId:'E'})}).catch(()=>{});
                     } catch(e) {}
                     // #endregion
                 }
@@ -2513,6 +2538,7 @@ DASHBOARD_HTML = """
             }
             // Also try after a delay in case buttons load late
             setTimeout(attachButtonListeners, 500);
+            setTimeout(attachButtonListeners, 1000); // Extra retry
         })();
         
         // #region agent log - Document-level click handler to detect ANY button clicks
