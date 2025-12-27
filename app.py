@@ -285,16 +285,44 @@ def handle_all_exceptions(e):
 # Specific error handlers for common error types
 @app.errorhandler(404)
 def handle_404(e):
-    """Log 404 errors with full context"""
+    """Log 404 errors with full context - Enhanced per external feedback"""
     from flask import request
+    import logging
+    
+    # Enhanced error data with all possible context
     error_data = {
         'url': request.url,
+        'path': request.path,
+        'full_path': request.full_path,
         'method': request.method,
+        'endpoint': request.endpoint or 'unknown',
         'referer': request.headers.get('Referer'),
         'user_agent': request.headers.get('User-Agent'),
+        'remote_addr': request.remote_addr,
+        'args': dict(request.args),
+        'form_data': dict(request.form) if request.form else None,
+        'is_api_request': request.path.startswith('/api/'),
+        'is_static': request.path.startswith('/static/'),
     }
-    log_comprehensive_error('404', str(e), f"{request.endpoint or 'unknown'}:{request.method}", error_data)
-    return str(e), 404
+    
+    # Log to both comprehensive error system and standard logging
+    location = f"{request.endpoint or 'unknown'}:{request.method}"
+    log_comprehensive_error('HTTP_404', str(e), location, error_data)
+    
+    # Also log to standard logger with full details (per external feedback)
+    logger.error(f"404 error occurred: {request.method} {request.path}")
+    logger.error(f"Full URL: {request.url}")
+    logger.error(f"Referer: {request.headers.get('Referer', 'None')}")
+    logger.error(f"User-Agent: {request.headers.get('User-Agent', 'None')}")
+    logger.error(f"Requested endpoint: {request.endpoint or 'unknown'}")
+    
+    # Return appropriate response based on request type
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Not found', 'path': request.path, 'method': request.method}), 404
+    
+    # For non-API requests, let the second handler (not_found) handle HTML response
+    # This prevents duplicate handler conflicts
+    pass  # Will fall through to not_found handler
 
 @app.errorhandler(500)
 def handle_500(e):
@@ -1895,9 +1923,20 @@ DASHBOARD_HTML = """
                         return null;
                     }
                     if (!r.ok) {
+                        // Enhanced error logging per external feedback
+                        console.error('❌ API request failed:', {
+                            status: r.status,
+                            statusText: r.statusText,
+                            url: r.url,
+                            ok: r.ok
+                        });
+                        if (r.status === 404) {
+                            console.error('❌ 404 Not Found - Endpoint does not exist:', r.url);
+                            console.error('This may indicate a missing API route or incorrect URL');
+                        }
                         // #region agent log
                         try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'API error response','data':{'status':r.status,'statusText':r.statusText,'contentType':r.headers.get('content-type')||'unknown'},"timestamp":Date.now(),sessionId:'debug-session',runId:'api-error-debug',hypothesisId:'A'})}).catch(()=>{});
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'API error response','data':{'status':r.status,'statusText':r.statusText,'url':r.url,'contentType':r.headers.get('content-type')||'unknown'},"timestamp":Date.now(),sessionId:'debug-session',runId:'api-error-debug',hypothesisId:'A'})}).catch(()=>{});
                         } catch(e) {}
                         // #endregion
                         // Try to parse JSON, but handle non-JSON responses
@@ -1974,6 +2013,12 @@ DASHBOARD_HTML = """
                     }
                 })
                 .catch(err => {
+                    // Enhanced error handling per external feedback
+                    console.error('❌ Fetch operation error:', {
+                        message: err.message,
+                        name: err.name,
+                        stack: err.stack ? err.stack.substring(0, 300) : 'no stack'
+                    });
                     // #region agent log
                     try {
                         fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Fetch catch error','data':{'error':err.message||'unknown','errorName':err.name||'unknown','stack':err.stack?err.stack.substring(0,200):'no stack'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
@@ -4288,21 +4333,13 @@ def api_generate_report():
         logger.error(f"Error generating report for user {user_id}: {str(e)}", exc_info=True)
         return jsonify({"success": False, "error": f"Failed to generate report: {str(e)}"}), 500
 
+# Note: This is a duplicate 404 handler - the main one is at line 286
+# Keeping for backward compatibility but routing to main handler
 @app.errorhandler(404)
 def not_found(error):
-    """404 error handler - professional error page"""
-    # #region agent log
-    try:
-        import json
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"K","location":"app.py:3158","message":"404 error handler called","data":{"path":request.path,"endpoint":request.endpoint,"method":request.method,"url":request.url},"timestamp":int(__import__('time').time()*1000)})+'\n')
-    except: pass
-    # #endregion
-    log_security_event('404_error', f"Path: {request.path}", 'INFO')
-    
-    # Return JSON for API requests, HTML for browser requests
-    if request.path.startswith('/api/'):
-        return jsonify({'error': 'Not found'}), 404
+    """404 error handler - professional error page (duplicate, routes to main handler)"""
+    # Route to main 404 handler which has enhanced logging
+    return handle_404(error)
     
     error_html = """
     <!DOCTYPE html>
