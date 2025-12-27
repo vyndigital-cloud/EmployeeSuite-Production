@@ -272,16 +272,23 @@ def handle_all_exceptions(e):
     exc_info = sys.exc_info()
     log_comprehensive_error(error_type, error_message, error_location, error_data, exc_info)
     
-    # Return appropriate response
+    # Return appropriate response using standardized error format
     if request.path.startswith('/api/'):
-        return jsonify({
-            'success': False,
-            'error': error_message,
-            'error_type': error_type,
-            'location': error_location
-        }), 500
+        from error_responses import server_error
+        return server_error(
+            message="An unexpected error occurred",
+            details={
+                'error_type': error_type,
+                'location': error_location
+            }
+        )
     else:
-        return f"<h1>Error: {error_message}</h1><pre>{traceback.format_exc()}</pre>", 500
+        # For non-API requests, return user-friendly HTML error
+        # Don't expose stack trace in production
+        if os.getenv('ENVIRONMENT') == 'production':
+            return f"<h1>Error</h1><p>An error occurred. Please try again or contact support.</p>", 500
+        else:
+            return f"<h1>Error: {error_message}</h1><pre>{traceback.format_exc()}</pre>", 500
 
 # Specific error handlers for common error types
 @app.errorhandler(404)
@@ -3902,27 +3909,32 @@ def api_process_orders():
         logger.error('=== PROCESS ORDERS REQUEST FAILED: Memory Error ===')
         return jsonify({"error": "Memory error - please try again", "success": False}), 500
     except SystemExit:
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:api_process_orders:SystemExit","message":"SystemExit exception","data":{"user_id":user_id},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
+        # Conditional debug logging
+        from debug_utils import debug_log
+        debug_log(
+            location="app.py:api_process_orders:SystemExit",
+            message="SystemExit exception",
+            data={"user_id": user_id},
+            hypothesis_id="E"
+        )
         # Re-raise system exits (like from sys.exit())
         logger.error('=== PROCESS ORDERS REQUEST FAILED: SystemExit ===')
         raise
     except BaseException as e:
-        # #region agent log
-        try:
-            import json
-            import time
-            import traceback
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:api_process_orders:BaseException","message":"BaseException caught","data":{"user_id":user_id,"error_type":type(e).__name__,"error":str(e)[:200],"stack_preview":traceback.format_exc()[:500]},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
+        # Conditional debug logging
+        from debug_utils import debug_log
+        import traceback
+        debug_log(
+            location="app.py:api_process_orders:BaseException",
+            message="BaseException caught",
+            data={
+                "user_id": user_id,
+                "error_type": type(e).__name__,
+                "error": str(e)[:200],
+                "stack_preview": traceback.format_exc()[:500]
+            },
+            hypothesis_id="E"
+        )
         # Catch all other exceptions including segmentation faults precursors
         logger.error(f"Critical error processing orders for user {user_id}: {type(e).__name__}: {str(e)}", exc_info=True)
         logger.error(f"Error type: {type(e).__name__}")
