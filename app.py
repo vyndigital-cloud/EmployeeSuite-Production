@@ -628,6 +628,7 @@ DASHBOARD_HTML = """
     <!-- CRITICAL: App Bridge MUST be the first script tag (Shopify requirement) -->
     <!-- Do NOT use async, defer, or type=module -->
     {% if host %}
+    <meta name="shopify-api-key" content="{{ SHOPIFY_API_KEY or '' }}" />
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     {% endif %}
     <!-- Critical: Prevent any blocking - render immediately -->
@@ -1190,14 +1191,14 @@ DASHBOARD_HTML = """
                     showAppBridgeError('Network Error: Unable to load App Bridge script. Please check your internet connection.');
                 });
                 
-                // Poll for window['app-bridge'] availability
+                // Poll for both new API (window.shopify) and old API (window['app-bridge']) availability
                 var checkInterval = setInterval(function() {
                     checkCount++;
-                    if (window['app-bridge']) {
+                    if (window.shopify || window['app-bridge']) {
                         clearInterval(checkInterval);
                         // #region agent log
                         try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:AppBridge:found_via_poll','message':'App Bridge found via polling','data':{'check_count':checkCount,'elapsed_ms':checkCount*50},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:AppBridge:found_via_poll','message':'App Bridge found via polling','data':{'check_count':checkCount,'elapsed_ms':checkCount*50,'has_shopify':!!window.shopify,'has_app_bridge':!!window['app-bridge']},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
                         } catch(e) {}
                         // #endregion
                         initAppBridge();
@@ -1205,7 +1206,7 @@ DASHBOARD_HTML = """
                         clearInterval(checkInterval);
                         // #region agent log
                         try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:AppBridge:timeout','message':'App Bridge script failed to load','data':{'has_app_bridge':!!window['app-bridge'],'check_count':checkCount,'script_exists':!!appBridgeScript,'script_loaded':appBridgeScript ? (appBridgeScript.readyState || 'unknown') : 'no_script','user_agent':navigator.userAgent.substring(0,50)},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:AppBridge:timeout','message':'App Bridge script failed to load','data':{'has_shopify':!!window.shopify,'has_app_bridge':!!window['app-bridge'],'check_count':checkCount,'script_exists':!!appBridgeScript,'script_loaded':appBridgeScript ? (appBridgeScript.readyState || 'unknown') : 'no_script','user_agent':navigator.userAgent.substring(0,50)},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
                         } catch(e) {}
                         // #endregion
                         console.error('❌ App Bridge script failed to load');
