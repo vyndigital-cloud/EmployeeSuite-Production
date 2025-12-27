@@ -325,7 +325,45 @@ class ShopifyClient:
                     # #endregion
                     return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
                 response.raise_for_status()
-                return response.json()
+                
+                # CRITICAL: Parse JSON response and check for GraphQL errors
+                # GraphQL can return 200 status even when there are errors in the response
+                try:
+                    response_json = response.json()
+                    logger.info(f"GraphQL response received: {list(response_json.keys())}")
+                    
+                    # Check for GraphQL errors in the response
+                    if 'errors' in response_json:
+                        errors = response_json['errors']
+                        logger.error(f"GraphQL errors in response: {errors}")
+                        # Extract error message(s)
+                        if isinstance(errors, list) and len(errors) > 0:
+                            error_msg = errors[0].get('message', str(errors[0])) if isinstance(errors[0], dict) else str(errors[0])
+                        else:
+                            error_msg = str(errors)
+                        return {"error": f"GraphQL error: {error_msg}", "graphql_errors": errors}
+                    
+                    # Check if data is present
+                    if 'data' not in response_json:
+                        logger.warning(f"GraphQL response missing 'data' field: {response_json}")
+                        return {"error": "GraphQL response missing data field", "response": response_json}
+                    
+                    # Log successful response structure for debugging
+                    logger.debug(f"GraphQL response structure: data keys = {list(response_json.get('data', {}).keys())}")
+                    
+                    return response_json
+                except ValueError as json_error:
+                    # Failed to parse JSON
+                    logger.error(f"Failed to parse GraphQL response as JSON: {json_error}")
+                    logger.error(f"Response status: {response.status_code}")
+                    logger.error(f"Response text (first 500 chars): {response.text[:500]}")
+                    return {"error": f"Failed to parse GraphQL response: {str(json_error)}"}
+                except Exception as parse_error:
+                    # Any other parsing error
+                    logger.error(f"Unexpected error parsing GraphQL response: {parse_error}")
+                    logger.error(f"Response status: {response.status_code}")
+                    logger.error(f"Response text (first 500 chars): {response.text[:500]}")
+                    return {"error": f"Error parsing GraphQL response: {str(parse_error)}"}
             except requests.exceptions.Timeout:
                 if attempt < retries - 1:
                     # Faster retries - max 0.5s delay
