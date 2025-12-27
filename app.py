@@ -1460,7 +1460,12 @@ DASHBOARD_HTML = """
         // COMPREHENSIVE JAVASCRIPT ERROR LOGGING - Capture EVERY error crumb
         // ============================================================================
         
+        // CRITICAL: Store original console.error BEFORE intercepting it
+        // This prevents infinite recursion when logJavaScriptError uses console.error
+        var originalConsoleError = console.error;
+        
         // Function to log JavaScript errors to backend
+        // Uses originalConsoleError to prevent infinite recursion
         function logJavaScriptError(errorType, errorMessage, errorLocation, errorData, stackTrace) {
             try {
                 var errorLog = {
@@ -1487,20 +1492,20 @@ DASHBOARD_HTML = """
                     body: JSON.stringify(errorLog),
                     credentials: 'include'
                 }).catch(function(err) {
-                    // If logging fails, at least log to console
-                    console.error('Failed to log error to backend:', err);
-                    console.error('Original error:', errorLog);
+                    // Use originalConsoleError to prevent recursion
+                    originalConsoleError('Failed to log error to backend:', err);
+                    originalConsoleError('Original error:', errorLog);
                 });
                 
-                // Also log to console for immediate visibility
-                console.error('[ERROR LOGGED]', errorType, ':', errorMessage);
-                console.error('Location:', errorLocation);
-                console.error('Stack:', stackTrace);
-                if (errorData) console.error('Data:', errorData);
+                // Log to console using originalConsoleError to prevent recursion
+                originalConsoleError('[ERROR LOGGED]', errorType, ':', errorMessage);
+                originalConsoleError('Location:', errorLocation);
+                originalConsoleError('Stack:', stackTrace);
+                if (errorData) originalConsoleError('Data:', errorData);
             } catch (e) {
-                // Last resort - log to console
-                console.error('Error logging system failed:', e);
-                console.error('Original error:', errorMessage);
+                // Last resort - use originalConsoleError to prevent recursion
+                originalConsoleError('Error logging system failed:', e);
+                originalConsoleError('Original error:', errorMessage);
             }
         }
         
@@ -1525,8 +1530,9 @@ DASHBOARD_HTML = """
             var errorMessage = error ? (error.message || error.toString() || 'Unhandled promise rejection') : 'Unknown promise rejection';
             var stackTrace = error && error.stack ? error.stack : 'No stack trace';
             
-            console.error('❌ Unhandled promise rejection:', error);
-            console.error('This may cause the application to freeze. Error:', errorMessage);
+            // Use originalConsoleError to prevent recursion
+            originalConsoleError('❌ Unhandled promise rejection:', error);
+            originalConsoleError('This may cause the application to freeze. Error:', errorMessage);
             
             logJavaScriptError(
                 'UnhandledPromiseRejection',
@@ -1549,15 +1555,17 @@ DASHBOARD_HTML = """
                     outputEl.innerHTML = '<div style="padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;"><div style="font-size: 15px; font-weight: 600; color: #d72c0d; margin-bottom: 8px;">⚠️ An error occurred</div><div style="font-size: 14px; color: #6d7175;">Please refresh the page and try again.</div></div>';
                 }
             } catch(e) {
-                // If showing error fails, at least log it
-                console.error('Failed to show error message:', e);
+                // If showing error fails, use originalConsoleError to prevent recursion
+                originalConsoleError('Failed to show error message:', e);
             }
         });
         
         // Console error interceptor (catches console.error calls)
-        var originalConsoleError = console.error;
+        // CRITICAL: originalConsoleError is already defined above to prevent recursion
         console.error = function() {
             var args = Array.prototype.slice.call(arguments);
+            
+            // Build error message from arguments
             var errorMessage = args.map(function(arg) {
                 if (typeof arg === 'object') {
                     try {
@@ -1569,6 +1577,16 @@ DASHBOARD_HTML = """
                 return String(arg);
             }).join(' ');
             
+            // Skip logging if this is from our own error logging system (prevents recursion)
+            if (errorMessage.includes('[ERROR LOGGED]') || 
+                errorMessage.includes('Failed to log error to backend') ||
+                errorMessage.includes('Error logging system failed')) {
+                // This is our own logging, just call original and return
+                originalConsoleError.apply(console, args);
+                return;
+            }
+            
+            // Log the error (logJavaScriptError uses originalConsoleError, so no recursion)
             logJavaScriptError(
                 'ConsoleError',
                 errorMessage,
