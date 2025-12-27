@@ -4073,20 +4073,22 @@ def api_generate_report():
                 logger.info(f'Result message: {data.get("message")[:100]}...' if len(str(data.get("message", ""))) > 100 else f'Result message: {data.get("message")}')
         
         if data.get('error') and data['error'] is not None:
-            error_msg = data['error']
-            logger.warning(f'Step 5d ERROR: Report generation returned error: {error_msg[:200]}')
-            if 'No Shopify store connected' in error_msg:
+            error_html = data['error']
+            logger.warning(f'Step 5d ERROR: Report generation returned error')
+            if 'No Shopify store connected' in error_html:
                 logger.info(f'Generate report: No store connected for user {user_id}')
             else:
-                logger.error(f'Generate report error for user {user_id}: {error_msg}')
+                logger.error(f'Generate report error for user {user_id}')
             logger.error('=== GENERATE REPORT REQUEST FAILED: Report Error ===')
-            return error_msg, 500
+            # Return HTML directly with 200 status so frontend can render it
+            return error_html, 200, {'Content-Type': 'text/html'}
         
         if not data.get('message'):
             logger.warning(f'Step 5d WARNING: No message in report data')
             logger.warning(f'Generate report returned no message for user {user_id}')
             logger.error('=== GENERATE REPORT REQUEST FAILED: No Data ===')
-            return '<h3 class="error">❌ No report data available</h3>', 500
+            # Return HTML directly with 200 status so frontend can render it
+            return '<h3 class="error">❌ No report data available</h3>', 200, {'Content-Type': 'text/html'}
         
         html = data.get('message', '<h3 class="error">❌ No report data available</h3>')
         logger.info(f'Step 5d: Report HTML generated, length: {len(html)} characters')
