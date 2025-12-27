@@ -50,7 +50,7 @@ from logging_config import logger
 billing_bp = Blueprint('billing', __name__)
 
 # Shopify Billing API configuration
-SHOPIFY_API_VERSION = '2024-10'
+SHOPIFY_API_VERSION = '2025-10'
 APP_URL = os.getenv('SHOPIFY_APP_URL', 'https://employeesuite-production.onrender.com')
 
 SUBSCRIBE_HTML = '''

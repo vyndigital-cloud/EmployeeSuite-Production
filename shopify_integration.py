@@ -6,7 +6,7 @@ class ShopifyClient:
     def __init__(self, shop_url, access_token):
         self.shop_url = shop_url.replace('https://', '').replace('http://', '')
         self.access_token = access_token
-        self.api_version = "2024-10"  # Match app.json API version
+        self.api_version = "2025-10"  # Match app.json API version
         
     def _get_headers(self):
         return {

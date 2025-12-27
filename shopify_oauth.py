@@ -636,7 +636,7 @@ def exchange_code_for_token(shop, code):
 
 def get_shop_info(shop, access_token):
     """Get shop information including shop_id"""
-    url = f"https://{shop}/admin/api/2024-10/shop.json"
+    url = f"https://{shop}/admin/api/2025-10/shop.json"
     headers = {
         'X-Shopify-Access-Token': access_token,
         'Content-Type': 'application/json'
@@ -658,7 +658,7 @@ def register_compliance_webhooks(shop, access_token):
     This ensures webhooks are registered even if shopify.app.toml isn't deployed via CLI
     """
     app_url = os.getenv('SHOPIFY_APP_URL', 'https://employeesuite-production.onrender.com')
-    api_version = "2024-10"
+    api_version = "2025-10"
     
     # Mandatory compliance webhooks
     webhooks = [
