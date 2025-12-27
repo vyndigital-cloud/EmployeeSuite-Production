@@ -1848,7 +1848,7 @@ DASHBOARD_HTML = """
                 
                 function getTokenWithRetry() {
                     // Debug logging removed for performance
-                    return window.shopifyApp.getSessionToken().then(function(token) {
+                    return (typeof shopify !== 'undefined' && typeof shopify.idToken === 'function') ? shopify.idToken() : (window.shopifyApp && typeof window.shopifyApp.getSessionToken === 'function' ? window.shopifyApp.getSessionToken() : Promise.reject(new Error('App Bridge not initialized'))).then(function(token) {
                         if (!token && retryCount < maxRetries) {
                             retryCount++;
                             return new Promise(function(resolve, reject) {
@@ -2140,7 +2140,7 @@ DASHBOARD_HTML = """
                 var maxRetries = 2; // Optimized: reduced from 3
                 
                 function getTokenWithRetry() {
-                    return window.shopifyApp.getSessionToken().then(function(token) {
+                    return (typeof shopify !== 'undefined' && typeof shopify.idToken === 'function') ? shopify.idToken() : (window.shopifyApp && typeof window.shopifyApp.getSessionToken === 'function' ? window.shopifyApp.getSessionToken() : Promise.reject(new Error('App Bridge not initialized'))).then(function(token) {
                         if (!token && retryCount < maxRetries) {
                             retryCount++;
                             return new Promise(function(resolve, reject) {
@@ -2393,7 +2393,7 @@ DASHBOARD_HTML = """
                 var maxRetries = 2; // Optimized: reduced from 3
                 
                 function getTokenWithRetry() {
-                    return window.shopifyApp.getSessionToken().then(function(token) {
+                    return (typeof shopify !== 'undefined' && typeof shopify.idToken === 'function') ? shopify.idToken() : (window.shopifyApp && typeof window.shopifyApp.getSessionToken === 'function' ? window.shopifyApp.getSessionToken() : Promise.reject(new Error('App Bridge not initialized'))).then(function(token) {
                         if (!token && retryCount < maxRetries) {
                             retryCount++;
                             return new Promise(function(resolve, reject) {
