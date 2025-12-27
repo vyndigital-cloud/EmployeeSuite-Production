@@ -482,7 +482,7 @@ class ShopifyClient:
                                         inventoryLevels(first: 1) {
                                             edges {
                                                 node {
-                                                    quantityAvailable
+                                                    available
                                                 }
                                             }
                                         }
@@ -574,7 +574,7 @@ class ShopifyClient:
                             price = f"${price_value}" if price_value != '0' else 'N/A'
                             
                             # Get inventory quantity from GraphQL structure
-                            # CRITICAL: Use quantityAvailable (not 'available') - Shopify Admin API 2024-10+
+                            # CRITICAL: Use 'available' field (Shopify changed from quantityAvailable to available)
                             stock = 0
                             inventory_item = variant.get("inventoryItem")
                             if inventory_item and isinstance(inventory_item, dict):
@@ -584,7 +584,7 @@ class ShopifyClient:
                                     if edges and len(edges) > 0:
                                         node = edges[0].get("node", {})
                                         if node and isinstance(node, dict):
-                                            stock = node.get("quantityAvailable", 0) or 0
+                                            stock = node.get("available", 0) or 0
                             
                             inventory.append({
                                 'product': product_title,
