@@ -2112,7 +2112,17 @@ DASHBOARD_HTML = """
             } // Close processOrders function
         
         // Ensure function is in global scope
+        // #region agent log - HYPOTHESIS A: Function assignment timing
+        try {
+            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:window.processOrders','message':'Assigning processOrders to window','data':{'functionType':typeof processOrders,'beforeAssignment':typeof window.processOrders,'documentReadyState':document.readyState},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'A'})}).catch(()=>{});
+        } catch(e) {}
+        // #endregion
         window.processOrders = processOrders;
+        // #region agent log - HYPOTHESIS A: After assignment verification
+        try {
+            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:window.processOrders','message':'After processOrders assignment','data':{'afterAssignment':typeof window.processOrders,'isFunction':typeof window.processOrders === 'function'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'A'})}).catch(()=>{});
+        } catch(e) {}
+        // #endregion
         
         function updateInventory(button) {
             // #region agent log
@@ -2433,7 +2443,17 @@ DASHBOARD_HTML = """
         }
         
         // Ensure function is in global scope
+        // #region agent log - HYPOTHESIS A: Function assignment timing
+        try {
+            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:window.updateInventory','message':'Assigning updateInventory to window','data':{'functionType':typeof updateInventory,'beforeAssignment':typeof window.updateInventory,'documentReadyState':document.readyState},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'A'})}).catch(()=>{});
+        } catch(e) {}
+        // #endregion
         window.updateInventory = updateInventory;
+        // #region agent log - HYPOTHESIS A: After assignment verification
+        try {
+            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:window.updateInventory','message':'After updateInventory assignment','data':{'afterAssignment':typeof window.updateInventory,'isFunction':typeof window.updateInventory === 'function'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'A'})}).catch(()=>{});
+        } catch(e) {}
+        // #endregion
         
         function generateReport(button) {
             // #region agent log
@@ -2726,7 +2746,17 @@ DASHBOARD_HTML = """
         }
         
         // Ensure function is in global scope
+        // #region agent log - HYPOTHESIS A: Function assignment timing
+        try {
+            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:window.generateReport','message':'Assigning generateReport to window','data':{'functionType':typeof generateReport,'beforeAssignment':typeof window.generateReport,'documentReadyState':document.readyState},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'A'})}).catch(()=>{});
+        } catch(e) {}
+        // #endregion
         window.generateReport = generateReport;
+        // #region agent log - HYPOTHESIS A: After assignment verification
+        try {
+            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:window.generateReport','message':'After generateReport assignment','data':{'afterAssignment':typeof window.generateReport,'isFunction':typeof window.generateReport === 'function'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'A'})}).catch(()=>{});
+        } catch(e) {}
+        // #endregion
         
         // ============================================================================
         // FUNCTION AVAILABILITY VERIFICATION (Per External Feedback)
@@ -2889,15 +2919,31 @@ DASHBOARD_HTML = """
             var buttonsFound = document.querySelectorAll('.card-btn[data-action]').length;
             console.log('✅ Buttons found:', buttonsFound);
             
-            // #region agent log
+            // #region agent log - HYPOTHESIS B: Button detection
             try {
-                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:DOMContentLoaded','message':'DOMContentLoaded fired - setting up event delegation','data':{'readyState':document.readyState,'hasProcessOrders':typeof window.processOrders,'hasUpdateInventory':typeof window.updateInventory,'hasGenerateReport':typeof window.generateReport,'buttonsFound':buttonsFound,'appBridgeReady':typeof window.appBridgeReady !== 'undefined' ? window.appBridgeReady : 'undefined'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-external-feedback',hypothesisId:'DOM_READY'})}).catch(()=>{});
+                var buttonDetails = Array.from(document.querySelectorAll('.card-btn[data-action]')).map(function(btn, idx) {
+                    return {
+                        index: idx,
+                        action: btn.getAttribute('data-action'),
+                        className: btn.className,
+                        id: btn.id || 'no-id',
+                        disabled: btn.disabled,
+                        visible: btn.offsetParent !== null
+                    };
+                });
+                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:DOMContentLoaded','message':'DOMContentLoaded fired - setting up event delegation','data':{'readyState':document.readyState,'hasProcessOrders':typeof window.processOrders,'hasUpdateInventory':typeof window.updateInventory,'hasGenerateReport':typeof window.generateReport,'buttonsFound':buttonsFound,'buttonDetails':buttonDetails,'appBridgeReady':typeof window.appBridgeReady !== 'undefined' ? window.appBridgeReady : 'undefined'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'B'})}).catch(()=>{});
             } catch(e) {}
             // #endregion
             
             // CRITICAL: Add EARLY click listener to catch ALL clicks before anything else
             // This will help us see if clicks are being intercepted
             document.addEventListener('click', function(e) {
+                // #region agent log - HYPOTHESIS C: Early click detection
+                try {
+                    var closestBtn = e.target.closest('.card-btn[data-action]');
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:earlyClick','message':'EARLY CLICK DETECTED','data':{'target':e.target.tagName,'targetClass':e.target.className,'targetId':e.target.id || 'no-id','isButton':e.target.tagName === 'BUTTON','hasDataAction':e.target.hasAttribute('data-action'),'closestButtonFound':!!closestBtn,'closestButtonAction':closestBtn ? closestBtn.getAttribute('data-action') : null,'eventPhase':e.eventPhase === 1 ? 'CAPTURE' : e.eventPhase === 2 ? 'TARGET' : 'BUBBLE','defaultPrevented':e.defaultPrevented},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'C'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
                 console.log('🔍 EARLY CLICK DETECTED:', {
                     target: e.target.tagName,
                     targetClass: e.target.className,
@@ -3003,13 +3049,28 @@ DASHBOARD_HTML = """
                 
                 // Route to appropriate function based on data-action (per external feedback)
                 // Enhanced error handling to prevent application freezing
+                // #region agent log - HYPOTHESIS D: Function lookup before call
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:beforeCall','message':'Before function call','data':{'action':action,'windowActionExists':typeof window[action],'windowActionIsFunction':typeof window[action] === 'function','windowActionValue':window[action] ? 'exists' : 'undefined'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'D'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
                 if (window[action] && typeof window[action] === 'function') {
                     try {
                         console.log('✅ Calling function:', action);
+                        // #region agent log - HYPOTHESIS D: Function execution start
+                        try {
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:functionCall','message':'Function execution START','data':{'action':action,'buttonId':btn.id || 'no-id','buttonClass':btn.className},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'D'})}).catch(()=>{});
+                        } catch(e) {}
+                        // #endregion
                         // ENHANCED LOGGING: Capture state immediately after function call
                         var beforeCallTime = Date.now();
                         window[action](btn); // Call the corresponding function
                         var afterCallTime = Date.now();
+                        // #region agent log - HYPOTHESIS D: Function execution success
+                        try {
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:functionCall','message':'Function execution SUCCESS','data':{'action':action,'executionTime':(afterCallTime - beforeCallTime),'buttonDisabled':btn.disabled},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'D'})}).catch(()=>{});
+                        } catch(e) {}
+                        // #endregion
                         console.log('✅ Function called successfully:', action, 'Execution time:', (afterCallTime - beforeCallTime) + 'ms');
                         console.log('🔍 State after function call:', {
                             action: action,
@@ -3017,6 +3078,11 @@ DASHBOARD_HTML = """
                             outputElement: document.getElementById('output') ? 'exists' : 'missing'
                         });
                     } catch(err) {
+                        // #region agent log - HYPOTHESIS D: Function execution error
+                        try {
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:functionCall','message':'Function execution ERROR','data':{'action':action,'errorName':err.name,'errorMessage':err.message,'errorStack':err.stack ? err.stack.substring(0,200) : 'no stack'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'D'})}).catch(()=>{});
+                        } catch(e) {}
+                        // #endregion
                         // Catch synchronous errors to prevent freezing
                         console.error('❌ Error executing function:', action, err);
                         console.error('Error details:', {
