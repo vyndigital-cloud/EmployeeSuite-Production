@@ -1896,22 +1896,22 @@ DASHBOARD_HTML = """
                     throw err; // Stop execution
                 });
                 } // Close if (isEmbedded && ...) block
-                } else {
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Not embedded - using cookie auth','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
-                    // Not embedded - use regular fetch (Flask-Login handles auth)
-                    // CRITICAL: Include credentials (cookies) for standalone access
-                    fetchPromise = fetch('/api/process_orders', {
-                        signal: controller.signal,
-                        credentials: 'include'
-                    });
-                }
-                
-                // Execute the Promise chain
-                fetchPromise
+            } else {
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Not embedded - using cookie auth','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
+                // Not embedded - use regular fetch (Flask-Login handles auth)
+                // CRITICAL: Include credentials (cookies) for standalone access
+                fetchPromise = fetch('/api/process_orders', {
+                    signal: controller.signal,
+                    credentials: 'include'
+                });
+            }
+
+            // Execute the Promise chain
+            fetchPromise
                 .then(r => {
                     // #region agent log
                     try {
@@ -2812,7 +2812,7 @@ DASHBOARD_HTML = """
                 if (window[action] && typeof window[action] === 'function') {
                     window[action](btn); // Call the corresponding function
                     console.log('✅ Function called successfully:', action);
-                } else {
+            } else {
                     console.error('Function not found for action:', action); // Log error for missing function (per external feedback)
                     console.error('Available functions:', {
                         processOrders: typeof window.processOrders,
@@ -2961,6 +2961,13 @@ DASHBOARD_HTML = """
 </body>
 </html>
 """
+
+@app.route('/favicon.ico')
+def favicon():
+    """Handle favicon requests - return 204 No Content to prevent 404/500 errors"""
+    from flask import Response
+    # Return 204 No Content - browser will stop requesting favicon
+    return Response(status=204)
 
 @app.route('/')
 def home():
