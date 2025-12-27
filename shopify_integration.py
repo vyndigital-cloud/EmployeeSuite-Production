@@ -482,7 +482,10 @@ class ShopifyClient:
                                         inventoryLevels(first: 1) {
                                             edges {
                                                 node {
-                                                    available
+                                                    quantities(names: ["available"]) {
+                                                        name
+                                                        quantity
+                                                    }
                                                 }
                                             }
                                         }
@@ -574,7 +577,8 @@ class ShopifyClient:
                             price = f"${price_value}" if price_value != '0' else 'N/A'
                             
                             # Get inventory quantity from GraphQL structure
-                            # CRITICAL: Use 'available' field (Shopify changed from quantityAvailable to available)
+                            # CRITICAL: Shopify changed to quantities array structure
+                            # quantities(names: ["available"]) returns array with {name, quantity}
                             stock = 0
                             inventory_item = variant.get("inventoryItem")
                             if inventory_item and isinstance(inventory_item, dict):
@@ -584,7 +588,14 @@ class ShopifyClient:
                                     if edges and len(edges) > 0:
                                         node = edges[0].get("node", {})
                                         if node and isinstance(node, dict):
-                                            stock = node.get("available", 0) or 0
+                                            # Parse quantities array: [{"name": "available", "quantity": 10}]
+                                            quantities = node.get("quantities", [])
+                                            if quantities and isinstance(quantities, list):
+                                                # Find the "available" quantity
+                                                for q in quantities:
+                                                    if isinstance(q, dict) and q.get("name") == "available":
+                                                        stock = q.get("quantity", 0) or 0
+                                                        break
                             
                             inventory.append({
                                 'product': product_title,

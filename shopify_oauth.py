@@ -601,6 +601,9 @@ def exchange_code_for_token(shop, code):
                         logger.error(f"⚠️ SCOPE MISMATCH: Requested {SCOPES} but got {granted_scopes}")
                         if missing:
                             logger.error(f"⚠️ MISSING SCOPES: {missing}")
+                            logger.error(f"❌ CRITICAL: Missing scopes will cause 403 errors on API calls!")
+                            logger.error(f"❌ ACTION REQUIRED: Go to Shopify Partners Dashboard → Your App → API permissions")
+                            logger.error(f"❌ Ensure these scopes are CHECKED: {', '.join(missing)}")
                         if extra:
                             logger.warning(f"⚠️ EXTRA SCOPES: {extra}")
                     else:

@@ -1464,6 +1464,33 @@ DASHBOARD_HTML = """
         // This prevents infinite recursion when logJavaScriptError uses console.error
         var originalConsoleError = console.error;
         
+        // ============================================================================
+        // METAMASK SAFEGUARD - Prevent accidental MetaMask connection attempts
+        // ============================================================================
+        // This app does NOT use MetaMask or crypto wallets. If window.ethereum exists
+        // (from browser extension), prevent any automatic connection attempts.
+        if (typeof window !== 'undefined' && window.ethereum) {
+            // Wrap ethereum.request to prevent unhandled promise rejections
+            var originalEthereumRequest = window.ethereum.request;
+            window.ethereum.request = function(args) {
+                // Silently ignore MetaMask connection attempts - this is a Shopify app
+                if (args && args.method === 'eth_requestAccounts') {
+                    return Promise.reject(new Error('MetaMask not used in this app')).catch(function() {
+                        // Silently handle rejection - don't log to console
+                    });
+                }
+                // Allow other ethereum requests (if any) but wrap in try-catch
+                try {
+                    return originalEthereumRequest.apply(window.ethereum, arguments).catch(function(err) {
+                        // Silently handle MetaMask errors - they're from browser extension, not our app
+                        return Promise.reject(err);
+                    });
+                } catch (e) {
+                    return Promise.reject(e);
+                }
+            };
+        }
+        
         // Function to log JavaScript errors to backend
         // Uses originalConsoleError to prevent infinite recursion
         function logJavaScriptError(errorType, errorMessage, errorLocation, errorData, stackTrace) {
