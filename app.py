@@ -1003,204 +1003,80 @@ DASHBOARD_HTML = """
             
             var script = document.createElement('script');
             script.src = 'https://cdn.shopify.com/shopifycloud/app-bridge.js';
-            script.async = true; // Load asynchronously for better performance
-            script.crossOrigin = 'anonymous'; // CORS for CDN
+            // Note: Not using async to ensure proper Safari compatibility
             
-            // Initialize immediately when loaded
+            // Safari-compatible App Bridge initialization
+            // Safari doesn't immediately expose CDN script globals in onload callback
+            // The 100ms timeout lets Safari's JS engine finish making the objects available
             script.onload = function() {
                 console.log('✅ App Bridge script loaded successfully');
-                // #region agent log - App Bridge script loaded
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:scriptOnload','message':'App Bridge script loaded','data':{'hasHost':!!host,'hasShop':!!shop,'scriptSrc':script.src},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'A'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
-                try {
-                    // Wait for App Bridge to be available (increased timeout for slower networks)
-                    var attempts = 0;
-                    var maxAttempts = 30; // 30 * 50ms = 1.5 seconds max (optimized)
-                    
-                    function init() {
-                        attempts++;
-                        if (attempts % 10 === 0) {
-                            console.log('🔄 App Bridge init attempt', attempts, 'of', maxAttempts);
-                        }
-                        
-                        // Check multiple possible global names for App Bridge
-                        var AppBridge = window['app-bridge'] || window['ShopifyAppBridge'] || window.appBridge;
-                        // #region agent log - App Bridge object check
-                        try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:init','message':'Checking App Bridge object','data':{'attempt':attempts,'hasAppBridge':typeof AppBridge !== 'undefined','appBridgeType':typeof AppBridge,'hasAppBridgeKey':typeof window['app-bridge'] !== 'undefined','hasShopifyAppBridge':typeof window['ShopifyAppBridge'] !== 'undefined','hasAppBridge':typeof window.appBridge !== 'undefined'},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'B'})}).catch(()=>{});
-                        } catch(e) {}
-                        // #endregion
-                        
-                        if (typeof AppBridge === 'undefined' || !AppBridge) {
-                            if (attempts < maxAttempts) {
-                                setTimeout(init, 50); // Optimized: reduced from 100ms
-                                return;
-                            }
-                            console.error('❌ App Bridge not available after timeout');
-                            console.error('Checked: window["app-bridge"], window["ShopifyAppBridge"], window.appBridge');
-                            console.error('Script loaded:', script.src);
-                            console.error('Script onload fired:', true);
-                            var relevantKeys = Object.keys(window).filter(function(k) {
-                                return k.toLowerCase().includes('app') || 
-                                       k.toLowerCase().includes('bridge') || 
-                                       k.toLowerCase().includes('shopify');
-                            });
-                            console.error('Available window properties:', relevantKeys);
-                            window.shopifyApp = null;
-                            window.appBridgeReady = true;
-                            showAppBridgeError('App Bridge script loaded but object not found. This may be a CDN issue. Please refresh the page or contact support.');
-                            return;
-                        }
-                        
-                        console.log('✅ App Bridge object found:', typeof AppBridge);
-                        // #region agent log - App Bridge object found
-                        try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:objectFound','message':'App Bridge object found','data':{'appBridgeType':typeof AppBridge,'hasDefault':typeof AppBridge.default !== 'undefined','hasCreate':typeof AppBridge.create !== 'undefined'},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'C'})}).catch(()=>{});
-                        } catch(e) {}
-                        // #endregion
-                        
-                        try {
-                            // App Bridge v3 uses .default, older versions might use .create
-                            var createApp = AppBridge.default || AppBridge.create || AppBridge;
-                            // #region agent log - createApp check
-                            try {
-                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:createAppCheck','message':'Checking createApp','data':{'createAppType':typeof createApp,'isFunction':typeof createApp === 'function','hasDefault':typeof AppBridge.default !== 'undefined','hasCreate':typeof AppBridge.create !== 'undefined'},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'D'})}).catch(()=>{});
-                            } catch(e) {}
-                            // #endregion
-                            if (typeof createApp !== 'function') {
-                                console.error('❌ App Bridge createApp is not a function:', typeof createApp);
-                                console.log('AppBridge object:', AppBridge);
-                                if (attempts < maxAttempts) {
-                                    setTimeout(init, 50); // Optimized: reduced from 100ms
-                                    return;
-                                }
-                                window.shopifyApp = null;
-                                window.appBridgeReady = true;
-                                showAppBridgeError('App Bridge initialization failed: createApp not found. Please refresh the page.');
-                                return;
-                            }
+                // Give Safari a moment to make the objects available
+                setTimeout(function() {
+                    try {
+                        if (window['app-bridge']) {
+                            var createApp = window['app-bridge'].default;
+                            
                             // Get API key from template
-                            var apiKey = '{{ SHOPIFY_API_KEY or "" }}';
-                            console.log('🔑 API Key check:', apiKey ? 'Present (length: ' + apiKey.length + ')' : 'MISSING');
-                            // #region agent log - API key check
-                            try {
-                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:apiKeyCheck','message':'API key check','data':{'hasApiKey':!!apiKey,'apiKeyLength':apiKey ? apiKey.length : 0,'apiKeyPreview':apiKey ? apiKey.substring(0,8) : 'N/A'},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'E'})}).catch(()=>{});
-                            } catch(e) {}
-                            // #endregion
-                            
-                            // CRITICAL: If API key is missing, try to get from window (fallback)
-                            if (!apiKey || apiKey === '' || apiKey.trim() === '') {
-                                console.warn('⚠️ API key not found in template, checking window...');
+                            var apiKey = '{{ SHOPIFY_API_KEY or "" }}'.trim();
+                            if (!apiKey || apiKey === '') {
                                 apiKey = window.SHOPIFY_API_KEY || '';
-                                // #region agent log - API key fallback
-                                try {
-                                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:apiKeyFallback','message':'API key fallback check','data':{'hasWindowKey':!!window.SHOPIFY_API_KEY,'windowKeyLength':window.SHOPIFY_API_KEY ? window.SHOPIFY_API_KEY.length : 0},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'E'})}).catch(()=>{});
-                                } catch(e) {}
-                                // #endregion
                             }
                             
-                            // CRITICAL: Both API key AND host are REQUIRED for embedded apps
-                            if (!apiKey || apiKey === '' || apiKey.trim() === '') {
+                            // Validate required parameters
+                            if (!apiKey || apiKey === '') {
                                 console.error('❌ SHOPIFY_API_KEY is missing - App Bridge cannot initialize');
-                                console.error('🔍 Template value was:', '{{ SHOPIFY_API_KEY or "" }}'.substring(0, 20) + '...');
                                 window.shopifyApp = null;
                                 window.appBridgeReady = true;
-                                showAppBridgeError('Configuration Error: SHOPIFY_API_KEY environment variable is not set. Please check your deployment configuration.');
+                                showAppBridgeError('Configuration Error: SHOPIFY_API_KEY environment variable is not set.');
                                 return;
                             }
-                            
-                            console.log('✅ API Key found:', apiKey.substring(0, 8) + '...');
-                            console.log('🔍 Host check:', host ? 'Present (' + host.substring(0, 30) + '...)' : 'MISSING');
                             
                             if (!host || host === '' || host.trim() === '') {
                                 console.error('❌ Host parameter is missing - App Bridge cannot initialize');
-                                console.error('🔍 URL params:', window.location.search);
                                 window.shopifyApp = null;
                                 window.appBridgeReady = true;
-                                showAppBridgeError('Configuration Error: Missing host parameter. Make sure you are accessing the app from within Shopify admin. If the issue persists, please refresh the page.');
+                                showAppBridgeError('Configuration Error: Missing host parameter.');
                                 return;
                             }
                             
-                            // Use host as-is (Shopify provides it correctly encoded)
-                            if (apiKey && apiKey !== '' && apiKey.trim() !== '' && host && host !== '' && host.trim() !== '') {
-                                try {
-                                    console.log('🚀 Initializing App Bridge with:', {
-                                        apiKeyLength: apiKey.length,
-                                        hostLength: host.length,
-                                        hasCreateApp: typeof createApp === 'function'
-                                    });
-                                    
-                                    window.shopifyApp = createApp({
-                                        apiKey: apiKey.trim(),
-                                        host: host.trim() // Use original encoded host
-                                    });
-                                    // #region agent log - App Bridge createApp success
-                                    try {
-                                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:createAppSuccess','message':'App Bridge createApp succeeded','data':{'hasShopifyApp':!!window.shopifyApp,'shopifyAppType':typeof window.shopifyApp,'hasGetSessionToken':window.shopifyApp && typeof window.shopifyApp.getSessionToken === 'function'},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
-                                    } catch(e) {}
-                                    // #endregion
-                                    console.log('✅ App Bridge initialized successfully!');
-                                    console.log('✅ App object:', window.shopifyApp ? 'created' : 'failed');
-                                    window.appBridgeReady = true;
-                                    
-                                    // Resolve Promise
-                                    if (window.appBridgeReadyResolve) {
-                                        window.appBridgeReadyResolve({
-                                            ready: true,
-                                            embedded: true,
-                                            app: window.shopifyApp
-                                        });
-                                    }
-                                    
-                                    // Dispatch event
-                                    window.dispatchEvent(new CustomEvent('appbridge:ready', {
-                                        detail: { app: window.shopifyApp, embedded: true }
-                                    }));
-                                    
-                                    // Enable buttons now that App Bridge is ready
-                                    enableEmbeddedButtons();
-                                } catch (initError) {
-                                    console.error('❌ App Bridge createApp error:', initError);
-                                    console.error('Error details:', {
-                                        name: initError.name,
-                                        message: initError.message,
-                                        stack: initError.stack
-                                    });
-                                    // #region agent log - App Bridge createApp error
-                                    try {
-                                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:createAppError','message':'App Bridge createApp failed','data':{'errorName':initError.name,'errorMessage':initError.message,'errorStack':initError.stack ? initError.stack.substring(0,200) : 'no stack','apiKeyLength':apiKey ? apiKey.length : 0,'hostLength':host ? host.length : 0},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'G'})}).catch(()=>{});
-                                    } catch(e) {}
-                                    // #endregion
-                                    window.shopifyApp = null;
-                                    window.appBridgeReady = true;
-                                    showAppBridgeError('Initialization Error: ' + (initError.message || 'Unknown error') + '. Please refresh the page or contact support.');
-                                }
-                            } else {
-                                console.error('❌ Validation failed:', {
-                                    apiKey: apiKey ? ('present (' + apiKey.length + ' chars)'): 'missing',
-                                    host: host ? ('present (' + host.length + ' chars)') : 'missing'
+                            // Initialize App Bridge
+                            window.shopifyApp = createApp({
+                                apiKey: apiKey,
+                                host: host
+                            });
+                            
+                            console.log('✅ App Bridge initialized successfully!');
+                            window.appBridgeReady = true;
+                            
+                            // Resolve Promise
+                            if (window.appBridgeReadyResolve) {
+                                window.appBridgeReadyResolve({
+                                    ready: true,
+                                    embedded: true,
+                                    app: window.shopifyApp
                                 });
-                                window.shopifyApp = null;
-                                window.appBridgeReady = true;
-                                showAppBridgeError('Configuration Error: Missing required parameters. API Key: ' + (apiKey ? 'OK' : 'MISSING') + ', Host: ' + (host ? 'OK' : 'MISSING') + '. Please check your deployment settings.');
                             }
-                        } catch (e) {
-                            console.error('❌ App Bridge init error:', e);
+                            
+                            // Dispatch event
+                            window.dispatchEvent(new CustomEvent('appbridge:ready', {
+                                detail: { app: window.shopifyApp, embedded: true }
+                            }));
+                            
+                            // Enable buttons now that App Bridge is ready
+                            enableEmbeddedButtons();
+                        } else {
+                            console.error('❌ App Bridge object not found after Safari delay');
                             window.shopifyApp = null;
                             window.appBridgeReady = true;
-                            showAppBridgeError('App Bridge error: ' + e.message);
+                            showAppBridgeError('App Bridge script loaded but object not found. Please refresh the page.');
                         }
+                    } catch (e) {
+                        console.error('❌ App Bridge initialization error:', e);
+                        window.shopifyApp = null;
+                        window.appBridgeReady = true;
+                        showAppBridgeError('App Bridge error: ' + (e.message || 'Unknown error'));
                     }
-                    
-                    init();
-                } catch (e) {
-                    console.error('❌ App Bridge load error:', e);
-                    window.shopifyApp = null;
-                    window.appBridgeReady = true;
-                    showAppBridgeError('Failed to load App Bridge: ' + e.message);
-                }
+                }, 100); // Safari needs this delay
             };
             
             script.onerror = function(error) {
@@ -1217,17 +1093,17 @@ DASHBOARD_HTML = """
                 console.log('🔄 Trying alternative CDN URL...');
                 var fallbackScript = document.createElement('script');
                 fallbackScript.src = 'https://cdn.shopify.com/shopifycloud/app-bridge.js';
-                fallbackScript.async = false;
-                fallbackScript.crossOrigin = 'anonymous';
                 fallbackScript.onload = function() {
                     console.log('✅ App Bridge loaded from fallback URL');
-                    // Retry initialization after a brief delay
+                    // Safari-compatible: Give Safari a moment to make objects available
                     setTimeout(function() {
-                        if (typeof window['app-bridge'] !== 'undefined') {
+                        if (window['app-bridge']) {
                             try {
-                                var AppBridge = window['app-bridge'];
-                                var createApp = AppBridge.default || AppBridge.create || AppBridge;
+                                var createApp = window['app-bridge'].default;
                                 var apiKey = '{{ SHOPIFY_API_KEY or "" }}'.trim();
+                                if (!apiKey || apiKey === '') {
+                                    apiKey = window.SHOPIFY_API_KEY || '';
+                                }
                                 
                                 if (apiKey && host) {
                                     window.shopifyApp = createApp({
@@ -1236,6 +1112,13 @@ DASHBOARD_HTML = """
                                     });
                                     window.appBridgeReady = true;
                                     console.log('✅ App Bridge initialized from fallback');
+                                    if (window.appBridgeReadyResolve) {
+                                        window.appBridgeReadyResolve({
+                                            ready: true,
+                                            embedded: true,
+                                            app: window.shopifyApp
+                                        });
+                                    }
                                     enableEmbeddedButtons();
                                 } else {
                                     console.error('❌ Missing API key or host in fallback');
@@ -1255,7 +1138,7 @@ DASHBOARD_HTML = """
                             window.appBridgeReady = true;
                             showAppBridgeError('Failed to load App Bridge. Please check your internet connection and refresh the page.');
                         }
-                    }, 200);
+                    }, 100); // Safari needs this delay
                 };
                 fallbackScript.onerror = function() {
                     console.error('❌ Fallback App Bridge script also failed');
