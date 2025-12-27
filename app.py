@@ -1009,6 +1009,11 @@ DASHBOARD_HTML = """
             // Initialize immediately when loaded
             script.onload = function() {
                 console.log('✅ App Bridge script loaded successfully');
+                // #region agent log - App Bridge script loaded
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:scriptOnload','message':'App Bridge script loaded','data':{'hasHost':!!host,'hasShop':!!shop,'scriptSrc':script.src},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'A'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
                 try {
                     // Wait for App Bridge to be available (increased timeout for slower networks)
                     var attempts = 0;
@@ -1022,6 +1027,11 @@ DASHBOARD_HTML = """
                         
                         // Check multiple possible global names for App Bridge
                         var AppBridge = window['app-bridge'] || window['ShopifyAppBridge'] || window.appBridge;
+                        // #region agent log - App Bridge object check
+                        try {
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:init','message':'Checking App Bridge object','data':{'attempt':attempts,'hasAppBridge':typeof AppBridge !== 'undefined','appBridgeType':typeof AppBridge,'hasAppBridgeKey':typeof window['app-bridge'] !== 'undefined','hasShopifyAppBridge':typeof window['ShopifyAppBridge'] !== 'undefined','hasAppBridge':typeof window.appBridge !== 'undefined'},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'B'})}).catch(()=>{});
+                        } catch(e) {}
+                        // #endregion
                         
                         if (typeof AppBridge === 'undefined' || !AppBridge) {
                             if (attempts < maxAttempts) {
@@ -1045,10 +1055,20 @@ DASHBOARD_HTML = """
                         }
                         
                         console.log('✅ App Bridge object found:', typeof AppBridge);
+                        // #region agent log - App Bridge object found
+                        try {
+                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:objectFound','message':'App Bridge object found','data':{'appBridgeType':typeof AppBridge,'hasDefault':typeof AppBridge.default !== 'undefined','hasCreate':typeof AppBridge.create !== 'undefined'},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'C'})}).catch(()=>{});
+                        } catch(e) {}
+                        // #endregion
                         
                         try {
                             // App Bridge v3 uses .default, older versions might use .create
                             var createApp = AppBridge.default || AppBridge.create || AppBridge;
+                            // #region agent log - createApp check
+                            try {
+                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:createAppCheck','message':'Checking createApp','data':{'createAppType':typeof createApp,'isFunction':typeof createApp === 'function','hasDefault':typeof AppBridge.default !== 'undefined','hasCreate':typeof AppBridge.create !== 'undefined'},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'D'})}).catch(()=>{});
+                            } catch(e) {}
+                            // #endregion
                             if (typeof createApp !== 'function') {
                                 console.error('❌ App Bridge createApp is not a function:', typeof createApp);
                                 console.log('AppBridge object:', AppBridge);
@@ -1064,11 +1084,21 @@ DASHBOARD_HTML = """
                             // Get API key from template
                             var apiKey = '{{ SHOPIFY_API_KEY or "" }}';
                             console.log('🔑 API Key check:', apiKey ? 'Present (length: ' + apiKey.length + ')' : 'MISSING');
+                            // #region agent log - API key check
+                            try {
+                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:apiKeyCheck','message':'API key check','data':{'hasApiKey':!!apiKey,'apiKeyLength':apiKey ? apiKey.length : 0,'apiKeyPreview':apiKey ? apiKey.substring(0,8) : 'N/A'},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'E'})}).catch(()=>{});
+                            } catch(e) {}
+                            // #endregion
                             
                             // CRITICAL: If API key is missing, try to get from window (fallback)
                             if (!apiKey || apiKey === '' || apiKey.trim() === '') {
                                 console.warn('⚠️ API key not found in template, checking window...');
                                 apiKey = window.SHOPIFY_API_KEY || '';
+                                // #region agent log - API key fallback
+                                try {
+                                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:apiKeyFallback','message':'API key fallback check','data':{'hasWindowKey':!!window.SHOPIFY_API_KEY,'windowKeyLength':window.SHOPIFY_API_KEY ? window.SHOPIFY_API_KEY.length : 0},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'E'})}).catch(()=>{});
+                                } catch(e) {}
+                                // #endregion
                             }
                             
                             // CRITICAL: Both API key AND host are REQUIRED for embedded apps
@@ -1106,7 +1136,11 @@ DASHBOARD_HTML = """
                                         apiKey: apiKey.trim(),
                                         host: host.trim() // Use original encoded host
                                     });
-                                    
+                                    // #region agent log - App Bridge createApp success
+                                    try {
+                                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:createAppSuccess','message':'App Bridge createApp succeeded','data':{'hasShopifyApp':!!window.shopifyApp,'shopifyAppType':typeof window.shopifyApp,'hasGetSessionToken':window.shopifyApp && typeof window.shopifyApp.getSessionToken === 'function'},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
+                                    } catch(e) {}
+                                    // #endregion
                                     console.log('✅ App Bridge initialized successfully!');
                                     console.log('✅ App object:', window.shopifyApp ? 'created' : 'failed');
                                     window.appBridgeReady = true;
@@ -1134,6 +1168,11 @@ DASHBOARD_HTML = """
                                         message: initError.message,
                                         stack: initError.stack
                                     });
+                                    // #region agent log - App Bridge createApp error
+                                    try {
+                                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:createAppError','message':'App Bridge createApp failed','data':{'errorName':initError.name,'errorMessage':initError.message,'errorStack':initError.stack ? initError.stack.substring(0,200) : 'no stack','apiKeyLength':apiKey ? apiKey.length : 0,'hostLength':host ? host.length : 0},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'G'})}).catch(()=>{});
+                                    } catch(e) {}
+                                    // #endregion
                                     window.shopifyApp = null;
                                     window.appBridgeReady = true;
                                     showAppBridgeError('Initialization Error: ' + (initError.message || 'Unknown error') + '. Please refresh the page or contact support.');
@@ -1168,6 +1207,11 @@ DASHBOARD_HTML = """
                 console.error('❌ Failed to load App Bridge script from CDN');
                 console.error('Error details:', error);
                 console.error('Script URL:', script.src);
+                // #region agent log - App Bridge script load error
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:appBridge:scriptError','message':'App Bridge script failed to load','data':{'scriptSrc':script.src,'hasHost':!!host,'hasShop':!!shop},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'H'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
                 
                 // Try alternative CDN URL
                 console.log('🔄 Trying alternative CDN URL...');
