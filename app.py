@@ -3913,6 +3913,14 @@ def api_process_orders():
             return jsonify({"message": str(result), "success": True})
             
     except MemoryError as e:
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:api_process_orders:MemoryError","message":"Memory error exception","data":{"user_id":user_id,"error":str(e)[:200]},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         logger.error(f"Memory error processing orders for user {user_id}: {str(e)}", exc_info=True)
         logger.error("Clearing cache...")
         from performance import clear_cache as clear_perf_cache
@@ -3920,10 +3928,27 @@ def api_process_orders():
         logger.error('=== PROCESS ORDERS REQUEST FAILED: Memory Error ===')
         return jsonify({"error": "Memory error - please try again", "success": False}), 500
     except SystemExit:
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:api_process_orders:SystemExit","message":"SystemExit exception","data":{"user_id":user_id},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         # Re-raise system exits (like from sys.exit())
         logger.error('=== PROCESS ORDERS REQUEST FAILED: SystemExit ===')
         raise
     except BaseException as e:
+        # #region agent log
+        try:
+            import json
+            import time
+            import traceback
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:api_process_orders:BaseException","message":"BaseException caught","data":{"user_id":user_id,"error_type":type(e).__name__,"error":str(e)[:200],"stack_preview":traceback.format_exc()[:500]},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
         # Catch all other exceptions including segmentation faults precursors
         logger.error(f"Critical error processing orders for user {user_id}: {type(e).__name__}: {str(e)}", exc_info=True)
         logger.error(f"Error type: {type(e).__name__}")
