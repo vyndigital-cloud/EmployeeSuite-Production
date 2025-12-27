@@ -1026,8 +1026,18 @@ DASHBOARD_HTML = """
             // The 100ms timeout lets Safari's JS engine finish making the objects available
             script.onload = function() {
                 console.log('✅ App Bridge script loaded successfully');
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:AppBridge:simple_onload','message':'Simple path script.onload fired','data':{'has_app_bridge':!!window['app-bridge'],'has_host':!!host,'has_api_key':!!('{{ SHOPIFY_API_KEY or "" }}'.trim()),'script_src':script.src,'user_agent':navigator.userAgent.substring(0,50)},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
                 // Give Safari a moment to make the objects available
                 setTimeout(function() {
+                    // #region agent log
+                    try {
+                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:AppBridge:simple_timeout','message':'Simple setTimeout callback fired','data':{'has_app_bridge':!!window['app-bridge'],'delay':100,'window_keys':Object.keys(window).filter(k => k.toLowerCase().includes('app') || k.toLowerCase().includes('bridge') || k.toLowerCase().includes('shopify')).slice(0,15)},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
+                    } catch(e) {}
+                    // #endregion
                     try {
                         if (window['app-bridge']) {
                             var createApp = window['app-bridge'].default;
