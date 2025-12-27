@@ -1516,6 +1516,13 @@ DASHBOARD_HTML = """
             }
         })();
         // #endregion
+        
+        // Early function check - verify functions will be available (before definitions)
+        console.log('🔍 Early function check (before definitions):', {
+            processOrders: typeof window.processOrders,
+            updateInventory: typeof window.updateInventory,
+            generateReport: typeof window.generateReport
+        });
         // Professional request management - prevent duplicate requests and cancel previous ones
         var activeRequests = {
             processOrders: null,
@@ -2615,6 +2622,28 @@ DASHBOARD_HTML = """
         
         // Ensure function is in global scope
         window.generateReport = generateReport;
+        
+        // Immediate function check after all assignments
+        console.log('✅ Function check (after all assignments):', {
+            processOrders: typeof window.processOrders,
+            updateInventory: typeof window.updateInventory,
+            generateReport: typeof window.generateReport
+        });
+        
+        // Verify all functions are properly assigned
+        if (typeof window.processOrders !== 'function' ||
+            typeof window.updateInventory !== 'function' ||
+            typeof window.generateReport !== 'function') {
+            console.error('❌ CRITICAL: Functions not properly assigned to window!');
+            console.error('Missing functions:', {
+                processOrders: typeof window.processOrders !== 'function',
+                updateInventory: typeof window.updateInventory !== 'function',
+                generateReport: typeof window.generateReport !== 'function'
+            });
+        } else {
+            console.log('✅ All functions successfully assigned to window object');
+        }
+        
         // #region agent log - VERIFY WINDOW ASSIGNMENTS
         (function() {
             setTimeout(function() {
@@ -2685,18 +2714,38 @@ DASHBOARD_HTML = """
                 if (!btn) return; // Not a button click
                 
                 var action = btn.getAttribute('data-action');
-                console.log('✅ Button click detected:', action);
+                console.log('✅ Button clicked:', action);
+                
+                // Check CSS/pointer-events issues
+                var computedStyle = window.getComputedStyle(btn);
+                var pointerEvents = computedStyle.pointerEvents;
+                var display = computedStyle.display;
+                var visibility = computedStyle.visibility;
+                var zIndex = computedStyle.zIndex;
+                
+                if (pointerEvents === 'none') {
+                    console.warn('⚠️ Button has pointer-events: none - click may be blocked');
+                }
+                if (display === 'none') {
+                    console.warn('⚠️ Button has display: none - button is hidden');
+                }
+                if (visibility === 'hidden') {
+                    console.warn('⚠️ Button has visibility: hidden - button is hidden');
+                }
                 
                 // #region agent log
                 try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:click','message':'Button clicked via delegation','data':{'action':action,'buttonDisabled':btn.disabled,'targetTag':e.target.tagName,'hasProcessOrders':typeof window.processOrders,'hasUpdateInventory':typeof window.updateInventory,'hasGenerateReport':typeof window.generateReport},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-external-feedback',hypothesisId:'CLICK'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:click','message':'Button clicked via delegation','data':{'action':action,'buttonDisabled':btn.disabled,'targetTag':e.target.tagName,'hasProcessOrders':typeof window.processOrders,'hasUpdateInventory':typeof window.updateInventory,'hasGenerateReport':typeof window.generateReport,'pointerEvents':pointerEvents,'display':display,'visibility':visibility,'zIndex':zIndex},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-external-feedback',hypothesisId:'CLICK'})}).catch(()=>{});
                 } catch(e) {}
                 // #endregion
                 
                 e.preventDefault(); // Prevent any default behavior
                 e.stopPropagation();
                 
-                if (!action) return; // No action specified
+                if (!action) {
+                    console.warn('⚠️ Button has no data-action attribute');
+                    return; // No action specified
+                }
                 
                 // Check if button is disabled
                 if (btn.disabled) {
@@ -2707,7 +2756,16 @@ DASHBOARD_HTML = """
                 // Route to appropriate function based on data-action
                 if (window[action] && typeof window[action] === 'function') {
                     console.log('✅ Calling function:', action);
-                    window[action](btn); // Call the appropriate function
+                    try {
+                        window[action](btn); // Call the appropriate function
+                        console.log('✅ Function executed successfully:', action);
+                    } catch(err) {
+                        console.error('❌ Error executing function:', action, err);
+                        console.error('Error details:', {
+                            message: err.message,
+                            stack: err.stack
+                        });
+                    }
                 } else {
                     console.error('❌ Function not found for action:', action);
                     console.error('Available functions:', {
