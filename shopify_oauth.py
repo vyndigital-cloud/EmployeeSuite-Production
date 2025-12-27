@@ -20,7 +20,10 @@ if not SHOPIFY_API_SECRET:
     logger.error("❌ CRITICAL: SHOPIFY_API_SECRET environment variable is not set! OAuth will fail.")
 
 # App Store required scopes - only request what you need (Shopify requirement)
-SCOPES = 'read_products,read_inventory,read_orders'
+# CRITICAL: These scopes MUST be enabled in Shopify Partners Dashboard → App Setup → Access Scopes
+# If you get 403 errors, verify these scopes are CHECKED in Partners Dashboard
+# The order doesn't matter, but ALL of these must be requested and granted
+SCOPES = 'read_orders,read_products,read_inventory'  # read_orders FIRST to ensure it's included
 # CRITICAL: Shopify only allows ONE redirect URI in Partners Dashboard
 # We MUST always use the production URL: https://employeesuite-production.onrender.com/auth/callback
 # Even when running locally, OAuth callbacks will go to production, then you can test locally after OAuth completes
@@ -193,9 +196,32 @@ def install():
         state_data = f"{shop}||{quote(host, safe='')}"
     
     auth_url = f"https://{shop}/admin/oauth/authorize"
+    
+    # CRITICAL: Ensure ALL required scopes are included
+    # These scopes MUST match what's configured in shopify.app.toml and Partners Dashboard
+    required_scopes = [
+        'read_orders',      # Required for orders API (prevents 403 errors)
+        'read_products',    # Required for products API
+        'read_inventory',   # Required for inventory API
+    ]
+    
+    # Use explicit scope list to ensure read_orders is always included
+    scopes_string = ','.join(required_scopes)
+    
+    # Verify read_orders is in the scopes
+    if 'read_orders' not in scopes_string:
+        logger.error(f"❌ CRITICAL: read_orders scope is MISSING from scopes list!")
+        logger.error(f"Current scopes: {scopes_string}")
+        # Force add it if missing
+        if 'read_orders' not in SCOPES:
+            scopes_string = f"{SCOPES},read_orders"
+            logger.warning(f"⚠️ Added read_orders to scopes: {scopes_string}")
+    else:
+        logger.info(f"✅ Verified: read_orders is included in scopes")
+    
     params = {
         'client_id': SHOPIFY_API_KEY,
-        'scope': SCOPES,
+        'scope': scopes_string,  # Use explicit scopes list
         'redirect_uri': REDIRECT_URI,  # Must match Partners Dashboard exactly - no query params
         'state': state_data
         # Modern OAuth flow: grant_options[] removed - access mode configured in Partners Dashboard
@@ -206,7 +232,8 @@ def install():
     # Shopify requires exact match, but values must be properly encoded in the query string
     # Log the redirect URI being used for debugging
     logger.info(f"OAuth install: Using redirect_uri={REDIRECT_URI} (must match Partners Dashboard exactly)")
-    logger.info(f"OAuth install: Requesting scopes: {SCOPES}")
+    logger.info(f"OAuth install: Requesting scopes: {scopes_string}")
+    logger.info(f"OAuth install: Scope breakdown - read_orders: {'read_orders' in scopes_string}, read_products: {'read_products' in scopes_string}, read_inventory: {'read_inventory' in scopes_string}")
     # #region agent log
     try:
         import json
