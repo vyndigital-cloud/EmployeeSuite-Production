@@ -326,17 +326,41 @@ def handle_404(e):
 
 @app.errorhandler(500)
 def handle_500(e):
-    """Log 500 errors with full context"""
+    """Log all 500 internal server errors with stack trace (per external feedback)"""
     from flask import request
     import traceback
+    import logging
+    
     error_data = {
         'url': request.url,
         'method': request.method,
         'endpoint': request.endpoint,
         'args': dict(request.args),
+        'path': request.path,
+        'referer': request.headers.get('Referer'),
+        'user_agent': request.headers.get('User-Agent'),
     }
+    
+    # Get full stack trace
     exc_info = sys.exc_info()
+    stack_trace = ''.join(traceback.format_exception(*exc_info)) if exc_info[0] else traceback.format_exc()
+    
+    # Log to comprehensive error system
     log_comprehensive_error('500', str(e), f"{request.endpoint or 'unknown'}:{request.method}", error_data, exc_info)
+    
+    # Also log to standard logger with full details (per external feedback)
+    logger.error(f"500 Error: {e}, Path: {request.path}")
+    logger.error(f"Full URL: {request.url}")
+    logger.error(f"Stack trace:\n{stack_trace}")
+    
+    # Return user-friendly error message
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'An internal server error occurred. Please try again later.',
+            'error_type': 'InternalServerError'
+        }), 500
+    
     return str(e), 500
 
 @app.errorhandler(400)
@@ -1922,6 +1946,15 @@ DASHBOARD_HTML = """
                     if (controller.signal.aborted) {
                         return null;
                     }
+                    // Enhanced API response verification per external feedback
+                    console.log('📡 API Response received:', {
+                        status: r.status,
+                        statusText: r.statusText,
+                        url: r.url,
+                        ok: r.ok,
+                        contentType: r.headers.get('content-type')
+                    });
+                    
                     if (!r.ok) {
                         // Enhanced error logging per external feedback
                         console.error('❌ API request failed:', {
@@ -1933,6 +1966,9 @@ DASHBOARD_HTML = """
                         if (r.status === 404) {
                             console.error('❌ 404 Not Found - Endpoint does not exist:', r.url);
                             console.error('This may indicate a missing API route or incorrect URL');
+                        } else if (r.status === 500) {
+                            console.error('❌ 500 Internal Server Error - Server-side error occurred');
+                            console.error('Check server logs for detailed error information');
                         }
                         // #region agent log
                         try {
