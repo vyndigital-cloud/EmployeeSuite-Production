@@ -74,14 +74,6 @@ def safe_redirect(url, shop=None, host=None):
     For embedded apps, uses window.top.location.href to break out of iframe.
     For standalone, uses regular Flask redirect.
     """
-    # #region agent log
-    log_event('app.py:safe_redirect', 'safe_redirect called', {
-        'url': url[:100],
-        'has_shop': bool(shop),
-        'has_host': bool(host),
-        'is_embedded': bool(host) or bool(shop) or request.args.get('embedded') == '1'
-    }, 'REDIRECT')
-    # #endregion
     # Check if we're in an embedded context
     is_embedded = bool(host) or bool(shop) or request.args.get('embedded') == '1'
     
@@ -469,32 +461,7 @@ def unauthorized():
     return redirect(url_for('auth.login'))
 
 app.register_blueprint(auth_bp)
-# #region agent log
-try:
-    import json
-    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"K","location":"app.py:249","message":"Registering shopify_bp blueprint","data":{"blueprint_name":shopify_bp.name,"has_routes":hasattr(shopify_bp,'deferred_functions'),"blueprint_file":shopify_bp.import_name},"timestamp":int(__import__('time').time()*1000)})+'\n')
-except Exception as e:
-    try:
-        import json
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"K","location":"app.py:249","message":"ERROR logging blueprint registration","data":{"error":str(e)},"timestamp":int(__import__('time').time()*1000)})+'\n')
-    except: pass
-# #endregion
 app.register_blueprint(shopify_bp)
-# #region agent log
-try:
-    import json
-    shopify_routes = [str(rule) for rule in app.url_map.iter_rules() if 'shopify' in str(rule)]
-    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"K","location":"app.py:250","message":"Shopify blueprint registered","data":{"registered_routes":shopify_routes,"total_routes":len(list(app.url_map.iter_rules()))},"timestamp":int(__import__('time').time()*1000)})+'\n')
-except Exception as e:
-    try:
-        import json
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"K","location":"app.py:250","message":"ERROR logging route registration","data":{"error":str(e)},"timestamp":int(__import__('time').time()*1000)})+'\n')
-    except: pass
-# #endregion
 app.register_blueprint(billing_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(legal_bp)
@@ -1579,15 +1546,6 @@ DASHBOARD_HTML = """
         // END COMPREHENSIVE JAVASCRIPT ERROR LOGGING
         // ============================================================================
         
-        // #region agent log - EARLY SCRIPT EXECUTION CHECK
-        (function() {
-            try {
-                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:script_start',message:'Script block executing',data:{'timestamp':Date.now(),'readyState':document.readyState},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-v2',hypothesisId:'SCRIPT_EXEC'})}).catch(()=>{});
-            } catch(e) {
-                console.error('Debug log error:', e);
-            }
-        })();
-        // #endregion
         
         // Early function check - verify functions will be available (before definitions)
         console.log('🔍 Early function check (before definitions):', {
@@ -1777,11 +1735,6 @@ DASHBOARD_HTML = """
                             window.shopifyApp = bridgeState.app;
                             window.appBridgeReady = true;
                             // Continue with API call directly (don't retry function - skip debounce)
-                            // #region agent log
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'CALLING_proceedWithApiCall','data':{'is_embedded':isEmbedded,'app_bridge_ready':window.appBridgeReady,'has_shopify_app':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'frozen-debug',hypothesisId:'B'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
                 proceedWithApiCall();
                         } else {
                             setButtonLoading(button, false);
@@ -1806,11 +1759,6 @@ DASHBOARD_HTML = """
                     return;
                 } else if (!window.appBridgeReady) {
                     // Fallback to original sync check
-                // #region agent log
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'App Bridge not ready','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
                 setButtonLoading(button, false);
                 document.getElementById('output').innerHTML = `
                     <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
@@ -1936,18 +1884,8 @@ DASHBOARD_HTML = """
                             console.error('❌ 500 Internal Server Error - Server-side error occurred');
                             console.error('Check server logs for detailed error information');
                         }
-                        // #region agent log
-                        try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'API error response','data':{'status':r.status,'statusText':r.statusText,'url':r.url,'contentType':r.headers.get('content-type')||'unknown'},"timestamp":Date.now(),sessionId:'debug-session',runId:'api-error-debug',hypothesisId:'A'})}).catch(()=>{});
-                        } catch(e) {}
-                        // #endregion
                         // Try to parse JSON, but handle non-JSON responses
                         return r.text().then(function(text) {
-                            // #region agent log
-                            try {
-                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Error response text','data':{'status':r.status,'textLength':text.length,'textPreview':text.substring(0,200),'isJson':text.trim().startsWith('{')},"timestamp":Date.now(),sessionId:'debug-session',runId:'api-error-debug',hypothesisId:'B'})}).catch(()=>{});
-                            } catch(e) {}
-                            // #endregion
                             var err = {};
                             try {
                                 err = JSON.parse(text);
@@ -1957,22 +1895,12 @@ DASHBOARD_HTML = """
                             }
                             // Extract error from multiple possible fields
                             var errorMsg = err.error || err.message || err.detail || err.description || (typeof err === 'string' ? err : 'API error unknown');
-                            // #region agent log
-                            try {
-                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Extracted error message','data':{'status':r.status,'errorMsg':errorMsg,'errKeys':Object.keys(err),'errError':err.error,'errMessage':err.message},"timestamp":Date.now(),sessionId:'debug-session',runId:'api-error-debug',hypothesisId:'C'})}).catch(()=>{});
-                            } catch(e) {}
-                            // #endregion
                             throw new Error(errorMsg);
                         });
                     }
                     return r.json();
                 })
                 .then(d => {
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:1496','message':'process_orders success','data':{'success':d?d.success:false},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'P'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
                     // Check if request was cancelled
                     if (!d) return;
                     
@@ -2023,11 +1951,6 @@ DASHBOARD_HTML = """
                         stack: err.stack ? err.stack.substring(0, 300) : 'no stack'
                     });
                     
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Fetch catch error','data':{'error':err.message||'unknown','errorName':err.name||'unknown','stack':err.stack?err.stack.substring(0,200):'no stack'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
                     
                     // Always re-enable button and clear timers to prevent freezing
                     setButtonLoading(button, false);
@@ -2058,17 +1981,7 @@ DASHBOARD_HTML = """
             } // Close processOrders function
         
         // Ensure function is in global scope
-        // #region agent log - HYPOTHESIS A: Function assignment timing
-        try {
-            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:window.processOrders','message':'Assigning processOrders to window','data':{'functionType':typeof processOrders,'beforeAssignment':typeof window.processOrders,'documentReadyState':document.readyState},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'A'})}).catch(()=>{});
-        } catch(e) {}
-        // #endregion
         window.processOrders = processOrders;
-        // #region agent log - HYPOTHESIS A: After assignment verification
-        try {
-            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:window.processOrders','message':'After processOrders assignment','data':{'afterAssignment':typeof window.processOrders,'isFunction':typeof window.processOrders === 'function'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'A'})}).catch(()=>{});
-        } catch(e) {}
-        // #endregion
         
         function updateInventory(button) {
             // Debug logging removed for performance - only log errors if needed
@@ -2140,11 +2053,6 @@ DASHBOARD_HTML = """
                     return;
                 } else if (!window.appBridgeReady) {
                     // Fallback to original sync check
-                // #region agent log
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'App Bridge not ready','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
                 setButtonLoading(button, false);
                 document.getElementById('output').innerHTML = `
                     <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
@@ -2159,27 +2067,12 @@ DASHBOARD_HTML = """
             // Extract API call logic into function (called when Promise resolves or App Bridge ready)
             function proceedWithApiCall() {
                 if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
-                // #region agent log
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Starting token retrieval','data':{'isEmbedded':isEmbedded,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
                 // In embedded mode, we MUST have session token - retry up to 3 times
                 var retryCount = 0;
                 var maxRetries = 2; // Optimized: reduced from 3
                 
                 function getTokenWithRetry() {
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory:getTokenWithRetry','message':'Calling getSessionToken','data':{'retryCount':retryCount,'maxRetries':maxRetries},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
                     return window.shopifyApp.getSessionToken().then(function(token) {
-                        // #region agent log
-                        try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory:getTokenWithRetry','message':'getSessionToken resolved','data':{'has_token':!!token,'token_length':token?token.length:0,'retryCount':retryCount},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                        } catch(e) {}
-                        // #endregion
                         if (!token && retryCount < maxRetries) {
                             retryCount++;
                             return new Promise(function(resolve, reject) {
@@ -2188,11 +2081,6 @@ DASHBOARD_HTML = """
                         }
                         return token;
                 }).catch(function(err) {
-                        // #region agent log
-                        try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory:getTokenWithRetry','message':'getSessionToken error','data':{'error':err.message||'unknown','retryCount':retryCount,'maxRetries':maxRetries},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                        } catch(e) {}
-                        // #endregion
                         // If error and haven't exceeded retries, retry
                         if (retryCount < maxRetries) {
                             retryCount++;
@@ -2220,11 +2108,6 @@ DASHBOARD_HTML = """
                         signal: controller.signal
                     });
                 }).catch(function(err) {
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Token retrieval failed','data':{'error':err.message||'unknown','errorName':err.name||'unknown'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
                     // Don't show error if request was cancelled
                     if (err.name === 'AbortError') {
                         return;
@@ -2241,11 +2124,6 @@ DASHBOARD_HTML = """
                     throw err; // Stop execution
                 });
             } else {
-                // #region agent log
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Not embedded - using cookie auth','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
                 // Not embedded - use regular fetch (Flask-Login handles auth)
                 // CRITICAL: Include credentials (cookies) for standalone access
                 fetchPromise = fetch('/api/update_inventory', {
@@ -2257,35 +2135,15 @@ DASHBOARD_HTML = """
             // Execute the Promise chain
             fetchPromise
                 .then(r => {
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Fetch response received','data':{'status':r.status,'ok':r.ok,'statusText':r.statusText},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
                     // Check if request was cancelled
                     if (controller.signal.aborted) {
                         return null;
                     }
                     if (!r.ok) {
-                        // #region agent log
-                        try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'API error response','data':{'status':r.status,'statusText':r.statusText},"timestamp":Date.now(),sessionId:'debug-session',runId:'api-error-debug',hypothesisId:'A'})}).catch(()=>{});
-                        } catch(e) {}
-                        // #endregion
                         return r.text().then(text => {
-                            // #region agent log
-                            try {
-                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Error response text','data':{'status':r.status,'textLength':text.length,'textPreview':text.substring(0,200)},"timestamp":Date.now(),sessionId:'debug-session',runId:'api-error-debug',hypothesisId:'B'})}).catch(()=>{});
-                            } catch(e) {}
-                            // #endregion
                             try {
                                 var json = JSON.parse(text);
                                 var errorMsg = json.error || json.message || json.detail || json.description || 'Request failed';
-                                // #region agent log
-                                try {
-                                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Extracted error','data':{'errorMsg':errorMsg,'jsonKeys':Object.keys(json)},"timestamp":Date.now(),sessionId:'debug-session',runId:'api-error-debug',hypothesisId:'C'})}).catch(()=>{});
-                                } catch(e) {}
-                                // #endregion
                                 throw new Error(errorMsg);
                             } catch (e) {
                                 if (e.message && e.message !== 'Request failed') throw e;
@@ -2343,11 +2201,6 @@ DASHBOARD_HTML = """
                     }
                 })
                 .catch(err => {
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:updateInventory','message':'Fetch catch error','data':{'error':err.message||'unknown','errorName':err.name||'unknown','stack':err.stack?err.stack.substring(0,200):'no stack'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
                     // Don't show error if request was cancelled
                     if (err.name === 'AbortError') {
                         return;
@@ -2381,17 +2234,7 @@ DASHBOARD_HTML = """
         }
         
         // Ensure function is in global scope
-        // #region agent log - HYPOTHESIS A: Function assignment timing
-        try {
-            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:window.updateInventory','message':'Assigning updateInventory to window','data':{'functionType':typeof updateInventory,'beforeAssignment':typeof window.updateInventory,'documentReadyState':document.readyState},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'A'})}).catch(()=>{});
-        } catch(e) {}
-        // #endregion
         window.updateInventory = updateInventory;
-        // #region agent log - HYPOTHESIS A: After assignment verification
-        try {
-            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:window.updateInventory','message':'After updateInventory assignment','data':{'afterAssignment':typeof window.updateInventory,'isFunction':typeof window.updateInventory === 'function'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'A'})}).catch(()=>{});
-        } catch(e) {}
-        // #endregion
         
         function generateReport(button) {
             // Debug logging removed for performance - only log errors if needed
@@ -2463,11 +2306,6 @@ DASHBOARD_HTML = """
                     return;
                 } else if (!window.appBridgeReady) {
                     // Fallback to original sync check
-                // #region agent log
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'App Bridge not ready','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
                 setButtonLoading(button, false);
                 document.getElementById('output').innerHTML = `
                     <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
@@ -2482,27 +2320,12 @@ DASHBOARD_HTML = """
             // Extract API call logic into function (called when Promise resolves or App Bridge ready)
             function proceedWithApiCall() {
                 if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
-                // #region agent log
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'Starting token retrieval','data':{'isEmbedded':isEmbedded,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
                 // In embedded mode, we MUST have session token - retry up to 3 times
                 var retryCount = 0;
                 var maxRetries = 2; // Optimized: reduced from 3
                 
                 function getTokenWithRetry() {
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport:getTokenWithRetry','message':'Calling getSessionToken','data':{'retryCount':retryCount,'maxRetries':maxRetries},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
                     return window.shopifyApp.getSessionToken().then(function(token) {
-                        // #region agent log
-                        try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport:getTokenWithRetry','message':'getSessionToken resolved','data':{'has_token':!!token,'token_length':token?token.length:0,'retryCount':retryCount},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                        } catch(e) {}
-                        // #endregion
                         if (!token && retryCount < maxRetries) {
                             retryCount++;
                             return new Promise(function(resolve, reject) {
@@ -2511,11 +2334,6 @@ DASHBOARD_HTML = """
                         }
                         return token;
                 }).catch(function(err) {
-                        // #region agent log
-                        try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport:getTokenWithRetry','message':'getSessionToken error','data':{'error':err.message||'unknown','retryCount':retryCount,'maxRetries':maxRetries},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                        } catch(e) {}
-                        // #endregion
                         // If error and haven't exceeded retries, retry
                         if (retryCount < maxRetries) {
                             retryCount++;
@@ -2545,11 +2363,6 @@ DASHBOARD_HTML = """
                         signal: controller.signal
                     });
                 }).catch(function(err) {
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'Token retrieval failed','data':{'error':err.message||'unknown','errorName':err.name||'unknown'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
                     // Don't show error if request was cancelled
                     if (err.name === 'AbortError') {
                         return;
@@ -2566,11 +2379,6 @@ DASHBOARD_HTML = """
                     throw err; // Stop execution
                 });
             } else {
-                // #region agent log
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'Not embedded - using cookie auth','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
                 // Not embedded - use regular fetch (Flask-Login handles auth)
                 // CRITICAL: Include credentials (cookies) for standalone access
                 // Get shop from URL or use current shop
@@ -2585,11 +2393,6 @@ DASHBOARD_HTML = """
             // Execute the Promise chain
             fetchPromise
                 .then(r => {
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'Fetch response received','data':{'status':r.status,'ok':r.ok,'statusText':r.statusText},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
                     // Check if request was cancelled
                     if (controller.signal.aborted) {
                         return null;
@@ -2631,11 +2434,6 @@ DASHBOARD_HTML = """
                     }
                 })
                 .catch(err => {
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:generateReport','message':'Fetch catch error','data':{'error':err.message||'unknown','errorName':err.name||'unknown','stack':err.stack?err.stack.substring(0,200):'no stack'},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
                     // Don't show error if request was cancelled
                     if (err.name === 'AbortError') {
                         return;
@@ -2676,17 +2474,7 @@ DASHBOARD_HTML = """
         }
         
         // Ensure function is in global scope
-        // #region agent log - HYPOTHESIS A: Function assignment timing
-        try {
-            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:window.generateReport','message':'Assigning generateReport to window','data':{'functionType':typeof generateReport,'beforeAssignment':typeof window.generateReport,'documentReadyState':document.readyState},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'A'})}).catch(()=>{});
-        } catch(e) {}
-        // #endregion
         window.generateReport = generateReport;
-        // #region agent log - HYPOTHESIS A: After assignment verification
-        try {
-            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:window.generateReport','message':'After generateReport assignment','data':{'afterAssignment':typeof window.generateReport,'isFunction':typeof window.generateReport === 'function'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'A'})}).catch(()=>{});
-        } catch(e) {}
-        // #endregion
         
         // ============================================================================
         // FUNCTION AVAILABILITY VERIFICATION (Per External Feedback)
@@ -2719,25 +2507,6 @@ DASHBOARD_HTML = """
             console.log('✅ All functions successfully assigned to window object');
         }
         
-        // #region agent log - VERIFY WINDOW ASSIGNMENTS
-        (function() {
-            setTimeout(function() {
-                try {
-                    var funcCheck = {
-                        processOrders: typeof window.processOrders,
-                        updateInventory: typeof window.updateInventory,
-                        generateReport: typeof window.generateReport,
-                        processOrdersDirect: typeof processOrders,
-                        updateInventoryDirect: typeof updateInventory,
-                        generateReportDirect: typeof generateReport
-                    };
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:window_check','message':'Window function check','data':funcCheck,"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-v2',hypothesisId:'WINDOW_CHECK'})}).catch(()=>{});
-                } catch(e) {
-                    console.error('Window check error:', e);
-                }
-            }, 100);
-        })();
-        // #endregion
         
         
         // ============================================================================
@@ -2848,21 +2617,6 @@ DASHBOARD_HTML = """
             var buttonsFound = document.querySelectorAll('.card-btn[data-action]').length;
             console.log('✅ Buttons found:', buttonsFound);
             
-            // #region agent log - HYPOTHESIS B: Button detection
-            try {
-                var buttonDetails = Array.from(document.querySelectorAll('.card-btn[data-action]')).map(function(btn, idx) {
-                    return {
-                        index: idx,
-                        action: btn.getAttribute('data-action'),
-                        className: btn.className,
-                        id: btn.id || 'no-id',
-                        disabled: btn.disabled,
-                        visible: btn.offsetParent !== null
-                    };
-                });
-                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:DOMContentLoaded','message':'DOMContentLoaded fired - setting up event delegation','data':{'readyState':document.readyState,'hasProcessOrders':typeof window.processOrders,'hasUpdateInventory':typeof window.updateInventory,'hasGenerateReport':typeof window.generateReport,'buttonsFound':buttonsFound,'buttonDetails':buttonDetails,'appBridgeReady':typeof window.appBridgeReady !== 'undefined' ? window.appBridgeReady : 'undefined'},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'B'})}).catch(()=>{});
-            } catch(e) {}
-            // #endregion
             
             // CRITICAL: Add EARLY click listener to catch ALL clicks before anything else
             // OPTIMIZED: Only log button clicks to reduce performance impact
@@ -2871,11 +2625,6 @@ DASHBOARD_HTML = """
                 var closestBtn = e.target.closest('.card-btn[data-action]');
                 if (!closestBtn) return; // Skip non-button clicks
                 
-                // #region agent log - HYPOTHESIS C: Early click detection (button only)
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:earlyClick','message':'EARLY BUTTON CLICK','data':{'action':closestBtn.getAttribute('data-action'),'target':e.target.tagName},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'C'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
             }, true); // Capture phase - fires FIRST
             
             // Attach click listener to document for event delegation (per external feedback)
@@ -2904,11 +2653,6 @@ DASHBOARD_HTML = """
                     });
                 }
                 
-                // #region agent log - Only log button clicks (reduced frequency)
-                try {
-                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:click','message':'Button clicked','data':{'action':action,'disabled':btn.disabled},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'CLICK'})}).catch(()=>{});
-                } catch(e) {}
-                // #endregion
                 
                 e.preventDefault(); // Prevent any default behavior
                 e.stopPropagation();
@@ -2931,11 +2675,6 @@ DASHBOARD_HTML = """
                         console.log('✅ Calling function:', action);
                         window[action](btn); // Call the corresponding function
                     } catch(err) {
-                        // #region agent log - HYPOTHESIS D: Function execution error (only log errors)
-                        try {
-                            fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:functionCall','message':'Function execution ERROR','data':{'action':action,'errorName':err.name,'errorMessage':err.message},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-debug',hypothesisId:'D'})}).catch(()=>{});
-                        } catch(e) {}
-                        // #endregion
                         // Catch synchronous errors to prevent freezing
                         console.error('❌ Error executing function:', action, err);
                         console.error('Error details:', {
@@ -2966,11 +2705,6 @@ DASHBOARD_HTML = """
                         generateReport: typeof window.generateReport,
                         requestedAction: typeof window[action]
                     });
-                    // #region agent log
-                    try {
-                        fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:buttonDelegation:click','message':'Function not found','data':{'action':action,'hasProcessOrders':typeof window.processOrders,'hasUpdateInventory':typeof window.updateInventory,'hasGenerateReport':typeof window.generateReport,'windowActionType':typeof window[action]},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-external-feedback',hypothesisId:'FUNC_MISSING'})}).catch(()=>{});
-                    } catch(e) {}
-                    // #endregion
                 }
             }, true); // Use capture phase to catch early
             
@@ -3000,11 +2734,6 @@ DASHBOARD_HTML = """
                 }, true); // Capture phase
             });
             
-            // #region agent log
-            try {
-                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:DOMContentLoaded','message':'Event delegation attached successfully','data':{'readyState':document.readyState,'testButtonsCount':testButtons.length},"timestamp":Date.now(),sessionId:'debug-session',runId:'button-fix-external-feedback',hypothesisId:'DELEGATION_ATTACHED'})}).catch(()=>{});
-            } catch(e) {}
-            // #endregion
         });
         // ============================================================================
         // END ROBUST BUTTON EVENT HANDLING
@@ -3459,15 +3188,6 @@ def home():
 
 @app.route('/dashboard')
 def dashboard():
-    # #region agent log
-    log_event('app.py:2380', 'Dashboard route accessed', {
-        'method': request.method,
-        'has_shop': bool(request.args.get('shop')),
-        'has_host': bool(request.args.get('host')),
-        'has_embedded': bool(request.args.get('embedded')),
-        'referer': request.headers.get('Referer', '')[:100] if request.headers.get('Referer') else ''
-    }, 'DASHBOARD')
-    # #endregion
     # Check if this is an embedded request (from Referer or params)
     referer = request.headers.get('Referer', '')
     is_from_shopify_admin = 'admin.shopify.com' in referer or 'myshopify.com' in referer
@@ -3499,16 +3219,6 @@ def dashboard():
             logger.warning(f"Failed to extract shop from Referer: {e}")
             pass
     
-    # #region agent log
-    log_event('app.py:2420', 'Dashboard shop extraction check', {
-        'is_embedded': is_embedded,
-        'has_shop_after_extraction': bool(shop),
-        'shop': shop[:50] if shop else '',
-        'has_referer': bool(referer),
-        'referer': referer[:100] if referer else '',
-        'is_from_shopify_admin': is_from_shopify_admin
-    }, 'DASHBOARD')
-    # #endregion
     
     # CRITICAL: For embedded apps without shop, show install message
     # But don't redirect - just show a helpful message
@@ -3724,13 +3434,6 @@ def dashboard():
         # DO NOT call db.session.remove() here - it corrupts connection state and causes segfaults
         store = None
         has_shopify = False
-        # #region agent log
-        log_event('app.py:2655', 'Exception getting store', {
-            'user_authenticated': user_authenticated,
-            'shop': shop[:50] if shop else '',
-            'error': str(e)[:200]
-        }, 'DASHBOARD')
-        # #endregion
     
     # Skip slow API calls on dashboard load - just show empty stats
     # This prevents the page from hanging while waiting for Shopify API
@@ -3748,16 +3451,6 @@ def dashboard():
     host_param = request.args.get('host', '')
     shop_param = shop_domain or shop or request.args.get('shop', '')
     
-    # #region agent log
-    log_event('app.py:2790', 'Rendering dashboard template', {
-        'user_authenticated': user_authenticated,
-        'has_shopify': has_shopify,
-        'has_access': has_access,
-        'is_subscribed': is_subscribed,
-        'shop_param': shop_param[:50] if shop_param else '',
-        'has_host': bool(host_param)
-    }, 'DASHBOARD')
-    # #endregion
     
     APP_URL = os.getenv('APP_URL', request.url_root.rstrip('/'))
     return render_template_string(DASHBOARD_HTML, 
@@ -3860,25 +3553,11 @@ def api_key_info():
 @app.route('/test-shopify-route')
 def test_shopify_route():
     """Test route to verify app is picking up changes"""
-    # #region agent log
-    try:
-        import json
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"K","location":"app.py:test_shopify_route","message":"Test route called","data":{"timestamp":int(__import__('time').time()*1000)},"timestamp":int(__import__('time').time()*1000)})+'\n')
-    except: pass
-    # #endregion
     return jsonify({"status": "ok", "message": "App is picking up changes", "shopify_routes": [str(rule) for rule in app.url_map.iter_rules() if 'shopify' in str(rule)]})
 
 @app.route('/debug-routes')
 def debug_routes():
     """Debug endpoint to see what routes are registered"""
-    # #region agent log
-    try:
-        import json
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"K","location":"app.py:debug_routes","message":"Debug routes endpoint called","data":{"timestamp":int(__import__('time').time()*1000)},"timestamp":int(__import__('time').time()*1000)})+'\n')
-    except: pass
-    # #endregion
     all_routes = [{"rule": str(rule.rule), "endpoint": rule.endpoint, "methods": list(rule.methods)} for rule in app.url_map.iter_rules()]
     shopify_routes = [r for r in all_routes if 'shopify' in r['rule'].lower()]
     return jsonify({
@@ -4154,27 +3833,11 @@ def api_process_orders():
     logger.info(f'Has Authorization header: {bool(request.headers.get("Authorization"))}')
     logger.info(f'Has shop parameter: {bool(request.args.get("shop"))}')
     
-    # #region agent log
-    try:
-        import json
-        import time
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3043","message":"api_process_orders ENTRY","data":{"method":request.method,"has_auth_header":bool(request.headers.get('Authorization')),"has_shop":bool(request.args.get('shop'))},"timestamp":int(time.time()*1000)})+'\n')
-    except: pass
-    # #endregion
     
     try:
         # Get authenticated user (supports both Flask-Login and session tokens)
         logger.info('Step 1: Getting authenticated user...')
         user, error_response = get_authenticated_user()
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3053","message":"After get_authenticated_user","data":{"user_found":bool(user),"has_error_response":bool(error_response)},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         
         if error_response:
             logger.warning('Step 1 FAILED: Authentication error')
@@ -4186,14 +3849,6 @@ def api_process_orders():
         # Check access
         logger.info('Step 2: Checking user access...')
         has_access = user.has_access() if user else False
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3058","message":"Access check","data":{"has_access":has_access,"user_id":user.id if user and hasattr(user,'id') else None},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         
         if not has_access:
             logger.warning(f'Step 2 FAILED: User {user.id if hasattr(user, "id") else "N/A"} does not have access')
@@ -4218,14 +3873,6 @@ def api_process_orders():
         login_user(user, remember=False)
         logger.info('Step 4 SUCCESS: User logged in')
         
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3075","message":"Before calling process_orders","data":{"user_id":user_id},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         
         logger.info(f'Step 5: Calling process_orders for user {user_id}...')
         # Pass user_id directly to prevent recursion from accessing current_user
@@ -4238,14 +3885,6 @@ def api_process_orders():
             if 'error' in result:
                 logger.warning(f'Result contains error: {result.get("error")}')
         
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3080","message":"process_orders returned","data":{"is_dict":isinstance(result,dict),"has_success":isinstance(result,dict) and 'success' in result,"has_error":isinstance(result,dict) and 'error' in result,"result_keys":list(result.keys())[:5] if isinstance(result,dict) else []},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         
         logger.info('=== PROCESS ORDERS REQUEST SUCCESS ===')
         if isinstance(result, dict):
@@ -4290,27 +3929,11 @@ def api_update_inventory():
     logger.info(f'Has Authorization header: {bool(request.headers.get("Authorization"))}')
     logger.info(f'Has shop parameter: {bool(request.args.get("shop"))}')
     
-    # #region agent log
-    try:
-        import json
-        import time
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3106","message":"api_update_inventory ENTRY","data":{"method":request.method,"has_auth_header":bool(request.headers.get('Authorization')),"has_shop":bool(request.args.get('shop'))},"timestamp":int(time.time()*1000)})+'\n')
-    except: pass
-    # #endregion
     
     try:
         # Get authenticated user (supports both Flask-Login and session tokens)
         logger.info('Step 1: Getting authenticated user...')
         user, error_response = get_authenticated_user()
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3116","message":"After get_authenticated_user","data":{"user_found":bool(user),"has_error_response":bool(error_response)},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         
         if error_response:
             logger.warning('Step 1 FAILED: Authentication error')
@@ -4321,14 +3944,6 @@ def api_update_inventory():
         
         logger.info('Step 2: Checking user access...')
         has_access = user.has_access() if user else False
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3120","message":"Access check","data":{"has_access":has_access,"user_id":user.id if user and hasattr(user,'id') else None},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         
         if not has_access:
             logger.warning(f'Step 2 FAILED: User {user.id if hasattr(user, "id") else "N/A"} does not have access')
@@ -4358,14 +3973,6 @@ def api_update_inventory():
         clear_perf_cache('get_products')
         logger.info('Step 5 SUCCESS: Cache cleared')
         
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3141","message":"Before calling update_inventory","data":{"user_id":user_id},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         
         logger.info(f'Step 6: Calling update_inventory for user {user_id}...')
         # Pass user_id directly to prevent recursion from accessing current_user
@@ -4378,14 +3985,6 @@ def api_update_inventory():
             if 'error' in result:
                 logger.warning(f'Result contains error: {result.get("error")}')
         
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3147","message":"update_inventory returned","data":{"is_dict":isinstance(result,dict),"has_success":isinstance(result,dict) and 'success' in result,"has_error":isinstance(result,dict) and 'error' in result,"result_keys":list(result.keys())[:5] if isinstance(result,dict) else []},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         
         logger.info('=== UPDATE INVENTORY REQUEST SUCCESS ===')
         if isinstance(result, dict):
@@ -4435,28 +4034,12 @@ def api_generate_report():
     logger.info(f'Has Authorization header: {bool(request.headers.get("Authorization"))}')
     logger.info(f'Has shop parameter: {bool(request.args.get("shop"))}')
     
-    # #region agent log
-    try:
-        import json
-        import time
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3174","message":"api_generate_report ENTRY","data":{"method":request.method,"has_auth_header":bool(request.headers.get('Authorization')),"has_shop":bool(request.args.get('shop'))},"timestamp":int(time.time()*1000)})+'\n')
-    except: pass
-    # #endregion
     
     user_id = None
     try:
         # Get authenticated user (supports both Flask-Login and session tokens)
         logger.info('Step 1: Getting authenticated user...')
         user, error_response = get_authenticated_user()
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3193","message":"After get_authenticated_user","data":{"user_found":bool(user),"has_error_response":bool(error_response)},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         
         if error_response:
             logger.warning('Step 1 FAILED: Authentication error')
@@ -4471,14 +4054,6 @@ def api_generate_report():
         
         logger.info('Step 3: Checking user access...')
         has_access = user.has_access() if user else False
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3204","message":"Access check","data":{"has_access":has_access,"user_id":user_id},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         
         if not has_access:
             logger.warning(f'Step 3 FAILED: User {user_id} does not have access')
@@ -4503,14 +4078,6 @@ def api_generate_report():
         # Get shop_url from request args, session, or None (will use first active store)
         from flask import session
         shop_url = request.args.get('shop') or session.get('current_shop') or None
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3227","message":"Extracting shop_url","data":{"shop_from_args":request.args.get('shop'),"shop_from_session":session.get('current_shop'),"final_shop_url":shop_url,"user_id":user_id},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         if shop_url:
             logger.info(f'Step 5a: Using shop_url from request/session: {shop_url}')
         else:
@@ -4522,14 +4089,6 @@ def api_generate_report():
         from reporting import generate_report
         logger.info('Step 5b SUCCESS: generate_report function imported')
         
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3248","message":"Before calling generate_report","data":{"user_id":user_id,"shop_url":shop_url},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         
         logger.info(f'Step 5c: Calling generate_report(user_id={user_id}, shop_url={shop_url})...')
         data = generate_report(user_id=user_id, shop_url=shop_url)
@@ -4541,14 +4100,6 @@ def api_generate_report():
                 logger.warning(f'Result contains error: {data.get("error")}')
             if 'message' in data:
                 logger.info(f'Result message: {data.get("message")[:100]}...' if len(str(data.get("message", ""))) > 100 else f'Result message: {data.get("message")}')
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3250","message":"generate_report returned","data":{"is_dict":isinstance(data,dict),"has_error":isinstance(data,dict) and 'error' in data,"has_message":isinstance(data,dict) and 'message' in data,"result_keys":list(data.keys())[:5] if isinstance(data,dict) else []},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         
         if data.get('error') and data['error'] is not None:
             error_msg = data['error']
@@ -5042,46 +4593,14 @@ _db_initialized = False
 def ensure_db_initialized():
     """Lazy database initialization - called on first request"""
     global _db_initialized
-    # #region agent log
-    try:
-        import json
-        log_path = '/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log'
-        with open(log_path, 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"deploy-verify","hypothesisId":"A","location":"app.py:ensure_db_initialized","message":"ensure_db_initialized called","data":{"_db_initialized":_db_initialized},"timestamp":int(__import__("time").time()*1000)})+'\n')
-    except: pass
-    # #endregion
     if _db_initialized:
         return
     try:
-        # #region agent log
-        try:
-            import json
-            log_path = '/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log'
-            with open(log_path, 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"deploy-verify","hypothesisId":"A","location":"app.py:ensure_db_initialized","message":"Starting init_db","data":{},"timestamp":int(__import__("time").time()*1000)})+'\n')
-        except: pass
-        # #endregion
         init_db()
         _db_initialized = True
         logger.info("✅ Database initialized successfully")
-        # #region agent log
-        try:
-            import json
-            log_path = '/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log'
-            with open(log_path, 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"deploy-verify","hypothesisId":"A","location":"app.py:ensure_db_initialized","message":"init_db completed","data":{},"timestamp":int(__import__("time").time()*1000)})+'\n')
-        except: pass
-        # #endregion
     except Exception as e:
         logger.warning(f"Database initialization deferred: {e}")
-        # #region agent log
-        try:
-            import json
-            log_path = '/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log'
-            with open(log_path, 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"deploy-verify","hypothesisId":"A","location":"app.py:ensure_db_initialized","message":"init_db failed","data":{"error":str(e)},"timestamp":int(__import__("time").time()*1000)})+'\n')
-        except: pass
-        # #endregion
 
 try:
     import json
