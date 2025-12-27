@@ -1335,12 +1335,12 @@ DASHBOARD_HTML = """
                 <div class="card-title">Order Processing</div>
                 <div class="card-description">View pending and unfulfilled Shopify orders. Monitor order status and payment information.</div>
                 {% if has_access %}
-                <button class="card-btn" data-action="processOrders" aria-label="View pending orders">
+                <button type="button" class="card-btn" data-action="processOrders" aria-label="View pending orders">
                     <span>View Orders</span>
                     <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
                 {% else %}
-                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to view orders">
+                <button type="button" class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to view orders">
                     <span>View Orders</span>
                     <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
@@ -1352,12 +1352,12 @@ DASHBOARD_HTML = """
                 <div class="card-title">Inventory Management</div>
                 <div class="card-description">Monitor stock levels across all products. Get low-stock alerts and complete inventory visibility.</div>
                 {% if has_access %}
-                <button class="card-btn" data-action="updateInventory" aria-label="Check inventory levels">
+                <button type="button" class="card-btn" data-action="updateInventory" aria-label="Check inventory levels">
                     <span>Check Inventory</span>
                     <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
                 {% else %}
-                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to check inventory">
+                <button type="button" class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to check inventory">
                     <span>Check Inventory</span>
                     <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
@@ -1369,12 +1369,12 @@ DASHBOARD_HTML = """
                 <div class="card-title">Revenue Analytics</div>
                 <div class="card-description">Generate revenue reports with product-level breakdown and insights.</div>
                 {% if has_access %}
-                <button class="card-btn" data-action="generateReport" aria-label="Generate revenue report">
+                <button type="button" class="card-btn" data-action="generateReport" aria-label="Generate revenue report">
                     <span>Generate Report</span>
                     <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
                 {% else %}
-                <button class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to generate reports">
+                <button type="button" class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to generate reports">
                     <span>Generate Report</span>
                     <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
@@ -3328,9 +3328,10 @@ def dashboard():
         """), 400
     
     # For embedded apps, allow access without strict auth (App Bridge handles it)
-    # For regular requests, require login
+    # For regular requests without auth, redirect to home (which handles auth properly)
     if not is_embedded and not current_user.is_authenticated:
-        return redirect(url_for('auth.login'))
+        # Redirect to home instead of login - home route handles both embedded and standalone properly
+        return redirect(url_for('home'))
     
     # If embedded but no session/store found, redirect to OAuth (Shopify's embedded auth flow)
     if is_embedded and shop and not current_user.is_authenticated:
