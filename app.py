@@ -1019,7 +1019,7 @@ DASHBOARD_HTML = """
             };
             
             // Add embedded class to body for CSS targeting
-            if (window.isEmbedded) {
+            if (window.isEmbedded && document.body) {
                 document.body.classList.add('embedded');
             }
             
@@ -1939,8 +1939,7 @@ DASHBOARD_HTML = """
                     `;
                     throw err; // Stop execution
                 });
-                } // Close if (isEmbedded && ...) block
-            } else {
+                } else {
                 // #region agent log
                 try {
                     fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'Not embedded - using cookie auth','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
