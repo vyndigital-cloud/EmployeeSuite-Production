@@ -1,6 +1,9 @@
 import requests
 import os
+import logging
 from performance import cache_result, CACHE_TTL_INVENTORY, CACHE_TTL_ORDERS
+
+logger = logging.getLogger(__name__)
 
 class ShopifyClient:
     def __init__(self, shop_url, access_token):
