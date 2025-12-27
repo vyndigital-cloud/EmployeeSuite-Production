@@ -2668,6 +2668,16 @@ DASHBOARD_HTML = """
         // Ensure function is in global scope
         window.generateReport = generateReport;
         
+        // ============================================================================
+        // FUNCTION AVAILABILITY VERIFICATION (Per External Feedback)
+        // ============================================================================
+        // Log function availability immediately after all assignments
+        console.log('Function check:', {
+            processOrders: typeof window.processOrders,
+            updateInventory: typeof window.updateInventory,
+            generateReport: typeof window.generateReport
+        });
+        
         // Immediate function check after all assignments
         console.log('✅ Function check (after all assignments):', {
             processOrders: typeof window.processOrders,
@@ -2752,14 +2762,14 @@ DASHBOARD_HTML = """
             } catch(e) {}
             // #endregion
             
-            // Attach ONE listener to document that handles ALL button clicks
+            // Attach click listener to document for event delegation (per external feedback)
             document.addEventListener('click', function(e) {
                 // Find the closest button with data-action attribute
                 var btn = e.target.closest('.card-btn[data-action]');
-                if (!btn) return; // Not a button click
+                if (!btn) return; // Exit if clicked element is not a button
                 
                 var action = btn.getAttribute('data-action');
-                console.log('✅ Button clicked:', action);
+                console.log('✅ Button clicked: ', action); // Log button click (per external feedback)
                 
                 // Check CSS/pointer-events issues
                 var computedStyle = window.getComputedStyle(btn);
@@ -2798,21 +2808,12 @@ DASHBOARD_HTML = """
                     return;
                 }
                 
-                // Route to appropriate function based on data-action
+                // Route to appropriate function based on data-action (per external feedback)
                 if (window[action] && typeof window[action] === 'function') {
-                    console.log('✅ Calling function:', action);
-                    try {
-                        window[action](btn); // Call the appropriate function
-                        console.log('✅ Function executed successfully:', action);
-                    } catch(err) {
-                        console.error('❌ Error executing function:', action, err);
-                        console.error('Error details:', {
-                            message: err.message,
-                            stack: err.stack
-                        });
-                    }
+                    window[action](btn); // Call the corresponding function
+                    console.log('✅ Function called successfully:', action);
                 } else {
-                    console.error('❌ Function not found for action:', action);
+                    console.error('Function not found for action:', action); // Log error for missing function (per external feedback)
                     console.error('Available functions:', {
                         processOrders: typeof window.processOrders,
                         updateInventory: typeof window.updateInventory,
