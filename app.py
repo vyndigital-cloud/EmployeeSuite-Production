@@ -596,6 +596,9 @@ def close_db(error):
 @app.before_request
 def validate_request_security():
     """Validate incoming requests for security - minimal checks only"""
+    # Global request logging (per external feedback)
+    logger.info(f'Making request to: {request.path}, Method: {request.method}')
+    
     # Skip database initialization for health checks (used by Render for deployment verification)
     # Skip validation for static files, health checks
     if request.endpoint in ('static', 'health') or request.endpoint is None:
