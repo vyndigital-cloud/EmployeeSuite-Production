@@ -2781,6 +2781,79 @@ DASHBOARD_HTML = """
         
         
         // ============================================================================
+        // NETWORK REQUEST LOGGING - Capture all API requests
+        // ============================================================================
+        // Intercept fetch requests to log network activity
+        (function() {
+            var originalFetch = window.fetch;
+            window.fetch = function(...args) {
+                var url = args[0];
+                var options = args[1] || {};
+                var method = options.method || 'GET';
+                var startTime = Date.now();
+                
+                console.log('🌐 Network Request:', {
+                    url: url,
+                    method: method,
+                    headers: options.headers || {},
+                    hasBody: !!options.body,
+                    timestamp: new Date().toISOString()
+                });
+                
+                // Call original fetch
+                return originalFetch.apply(this, args)
+                    .then(function(response) {
+                        var endTime = Date.now();
+                        var duration = endTime - startTime;
+                        
+                        console.log('🌐 Network Response:', {
+                            url: url,
+                            method: method,
+                            status: response.status,
+                            statusText: response.statusText,
+                            ok: response.ok,
+                            duration: duration + 'ms',
+                            headers: Object.fromEntries(response.headers.entries()),
+                            timestamp: new Date().toISOString()
+                        });
+                        
+                        // Clone response to read body without consuming it
+                        var clonedResponse = response.clone();
+                        clonedResponse.text().then(function(text) {
+                            console.log('🌐 Response Body:', {
+                                url: url,
+                                method: method,
+                                bodyLength: text.length,
+                                bodyPreview: text.substring(0, 200),
+                                isError: !response.ok,
+                                timestamp: new Date().toISOString()
+                            });
+                        }).catch(function(err) {
+                            console.warn('🌐 Could not read response body:', err);
+                        });
+                        
+                        return response;
+                    })
+                    .catch(function(error) {
+                        var endTime = Date.now();
+                        var duration = endTime - startTime;
+                        
+                        console.error('🌐 Network Error:', {
+                            url: url,
+                            method: method,
+                            error: error.message || 'Unknown error',
+                            errorName: error.name || 'Unknown',
+                            duration: duration + 'ms',
+                            timestamp: new Date().toISOString(),
+                            stack: error.stack ? error.stack.substring(0, 300) : 'no stack'
+                        });
+                        
+                        throw error;
+                    });
+            };
+        })();
+        
+        // ============================================================================
         // ROBUST BUTTON EVENT HANDLING - Event Delegation Pattern (Most Reliable)
         // ============================================================================
         // Use event delegation - attach ONE listener to document that handles ALL button clicks
@@ -2853,15 +2926,34 @@ DASHBOARD_HTML = """
                     return; // Exit if clicked element is not a button
                 }
                 
+                // ENHANCED LOGGING: Capture state before action
                 var action = btn.getAttribute('data-action');
-                console.log('✅ Button clicked: ', action); // Log button click (per external feedback)
-                console.log('🔍 Button details:', {
+                console.log('🔍 Button clicked:', btn); // Log the clicked button element
+                console.log('🔍 Current state before action:', {
                     action: action,
-                    disabled: btn.disabled,
-                    tagName: btn.tagName,
-                    className: btn.className,
-                    id: btn.id,
-                    innerHTML: btn.innerHTML.substring(0, 50)
+                    isDisabled: btn.disabled,
+                    computedStyle: {
+                        pointerEvents: window.getComputedStyle(btn).pointerEvents,
+                        display: window.getComputedStyle(btn).display,
+                        visibility: window.getComputedStyle(btn).visibility,
+                        zIndex: window.getComputedStyle(btn).zIndex,
+                        cursor: window.getComputedStyle(btn).cursor
+                    },
+                    buttonElement: {
+                        tagName: btn.tagName,
+                        className: btn.className,
+                        id: btn.id,
+                        innerHTML: btn.innerHTML.substring(0, 50),
+                        disabled: btn.disabled,
+                        hasDataAction: btn.hasAttribute('data-action')
+                    },
+                    eventDetails: {
+                        target: e.target.tagName,
+                        targetClass: e.target.className,
+                        eventPhase: e.eventPhase === 1 ? 'CAPTURE' : e.eventPhase === 2 ? 'TARGET' : 'BUBBLE',
+                        defaultPrevented: e.defaultPrevented,
+                        timeStamp: e.timeStamp
+                    }
                 });
                 
                 // Check CSS/pointer-events issues
@@ -2901,20 +2993,40 @@ DASHBOARD_HTML = """
                     return;
                 }
                 
+                // ENHANCED LOGGING: Log state after validation, before function call
+                console.log('🔍 State after validation:', {
+                    action: action,
+                    isDisabled: btn.disabled,
+                    functionExists: typeof window[action] === 'function',
+                    functionType: typeof window[action]
+                });
+                
                 // Route to appropriate function based on data-action (per external feedback)
                 // Enhanced error handling to prevent application freezing
                 if (window[action] && typeof window[action] === 'function') {
                     try {
                         console.log('✅ Calling function:', action);
+                        // ENHANCED LOGGING: Capture state immediately after function call
+                        var beforeCallTime = Date.now();
                         window[action](btn); // Call the corresponding function
-                        console.log('✅ Function called successfully:', action);
+                        var afterCallTime = Date.now();
+                        console.log('✅ Function called successfully:', action, 'Execution time:', (afterCallTime - beforeCallTime) + 'ms');
+                        console.log('🔍 State after function call:', {
+                            action: action,
+                            buttonDisabled: btn.disabled,
+                            outputElement: document.getElementById('output') ? 'exists' : 'missing'
+                        });
                     } catch(err) {
                         // Catch synchronous errors to prevent freezing
                         console.error('❌ Error executing function:', action, err);
                         console.error('Error details:', {
                             message: err.message,
                             name: err.name,
-                            stack: err.stack ? err.stack.substring(0, 300) : 'no stack'
+                            stack: err.stack ? err.stack.substring(0, 300) : 'no stack',
+                            buttonState: {
+                                disabled: btn.disabled,
+                                innerHTML: btn.innerHTML.substring(0, 50)
+                            }
                         });
                         // Show user-friendly error message
                         var outputEl = document.getElementById('output');
@@ -2928,7 +3040,7 @@ DASHBOARD_HTML = """
                         }
                     }
                 } else {
-                    console.error('Function not found for action:', action); // Log error for missing function (per external feedback)
+                    console.error('❌ Function not found for action:', action); // Log error for missing function (per external feedback)
                     console.error('Available functions:', {
                         processOrders: typeof window.processOrders,
                         updateInventory: typeof window.updateInventory,
@@ -4113,6 +4225,16 @@ def get_authenticated_user():
 
 @app.route('/api/process_orders', methods=['GET', 'POST'])
 def api_process_orders():
+    """Process orders endpoint with enhanced logging"""
+    logger.info('=== PROCESS ORDERS REQUEST START ===')
+    logger.info(f'Request method: {request.method}')
+    logger.info(f'Request path: {request.path}')
+    logger.info(f'Request URL: {request.url}')
+    logger.info(f'Request headers: {dict(request.headers)}')
+    logger.info(f'Request args: {dict(request.args)}')
+    logger.info(f'Has Authorization header: {bool(request.headers.get("Authorization"))}')
+    logger.info(f'Has shop parameter: {bool(request.args.get("shop"))}')
+    
     # #region agent log
     try:
         import json
@@ -4121,47 +4243,62 @@ def api_process_orders():
             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3043","message":"api_process_orders ENTRY","data":{"method":request.method,"has_auth_header":bool(request.headers.get('Authorization')),"has_shop":bool(request.args.get('shop'))},"timestamp":int(time.time()*1000)})+'\n')
     except: pass
     # #endregion
-    # Get authenticated user (supports both Flask-Login and session tokens)
-    user, error_response = get_authenticated_user()
-    # #region agent log
-    try:
-        import json
-        import time
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3053","message":"After get_authenticated_user","data":{"user_found":bool(user),"has_error_response":bool(error_response)},"timestamp":int(time.time()*1000)})+'\n')
-    except: pass
-    # #endregion
-    if error_response:
-        return error_response
-    
-    # Check access
-    has_access = user.has_access() if user else False
-    # #region agent log
-    try:
-        import json
-        import time
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3058","message":"Access check","data":{"has_access":has_access,"user_id":user.id if user and hasattr(user,'id') else None},"timestamp":int(time.time()*1000)})+'\n')
-    except: pass
-    # #endregion
-    if not has_access:
-        return jsonify({
-            'error': 'Subscription required',
-            'success': False,
-            'action': 'subscribe',
-            'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
-            'subscribe_url': url_for('billing.subscribe')
-        }), 403
-    
-    # Store user ID before login_user to avoid recursion issues
-    user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
-    
-    # Temporarily set current_user for process_orders() function
-    # (it expects current_user to be set)
-    from flask_login import login_user
-    login_user(user, remember=False)
     
     try:
+        # Get authenticated user (supports both Flask-Login and session tokens)
+        logger.info('Step 1: Getting authenticated user...')
+        user, error_response = get_authenticated_user()
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3053","message":"After get_authenticated_user","data":{"user_found":bool(user),"has_error_response":bool(error_response)},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
+        
+        if error_response:
+            logger.warning('Step 1 FAILED: Authentication error')
+            logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
+            return error_response
+        
+        logger.info(f'Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, "email") else "N/A"}')
+        
+        # Check access
+        logger.info('Step 2: Checking user access...')
+        has_access = user.has_access() if user else False
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3058","message":"Access check","data":{"has_access":has_access,"user_id":user.id if user and hasattr(user,'id') else None},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
+        
+        if not has_access:
+            logger.warning(f'Step 2 FAILED: User {user.id if hasattr(user, "id") else "N/A"} does not have access')
+            return jsonify({
+                'error': 'Subscription required',
+                'success': False,
+                'action': 'subscribe',
+                'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
+                'subscribe_url': url_for('billing.subscribe')
+            }), 403
+        
+        logger.info(f'Step 2 SUCCESS: User {user.id if hasattr(user, "id") else "N/A"} has access')
+        
+        # Store user ID before login_user to avoid recursion issues
+        user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+        logger.info(f'Step 3: User ID extracted: {user_id}')
+        
+        # Temporarily set current_user for process_orders() function
+        # (it expects current_user to be set)
+        logger.info('Step 4: Logging in user...')
+        from flask_login import login_user
+        login_user(user, remember=False)
+        logger.info('Step 4 SUCCESS: User logged in')
+        
         # #region agent log
         try:
             import json
@@ -4170,8 +4307,18 @@ def api_process_orders():
                 f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3075","message":"Before calling process_orders","data":{"user_id":user_id},"timestamp":int(time.time()*1000)})+'\n')
         except: pass
         # #endregion
+        
+        logger.info(f'Step 5: Calling process_orders for user {user_id}...')
         # Pass user_id directly to prevent recursion from accessing current_user
         result = process_orders(user_id=user_id)
+        logger.info(f'Step 5 SUCCESS: process_orders returned')
+        logger.info(f'Result type: {type(result)}, Is dict: {isinstance(result, dict)}')
+        if isinstance(result, dict):
+            logger.info(f'Result keys: {list(result.keys())}')
+            logger.info(f'Result success: {result.get("success", "N/A")}')
+            if 'error' in result:
+                logger.warning(f'Result contains error: {result.get("error")}')
+        
         # #region agent log
         try:
             import json
@@ -4180,30 +4327,50 @@ def api_process_orders():
                 f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3080","message":"process_orders returned","data":{"is_dict":isinstance(result,dict),"has_success":isinstance(result,dict) and 'success' in result,"has_error":isinstance(result,dict) and 'error' in result,"result_keys":list(result.keys())[:5] if isinstance(result,dict) else []},"timestamp":int(time.time()*1000)})+'\n')
         except: pass
         # #endregion
+        
+        logger.info('=== PROCESS ORDERS REQUEST SUCCESS ===')
         if isinstance(result, dict):
             return jsonify(result)
         else:
             return jsonify({"message": str(result), "success": True})
-    except MemoryError:
-        logger.error(f"Memory error processing orders for user {user_id} - clearing cache")
+            
+    except MemoryError as e:
+        logger.error(f"Memory error processing orders for user {user_id}: {str(e)}", exc_info=True)
+        logger.error("Clearing cache...")
         from performance import clear_cache as clear_perf_cache
         clear_perf_cache()
+        logger.error('=== PROCESS ORDERS REQUEST FAILED: Memory Error ===')
         return jsonify({"error": "Memory error - please try again", "success": False}), 500
     except SystemExit:
         # Re-raise system exits (like from sys.exit())
+        logger.error('=== PROCESS ORDERS REQUEST FAILED: SystemExit ===')
         raise
     except BaseException as e:
         # Catch all other exceptions including segmentation faults precursors
         logger.error(f"Critical error processing orders for user {user_id}: {type(e).__name__}: {str(e)}", exc_info=True)
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error message: {str(e)}")
+        logger.error(f"Stack trace: {traceback.format_exc()}")
         from performance import clear_cache as clear_perf_cache
         try:
             clear_perf_cache()
         except Exception:
             pass
+        logger.error('=== PROCESS ORDERS REQUEST FAILED: Critical Error ===')
         return jsonify({"error": "An unexpected error occurred. Please try again or contact support if this persists.", "success": False}), 500
 
 @app.route('/api/update_inventory', methods=['GET', 'POST'])
 def api_update_inventory():
+    """Update inventory endpoint with enhanced logging"""
+    logger.info('=== UPDATE INVENTORY REQUEST START ===')
+    logger.info(f'Request method: {request.method}')
+    logger.info(f'Request path: {request.path}')
+    logger.info(f'Request URL: {request.url}')
+    logger.info(f'Request headers: {dict(request.headers)}')
+    logger.info(f'Request args: {dict(request.args)}')
+    logger.info(f'Has Authorization header: {bool(request.headers.get("Authorization"))}')
+    logger.info(f'Has shop parameter: {bool(request.args.get("shop"))}')
+    
     # #region agent log
     try:
         import json
@@ -4212,48 +4379,66 @@ def api_update_inventory():
             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3106","message":"api_update_inventory ENTRY","data":{"method":request.method,"has_auth_header":bool(request.headers.get('Authorization')),"has_shop":bool(request.args.get('shop'))},"timestamp":int(time.time()*1000)})+'\n')
     except: pass
     # #endregion
-    # Get authenticated user (supports both Flask-Login and session tokens)
-    user, error_response = get_authenticated_user()
-    # #region agent log
-    try:
-        import json
-        import time
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3116","message":"After get_authenticated_user","data":{"user_found":bool(user),"has_error_response":bool(error_response)},"timestamp":int(time.time()*1000)})+'\n')
-    except: pass
-    # #endregion
-    if error_response:
-        return error_response
-    
-    has_access = user.has_access() if user else False
-    # #region agent log
-    try:
-        import json
-        import time
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3120","message":"Access check","data":{"has_access":has_access,"user_id":user.id if user and hasattr(user,'id') else None},"timestamp":int(time.time()*1000)})+'\n')
-    except: pass
-    # #endregion
-    if not has_access:
-        return jsonify({
-            'error': 'Subscription required',
-            'success': False,
-            'action': 'subscribe',
-            'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
-            'subscribe_url': url_for('billing.subscribe')
-        }), 403
-    
-    # Store user ID before login_user to avoid recursion issues
-    user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
-    
-    # Set current_user for update_inventory() function
-    from flask_login import login_user
-    login_user(user, remember=False)
     
     try:
+        # Get authenticated user (supports both Flask-Login and session tokens)
+        logger.info('Step 1: Getting authenticated user...')
+        user, error_response = get_authenticated_user()
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3116","message":"After get_authenticated_user","data":{"user_found":bool(user),"has_error_response":bool(error_response)},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
+        
+        if error_response:
+            logger.warning('Step 1 FAILED: Authentication error')
+            logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
+            return error_response
+        
+        logger.info(f'Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, "email") else "N/A"}')
+        
+        logger.info('Step 2: Checking user access...')
+        has_access = user.has_access() if user else False
+        # #region agent log
+        try:
+            import json
+            import time
+            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3120","message":"Access check","data":{"has_access":has_access,"user_id":user.id if user and hasattr(user,'id') else None},"timestamp":int(time.time()*1000)})+'\n')
+        except: pass
+        # #endregion
+        
+        if not has_access:
+            logger.warning(f'Step 2 FAILED: User {user.id if hasattr(user, "id") else "N/A"} does not have access')
+            return jsonify({
+                'error': 'Subscription required',
+                'success': False,
+                'action': 'subscribe',
+                'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
+                'subscribe_url': url_for('billing.subscribe')
+            }), 403
+        
+        logger.info(f'Step 2 SUCCESS: User {user.id if hasattr(user, "id") else "N/A"} has access')
+        
+        # Store user ID before login_user to avoid recursion issues
+        user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+        logger.info(f'Step 3: User ID extracted: {user_id}')
+        
+        # Set current_user for update_inventory() function
+        logger.info('Step 4: Logging in user...')
+        from flask_login import login_user
+        login_user(user, remember=False)
+        logger.info('Step 4 SUCCESS: User logged in')
+        
         # Import at function level to avoid UnboundLocalError
+        logger.info('Step 5: Clearing cache...')
         from performance import clear_cache as clear_perf_cache
         clear_perf_cache('get_products')
+        logger.info('Step 5 SUCCESS: Cache cleared')
+        
         # #region agent log
         try:
             import json
@@ -4262,8 +4447,18 @@ def api_update_inventory():
                 f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3141","message":"Before calling update_inventory","data":{"user_id":user_id},"timestamp":int(time.time()*1000)})+'\n')
         except: pass
         # #endregion
+        
+        logger.info(f'Step 6: Calling update_inventory for user {user_id}...')
         # Pass user_id directly to prevent recursion from accessing current_user
         result = update_inventory(user_id=user_id)
+        logger.info(f'Step 6 SUCCESS: update_inventory returned')
+        logger.info(f'Result type: {type(result)}, Is dict: {isinstance(result, dict)}')
+        if isinstance(result, dict):
+            logger.info(f'Result keys: {list(result.keys())}')
+            logger.info(f'Result success: {result.get("success", "N/A")}')
+            if 'error' in result:
+                logger.warning(f'Result contains error: {result.get("error")}')
+        
         # #region agent log
         try:
             import json
@@ -4272,35 +4467,55 @@ def api_update_inventory():
                 f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3147","message":"update_inventory returned","data":{"is_dict":isinstance(result,dict),"has_success":isinstance(result,dict) and 'success' in result,"has_error":isinstance(result,dict) and 'error' in result,"result_keys":list(result.keys())[:5] if isinstance(result,dict) else []},"timestamp":int(time.time()*1000)})+'\n')
         except: pass
         # #endregion
+        
+        logger.info('=== UPDATE INVENTORY REQUEST SUCCESS ===')
         if isinstance(result, dict):
             # Store inventory data in session for CSV export
             if result.get('success') and 'inventory_data' in result:
                 from flask import session
                 session['inventory_data'] = result['inventory_data']
+                logger.info('Inventory data stored in session for CSV export')
             return jsonify(result)
         else:
             return jsonify({"success": False, "error": str(result)})
-    except MemoryError:
-        logger.error(f"Memory error updating inventory for user {user_id} - clearing cache")
+            
+    except MemoryError as e:
+        logger.error(f"Memory error updating inventory for user {user_id}: {str(e)}", exc_info=True)
+        logger.error("Clearing cache...")
         from performance import clear_cache as clear_perf_cache
         clear_perf_cache()
+        logger.error('=== UPDATE INVENTORY REQUEST FAILED: Memory Error ===')
         return jsonify({"success": False, "error": "Memory error - please try again"}), 500
     except SystemExit:
         # Re-raise system exits (like from sys.exit())
+        logger.error('=== UPDATE INVENTORY REQUEST FAILED: SystemExit ===')
         raise
     except BaseException as e:
         # Catch all other exceptions including segmentation faults precursors
         logger.error(f"Critical error updating inventory for user {user_id}: {type(e).__name__}: {str(e)}", exc_info=True)
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error message: {str(e)}")
+        logger.error(f"Stack trace: {traceback.format_exc()}")
         from performance import clear_cache as clear_perf_cache
         try:
             clear_perf_cache()
         except Exception:
             pass
+        logger.error('=== UPDATE INVENTORY REQUEST FAILED: Critical Error ===')
         return jsonify({"success": False, "error": "An unexpected error occurred. Please try again or contact support if this persists."}), 500
 
 @app.route('/api/generate_report', methods=['GET', 'POST'])
 def api_generate_report():
     """Generate revenue report with detailed crash logging"""
+    logger.info('=== GENERATE REPORT REQUEST START ===')
+    logger.info(f'Request method: {request.method}')
+    logger.info(f'Request path: {request.path}')
+    logger.info(f'Request URL: {request.url}')
+    logger.info(f'Request headers: {dict(request.headers)}')
+    logger.info(f'Request args: {dict(request.args)}')
+    logger.info(f'Has Authorization header: {bool(request.headers.get("Authorization"))}')
+    logger.info(f'Has shop parameter: {bool(request.args.get("shop"))}')
+    
     # #region agent log
     try:
         import json
@@ -4309,15 +4524,11 @@ def api_generate_report():
             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3174","message":"api_generate_report ENTRY","data":{"method":request.method,"has_auth_header":bool(request.headers.get('Authorization')),"has_shop":bool(request.args.get('shop'))},"timestamp":int(time.time()*1000)})+'\n')
     except: pass
     # #endregion
+    
     user_id = None
     try:
-        logging.info("=== REPORT GENERATION START ===")
-        logging.info(f"Request method: {request.method}")
-        logging.info(f"Request path: {request.path}")
-        logging.info(f"Request headers: {dict(request.headers)}")
-        
         # Get authenticated user (supports both Flask-Login and session tokens)
-        logging.info("Step 1: Getting authenticated user...")
+        logger.info('Step 1: Getting authenticated user...')
         user, error_response = get_authenticated_user()
         # #region agent log
         try:
@@ -4327,16 +4538,19 @@ def api_generate_report():
                 f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3193","message":"After get_authenticated_user","data":{"user_found":bool(user),"has_error_response":bool(error_response)},"timestamp":int(time.time()*1000)})+'\n')
         except: pass
         # #endregion
+        
         if error_response:
-            logging.warning("Step 1 FAILED: Authentication error")
+            logger.warning('Step 1 FAILED: Authentication error')
+            logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
             return error_response
         
-        logging.info(f"Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, 'email') else 'N/A'}")
+        logger.info(f'Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, "email") else "N/A"}')
         
         # Store user ID before login_user to avoid recursion issues
         user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
-        logging.info(f"Step 2: User ID extracted: {user_id}")
+        logger.info(f'Step 2: User ID extracted: {user_id}')
         
+        logger.info('Step 3: Checking user access...')
         has_access = user.has_access() if user else False
         # #region agent log
         try:
@@ -4346,8 +4560,9 @@ def api_generate_report():
                 f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"app.py:3204","message":"Access check","data":{"has_access":has_access,"user_id":user_id},"timestamp":int(time.time()*1000)})+'\n')
         except: pass
         # #endregion
+        
         if not has_access:
-            logging.warning(f"Step 2 FAILED: User {user_id} does not have access")
+            logger.warning(f'Step 3 FAILED: User {user_id} does not have access')
             return jsonify({
                 'error': 'Subscription required',
                 'success': False,
@@ -4356,16 +4571,15 @@ def api_generate_report():
                 'subscribe_url': url_for('billing.subscribe')
             }), 403
         
-        logging.info(f"Step 2 SUCCESS: User {user_id} has access")
+        logger.info(f'Step 3 SUCCESS: User {user_id} has access')
         
         # Set current_user for generate_report() function
-        logging.info("Step 3: Logging in user...")
+        logger.info('Step 4: Logging in user...')
         from flask_login import login_user
         login_user(user, remember=False)
-        logging.info("Step 3 SUCCESS: User logged in")
+        logger.info('Step 4 SUCCESS: User logged in')
         
-        logger.info(f"Generate report called by user {user_id}")
-        logging.info(f"Step 4: Calling generate_report() for user {user_id}...")
+        logger.info(f'Step 5: Preparing to generate report for user {user_id}...')
         
         # Get shop_url from request args, session, or None (will use first active store)
         from flask import session
@@ -4379,16 +4593,16 @@ def api_generate_report():
         except: pass
         # #endregion
         if shop_url:
-            logging.info(f"Step 4: Using shop_url from request/session: {shop_url}")
+            logger.info(f'Step 5a: Using shop_url from request/session: {shop_url}')
         else:
-            logging.info(f"Step 4: No shop_url in request/session, will use first active store for user")
+            logger.info(f'Step 5a: No shop_url in request/session, will use first active store for user')
         
         # CRITICAL: DO NOT call db.session.remove() here - let SQLAlchemy manage connections
         # Removing sessions before queries can cause segfaults by corrupting connection state
+        logger.info('Step 5b: Importing generate_report function...')
         from reporting import generate_report
-        # Pass user_id and shop_url to avoid recursion and ensure correct store
-        logging.info("Step 4a: Imported generate_report function")
-        logging.info("Step 4b: Calling generate_report(user_id={}, shop_url={})...".format(user_id, shop_url))
+        logger.info('Step 5b SUCCESS: generate_report function imported')
+        
         # #region agent log
         try:
             import json
@@ -4398,10 +4612,16 @@ def api_generate_report():
         except: pass
         # #endregion
         
+        logger.info(f'Step 5c: Calling generate_report(user_id={user_id}, shop_url={shop_url})...')
         data = generate_report(user_id=user_id, shop_url=shop_url)
-        
-        logging.info(f"Step 4 SUCCESS: generate_report() returned, checking results...")
-        logging.info(f"Step 4 result keys: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
+        logger.info(f'Step 5c SUCCESS: generate_report() returned')
+        logger.info(f'Result type: {type(data)}, Is dict: {isinstance(data, dict)}')
+        if isinstance(data, dict):
+            logger.info(f'Result keys: {list(data.keys())}')
+            if 'error' in data:
+                logger.warning(f'Result contains error: {data.get("error")}')
+            if 'message' in data:
+                logger.info(f'Result message: {data.get("message")[:100]}...' if len(str(data.get("message", ""))) > 100 else f'Result message: {data.get("message")}')
         # #region agent log
         try:
             import json
@@ -4413,57 +4633,56 @@ def api_generate_report():
         
         if data.get('error') and data['error'] is not None:
             error_msg = data['error']
-            logging.warning(f"Step 4 ERROR: Report generation returned error: {error_msg[:200]}")
+            logger.warning(f'Step 5d ERROR: Report generation returned error: {error_msg[:200]}')
             if 'No Shopify store connected' in error_msg:
-                logger.info(f"Generate report: No store connected for user {user_id}")
+                logger.info(f'Generate report: No store connected for user {user_id}')
             else:
-                logger.error(f"Generate report error for user {user_id}: {error_msg}")
+                logger.error(f'Generate report error for user {user_id}: {error_msg}')
+            logger.error('=== GENERATE REPORT REQUEST FAILED: Report Error ===')
             return error_msg, 500
         
         if not data.get('message'):
-            logging.warning(f"Step 4 WARNING: No message in report data")
-            logger.warning(f"Generate report returned no message for user {user_id}")
+            logger.warning(f'Step 5d WARNING: No message in report data')
+            logger.warning(f'Generate report returned no message for user {user_id}')
+            logger.error('=== GENERATE REPORT REQUEST FAILED: No Data ===')
             return '<h3 class="error">❌ No report data available</h3>', 500
         
         html = data.get('message', '<h3 class="error">❌ No report data available</h3>')
-        logging.info(f"Step 5: Report HTML generated, length: {len(html)} characters")
+        logger.info(f'Step 5d: Report HTML generated, length: {len(html)} characters')
         
         from flask import session
         if 'report_data' in data:
             session['report_data'] = data['report_data']
-            logging.info("Step 5a: Report data stored in session")
+            logger.info('Step 5e: Report data stored in session for CSV export')
         
-        logging.info("=== REPORT GENERATION SUCCESS ===")
+        logger.info('=== GENERATE REPORT REQUEST SUCCESS ===')
         return html, 200
         
     except MemoryError as e:
-        logging.error("=== CRASH DETECTED ===")
-        logging.error(f"Error type: {type(e).__name__}")
-        logging.error(f"Error message: {str(e)}")
-        logging.error(f"Full traceback:\n{traceback.format_exc()}")
-        logging.error("=== END CRASH LOG ===")
-        logger.error(f"Memory error generating report for user {user_id} - clearing cache")
+        logger.error('=== GENERATE REPORT REQUEST FAILED: Memory Error ===')
+        logger.error(f'Error type: {type(e).__name__}')
+        logger.error(f'Error message: {str(e)}')
+        logger.error(f'Full traceback:\n{traceback.format_exc()}')
+        logger.error(f'Memory error generating report for user {user_id} - clearing cache')
         from performance import clear_cache as clear_perf_cache
         clear_perf_cache()
         return jsonify({"success": False, "error": "Memory error - please try again"}), 500
     except SystemExit as e:
-        logging.error("=== CRASH DETECTED ===")
-        logging.error(f"Error type: {type(e).__name__}")
-        logging.error(f"Error message: {str(e)}")
-        logging.error(f"Full traceback:\n{traceback.format_exc()}")
-        logging.error("=== END CRASH LOG ===")
+        logger.error('=== GENERATE REPORT REQUEST FAILED: SystemExit ===')
+        logger.error(f'Error type: {type(e).__name__}')
+        logger.error(f'Error message: {str(e)}')
+        logger.error(f'Full traceback:\n{traceback.format_exc()}')
         # Re-raise system exits (like from sys.exit())
         raise
     except BaseException as e:
-        logging.error("=== CRASH DETECTED ===")
-        logging.error(f"Error type: {type(e).__name__}")
-        logging.error(f"Error message: {str(e)}")
-        logging.error(f"Full traceback:\n{traceback.format_exc()}")
-        logging.error(f"User ID: {user_id}")
-        logging.error(f"Exception args: {e.args}")
-        logging.error("=== END CRASH LOG ===")
+        logger.error('=== GENERATE REPORT REQUEST FAILED: Critical Error ===')
+        logger.error(f'Error type: {type(e).__name__}')
+        logger.error(f'Error message: {str(e)}')
+        logger.error(f'Full traceback:\n{traceback.format_exc()}')
+        logger.error(f'User ID: {user_id}')
+        logger.error(f'Exception args: {e.args}')
         # Catch all other exceptions including segmentation faults precursors
-        logger.error(f"Critical error generating report for user {user_id}: {type(e).__name__}: {str(e)}", exc_info=True)
+        logger.error(f'Critical error generating report for user {user_id}: {type(e).__name__}: {str(e)}', exc_info=True)
         from performance import clear_cache as clear_perf_cache
         try:
             clear_perf_cache()
@@ -4471,10 +4690,10 @@ def api_generate_report():
             pass
         return jsonify({"success": False, "error": "An unexpected error occurred. Please try again or contact support if this persists."}), 500
     except Exception as e:
-        logging.error("=== CRASH DETECTED ===")
-        logging.error(f"Error type: {type(e).__name__}")
-        logging.error(f"Error message: {str(e)}")
-        logging.error(f"Full traceback:\n{traceback.format_exc()}")
+        logger.error('=== GENERATE REPORT REQUEST FAILED: Exception ===')
+        logger.error(f'Error type: {type(e).__name__}')
+        logger.error(f'Error message: {str(e)}')
+        logger.error(f'Full traceback:\n{traceback.format_exc()}')
         logging.error(f"User ID: {user_id}")
         logging.error("=== END CRASH LOG ===")
         logger.error(f"Error generating report for user {user_id}: {str(e)}", exc_info=True)
