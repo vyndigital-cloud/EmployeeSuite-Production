@@ -1201,9 +1201,9 @@ DASHBOARD_HTML = """
                         fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:AppBridge:script_onload','message':'App Bridge script onload fired','data':{'has_app_bridge':!!window['app-bridge'],'check_count':checkCount},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
                     } catch(e) {}
                     // #endregion
-                    // Give it a moment, then check
+                    // Give it a moment, then check (both APIs)
                     setTimeout(function() {
-                        if (window['app-bridge']) {
+                        if (window.shopify || window['app-bridge']) {
                             clearInterval(checkInterval);
                             initAppBridge();
                         }
