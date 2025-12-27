@@ -1081,6 +1081,11 @@ DASHBOARD_HTML = """
                                     // Enable buttons now that App Bridge is ready
                                     enableEmbeddedButtons();
                             } else {
+                            // #region agent log
+                            try {
+                                fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:AppBridge:simple_failed','message':'App Bridge object not found after Safari delay','data':{'has_app_bridge':!!window['app-bridge'],'window_keys':Object.keys(window).filter(k => k.toLowerCase().includes('app') || k.toLowerCase().includes('bridge') || k.toLowerCase().includes('shopify')).slice(0,20),'user_agent':navigator.userAgent.substring(0,50),'script_src':script.src},"timestamp":Date.now(),sessionId:'debug-session',runId:'app-bridge-debug',hypothesisId:'F'})}).catch(()=>{});
+                            } catch(e) {}
+                            // #endregion
                             console.error('❌ App Bridge object not found after Safari delay');
                                 window.shopifyApp = null;
                                 window.appBridgeReady = true;
