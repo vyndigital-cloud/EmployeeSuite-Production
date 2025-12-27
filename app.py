@@ -1504,7 +1504,8 @@ DASHBOARD_HTML = """
                         <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"processOrders\"]'); if (btn) setTimeout(function(){processOrders(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
                     </div>
                 `;
-            // Removed early return - proceedWithApiCall will be called when ready
+                } // Close else if (!window.appBridgeReady)
+            } // Close if (isEmbedded)
             
             // Extract API call logic into function (called when Promise resolves or App Bridge ready)
             function proceedWithApiCall() {
@@ -1839,7 +1840,9 @@ DASHBOARD_HTML = """
                         <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please wait while the app initializes. This should only take a moment.</div>
                         <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"updateInventory\"]'); if (btn) setTimeout(function(){updateInventory(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
                     </div>
-                `;// Removed early return - proceedWithApiCall will be called when ready
+                `;
+                } // Close else if (!window.appBridgeReady)
+            } // Close if (isEmbedded)
             
             // Extract API call logic into function (called when Promise resolves or App Bridge ready)
             function proceedWithApiCall() {
@@ -2158,7 +2161,9 @@ DASHBOARD_HTML = """
                         <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please wait while the app initializes. This should only take a moment.</div>
                         <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"generateReport\"]'); if (btn) setTimeout(function(){generateReport(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
                     </div>
-                `;// Removed early return - proceedWithApiCall will be called when ready
+                `;
+                } // Close else if (!window.appBridgeReady)
+            } // Close if (isEmbedded)
             
             // Extract API call logic into function (called when Promise resolves or App Bridge ready)
             function proceedWithApiCall() {
