@@ -334,5 +334,8 @@ def handle_all_exceptions(e):
 - **Deployment:** Render.com
 - **Environment:** Production
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 435f7f080afbe6538bc4e1b20a026900b2acdce6

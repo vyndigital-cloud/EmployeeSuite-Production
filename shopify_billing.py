@@ -7,7 +7,7 @@ import requests
 from models import db, ShopifyStore, User
 from logging_config import logger
 
-SHOPIFY_API_VERSION = '2024-10'
+SHOPIFY_API_VERSION = '2025-10'
 
 class ShopifyBilling:
     def __init__(self, shop_url, access_token):

@@ -548,7 +548,7 @@ def connect_store():
     # Validate the access_token works with current API key by testing a simple API call
     try:
         import requests
-        api_version = '2024-10'
+        api_version = '2025-10'
         test_url = f"https://{shop_url}/admin/api/{api_version}/shop.json"
         headers = {
             'X-Shopify-Access-Token': access_token,
@@ -674,7 +674,7 @@ def cancel_subscription():
     
     try:
         # Cancel via Shopify Billing API
-        api_version = '2024-10'
+        api_version = '2025-10'
         url = f"https://{store.shop_url}/admin/api/{api_version}/recurring_application_charges/{store.charge_id}.json"
         headers = {
             'X-Shopify-Access-Token': store.access_token,

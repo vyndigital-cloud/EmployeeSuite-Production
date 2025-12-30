@@ -20,7 +20,10 @@ if not SHOPIFY_API_SECRET:
     logger.error("❌ CRITICAL: SHOPIFY_API_SECRET environment variable is not set! OAuth will fail.")
 
 # App Store required scopes - only request what you need (Shopify requirement)
-SCOPES = 'read_products,read_inventory,read_orders'
+# CRITICAL: These scopes MUST be enabled in Shopify Partners Dashboard → App Setup → Access Scopes
+# If you get 403 errors, verify these scopes are CHECKED in Partners Dashboard
+# The order doesn't matter, but ALL of these must be requested and granted
+SCOPES = 'read_orders,read_products,read_inventory'  # read_orders FIRST to ensure it's included
 # CRITICAL: Shopify only allows ONE redirect URI in Partners Dashboard
 # We MUST always use the production URL: https://employeesuite-production.onrender.com/auth/callback
 # Even when running locally, OAuth callbacks will go to production, then you can test locally after OAuth completes
@@ -193,9 +196,32 @@ def install():
         state_data = f"{shop}||{quote(host, safe='')}"
     
     auth_url = f"https://{shop}/admin/oauth/authorize"
+    
+    # CRITICAL: Ensure ALL required scopes are included
+    # These scopes MUST match what's configured in shopify.app.toml and Partners Dashboard
+    required_scopes = [
+        'read_orders',      # Required for orders API (prevents 403 errors)
+        'read_products',    # Required for products API
+        'read_inventory',   # Required for inventory API
+    ]
+    
+    # Use explicit scope list to ensure read_orders is always included
+    scopes_string = ','.join(required_scopes)
+    
+    # Verify read_orders is in the scopes
+    if 'read_orders' not in scopes_string:
+        logger.error(f"❌ CRITICAL: read_orders scope is MISSING from scopes list!")
+        logger.error(f"Current scopes: {scopes_string}")
+        # Force add it if missing
+        if 'read_orders' not in SCOPES:
+            scopes_string = f"{SCOPES},read_orders"
+            logger.warning(f"⚠️ Added read_orders to scopes: {scopes_string}")
+    else:
+        logger.info(f"✅ Verified: read_orders is included in scopes")
+    
     params = {
         'client_id': SHOPIFY_API_KEY,
-        'scope': SCOPES,
+        'scope': scopes_string,  # Use explicit scopes list
         'redirect_uri': REDIRECT_URI,  # Must match Partners Dashboard exactly - no query params
         'state': state_data
         # Modern OAuth flow: grant_options[] removed - access mode configured in Partners Dashboard
@@ -206,7 +232,8 @@ def install():
     # Shopify requires exact match, but values must be properly encoded in the query string
     # Log the redirect URI being used for debugging
     logger.info(f"OAuth install: Using redirect_uri={REDIRECT_URI} (must match Partners Dashboard exactly)")
-    logger.info(f"OAuth install: Requesting scopes: {SCOPES}")
+    logger.info(f"OAuth install: Requesting scopes: {scopes_string}")
+    logger.info(f"OAuth install: Scope breakdown - read_orders: {'read_orders' in scopes_string}, read_products: {'read_products' in scopes_string}, read_inventory: {'read_inventory' in scopes_string}")
     # #region agent log
     try:
         import json
@@ -495,8 +522,17 @@ def callback():
         app_url = os.getenv('SHOPIFY_APP_URL', 'https://employeesuite-production.onrender.com')
         # Redirect to settings page with success message so user sees confirmation
         from flask import url_for
-        settings_url = url_for('shopify.shopify_settings', success='Store connected successfully!', shop=shop, host=host)
-        redirect_url = f"{app_url}{settings_url}"
+        from urllib.parse import quote
+        
+        # CRITICAL: Properly encode URL parameters to prevent "couldn't load page" errors
+        # Build URL manually to ensure proper encoding
+        base_url = f"{app_url}/settings/shopify"
+        params = []
+        params.append(f"success={quote('Store connected successfully!')}")
+        params.append(f"shop={quote(shop)}")
+        params.append(f"host={quote(host)}")
+        redirect_url = f"{base_url}?{'&'.join(params)}"
+        
         logger.info(f"OAuth complete for embedded app, redirecting to: {redirect_url}")
         # #region agent log
         try:
@@ -506,30 +542,135 @@ def callback():
         except: pass
         # #endregion
         
-        # SIMPLEST POSSIBLE: Just use window.top.location.href to break out of iframe
-        # No App Bridge, no complex JavaScript - just works
+        # ENHANCED: Multiple redirect attempts with error handling
+        # This prevents "couldn't load page" errors by trying multiple methods
+        import json as json_module
+        redirect_url_json = json_module.dumps(redirect_url)
         redirect_html = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <title>Redirecting...</title>
-    <script>
-        // Break out of iframe immediately
-        if (window.top !== window.self) {{
-            window.top.location.href = '{redirect_url}';
-        }} else {{
-            window.location.href = '{redirect_url}';
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f6f6f7;
+            text-align: center;
         }}
+        .container {{
+            padding: 40px 24px;
+            max-width: 500px;
+        }}
+        .spinner {{
+            border: 3px solid #e1e3e5;
+            border-top: 3px solid #008060;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }}
+        @keyframes spin {{
+            0% {{ transform: rotate(0deg); }}
+            100% {{ transform: rotate(360deg); }}
+        }}
+        .message {{
+            font-size: 14px;
+            color: #6d7175;
+            margin-bottom: 20px;
+        }}
+        .btn {{
+            display: inline-block;
+            padding: 10px 20px;
+            background: #008060;
+            color: #fff;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }}
+    </style>
+    <script>
+        var redirectUrl = {redirect_url_json};
+        var attempts = 0;
+        var maxAttempts = 3;
+        
+        function tryRedirect() {{
+            attempts++;
+            console.log('Redirect attempt', attempts, 'to:', redirectUrl);
+            
+            try {{
+                // Method 1: Try window.top.location.href (breaks out of iframe)
+                if (window.top !== window.self) {{
+                    window.top.location.href = redirectUrl;
+                }} else {{
+                    window.location.href = redirectUrl;
+                }}
+                
+                // If redirect doesn't happen within 2 seconds, try next method
+                setTimeout(function() {{
+                    if (attempts < maxAttempts) {{
+                        // Method 2: Try window.location.replace (more reliable)
+                        try {{
+                            if (window.top !== window.self) {{
+                                window.top.location.replace(redirectUrl);
+                            }} else {{
+                                window.location.replace(redirectUrl);
+                            }}
+                        }} catch (e) {{
+                            console.error('Redirect method 2 failed:', e);
+                            if (attempts < maxAttempts) {{
+                                // Method 3: Show manual link
+                                document.getElementById('manual-link').style.display = 'block';
+                                document.getElementById('spinner').style.display = 'none';
+                            }}
+                        }}
+                    }} else {{
+                        // All attempts failed - show manual link
+                        document.getElementById('manual-link').style.display = 'block';
+                        document.getElementById('spinner').style.display = 'none';
+                    }}
+                }}, 2000);
+            }} catch (e) {{
+                console.error('Redirect failed:', e);
+                // Show manual link on error
+                document.getElementById('manual-link').style.display = 'block';
+                document.getElementById('spinner').style.display = 'none';
+            }}
+        }}
+        
+        // Start redirect immediately
+        tryRedirect();
+        
+        // Fallback: Also try on page load
+        window.addEventListener('load', function() {{
+            if (attempts === 0) {{
+                tryRedirect();
+            }}
+        }});
     </script>
     <noscript>
         <meta http-equiv="refresh" content="0;url={redirect_url}">
     </noscript>
 </head>
 <body>
-    <p>Redirecting... <a href="{redirect_url}">Click here if not redirected</a></p>
+    <div class="container">
+        <div id="spinner" class="spinner"></div>
+        <div class="message">Connecting your store...</div>
+        <div id="manual-link" style="display: none;">
+            <p style="font-size: 14px; color: #6d7175; margin-bottom: 16px;">If you're not redirected automatically, click below:</p>
+            <a href="{redirect_url}" class="btn">Continue to Settings →</a>
+        </div>
+    </div>
 </body>
 </html>"""
         from flask import Response
+        import json
         return Response(redirect_html, mimetype='text/html')
     
     # Non-embedded installation - regular redirect works fine
@@ -601,6 +742,9 @@ def exchange_code_for_token(shop, code):
                         logger.error(f"⚠️ SCOPE MISMATCH: Requested {SCOPES} but got {granted_scopes}")
                         if missing:
                             logger.error(f"⚠️ MISSING SCOPES: {missing}")
+                            logger.error(f"❌ CRITICAL: Missing scopes will cause 403 errors on API calls!")
+                            logger.error(f"❌ ACTION REQUIRED: Go to Shopify Partners Dashboard → Your App → API permissions")
+                            logger.error(f"❌ Ensure these scopes are CHECKED: {', '.join(missing)}")
                         if extra:
                             logger.warning(f"⚠️ EXTRA SCOPES: {extra}")
                     else:
@@ -633,7 +777,7 @@ def exchange_code_for_token(shop, code):
 
 def get_shop_info(shop, access_token):
     """Get shop information including shop_id"""
-    url = f"https://{shop}/admin/api/2024-10/shop.json"
+    url = f"https://{shop}/admin/api/2025-10/shop.json"
     headers = {
         'X-Shopify-Access-Token': access_token,
         'Content-Type': 'application/json'
@@ -655,7 +799,7 @@ def register_compliance_webhooks(shop, access_token):
     This ensures webhooks are registered even if shopify.app.toml isn't deployed via CLI
     """
     app_url = os.getenv('SHOPIFY_APP_URL', 'https://employeesuite-production.onrender.com')
-    api_version = "2024-10"
+    api_version = "2025-10"
     
     # Mandatory compliance webhooks
     webhooks = [

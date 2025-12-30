@@ -1,12 +1,15 @@
 import requests
 import os
+import logging
 from performance import cache_result, CACHE_TTL_INVENTORY, CACHE_TTL_ORDERS
+
+logger = logging.getLogger(__name__)
 
 class ShopifyClient:
     def __init__(self, shop_url, access_token):
         self.shop_url = shop_url.replace('https://', '').replace('http://', '')
         self.access_token = access_token
-        self.api_version = "2024-10"  # Match app.json API version
+        self.api_version = "2025-10"  # Match app.json API version
         
     def _get_headers(self):
         return {
@@ -325,7 +328,45 @@ class ShopifyClient:
                     # #endregion
                     return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
                 response.raise_for_status()
-                return response.json()
+                
+                # CRITICAL: Parse JSON response and check for GraphQL errors
+                # GraphQL can return 200 status even when there are errors in the response
+                try:
+                    response_json = response.json()
+                    logger.info(f"GraphQL response received: {list(response_json.keys())}")
+                    
+                    # Check for GraphQL errors in the response
+                    if 'errors' in response_json:
+                        errors = response_json['errors']
+                        logger.error(f"GraphQL errors in response: {errors}")
+                        # Extract error message(s)
+                        if isinstance(errors, list) and len(errors) > 0:
+                            error_msg = errors[0].get('message', str(errors[0])) if isinstance(errors[0], dict) else str(errors[0])
+                        else:
+                            error_msg = str(errors)
+                        return {"error": f"GraphQL error: {error_msg}", "graphql_errors": errors}
+                    
+                    # Check if data is present
+                    if 'data' not in response_json:
+                        logger.warning(f"GraphQL response missing 'data' field: {response_json}")
+                        return {"error": "GraphQL response missing data field", "response": response_json}
+                    
+                    # Log successful response structure for debugging
+                    logger.debug(f"GraphQL response structure: data keys = {list(response_json.get('data', {}).keys())}")
+                    
+                    return response_json
+                except ValueError as json_error:
+                    # Failed to parse JSON
+                    logger.error(f"Failed to parse GraphQL response as JSON: {json_error}")
+                    logger.error(f"Response status: {response.status_code}")
+                    logger.error(f"Response text (first 500 chars): {response.text[:500]}")
+                    return {"error": f"Failed to parse GraphQL response: {str(json_error)}"}
+                except Exception as parse_error:
+                    # Any other parsing error
+                    logger.error(f"Unexpected error parsing GraphQL response: {parse_error}")
+                    logger.error(f"Response status: {response.status_code}")
+                    logger.error(f"Response text (first 500 chars): {response.text[:500]}")
+                    return {"error": f"Error parsing GraphQL response: {str(parse_error)}"}
             except requests.exceptions.Timeout:
                 if attempt < retries - 1:
                     # Faster retries - max 0.5s delay
@@ -482,7 +523,10 @@ class ShopifyClient:
                                         inventoryLevels(first: 1) {
                                             edges {
                                                 node {
-                                                    quantityAvailable
+                                                    quantities(names: ["available"]) {
+                                                        name
+                                                        quantity
+                                                    }
                                                 }
                                             }
                                         }
@@ -574,7 +618,8 @@ class ShopifyClient:
                             price = f"${price_value}" if price_value != '0' else 'N/A'
                             
                             # Get inventory quantity from GraphQL structure
-                            # CRITICAL: Use quantityAvailable (not 'available') - Shopify Admin API 2024-10+
+                            # CRITICAL: Shopify changed to quantities array structure
+                            # quantities(names: ["available"]) returns array with {name, quantity}
                             stock = 0
                             inventory_item = variant.get("inventoryItem")
                             if inventory_item and isinstance(inventory_item, dict):
@@ -584,7 +629,14 @@ class ShopifyClient:
                                     if edges and len(edges) > 0:
                                         node = edges[0].get("node", {})
                                         if node and isinstance(node, dict):
-                                            stock = node.get("quantityAvailable", 0) or 0
+                                            # Parse quantities array: [{"name": "available", "quantity": 10}]
+                                            quantities = node.get("quantities", [])
+                                            if quantities and isinstance(quantities, list):
+                                                # Find the "available" quantity
+                                                for q in quantities:
+                                                    if isinstance(q, dict) and q.get("name") == "available":
+                                                        stock = q.get("quantity", 0) or 0
+                                                        break
                             
                             inventory.append({
                                 'product': product_title,

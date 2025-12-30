@@ -118,5 +118,8 @@ Your app uses:
 
 **Do NOT change to legacy flow (true)** unless you're removing App Bridge support.
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 435f7f080afbe6538bc4e1b20a026900b2acdce6
