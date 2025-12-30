@@ -155,7 +155,7 @@ SUBSCRIBE_HTML = '''
                 {% elif trial_active and not is_subscribed %}
                 Subscribe now to ensure uninterrupted access when your trial ends.
                 {% else %}
-                Get unlimited access to Employee Suite for $29/month.
+                Get unlimited access to Employee Suite for $99/month.
                 {% endif %}
             </p>
         </div>
@@ -186,7 +186,7 @@ SUBSCRIBE_HTML = '''
         <div class="pricing-card">
             <div style="text-align: center; margin-bottom: 24px;">
                 <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; color: #6d7175; margin-bottom: 12px;">Monthly Subscription</div>
-                <div style="font-size: 48px; font-weight: 700; color: #202223; margin-bottom: 8px;">$29<span style="font-size: 20px; font-weight: 500; color: #6d7175;">/month</span></div>
+                <div style="font-size: 48px; font-weight: 700; color: #202223; margin-bottom: 8px;">$99<span style="font-size: 20px; font-weight: 500; color: #6d7175;">/month</span></div>
                 <div style="font-size: 14px; color: #6d7175;">7-day free trial • Cancel anytime</div>
             </div>
             
@@ -403,7 +403,7 @@ def create_recurring_charge(shop_url, access_token, return_url):
     payload = {
         'recurring_application_charge': {
             'name': 'Employee Suite Pro',
-            'price': 29.00,
+            'price': 99.00,
             'return_url': return_url,
             'trial_days': 7,
             'test': test_mode

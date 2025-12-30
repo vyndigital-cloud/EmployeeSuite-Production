@@ -124,6 +124,7 @@ from gdpr_compliance import gdpr_bp
 # Enhanced features
 from enhanced_features import enhanced_bp
 from enhanced_billing import enhanced_billing_bp
+from features_pages import features_pages_bp
 from session_token_verification import verify_session_token
 from order_processing import process_orders
 from inventory import update_inventory
@@ -504,6 +505,7 @@ app.register_blueprint(gdpr_bp)
 # Enhanced features blueprints
 app.register_blueprint(enhanced_bp)
 app.register_blueprint(enhanced_billing_bp)
+app.register_blueprint(features_pages_bp)
 
 # Initialize rate limiter with global 1000 req/hour (increased from 200 to allow legitimate usage)
 limiter = init_limiter(app)
@@ -1362,6 +1364,11 @@ DASHBOARD_HTML = """
             <div>
                 <div class="page-title">Dashboard</div>
                 <div class="page-subtitle">Monitor your Shopify store operations with inventory tracking, order monitoring, and comprehensive revenue analytics. 7-day free trial, no setup fees.</div>
+                <div style="margin-top: 12px;">
+                    <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="display: inline-block; padding: 8px 16px; background: #f0fdf4; color: #166534; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px; border: 1px solid #86efac;">
+                        🎉 View New Features →
+                    </a>
+                </div>
             </div>
             {% if is_subscribed %}
             <div style="background: #fff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); text-align: center; min-width: 140px;">
@@ -1476,6 +1483,57 @@ DASHBOARD_HTML = """
                 {% else %}
                 <button type="button" class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled aria-label="Subscribe to generate reports">
                     <span>Generate Report</span>
+                    <span style="font-size: 12px; opacity: 0.8;">→</span>
+                </button>
+                {% endif %}
+            </div>
+            
+            <div class="card" style="border: 2px solid #008060;">
+                <div class="card-icon">📥</div>
+                <div class="card-title">CSV Exports</div>
+                <div class="card-description">Download Orders, Inventory, and Revenue reports as CSV with date filtering. Export your data anytime.</div>
+                {% if has_access %}
+                <a href="/features/csv-exports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="card-btn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center;">
+                    <span>Export Data</span>
+                    <span style="font-size: 12px; opacity: 0.8;">→</span>
+                </a>
+                {% else %}
+                <button type="button" class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled>
+                    <span>Export Data</span>
+                    <span style="font-size: 12px; opacity: 0.8;">→</span>
+                </button>
+                {% endif %}
+            </div>
+            
+            <div class="card" style="border: 2px solid #008060;">
+                <div class="card-icon">📅</div>
+                <div class="card-title">Scheduled Reports</div>
+                <div class="card-description">Automatically receive reports via Email or SMS at your preferred time. Set it and forget it.</div>
+                {% if has_access %}
+                <a href="/features/scheduled-reports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="card-btn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center;">
+                    <span>Schedule Reports</span>
+                    <span style="font-size: 12px; opacity: 0.8;">→</span>
+                </a>
+                {% else %}
+                <button type="button" class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled>
+                    <span>Schedule Reports</span>
+                    <span style="font-size: 12px; opacity: 0.8;">→</span>
+                </button>
+                {% endif %}
+            </div>
+            
+            <div class="card" style="border: 2px solid #008060;">
+                <div class="card-icon">📊</div>
+                <div class="card-title">Comprehensive Dashboard</div>
+                <div class="card-description">View all three reports (Orders, Inventory, Revenue) in one unified dashboard view.</div>
+                {% if has_access %}
+                <a href="/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="card-btn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center;">
+                    <span>View Dashboard</span>
+                    <span style="font-size: 12px; opacity: 0.8;">→</span>
+                </a>
+                {% else %}
+                <button type="button" class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled>
+                    <span>View Dashboard</span>
                     <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
                 {% endif %}
@@ -1753,7 +1811,7 @@ DASHBOARD_HTML = """
                     <p style="color: #991b1b; margin-bottom: 8px; font-size: 15px;">Your trial has ended.</p>
                     <p style="color: #737373; margin-bottom: 24px; font-size: 14px;">Subscribe now to continue using all Employee Suite features.</p>
                     <a href="{% if host %}{{ APP_URL }}/subscribe?shop={{ shop }}&host={{ host }}{% else %}{{ url_for('billing.subscribe') }}{% if shop %}?shop={{ shop }}{% endif %}{% endif %}" style="display: inline-block; background: #0a0a0a; color: #fff; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.2s;">Subscribe Now →</a>
-                    <p style="color: #737373; margin-top: 16px; font-size: 13px;">$29/month • 7-day money-back guarantee</p>
+                    <p style="color: #737373; margin-top: 16px; font-size: 13px;">$99/month • 7-day money-back guarantee</p>
                 </div>
             `;
         }

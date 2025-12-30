@@ -308,7 +308,7 @@ SETTINGS_HTML = '''
                 </div>
                 <div class="info-row">
                     <span class="info-label">Billing</span>
-                    <span class="info-value">$29/month</span>
+                    <span class="info-value">$99/month</span>
                 </div>
             </div>
             <form method="POST" action="{{ url_for('shopify.cancel_subscription') }}" style="margin-top: 20px;">
