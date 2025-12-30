@@ -45,3 +45,6 @@ If the app is actually broken, tell me:
 The errors you showed are from Shopify's security headers and browser extensions - NOT our app.
 
 
+
+
+

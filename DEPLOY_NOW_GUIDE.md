@@ -139,3 +139,6 @@ If something doesn't work:
 3. Test the health endpoint
 4. Check browser console for JavaScript errors
 
+
+
+

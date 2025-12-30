@@ -12,7 +12,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    trial_ends_at = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=7))
+    trial_ends_at = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=14))  # 14-day free trial
     is_subscribed = db.Column(db.Boolean, default=False)
     stripe_customer_id = db.Column(db.String(255), nullable=True, index=True)
     reset_token = db.Column(db.String(100), nullable=True)

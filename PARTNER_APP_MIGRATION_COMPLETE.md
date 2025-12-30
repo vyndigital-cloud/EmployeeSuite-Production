@@ -128,3 +128,6 @@ Try creating a charge:
 **You're all set!** The app is now using Partner app credentials and should work correctly for both OAuth and billing.
 
 
+
+
+

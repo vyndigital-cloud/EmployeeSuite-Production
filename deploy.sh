@@ -174,3 +174,6 @@ echo "  2. Push to GitHub (if auto-deploy) or manually deploy"
 echo "  3. Verify app is running"
 echo ""
 
+
+
+

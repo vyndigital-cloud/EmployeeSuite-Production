@@ -121,6 +121,9 @@ from rate_limiter import init_limiter
 from webhook_stripe import webhook_bp
 from webhook_shopify import webhook_shopify_bp
 from gdpr_compliance import gdpr_bp
+# Enhanced features
+from enhanced_features import enhanced_bp
+from enhanced_billing import enhanced_billing_bp
 from session_token_verification import verify_session_token
 from order_processing import process_orders
 from inventory import update_inventory
@@ -470,6 +473,9 @@ app.register_blueprint(faq_bp)
 app.register_blueprint(webhook_bp)
 app.register_blueprint(webhook_shopify_bp)
 app.register_blueprint(gdpr_bp)
+# Enhanced features blueprints
+app.register_blueprint(enhanced_bp)
+app.register_blueprint(enhanced_billing_bp)
 
 # Initialize rate limiter with global 1000 req/hour (increased from 200 to allow legitimate usage)
 limiter = init_limiter(app)
@@ -1460,8 +1466,23 @@ DASHBOARD_HTML = """
         // COMPREHENSIVE JAVASCRIPT ERROR LOGGING - Capture EVERY error crumb
         // ============================================================================
         
+        // CRITICAL: Store original console.error BEFORE intercepting it
+        // This prevents infinite recursion when logJavaScriptError uses console.error
+        var originalConsoleError = console.error;
+        
+        // Guard flag to prevent recursive logging
+        var isLoggingError = false;
+        
         // Function to log JavaScript errors to backend
         function logJavaScriptError(errorType, errorMessage, errorLocation, errorData, stackTrace) {
+            // Prevent infinite recursion
+            if (isLoggingError) {
+                // If we're already logging an error, use original console.error to break the cycle
+                originalConsoleError.call(console, '[ERROR LOGGED]', errorType, ':', errorMessage);
+                return;
+            }
+            
+            isLoggingError = true;
             try {
                 var errorLog = {
                     timestamp: new Date().toISOString(),
@@ -1487,20 +1508,23 @@ DASHBOARD_HTML = """
                     body: JSON.stringify(errorLog),
                     credentials: 'include'
                 }).catch(function(err) {
-                    // If logging fails, at least log to console
-                    console.error('Failed to log error to backend:', err);
-                    console.error('Original error:', errorLog);
+                    // If logging fails, use original console.error to prevent recursion
+                    originalConsoleError.call(console, 'Failed to log error to backend:', err);
+                    originalConsoleError.call(console, 'Original error:', errorLog);
                 });
                 
-                // Also log to console for immediate visibility
-                console.error('[ERROR LOGGED]', errorType, ':', errorMessage);
-                console.error('Location:', errorLocation);
-                console.error('Stack:', stackTrace);
-                if (errorData) console.error('Data:', errorData);
+                // Also log to console for immediate visibility - use originalConsoleError to prevent recursion
+                originalConsoleError.call(console, '[ERROR LOGGED]', errorType, ':', errorMessage);
+                originalConsoleError.call(console, 'Location:', errorLocation);
+                originalConsoleError.call(console, 'Stack:', stackTrace);
+                if (errorData) originalConsoleError.call(console, 'Data:', errorData);
             } catch (e) {
-                // Last resort - log to console
-                console.error('Error logging system failed:', e);
-                console.error('Original error:', errorMessage);
+                // Last resort - use original console.error to prevent recursion
+                originalConsoleError.call(console, 'Error logging system failed:', e);
+                originalConsoleError.call(console, 'Original error:', errorMessage);
+            } finally {
+                // Always reset the flag
+                isLoggingError = false;
             }
         }
         
@@ -1525,8 +1549,9 @@ DASHBOARD_HTML = """
             var errorMessage = error ? (error.message || error.toString() || 'Unhandled promise rejection') : 'Unknown promise rejection';
             var stackTrace = error && error.stack ? error.stack : 'No stack trace';
             
-            console.error('❌ Unhandled promise rejection:', error);
-            console.error('This may cause the application to freeze. Error:', errorMessage);
+            // Use originalConsoleError to prevent recursion
+            originalConsoleError.call(console, '❌ Unhandled promise rejection:', error);
+            originalConsoleError.call(console, 'This may cause the application to freeze. Error:', errorMessage);
             
             logJavaScriptError(
                 'UnhandledPromiseRejection',
@@ -1549,15 +1574,23 @@ DASHBOARD_HTML = """
                     outputEl.innerHTML = '<div style="padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;"><div style="font-size: 15px; font-weight: 600; color: #d72c0d; margin-bottom: 8px;">⚠️ An error occurred</div><div style="font-size: 14px; color: #6d7175;">Please refresh the page and try again.</div></div>';
                 }
             } catch(e) {
-                // If showing error fails, at least log it
-                console.error('Failed to show error message:', e);
+                // If showing error fails, use originalConsoleError to prevent recursion
+                originalConsoleError.call(console, 'Failed to show error message:', e);
             }
         });
         
         // Console error interceptor (catches console.error calls)
-        var originalConsoleError = console.error;
+        // CRITICAL: originalConsoleError is already defined above to prevent recursion
         console.error = function() {
             var args = Array.prototype.slice.call(arguments);
+            
+            // Skip logging if we're already in the middle of logging (prevents recursion)
+            if (isLoggingError) {
+                // Just call original and return immediately
+                originalConsoleError.apply(console, args);
+                return;
+            }
+            
             var errorMessage = args.map(function(arg) {
                 if (typeof arg === 'object') {
                     try {
@@ -1568,6 +1601,15 @@ DASHBOARD_HTML = """
                 }
                 return String(arg);
             }).join(' ');
+            
+            // Check if this is a log from our own error logging system (prevent recursion)
+            if (errorMessage.includes('[ERROR LOGGED]') || 
+                errorMessage.includes('Failed to log error to backend') ||
+                errorMessage.includes('Error logging system failed')) {
+                // This is our own logging, just call original and return
+                originalConsoleError.apply(console, args);
+                return;
+            }
             
             logJavaScriptError(
                 'ConsoleError',
@@ -3878,42 +3920,42 @@ def api_process_orders():
     
     
     try:
-        # Get authenticated user (supports both Flask-Login and session tokens)
+    # Get authenticated user (supports both Flask-Login and session tokens)
         logger.info('Step 1: Getting authenticated user...')
-        user, error_response = get_authenticated_user()
+    user, error_response = get_authenticated_user()
         
-        if error_response:
+    if error_response:
             logger.warning('Step 1 FAILED: Authentication error')
             logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
-            return error_response
-        
+        return error_response
+    
         logger.info(f'Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, "email") else "N/A"}')
         
-        # Check access
+    # Check access
         logger.info('Step 2: Checking user access...')
-        has_access = user.has_access() if user else False
+    has_access = user.has_access() if user else False
         
-        if not has_access:
+    if not has_access:
             logger.warning(f'Step 2 FAILED: User {user.id if hasattr(user, "id") else "N/A"} does not have access')
-            return jsonify({
-                'error': 'Subscription required',
-                'success': False,
-                'action': 'subscribe',
-                'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
-                'subscribe_url': url_for('billing.subscribe')
-            }), 403
-        
+        return jsonify({
+            'error': 'Subscription required',
+            'success': False,
+            'action': 'subscribe',
+            'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
+            'subscribe_url': url_for('billing.subscribe')
+        }), 403
+    
         logger.info(f'Step 2 SUCCESS: User {user.id if hasattr(user, "id") else "N/A"} has access')
         
-        # Store user ID before login_user to avoid recursion issues
-        user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+    # Store user ID before login_user to avoid recursion issues
+    user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
         logger.info(f'Step 3: User ID extracted: {user_id}')
-        
-        # Temporarily set current_user for process_orders() function
-        # (it expects current_user to be set)
+    
+    # Temporarily set current_user for process_orders() function
+    # (it expects current_user to be set)
         logger.info('Step 4: Logging in user...')
-        from flask_login import login_user
-        login_user(user, remember=False)
+    from flask_login import login_user
+    login_user(user, remember=False)
         logger.info('Step 4 SUCCESS: User logged in')
         
         
@@ -3974,40 +4016,40 @@ def api_update_inventory():
     
     
     try:
-        # Get authenticated user (supports both Flask-Login and session tokens)
+    # Get authenticated user (supports both Flask-Login and session tokens)
         logger.info('Step 1: Getting authenticated user...')
-        user, error_response = get_authenticated_user()
+    user, error_response = get_authenticated_user()
         
-        if error_response:
+    if error_response:
             logger.warning('Step 1 FAILED: Authentication error')
             logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
-            return error_response
-        
+        return error_response
+    
         logger.info(f'Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, "email") else "N/A"}')
         
         logger.info('Step 2: Checking user access...')
-        has_access = user.has_access() if user else False
+    has_access = user.has_access() if user else False
         
-        if not has_access:
+    if not has_access:
             logger.warning(f'Step 2 FAILED: User {user.id if hasattr(user, "id") else "N/A"} does not have access')
-            return jsonify({
-                'error': 'Subscription required',
-                'success': False,
-                'action': 'subscribe',
-                'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
-                'subscribe_url': url_for('billing.subscribe')
-            }), 403
-        
+        return jsonify({
+            'error': 'Subscription required',
+            'success': False,
+            'action': 'subscribe',
+            'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
+            'subscribe_url': url_for('billing.subscribe')
+        }), 403
+    
         logger.info(f'Step 2 SUCCESS: User {user.id if hasattr(user, "id") else "N/A"} has access')
         
-        # Store user ID before login_user to avoid recursion issues
-        user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+    # Store user ID before login_user to avoid recursion issues
+    user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
         logger.info(f'Step 3: User ID extracted: {user_id}')
-        
-        # Set current_user for update_inventory() function
+    
+    # Set current_user for update_inventory() function
         logger.info('Step 4: Logging in user...')
-        from flask_login import login_user
-        login_user(user, remember=False)
+    from flask_login import login_user
+    login_user(user, remember=False)
         logger.info('Step 4 SUCCESS: User logged in')
     
         # Import at function level to avoid UnboundLocalError
@@ -4536,6 +4578,13 @@ def init_db():
     """Initialize database tables - safe to run multiple times"""
     with app.app_context():
         try:
+            # Import enhanced models to ensure they're registered
+            try:
+                from enhanced_models import UserSettings, SubscriptionPlan, ScheduledReport
+                logger.info("Enhanced models imported successfully")
+            except Exception as e:
+                logger.warning(f"Could not import enhanced models: {e}")
+            
             db.create_all()
             # Add reset_token columns if they don't exist (migration)
             # SQLite-compatible: just try to add and catch errors

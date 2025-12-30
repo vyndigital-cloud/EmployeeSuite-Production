@@ -87,3 +87,6 @@ The OAuth routes (`/install` and `/auth/callback`) could fail silently if:
 **Status:** ✅ Deployed with better error handling
 
 
+
+
+

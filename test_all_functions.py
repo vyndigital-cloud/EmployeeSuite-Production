@@ -7,7 +7,28 @@ Tests all functions in the Employee Suite codebase for errors
 import sys
 import os
 import traceback
+import json
+import time
 from datetime import datetime
+
+# #region agent log
+LOG_PATH = '/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log'
+def debug_log(location, message, data=None, hypothesis_id='GENERAL'):
+    try:
+        log_entry = {
+            "sessionId": "debug-session",
+            "runId": "run1",
+            "hypothesisId": hypothesis_id,
+            "location": location,
+            "message": message,
+            "data": data or {},
+            "timestamp": int(time.time() * 1000)
+        }
+        with open(LOG_PATH, 'a') as f:
+            f.write(json.dumps(log_entry) + '\n')
+    except Exception:
+        pass
+# #endregion
 
 # Color codes for output
 GREEN = '\033[92m'
@@ -24,12 +45,24 @@ results = {
 
 def test_import(module_name, description=""):
     """Test if a module can be imported"""
+    # #region agent log
+    debug_log('test_all_functions.py:test_import', 'test_import entry', {'module_name': module_name, 'description': description}, 'H1')
+    # #endregion
     try:
+        # #region agent log
+        debug_log('test_all_functions.py:test_import', 'before __import__', {'module_name': module_name}, 'H1')
+        # #endregion
         __import__(module_name)
+        # #region agent log
+        debug_log('test_all_functions.py:test_import', 'import successful', {'module_name': module_name}, 'H1')
+        # #endregion
         results['passed'].append(f"✓ Import: {module_name} {description}")
         print(f"{GREEN}✓{RESET} Import: {module_name} {description}")
         return True
     except Exception as e:
+        # #region agent log
+        debug_log('test_all_functions.py:test_import', 'import failed', {'module_name': module_name, 'error_type': type(e).__name__, 'error_msg': str(e)[:200]}, 'H1')
+        # #endregion
         error_msg = f"✗ Import: {module_name} - {str(e)}"
         results['failed'].append(error_msg)
         print(f"{RED}✗{RESET} Import: {module_name} - {str(e)}")
@@ -54,13 +87,22 @@ def test_function(module, func_name, *args, **kwargs):
         return False, None
 
 def main():
+    # #region agent log
+    debug_log('test_all_functions.py:main', 'main entry', {'argv': sys.argv}, 'H2')
+    # #endregion
     print(f"\n{BLUE}{'='*70}{RESET}")
     print(f"{BLUE}Employee Suite - Comprehensive Function Testing{RESET}")
     print(f"{BLUE}{'='*70}{RESET}\n")
     
     # Set minimal environment variables to avoid errors
+    # #region agent log
+    debug_log('test_all_functions.py:main', 'before env vars', {'existing_env_keys': list(os.environ.keys())[:10]}, 'H3')
+    # #endregion
     os.environ.setdefault('SECRET_KEY', 'test-secret-key')
     os.environ.setdefault('DATABASE_URL', 'sqlite:///test.db')
+    # #region agent log
+    debug_log('test_all_functions.py:main', 'after env vars', {'SECRET_KEY_set': 'SECRET_KEY' in os.environ, 'DATABASE_URL_set': 'DATABASE_URL' in os.environ}, 'H3')
+    # #endregion
     
     print(f"{YELLOW}Phase 1: Testing Module Imports{RESET}\n")
     
@@ -93,10 +135,22 @@ def main():
     
     imported_modules = {}
     for module_name, description in modules_to_test:
+        # #region agent log
+        debug_log('test_all_functions.py:main', 'testing module', {'module_name': module_name, 'modules_tested_so_far': len(imported_modules)}, 'H4')
+        # #endregion
         if test_import(module_name, description):
             try:
+                # #region agent log
+                debug_log('test_all_functions.py:main', 'before second import', {'module_name': module_name}, 'H4')
+                # #endregion
                 imported_modules[module_name] = __import__(module_name)
-            except:
+                # #region agent log
+                debug_log('test_all_functions.py:main', 'second import success', {'module_name': module_name, 'module_has_attrs': len(dir(imported_modules[module_name])) if module_name in imported_modules else 0}, 'H4')
+                # #endregion
+            except Exception as e:
+                # #region agent log
+                debug_log('test_all_functions.py:main', 'second import failed', {'module_name': module_name, 'error_type': type(e).__name__, 'error_msg': str(e)[:200]}, 'H4')
+                # #endregion
                 pass
     
     print(f"\n{YELLOW}Phase 2: Testing Core Functions{RESET}\n")
@@ -204,20 +258,38 @@ def main():
     
     # Test Flask app (this might fail due to missing env vars, but should not crash)
     try:
+        # #region agent log
+        debug_log('test_all_functions.py:main', 'before Flask import', {}, 'H5')
+        # #endregion
         # Suppress Flask startup messages
         import logging
         logging.getLogger('werkzeug').setLevel(logging.ERROR)
         
+        # #region agent log
+        debug_log('test_all_functions.py:main', 'before app import', {}, 'H5')
+        # #endregion
         from app import app
+        # #region agent log
+        debug_log('test_all_functions.py:main', 'app imported', {'app_type': type(app).__name__, 'has_blueprints': hasattr(app, 'blueprints')}, 'H5')
+        # #endregion
         print(f"{GREEN}✓{RESET} Flask app initialized")
         results['passed'].append("✓ Flask app initialization")
         
         # Test blueprints are registered
+        # #region agent log
+        debug_log('test_all_functions.py:main', 'before blueprint check', {'blueprint_count': len(app.blueprints) if hasattr(app, 'blueprints') else 0}, 'H5')
+        # #endregion
         blueprint_names = [bp.name for bp in app.blueprints.values()]
+        # #region agent log
+        debug_log('test_all_functions.py:main', 'blueprints retrieved', {'blueprint_names': blueprint_names, 'count': len(blueprint_names)}, 'H5')
+        # #endregion
         print(f"{GREEN}✓{RESET} Blueprints registered: {', '.join(blueprint_names)}")
         results['passed'].append(f"✓ Blueprints: {len(blueprint_names)} registered")
         
     except Exception as e:
+        # #region agent log
+        debug_log('test_all_functions.py:main', 'Flask app init failed', {'error_type': type(e).__name__, 'error_msg': str(e)[:200], 'traceback': traceback.format_exc()[:500]}, 'H5')
+        # #endregion
         print(f"{RED}✗{RESET} Flask app initialization - {str(e)}")
         results['failed'].append(f"✗ Flask app - {str(e)}")
         if '--verbose' in sys.argv:
@@ -279,8 +351,17 @@ def main():
     print(f"\n{BLUE}{'='*70}{RESET}\n")
     
     # Return exit code
+    # #region agent log
+    debug_log('test_all_functions.py:main', 'main exit', {'passed_count': len(results['passed']), 'failed_count': len(results['failed']), 'skipped_count': len(results['skipped'])}, 'H6')
+    # #endregion
     return 0 if len(results['failed']) == 0 else 1
 
 if __name__ == '__main__':
+    # #region agent log
+    debug_log('test_all_functions.py:__main__', 'script start', {'python_version': sys.version, 'cwd': os.getcwd()}, 'H2')
+    # #endregion
     exit_code = main()
+    # #region agent log
+    debug_log('test_all_functions.py:__main__', 'script end', {'exit_code': exit_code}, 'H2')
+    # #endregion
     sys.exit(exit_code)
