@@ -6,7 +6,7 @@ import os
 import base64
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from logging_config import logger
 
 # Get encryption key from environment or generate one
@@ -27,10 +27,10 @@ def get_encryption_key():
 def get_cipher():
     """Get Fernet cipher instance"""
     key = get_encryption_key()
-    # If key is not 32 bytes, derive it using PBKDF2
+    # If key is not 32 bytes, derive it using PBKDF2HMAC
     if len(key) != 44:  # Fernet keys are base64-encoded 32 bytes = 44 chars
         # Derive a proper key from the provided key
-        kdf = PBKDF2(
+        kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
             salt=b'employeesuite_salt_2025',  # In production, use random salt per encryption
