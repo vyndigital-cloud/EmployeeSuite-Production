@@ -464,23 +464,88 @@ def get_comprehensive_dashboard():
         # Get date range
         start_date, end_date = parse_date_range()
         
-        # Get all three reports
-        orders_result = process_orders()
-        inventory_result = check_inventory()
-        revenue_result = generate_report()
+        # Get all three reports with error handling
+        results = {
+            'orders': None,
+            'inventory': None,
+            'revenue': None,
+            'errors': []
+        }
+        
+        # Try to get orders
+        try:
+            orders_result = process_orders()
+            results['orders'] = orders_result
+        except Exception as e:
+            error_msg = str(e)
+            if '403' in error_msg or 'Permission denied' in error_msg or 'missing required scopes' in error_msg:
+                results['errors'].append({
+                    'type': 'orders',
+                    'error': 'Missing API permissions. Please reconnect your store at Settings → Shopify to grant required permissions.',
+                    'action': 'reconnect_store'
+                })
+            else:
+                results['errors'].append({
+                    'type': 'orders',
+                    'error': f'Error loading orders: {error_msg}'
+                })
+            logger.warning(f"Error getting orders for comprehensive dashboard: {e}")
+        
+        # Try to get inventory
+        try:
+            inventory_result = check_inventory()
+            results['inventory'] = inventory_result
+        except Exception as e:
+            error_msg = str(e)
+            if '403' in error_msg or 'Permission denied' in error_msg:
+                results['errors'].append({
+                    'type': 'inventory',
+                    'error': 'Missing API permissions. Please reconnect your store at Settings → Shopify.',
+                    'action': 'reconnect_store'
+                })
+            else:
+                results['errors'].append({
+                    'type': 'inventory',
+                    'error': f'Error loading inventory: {error_msg}'
+                })
+            logger.warning(f"Error getting inventory for comprehensive dashboard: {e}")
+        
+        # Try to get revenue
+        try:
+            revenue_result = generate_report()
+            results['revenue'] = revenue_result
+        except Exception as e:
+            error_msg = str(e)
+            if '403' in error_msg or 'Permission denied' in error_msg or 'missing required scopes' in error_msg:
+                results['errors'].append({
+                    'type': 'revenue',
+                    'error': 'Missing API permissions. Please reconnect your store at Settings → Shopify to grant required permissions.',
+                    'action': 'reconnect_store'
+                })
+            else:
+                results['errors'].append({
+                    'type': 'revenue',
+                    'error': f'Error loading revenue: {error_msg}'
+                })
+            logger.warning(f"Error getting revenue for comprehensive dashboard: {e}")
         
         return jsonify({
-            'success': True,
+            'success': len(results['errors']) == 0 or any([results['orders'], results['inventory'], results['revenue']]),
             'date_range': {
                 'start': start_date.isoformat(),
                 'end': end_date.isoformat()
             },
-            'orders': orders_result,
-            'inventory': inventory_result,
-            'revenue': revenue_result,
+            'orders': results['orders'],
+            'inventory': results['inventory'],
+            'revenue': results['revenue'],
+            'errors': results['errors'],
             'timestamp': datetime.utcnow().isoformat()
         })
     except Exception as e:
         logger.error(f"Error getting comprehensive dashboard: {str(e)}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            'success': False,
+            'error': f'Failed to load dashboard: {str(e)}',
+            'message': 'Please try again or reconnect your store at Settings → Shopify if you see permission errors.'
+        }), 500
 
