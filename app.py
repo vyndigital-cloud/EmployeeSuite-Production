@@ -3049,6 +3049,14 @@ def favicon():
     # Return 204 No Content - browser will stop requesting favicon
     return Response(status=204)
 
+@app.route('/apple-touch-icon.png')
+@app.route('/apple-touch-icon-precomposed.png')
+def apple_touch_icon():
+    """Handle Apple touch icon requests - return 204 No Content to prevent 404/500 errors"""
+    from flask import Response
+    # Return 204 No Content - browser will stop requesting
+    return Response(status=204)
+
 @app.route('/')
 def home():
     """Home page - CRITICAL: Must render HTML, never redirect for embedded apps"""
