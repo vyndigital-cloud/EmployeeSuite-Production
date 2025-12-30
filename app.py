@@ -1364,9 +1364,9 @@ DASHBOARD_HTML = """
             <div>
                 <div class="page-title">Dashboard</div>
                 <div class="page-subtitle">Monitor your Shopify store operations with inventory tracking, order monitoring, and comprehensive revenue analytics. 7-day free trial, no setup fees.</div>
-                <div style="margin-top: 12px;">
-                    <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="display: inline-block; padding: 8px 16px; background: #f0fdf4; color: #166534; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px; border: 1px solid #86efac;">
-                        🎉 View New Features →
+                <div style="margin-top: 16px;">
+                    <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #008060 0%, #006e52 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; box-shadow: 0 2px 8px rgba(0, 128, 96, 0.2); transition: all 0.2s;">
+                        🎉 Explore New Features →
                     </a>
                 </div>
             </div>
@@ -1488,54 +1488,63 @@ DASHBOARD_HTML = """
                 {% endif %}
             </div>
             
-            <div class="card" style="border: 2px solid #008060;">
-                <div class="card-icon">📥</div>
+            <div class="card" style="border: 2px solid #008060; background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <div class="card-icon">📥</div>
+                    <span style="background: #008060; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">NEW</span>
+                </div>
                 <div class="card-title">CSV Exports</div>
                 <div class="card-description">Download Orders, Inventory, and Revenue reports as CSV with date filtering. Export your data anytime.</div>
                 {% if has_access %}
-                <a href="/features/csv-exports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="card-btn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center;">
+                <a href="/features/csv-exports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="card-btn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; background: #008060; color: white;">
                     <span>Export Data</span>
-                    <span style="font-size: 12px; opacity: 0.8;">→</span>
+                    <span style="font-size: 12px; opacity: 0.9;">→</span>
                 </a>
                 {% else %}
-                <button type="button" class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled>
-                    <span>Export Data</span>
-                    <span style="font-size: 12px; opacity: 0.8;">→</span>
-                </button>
+                <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="card-btn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; background: #008060; color: white;">
+                    <span>Learn More</span>
+                    <span style="font-size: 12px; opacity: 0.9;">→</span>
+                </a>
                 {% endif %}
             </div>
             
-            <div class="card" style="border: 2px solid #008060;">
-                <div class="card-icon">📅</div>
+            <div class="card" style="border: 2px solid #008060; background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <div class="card-icon">📅</div>
+                    <span style="background: #008060; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">NEW</span>
+                </div>
                 <div class="card-title">Scheduled Reports</div>
                 <div class="card-description">Automatically receive reports via Email or SMS at your preferred time. Set it and forget it.</div>
                 {% if has_access %}
-                <a href="/features/scheduled-reports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="card-btn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center;">
+                <a href="/features/scheduled-reports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="card-btn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; background: #008060; color: white;">
                     <span>Schedule Reports</span>
-                    <span style="font-size: 12px; opacity: 0.8;">→</span>
+                    <span style="font-size: 12px; opacity: 0.9;">→</span>
                 </a>
                 {% else %}
-                <button type="button" class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled>
-                    <span>Schedule Reports</span>
-                    <span style="font-size: 12px; opacity: 0.8;">→</span>
-                </button>
+                <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="card-btn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; background: #008060; color: white;">
+                    <span>Learn More</span>
+                    <span style="font-size: 12px; opacity: 0.9;">→</span>
+                </a>
                 {% endif %}
             </div>
             
-            <div class="card" style="border: 2px solid #008060;">
-                <div class="card-icon">📊</div>
+            <div class="card" style="border: 2px solid #008060; background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <div class="card-icon">📊</div>
+                    <span style="background: #008060; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">NEW</span>
+                </div>
                 <div class="card-title">Comprehensive Dashboard</div>
                 <div class="card-description">View all three reports (Orders, Inventory, Revenue) in one unified dashboard view.</div>
                 {% if has_access %}
-                <a href="/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="card-btn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center;">
+                <a href="/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="card-btn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; background: #008060; color: white;">
                     <span>View Dashboard</span>
-                    <span style="font-size: 12px; opacity: 0.8;">→</span>
+                    <span style="font-size: 12px; opacity: 0.9;">→</span>
                 </a>
                 {% else %}
-                <button type="button" class="card-btn" onclick="showSubscribePrompt()" style="opacity: 0.6; cursor: not-allowed;" disabled>
-                    <span>View Dashboard</span>
-                    <span style="font-size: 12px; opacity: 0.8;">→</span>
-                </button>
+                <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="card-btn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; background: #008060; color: white;">
+                    <span>Learn More</span>
+                    <span style="font-size: 12px; opacity: 0.9;">→</span>
+                </a>
                 {% endif %}
             </div>
         </div>
