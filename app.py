@@ -3920,42 +3920,42 @@ def api_process_orders():
     
     
     try:
-    # Get authenticated user (supports both Flask-Login and session tokens)
+        # Get authenticated user (supports both Flask-Login and session tokens)
         logger.info('Step 1: Getting authenticated user...')
-    user, error_response = get_authenticated_user()
+        user, error_response = get_authenticated_user()
         
-    if error_response:
+        if error_response:
             logger.warning('Step 1 FAILED: Authentication error')
             logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
-        return error_response
-    
+            return error_response
+        
         logger.info(f'Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, "email") else "N/A"}')
         
-    # Check access
+        # Check access
         logger.info('Step 2: Checking user access...')
-    has_access = user.has_access() if user else False
+        has_access = user.has_access() if user else False
         
-    if not has_access:
+        if not has_access:
             logger.warning(f'Step 2 FAILED: User {user.id if hasattr(user, "id") else "N/A"} does not have access')
-        return jsonify({
-            'error': 'Subscription required',
-            'success': False,
-            'action': 'subscribe',
-            'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
-            'subscribe_url': url_for('billing.subscribe')
-        }), 403
-    
+            return jsonify({
+                'error': 'Subscription required',
+                'success': False,
+                'action': 'subscribe',
+                'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
+                'subscribe_url': url_for('billing.subscribe')
+            }), 403
+        
         logger.info(f'Step 2 SUCCESS: User {user.id if hasattr(user, "id") else "N/A"} has access')
         
-    # Store user ID before login_user to avoid recursion issues
-    user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+        # Store user ID before login_user to avoid recursion issues
+        user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
         logger.info(f'Step 3: User ID extracted: {user_id}')
-    
-    # Temporarily set current_user for process_orders() function
-    # (it expects current_user to be set)
+        
+        # Temporarily set current_user for process_orders() function
+        # (it expects current_user to be set)
         logger.info('Step 4: Logging in user...')
-    from flask_login import login_user
-    login_user(user, remember=False)
+        from flask_login import login_user
+        login_user(user, remember=False)
         logger.info('Step 4 SUCCESS: User logged in')
         
         
@@ -4016,40 +4016,40 @@ def api_update_inventory():
     
     
     try:
-    # Get authenticated user (supports both Flask-Login and session tokens)
+        # Get authenticated user (supports both Flask-Login and session tokens)
         logger.info('Step 1: Getting authenticated user...')
-    user, error_response = get_authenticated_user()
+        user, error_response = get_authenticated_user()
         
-    if error_response:
+        if error_response:
             logger.warning('Step 1 FAILED: Authentication error')
             logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
-        return error_response
-    
+            return error_response
+        
         logger.info(f'Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, "email") else "N/A"}')
         
         logger.info('Step 2: Checking user access...')
-    has_access = user.has_access() if user else False
+        has_access = user.has_access() if user else False
         
-    if not has_access:
+        if not has_access:
             logger.warning(f'Step 2 FAILED: User {user.id if hasattr(user, "id") else "N/A"} does not have access')
-        return jsonify({
-            'error': 'Subscription required',
-            'success': False,
-            'action': 'subscribe',
-            'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
-            'subscribe_url': url_for('billing.subscribe')
-        }), 403
-    
+            return jsonify({
+                'error': 'Subscription required',
+                'success': False,
+                'action': 'subscribe',
+                'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
+                'subscribe_url': url_for('billing.subscribe')
+            }), 403
+        
         logger.info(f'Step 2 SUCCESS: User {user.id if hasattr(user, "id") else "N/A"} has access')
         
-    # Store user ID before login_user to avoid recursion issues
-    user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+        # Store user ID before login_user to avoid recursion issues
+        user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
         logger.info(f'Step 3: User ID extracted: {user_id}')
-    
-    # Set current_user for update_inventory() function
+        
+        # Set current_user for update_inventory() function
         logger.info('Step 4: Logging in user...')
-    from flask_login import login_user
-    login_user(user, remember=False)
+        from flask_login import login_user
+        login_user(user, remember=False)
         logger.info('Step 4 SUCCESS: User logged in')
     
         # Import at function level to avoid UnboundLocalError

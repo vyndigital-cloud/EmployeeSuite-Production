@@ -13,9 +13,8 @@ import os
 enhanced_billing_bp = Blueprint('enhanced_billing', __name__)
 
 # Pricing
-PLAN_MANUAL_PRICE = 9.95  # USD
-PLAN_AUTOMATED_PRICE = 29.00  # USD
-TRIAL_DAYS = 14  # 14-day free trial
+PREMIUM_PLAN_PRICE = 99.00  # USD/month
+TRIAL_DAYS = 7  # 7-day free trial
 
 def safe_redirect(url, shop=None, host=None):
     """Safe redirect for embedded/standalone contexts"""
@@ -163,38 +162,27 @@ def pricing_page():
         </div>
         
         <div class="container">
-            <div class="trial-badge">🎉 14-Day Free Trial - No Credit Card Required</div>
+            <div class="trial-badge">🎉 7-Day Free Trial - No Credit Card Required</div>
             
             <div class="pricing-grid">
-                <!-- Manual Plan -->
-                <div class="pricing-card">
-                    <div class="plan-name">Manual Operations</div>
-                    <div class="plan-price">$9.95<small>/month</small></div>
+                <!-- Premium Plan -->
+                <div class="pricing-card featured" style="max-width: 500px; margin: 0 auto;">
+                    <div style="position: absolute; top: 16px; right: 16px; background: #008060; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600;">PREMIUM</div>
+                    <div class="plan-name">Employee Suite Premium</div>
+                    <div class="plan-price">$99<small>/month</small></div>
                     <ul class="plan-features">
-                        <li>Order processing</li>
-                        <li>Inventory management</li>
-                        <li>Revenue reports</li>
-                        <li>CSV exports</li>
-                        <li>Date filtering</li>
-                        <li>Single store</li>
-                    </ul>
-                    <a href="/subscribe?plan=manual" class="btn btn-secondary">Start Free Trial</a>
-                </div>
-                
-                <!-- Automated Plan -->
-                <div class="pricing-card featured">
-                    <div style="position: absolute; top: 16px; right: 16px; background: #008060; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600;">POPULAR</div>
-                    <div class="plan-name">Automated Operations</div>
-                    <div class="plan-price">$29<small>/month</small></div>
-                    <ul class="plan-features">
-                        <li>Everything in Manual</li>
+                        <li>Order processing & automation</li>
+                        <li>Inventory management & alerts</li>
+                        <li>Revenue reports & analytics</li>
+                        <li>CSV exports with date filtering</li>
                         <li>Auto-download reports</li>
                         <li>Scheduled reports (Email/SMS)</li>
                         <li>Multi-store connections</li>
                         <li>Staff connections</li>
                         <li>Priority support</li>
+                        <li>Data encryption</li>
                     </ul>
-                    <a href="/subscribe?plan=automated" class="btn">Start Free Trial</a>
+                    <a href="/subscribe?plan=premium" class="btn">Start Free Trial</a>
                 </div>
             </div>
         </div>
@@ -206,11 +194,8 @@ def pricing_page():
 @enhanced_billing_bp.route('/subscribe', methods=['GET'])
 @login_required
 def subscribe():
-    """Subscribe to a plan"""
-    plan_type = request.args.get('plan', 'manual')
-    
-    if plan_type not in [PLAN_MANUAL, PLAN_AUTOMATED]:
-        plan_type = PLAN_MANUAL
+    """Subscribe to premium plan"""
+    plan_type = 'premium'  # Single premium plan
     
     # Check if user already has active subscription
     existing_plan = SubscriptionPlan.query.filter_by(
@@ -227,8 +212,8 @@ def subscribe():
     if not store:
         return redirect('/settings/shopify?redirect=/subscribe?plan=' + plan_type)
     
-    # Create subscription plan
-    price = PLAN_MANUAL_PRICE if plan_type == PLAN_MANUAL else PLAN_AUTOMATED_PRICE
+    # Create subscription plan - Premium $99/month
+    price = PREMIUM_PLAN_PRICE
     
     # Use Shopify Billing API
     from shopify_billing import create_shopify_subscription
@@ -237,13 +222,13 @@ def subscribe():
             store.shop_url,
             store.access_token,
             current_user.id,
-            plan_name=f"Employee Suite {'Manual' if plan_type == PLAN_MANUAL else 'Automated'}",
+            plan_name="Employee Suite Premium",
             price=price,
             trial_days=TRIAL_DAYS
         )
         
         # Store plan info in session
-        session['pending_plan'] = plan_type
+        session['pending_plan'] = 'premium'
         session['pending_price'] = float(price)
         
         return safe_redirect(confirmation_url, shop=store.shop_url)
@@ -261,20 +246,20 @@ def confirm_subscription():
         return "Missing charge_id", 400
     
     # Get pending plan from session
-    plan_type = session.get('pending_plan', PLAN_MANUAL)
-    price = session.get('pending_price', PLAN_MANUAL_PRICE)
+    plan_type = session.get('pending_plan', 'premium')
+    price = session.get('pending_price', PREMIUM_PLAN_PRICE)
     
-    # Create subscription plan record
+    # Create subscription plan record - Premium plan
     plan = SubscriptionPlan(
         user_id=current_user.id,
-        plan_type=plan_type,
+        plan_type='premium',
         price_usd=price,
         charge_id=charge_id,
         status='active',
-        multi_store_enabled=(plan_type == PLAN_AUTOMATED),
-        staff_connections_enabled=(plan_type == PLAN_AUTOMATED),
-        automated_reports_enabled=(plan_type == PLAN_AUTOMATED),
-        scheduled_delivery_enabled=(plan_type == PLAN_AUTOMATED)
+        multi_store_enabled=True,
+        staff_connections_enabled=True,
+        automated_reports_enabled=True,
+        scheduled_delivery_enabled=True
     )
     
     # Update user subscription status
