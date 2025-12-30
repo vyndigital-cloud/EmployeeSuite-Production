@@ -389,7 +389,28 @@ def login():
         if not validate_email(email):
             return render_template_string(LOGIN_HTML, error="Invalid email format", shop=shop, embedded=embedded, host=host)
         
-        user = User.query.filter_by(email=email).first()
+        # Handle database connection errors gracefully
+        try:
+            user = User.query.filter_by(email=email).first()
+        except Exception as db_error:
+            # If database connection fails, try to fallback to SQLite
+            from models import db
+            from app import app
+            error_msg = str(db_error).lower()
+            if 'could not translate host' in error_msg or 'connection' in error_msg or 'operationalerror' in error_msg:
+                logger.warning(f"Database connection error: {db_error}. Attempting fallback to SQLite.")
+                try:
+                    # Switch to SQLite
+                    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///employeesuite.db'
+                    db.init_app(app)
+                    # Retry query
+                    user = User.query.filter_by(email=email).first()
+                except Exception as fallback_error:
+                    logger.error(f"SQLite fallback also failed: {fallback_error}")
+                    return render_template_string(LOGIN_HTML, error="Database connection error. Please try again in a moment.", shop=shop, embedded=embedded, host=host)
+            else:
+                logger.error(f"Database error: {db_error}")
+                return render_template_string(LOGIN_HTML, error="Database error. Please try again.", shop=shop, embedded=embedded, host=host)
         
         if not user:
             return render_template_string(LOGIN_HTML, error="Invalid email or password", shop=shop, embedded=embedded, host=host)

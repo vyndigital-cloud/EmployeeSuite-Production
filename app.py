@@ -203,9 +203,37 @@ app.config['REMEMBER_COOKIE_NAME'] = 'remember_token'  # Standard name
 
 # Session lifetime - shorter for embedded apps (they use tokens anyway)
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 hours (embedded apps use tokens)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///employeesuite.db')
-if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
-    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
+
+# Database configuration with automatic fallback to SQLite
+database_url = os.getenv('DATABASE_URL', 'sqlite:///employeesuite.db')
+if database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+# Test PostgreSQL connection, fallback to SQLite if it fails
+if database_url.startswith('postgresql://'):
+    try:
+        # Quick connection test
+        import psycopg2
+        from urllib.parse import urlparse
+        parsed = urlparse(database_url)
+        test_conn = psycopg2.connect(
+            host=parsed.hostname,
+            port=parsed.port or 5432,
+            user=parsed.username,
+            password=parsed.password,
+            database=parsed.path[1:] if parsed.path else None,
+            connect_timeout=3
+        )
+        test_conn.close()
+        logger.info("✅ PostgreSQL connection successful")
+        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    except Exception as e:
+        logger.warning(f"⚠️  PostgreSQL connection failed: {e}")
+        logger.info("🔄 Falling back to SQLite database")
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///employeesuite.db'
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Performance optimizations - Optimized for speed
