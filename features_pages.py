@@ -866,9 +866,21 @@ def comprehensive_dashboard_page():
             <div id="alert-container"></div>
             
             <div class="card">
-                <button class="btn" onclick="loadDashboard()" style="margin-bottom: 24px;">Load All Reports</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div>
+                        <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 4px;">All Reports</h2>
+                        <p style="color: #6d7175; font-size: 14px;">Get a complete overview of your store's performance</p>
+                    </div>
+                    <button class="btn" onclick="loadDashboard()" id="load-btn">
+                        <span id="load-btn-text">Load All Reports</span>
+                    </button>
+                </div>
+                
                 <div id="dashboard-content">
-                    <p style="color: #6d7175;">Click "Load All Reports" to fetch orders, inventory, and revenue data.</p>
+                    <div style="text-align: center; padding: 60px 20px; color: #6d7175;">
+                        <p style="font-size: 16px; margin-bottom: 8px;">Ready to view your comprehensive dashboard</p>
+                        <p style="font-size: 14px;">Click "Load All Reports" to fetch orders, inventory, and revenue data.</p>
+                    </div>
                 </div>
             </div>
         </div>
