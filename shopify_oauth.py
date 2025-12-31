@@ -521,12 +521,27 @@ def callback():
         if len(parts) == 2:
             host = unquote(parts[1])
     
-    # Log user in - for OAuth (embedded apps), use session tokens, not remember cookies
+    # CRITICAL: Always log user in/refresh session after store connection
+    # This ensures session is maintained even if user was already logged in
+    # For OAuth (embedded apps), use session tokens, not remember cookies
     # Session tokens are primary auth for embedded apps, cookies are secondary
     is_embedded = bool(host)  # If host is present, this is embedded
+    
+    # Always call login_user to refresh/maintain session, even if already logged in
+    # This is critical after store reconnection to prevent session expiration
     login_user(user, remember=not is_embedded)  # No remember cookie for embedded apps
+    
+    # Force session to be saved and marked as modified
+    # This ensures the session cookie is refreshed and doesn't expire
     session.permanent = True
     session.modified = True  # Force immediate session save (Safari compatibility)
+    
+    # Store user_id in session for embedded apps (backup auth method)
+    session['user_id'] = user.id
+    session['_authenticated'] = True
+    session['shop'] = shop  # Store shop in session for easy access
+    
+    logger.info(f"Session refreshed for user {user.id} (email: {user.email}) after OAuth callback - embedded: {is_embedded}")
     
     if is_embedded:
         logger.info(f"OAuth login for embedded app (session token auth)")
