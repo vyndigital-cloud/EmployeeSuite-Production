@@ -372,31 +372,99 @@ def csv_exports_page():
         </div>
         
         <script>
-            // Export handlers
+            // Show success message
+            function showSuccess(message) {
+                const alert = document.createElement('div');
+                alert.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #f0fdf4; border: 1px solid #86efac; color: #166534; padding: 12px 20px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000;';
+                alert.textContent = message;
+                document.body.appendChild(alert);
+                setTimeout(() => alert.remove(), 3000);
+            }
+            
+            // Export handlers with loading states
             document.getElementById('export-orders')?.addEventListener('click', function(e) {
                 e.preventDefault();
+                const btn = this;
+                const originalText = btn.textContent;
+                btn.textContent = 'Exporting...';
+                btn.style.opacity = '0.6';
+                btn.style.pointerEvents = 'none';
+                
                 const start = document.getElementById('orders-start').value;
                 const end = document.getElementById('orders-end').value;
                 let url = '/api/export/orders';
                 if (start) url += '?start_date=' + start;
                 if (end) url += (start ? '&' : '?') + 'end_date=' + end;
-                window.location.href = url;
+                
+                // Trigger download
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = '';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.opacity = '1';
+                    btn.style.pointerEvents = 'auto';
+                    showSuccess('Orders CSV export started');
+                }, 500);
             });
             
             document.getElementById('export-inventory')?.addEventListener('click', function(e) {
                 e.preventDefault();
+                const btn = this;
+                const originalText = btn.textContent;
+                btn.textContent = 'Exporting...';
+                btn.style.opacity = '0.6';
+                btn.style.pointerEvents = 'none';
+                
                 const days = document.getElementById('inventory-days').value;
-                window.location.href = '/api/export/inventory?days=' + (days || 30);
+                const url = '/api/export/inventory?days=' + (days || 30);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = '';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.opacity = '1';
+                    btn.style.pointerEvents = 'auto';
+                    showSuccess('Inventory CSV export started');
+                }, 500);
             });
             
             document.getElementById('export-revenue')?.addEventListener('click', function(e) {
                 e.preventDefault();
+                const btn = this;
+                const originalText = btn.textContent;
+                btn.textContent = 'Exporting...';
+                btn.style.opacity = '0.6';
+                btn.style.pointerEvents = 'none';
+                
                 const start = document.getElementById('revenue-start').value;
                 const end = document.getElementById('revenue-end').value;
                 let url = '/api/export/revenue';
                 if (start) url += '?start_date=' + start;
                 if (end) url += (start ? '&' : '?') + 'end_date=' + end;
-                window.location.href = url;
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = '';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.opacity = '1';
+                    btn.style.pointerEvents = 'auto';
+                    showSuccess('Revenue CSV export started');
+                }, 500);
             });
         </script>
     </body>
@@ -408,7 +476,7 @@ def csv_exports_page():
 @login_required
 @require_access
 def scheduled_reports_page():
-    """Scheduled reports management page"""
+    """Scheduled reports management page with full UI"""
     shop = request.args.get('shop', '')
     host = request.args.get('host', '')
     
@@ -448,6 +516,33 @@ def scheduled_reports_page():
                 padding: 32px;
                 margin-bottom: 24px;
             }
+            .card-title {
+                font-size: 24px;
+                font-weight: 600;
+                margin-bottom: 16px;
+            }
+            .form-group {
+                margin-bottom: 20px;
+            }
+            .form-label {
+                display: block;
+                font-weight: 500;
+                margin-bottom: 8px;
+                color: #202223;
+            }
+            .form-input, .form-select {
+                width: 100%;
+                padding: 10px 14px;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 14px;
+                font-family: inherit;
+            }
+            .form-input:focus, .form-select:focus {
+                outline: none;
+                border-color: #008060;
+                box-shadow: 0 0 0 3px rgba(0, 128, 96, 0.1);
+            }
             .btn {
                 padding: 10px 20px;
                 background: #008060;
@@ -456,30 +551,244 @@ def scheduled_reports_page():
                 border-radius: 6px;
                 font-weight: 500;
                 cursor: pointer;
+                font-size: 14px;
+                transition: background 0.2s;
+            }
+            .btn:hover {
+                background: #006e52;
+            }
+            .btn-danger {
+                background: #d72c0d;
+            }
+            .btn-danger:hover {
+                background: #b01e1e;
+            }
+            .btn-secondary {
+                background: #6d7175;
+            }
+            .btn-secondary:hover {
+                background: #525252;
+            }
+            .reports-list {
+                margin-top: 32px;
+            }
+            .report-item {
+                background: #f6f6f7;
+                border: 1px solid #e1e3e5;
+                border-radius: 8px;
+                padding: 20px;
+                margin-bottom: 12px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .report-info h3 {
+                font-size: 16px;
+                font-weight: 600;
+                margin-bottom: 8px;
+            }
+            .report-info p {
+                font-size: 14px;
+                color: #6d7175;
+                margin: 4px 0;
+            }
+            .alert {
+                padding: 12px 16px;
+                border-radius: 6px;
+                margin-bottom: 20px;
+            }
+            .alert-success {
+                background: #f0fdf4;
+                border: 1px solid #86efac;
+                color: #166534;
+            }
+            .alert-error {
+                background: #fff4f4;
+                border: 1px solid #fecaca;
+                color: #d72c0d;
+            }
+            .alert-info {
+                background: #eff6ff;
+                border: 1px solid #bfdbfe;
+                color: #1e40af;
+            }
+            .loading {
+                opacity: 0.6;
+                pointer-events: none;
             }
         </style>
     </head>
     <body>
         <div class="header">
             <div class="header-content">
-                <a href="/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="text-decoration: none; color: inherit; font-weight: 600;">← Back to Dashboard</a>
+                <a href="/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="text-decoration: none; color: inherit; font-weight: 600; font-size: 18px;">← Back to Dashboard</a>
             </div>
         </div>
         
         <div class="container">
             <h1 style="font-size: 32px; font-weight: 600; margin-bottom: 8px;">Scheduled Reports</h1>
-            <p style="color: #6d7175; margin-bottom: 32px;">Automatically receive reports via Email or SMS</p>
+            <p style="color: #6d7175; margin-bottom: 32px;">Automatically receive reports via Email or SMS at your preferred time</p>
+            
+            <div id="alert-container"></div>
             
             <div class="card">
-                <h2 style="margin-bottom: 16px;">Create Scheduled Report</h2>
-                <p style="color: #6d7175; margin-bottom: 24px;">Use the API endpoint to create scheduled reports. Coming soon: Web interface.</p>
-                <p style="font-size: 14px; color: #6d7175;">
-                    <strong>API Endpoint:</strong> POST /api/scheduled-reports<br>
-                    <strong>Get Reports:</strong> GET /api/scheduled-reports<br>
-                    <strong>Delete:</strong> DELETE /api/scheduled-reports/&lt;id&gt;
-                </p>
+                <div class="card-title">Create New Scheduled Report</div>
+                <form id="create-report-form">
+                    <div class="form-group">
+                        <label class="form-label">Report Type</label>
+                        <select name="report_type" class="form-select" required>
+                            <option value="all">All Reports (Orders, Inventory, Revenue)</option>
+                            <option value="orders">Orders Only</option>
+                            <option value="inventory">Inventory Only</option>
+                            <option value="revenue">Revenue Only</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Frequency</label>
+                        <select name="frequency" class="form-select" required>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Delivery Time</label>
+                        <input type="time" name="delivery_time" class="form-input" value="09:00" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Delivery Email</label>
+                        <input type="email" name="delivery_email" class="form-input" placeholder="your@email.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Delivery SMS (Optional)</label>
+                        <input type="tel" name="delivery_sms" class="form-input" placeholder="+1234567890">
+                        <small style="color: #6d7175; font-size: 12px; display: block; margin-top: 4px;">Phone number in E.164 format (e.g., +1234567890)</small>
+                    </div>
+                    
+                    <button type="submit" class="btn" id="create-btn">Create Scheduled Report</button>
+                </form>
+            </div>
+            
+            <div class="reports-list">
+                <div class="card-title">Active Scheduled Reports</div>
+                <div id="reports-container">
+                    <p style="color: #6d7175; text-align: center; padding: 40px;">Loading reports...</p>
+                </div>
             </div>
         </div>
+        
+        <script>
+            // Show alert function
+            function showAlert(message, type) {
+                const container = document.getElementById('alert-container');
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type}`;
+                alert.textContent = message;
+                container.innerHTML = '';
+                container.appendChild(alert);
+                setTimeout(() => alert.remove(), 5000);
+            }
+            
+            // Load reports
+            async function loadReports() {
+                try {
+                    const response = await fetch('/api/scheduled-reports');
+                    const data = await response.json();
+                    
+                    const container = document.getElementById('reports-container');
+                    
+                    if (!data.reports || data.reports.length === 0) {
+                        container.innerHTML = '<p style="color: #6d7175; text-align: center; padding: 40px;">No scheduled reports yet. Create one above to get started.</p>';
+                        return;
+                    }
+                    
+                    container.innerHTML = data.reports.map(report => `
+                        <div class="report-item">
+                            <div class="report-info">
+                                <h3>${report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1)} Report</h3>
+                                <p><strong>Frequency:</strong> ${report.frequency.charAt(0).toUpperCase() + report.frequency.slice(1)}</p>
+                                <p><strong>Time:</strong> ${report.delivery_time} ${report.timezone}</p>
+                                <p><strong>Email:</strong> ${report.delivery_email || 'Not set'}</p>
+                                ${report.delivery_sms ? `<p><strong>SMS:</strong> ${report.delivery_sms}</p>` : ''}
+                                ${report.next_send_at ? `<p><strong>Next Send:</strong> ${new Date(report.next_send_at).toLocaleString()}</p>` : ''}
+                            </div>
+                            <button class="btn btn-danger" onclick="deleteReport(${report.id})">Delete</button>
+                        </div>
+                    `).join('');
+                } catch (error) {
+                    document.getElementById('reports-container').innerHTML = 
+                        '<p style="color: #d72c0d; text-align: center; padding: 40px;">Error loading reports. Please refresh the page.</p>';
+                }
+            }
+            
+            // Delete report
+            async function deleteReport(id) {
+                if (!confirm('Are you sure you want to delete this scheduled report?')) return;
+                
+                try {
+                    const response = await fetch(`/api/scheduled-reports/${id}`, {
+                        method: 'DELETE'
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showAlert('Scheduled report deleted successfully', 'success');
+                        loadReports();
+                    } else {
+                        showAlert(data.error || 'Failed to delete report', 'error');
+                    }
+                } catch (error) {
+                    showAlert('Error deleting report. Please try again.', 'error');
+                }
+            }
+            
+            // Create report form
+            document.getElementById('create-report-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const form = e.target;
+                const btn = document.getElementById('create-btn');
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData);
+                
+                btn.disabled = true;
+                btn.textContent = 'Creating...';
+                form.classList.add('loading');
+                
+                try {
+                    const response = await fetch('/api/scheduled-reports', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showAlert('Scheduled report created successfully!', 'success');
+                        form.reset();
+                        loadReports();
+                    } else {
+                        showAlert(result.error || 'Failed to create scheduled report', 'error');
+                    }
+                } catch (error) {
+                    showAlert('Error creating scheduled report. Please try again.', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = 'Create Scheduled Report';
+                    form.classList.remove('loading');
+                }
+            });
+            
+            // Load reports on page load
+            loadReports();
+        </script>
     </body>
     </html>
     '''
