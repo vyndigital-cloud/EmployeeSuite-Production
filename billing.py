@@ -826,7 +826,6 @@ def confirm_charge():
         # Merchant approved - activate the charge
         # Use database transaction with lock to prevent race conditions
         try:
-            db.session.begin()
             # Lock the store row for update
             store = ShopifyStore.query.with_for_update().filter_by(shop_url=shop_url, user_id=user.id).first()
             if not store:
@@ -835,27 +834,35 @@ def confirm_charge():
                 return safe_redirect(subscribe_url, shop=shop, host=host)
             
             # Re-fetch access token with lock
-            access_token = store.get_access_token()
-            if not access_token:
+            locked_access_token = store.get_access_token()
+            if not locked_access_token:
                 db.session.rollback()
                 subscribe_url = url_for('billing.subscribe', error='Store not properly connected', shop=shop, host=host)
                 return safe_redirect(subscribe_url, shop=shop, host=host)
             
             # Double-check charge status with locked store
-            status_result = get_charge_status(shop_url, access_token, charge_id)
-            if not status_result.get('success') or status_result.get('status') != 'accepted':
+            locked_status_result = get_charge_status(shop_url, locked_access_token, charge_id)
+            if not locked_status_result.get('success') or locked_status_result.get('status') != 'accepted':
                 db.session.rollback()
                 subscribe_url = url_for('billing.subscribe', error='Could not verify subscription', shop=shop, host=host)
                 return safe_redirect(subscribe_url, shop=shop, host=host)
             
             # Activate the charge
-            activate_result = activate_recurring_charge(shop_url, access_token, charge_id)
+            activate_result = activate_recurring_charge(shop_url, locked_access_token, charge_id)
             
             if activate_result.get('success'):
                 # Update user subscription status
                 user.is_subscribed = True
                 store.charge_id = str(charge_id)
                 db.session.commit()
+                
+                logger.info(f"Subscription activated for {shop_url}, charge_id: {charge_id}")
+                
+                # Show success page
+                return render_template_string(SUCCESS_HTML, 
+                                             shop=shop_url, 
+                                             host=host,
+                                             api_key=os.getenv('SHOPIFY_API_KEY', ''))
             else:
                 db.session.rollback()
                 logger.error(f"Failed to activate charge for {shop_url}: {activate_result.get('error')}")
@@ -865,20 +872,6 @@ def confirm_charge():
             db.session.rollback()
             logger.error(f"Error in charge activation transaction: {e}")
             subscribe_url = url_for('billing.subscribe', error='Error processing subscription', shop=shop, host=host)
-            return safe_redirect(subscribe_url, shop=shop, host=host)
-        
-        if activate_result.get('success'):
-            
-            logger.info(f"Subscription activated for {shop_url}, charge_id: {charge_id}")
-            
-            # Show success page
-            return render_template_string(SUCCESS_HTML, 
-                                         shop=shop_url, 
-                                         host=host,
-                                         api_key=os.getenv('SHOPIFY_API_KEY', ''))
-        else:
-            logger.error(f"Failed to activate charge for {shop_url}: {activate_result.get('error')}")
-            subscribe_url = url_for('billing.subscribe', error='Failed to activate subscription', shop=shop, host=host)
             return safe_redirect(subscribe_url, shop=shop, host=host)
     
     elif status == 'active':
