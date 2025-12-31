@@ -47,6 +47,13 @@ def encrypt_data(data):
     try:
         if data is None:
             return None
+        
+        # Check if ENCRYPTION_KEY is set
+        encryption_key = os.getenv('ENCRYPTION_KEY')
+        if not encryption_key:
+            logger.warning("ENCRYPTION_KEY not set - cannot encrypt data. Returning None to indicate encryption failed.")
+            return None
+        
         cipher = get_cipher()
         if isinstance(data, str):
             data = data.encode()

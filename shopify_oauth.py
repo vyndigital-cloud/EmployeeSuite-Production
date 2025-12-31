@@ -468,6 +468,12 @@ def callback():
         # Encrypt the token before storing
         from data_encryption import encrypt_access_token
         encrypted_token = encrypt_access_token(access_token)
+        
+        # If encryption failed (returned None), store plaintext with warning (for backwards compatibility)
+        if encrypted_token is None:
+            logger.warning(f"Encryption failed for token, storing as plaintext (ENCRYPTION_KEY may not be set)")
+            encrypted_token = access_token
+        
         old_token_preview = store.access_token[:10] if store.access_token and len(store.access_token) > 10 else (store.access_token or "None")
         new_token_preview = access_token[:10] if len(access_token) > 10 else access_token
         old_user_id = store.user_id
@@ -480,6 +486,12 @@ def callback():
         # Encrypt the token before storing
         from data_encryption import encrypt_access_token
         encrypted_token = encrypt_access_token(access_token)
+        
+        # If encryption failed (returned None), store plaintext with warning (for backwards compatibility)
+        if encrypted_token is None:
+            logger.warning(f"Encryption failed for token, storing as plaintext (ENCRYPTION_KEY may not be set)")
+            encrypted_token = access_token
+        
         store = ShopifyStore(
             user_id=user.id,
             shop_url=shop,
