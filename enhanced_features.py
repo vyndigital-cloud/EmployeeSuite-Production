@@ -380,11 +380,20 @@ def delete_scheduled_report(report_id):
             return jsonify({"error": "Report not found"}), 404
         
         report.is_active = False
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception as commit_error:
+            logger.error(f"Error committing scheduled report deletion: {commit_error}", exc_info=True)
+            db.session.rollback()
+            return jsonify({"error": "Failed to delete scheduled report"}), 500
         
         return jsonify({"success": True})
     except Exception as e:
         logger.error(f"Error deleting scheduled report: {str(e)}", exc_info=True)
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
