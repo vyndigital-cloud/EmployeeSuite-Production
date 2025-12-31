@@ -252,24 +252,45 @@ def confirm_subscription():
     price = session.get('pending_price', PREMIUM_PLAN_PRICE)
     
     # Create subscription plan record - Premium plan
-    plan = SubscriptionPlan(
-        user_id=current_user.id,
-        plan_type='premium',
-        price_usd=price,
-        charge_id=charge_id,
-        status='active',
-        multi_store_enabled=True,
-        staff_connections_enabled=True,
-        automated_reports_enabled=True,
-        scheduled_delivery_enabled=True
-    )
-    
-    # Update user subscription status
-    current_user.is_subscribed = True
-    current_user.trial_ends_at = datetime.utcnow() + timedelta(days=TRIAL_DAYS)
-    
-    db.session.add(plan)
-    db.session.commit()
+    # Use transaction with lock to prevent race conditions
+    try:
+        from models import User
+        # Lock user row for update
+        user = User.query.with_for_update().filter_by(id=current_user.id).first()
+        if not user:
+            return "User not found", 404
+        
+        plan = SubscriptionPlan(
+            user_id=user.id,
+            plan_type='premium',
+            price_usd=price,
+            charge_id=charge_id,
+            status='active',
+            multi_store_enabled=True,
+            staff_connections_enabled=True,
+            automated_reports_enabled=True,
+            scheduled_delivery_enabled=True
+        )
+        
+        # Update user subscription status
+        user.is_subscribed = True
+        # Don't extend trial on subscription - user is now subscribed
+        # Trial should end when user subscribes, not extend
+        
+        db.session.add(plan)
+        try:
+            db.session.commit()
+        except Exception as commit_error:
+            logger.error(f"Error committing subscription plan: {commit_error}", exc_info=True)
+            db.session.rollback()
+            return f"Error processing subscription: {str(commit_error)}", 500
+    except Exception as e:
+        logger.error(f"Error creating subscription plan: {e}", exc_info=True)
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        return f"Error processing subscription: {str(e)}", 500
     
     # Clear session
     session.pop('pending_plan', None)
