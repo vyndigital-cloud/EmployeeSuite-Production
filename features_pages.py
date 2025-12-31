@@ -872,32 +872,119 @@ def comprehensive_dashboard_page():
         </div>
         
         <script>
+            function showAlert(message, type) {
+                const container = document.getElementById('alert-container');
+                const alert = document.createElement('div');
+                alert.style.cssText = type === 'success' 
+                    ? 'padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; background: #f0fdf4; border: 1px solid #86efac; color: #166534;'
+                    : type === 'error'
+                    ? 'padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; background: #fff4f4; border: 1px solid #fecaca; color: #d72c0d;'
+                    : 'padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;';
+                alert.textContent = message;
+                container.innerHTML = '';
+                container.appendChild(alert);
+                setTimeout(() => alert.remove(), 5000);
+            }
+            
+            function renderReportSection(title, data, isError) {
+                if (!data) return '';
+                
+                if (isError || data.success === false) {
+                    return `
+                        <div style="padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px; margin-bottom: 24px;">
+                            <h3 style="color: #d72c0d; margin-bottom: 8px; font-size: 18px;">${title}</h3>
+                            <p style="color: #6d7175; margin-bottom: 12px;">${data.error || data.message || 'Error loading data'}</p>
+                            ${data.action === 'reconnect_store' ? '<a href="/settings/shopify" style="color: #008060; text-decoration: underline;">Reconnect Store →</a>' : ''}
+                        </div>
+                    `;
+                }
+                
+                const html = data.message || data.html || JSON.stringify(data, null, 2);
+                return `
+                    <div style="margin-bottom: 32px;">
+                        <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #e1e3e5;">${title}</h3>
+                        <div style="background: #ffffff; border: 1px solid #e1e3e5; border-radius: 8px; padding: 20px;">
+                            ${html}
+                        </div>
+                    </div>
+                `;
+            }
+            
             async function loadDashboard() {
                 const content = document.getElementById('dashboard-content');
-                content.innerHTML = '<p>Loading...</p>';
+                const btn = document.getElementById('load-btn');
+                const btnText = document.getElementById('load-btn-text');
+                
+                content.innerHTML = '<div style="text-align: center; padding: 40px;"><div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #e1e3e5; border-top-color: #008060; border-radius: 50%; animation: spin 1s linear infinite;"></div><p style="margin-top: 16px; color: #6d7175;">Loading reports...</p></div>';
+                btn.disabled = true;
+                btnText.textContent = 'Loading...';
                 
                 try {
                     const response = await fetch('/api/dashboard/comprehensive');
                     const data = await response.json();
                     
-                    if (data.success) {
-                        content.innerHTML = `
-                            <h2 style="margin-bottom: 16px;">Orders</h2>
-                            <div style="margin-bottom: 32px;">${data.orders || 'No orders data'}</div>
-                            
-                            <h2 style="margin-bottom: 16px;">Inventory</h2>
-                            <div style="margin-bottom: 32px;">${data.inventory || 'No inventory data'}</div>
-                            
-                            <h2 style="margin-bottom: 16px;">Revenue</h2>
-                            <div>${data.revenue || 'No revenue data'}</div>
-                        `;
+                    if (data.success || (data.orders || data.inventory || data.revenue)) {
+                        let html = '';
+                        
+                        if (data.orders) {
+                            html += renderReportSection('📦 Orders Report', data.orders, false);
+                        }
+                        if (data.inventory) {
+                            html += renderReportSection('📊 Inventory Report', data.inventory, false);
+                        }
+                        if (data.revenue) {
+                            html += renderReportSection('💰 Revenue Report', data.revenue, false);
+                        }
+                        
+                        if (data.errors && data.errors.length > 0) {
+                            data.errors.forEach(error => {
+                                html += renderReportSection(
+                                    error.type.charAt(0).toUpperCase() + error.type.slice(1) + ' Error',
+                                    { error: error.error, action: error.action },
+                                    true
+                                );
+                            });
+                        }
+                        
+                        if (!html) {
+                            html = '<p style="color: #6d7175; text-align: center; padding: 40px;">No data available. Please try again.</p>';
+                        }
+                        
+                        content.innerHTML = html;
+                        
+                        if (data.errors && data.errors.length > 0) {
+                            showAlert('Some reports failed to load. Please check the errors below.', 'error');
+                        } else {
+                            showAlert('All reports loaded successfully!', 'success');
+                        }
                     } else {
-                        content.innerHTML = '<p style="color: #d72c0d;">Error: ' + (data.error || 'Unknown error') + '</p>';
+                        const errorMsg = data.error || 'Failed to load dashboard';
+                        content.innerHTML = `
+                            <div style="text-align: center; padding: 40px;">
+                                <p style="color: #d72c0d; margin-bottom: 16px; font-size: 16px;">${errorMsg}</p>
+                                <button class="btn" onclick="loadDashboard()">Try Again</button>
+                            </div>
+                        `;
+                        showAlert(errorMsg, 'error');
                     }
                 } catch (error) {
-                    content.innerHTML = '<p style="color: #d72c0d;">Error loading dashboard: ' + error.message + '</p>';
+                    content.innerHTML = `
+                        <div style="text-align: center; padding: 40px;">
+                            <p style="color: #d72c0d; margin-bottom: 8px; font-size: 16px;">Error loading dashboard</p>
+                            <p style="color: #6d7175; margin-bottom: 16px; font-size: 14px;">${error.message}</p>
+                            <button class="btn" onclick="loadDashboard()">Try Again</button>
+                        </div>
+                    `;
+                    showAlert('Error loading dashboard. Please try again.', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btnText.textContent = 'Reload All Reports';
                 }
             }
+            
+            const style = document.createElement('style');
+            style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+            document.head.appendChild(style);
         </script>
     </body>
     </html>
