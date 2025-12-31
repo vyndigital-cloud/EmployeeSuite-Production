@@ -140,15 +140,24 @@ def create_shopify_subscription(shop_url, access_token, user_id):
         trial_days=7
     )
     
-    # Store charge_id in database with error handling
+    # Store charge_id in database with error handling and lock
     try:
-        store = ShopifyStore.query.filter_by(shop_url=shop_url, is_active=True).first()
+        # Use lock to prevent race conditions when updating charge_id
+        store = ShopifyStore.query.with_for_update().filter_by(shop_url=shop_url, is_active=True).first()
         if store:
             store.charge_id = str(result['charge_id'])
-            db.session.commit()
+            try:
+                db.session.commit()
+            except Exception as commit_error:
+                logger.error(f"Error committing charge_id: {commit_error}")
+                db.session.rollback()
+                # Continue anyway - charge_id can be stored later
     except Exception as e:
         logger.error(f"Error storing charge_id: {e}")
-        db.session.rollback()
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
         # Continue anyway - charge_id can be stored later
     
     return result['confirmation_url']
