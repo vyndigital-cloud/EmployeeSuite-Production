@@ -88,14 +88,19 @@ class ScheduledReport(db.Model):
     delivery_sms = db.Column(db.String(20), nullable=True)
     
     # Status
-    is_active = db.Column(db.Boolean, default=True)
-    last_sent_at = db.Column(db.DateTime, nullable=True)
-    next_send_at = db.Column(db.DateTime, nullable=True)
+    is_active = db.Column(db.Boolean, default=True, index=True)  # Added index for composite queries
+    last_sent_at = db.Column(db.DateTime, nullable=True, index=True)  # Added index for queries
+    next_send_at = db.Column(db.DateTime, nullable=True, index=True)  # Added index for queries
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     user = db.relationship('User', backref='scheduled_reports')
+    
+    # Composite index for common query pattern: filter_by(user_id=user_id, is_active=True)
+    __table_args__ = (
+        db.Index('idx_scheduled_report_user_active', 'user_id', 'is_active'),
+    )
     
     def calculate_next_send(self):
         """Calculate next send time based on frequency"""

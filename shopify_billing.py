@@ -12,7 +12,23 @@ SHOPIFY_API_VERSION = '2025-10'
 class ShopifyBilling:
     def __init__(self, shop_url, access_token):
         self.shop_url = shop_url
-        self.access_token = access_token
+        # Decrypt token if it's encrypted (for backwards compatibility with plaintext tokens)
+        if access_token and not (access_token.startswith('shpat_') or access_token.startswith('shpca_')):
+            # Token might be encrypted, try to decrypt
+            try:
+                from data_encryption import decrypt_access_token
+                decrypted = decrypt_access_token(access_token)
+                if decrypted and (decrypted.startswith('shpat_') or decrypted.startswith('shpca_')):
+                    self.access_token = decrypted
+                else:
+                    # Decryption failed or result invalid, use original
+                    self.access_token = access_token
+            except Exception:
+                # Decryption error, use original token
+                self.access_token = access_token
+        else:
+            # Token is plaintext (starts with shpat_ or shpca_)
+            self.access_token = access_token
         self.api_url = f"https://{shop_url}/admin/api/{SHOPIFY_API_VERSION}"
     
     def create_usage_charge(self, description, price, currency='USD'):
@@ -124,11 +140,16 @@ def create_shopify_subscription(shop_url, access_token, user_id):
         trial_days=7
     )
     
-    # Store charge_id in database
-    store = ShopifyStore.query.filter_by(shop_url=shop_url, is_active=True).first()
-    if store:
-        store.charge_id = str(result['charge_id'])
-        db.session.commit()
+    # Store charge_id in database with error handling
+    try:
+        store = ShopifyStore.query.filter_by(shop_url=shop_url, is_active=True).first()
+        if store:
+            store.charge_id = str(result['charge_id'])
+            db.session.commit()
+    except Exception as e:
+        logger.error(f"Error storing charge_id: {e}")
+        db.session.rollback()
+        # Continue anyway - charge_id can be stored later
     
     return result['confirmation_url']
 
@@ -142,5 +163,6 @@ def check_subscription_status(shop_url, access_token, charge_id):
     try:
         status = billing.get_charge_status(charge_id)
         return status.get('status') == 'active'
-    except:
+    except Exception as e:
+        logger.error(f"Error checking subscription status: {e}")
         return False

@@ -283,12 +283,20 @@ def update_settings():
             settings.default_date_range_days = int(data['default_date_range_days'])
         
         settings.updated_at = datetime.utcnow()
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception as commit_error:
+            logger.error(f"Error committing settings update: {commit_error}", exc_info=True)
+            db.session.rollback()
+            return jsonify({"error": "Failed to save settings"}), 500
         
         return jsonify({"success": True, "message": "Settings updated"})
     except Exception as e:
         logger.error(f"Error updating settings: {str(e)}", exc_info=True)
-        db.session.rollback()
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
         return jsonify({"error": str(e)}), 500
 
 # ============================================================================
@@ -301,7 +309,9 @@ def update_settings():
 def get_scheduled_reports():
     """Get user's scheduled reports"""
     try:
-        reports = ScheduledReport.query.filter_by(user_id=current_user.id, is_active=True).all()
+        # Use eager loading to prevent N+1 queries if accessing report.user later
+        from sqlalchemy.orm import joinedload
+        reports = ScheduledReport.query.options(joinedload(ScheduledReport.user)).filter_by(user_id=current_user.id, is_active=True).all()
         return jsonify({
             'reports': [{
                 'id': r.id,
@@ -343,12 +353,20 @@ def create_scheduled_report():
         
         report.next_send_at = report.calculate_next_send()
         db.session.add(report)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception as commit_error:
+            logger.error(f"Error committing scheduled report: {commit_error}", exc_info=True)
+            db.session.rollback()
+            return jsonify({"error": "Failed to create scheduled report"}), 500
         
         return jsonify({"success": True, "report_id": report.id})
     except Exception as e:
         logger.error(f"Error creating scheduled report: {str(e)}", exc_info=True)
-        db.session.rollback()
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
         return jsonify({"error": str(e)}), 500
 
 @enhanced_bp.route('/api/scheduled-reports/<int:report_id>', methods=['DELETE'])

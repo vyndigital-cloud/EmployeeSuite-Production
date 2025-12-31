@@ -39,8 +39,14 @@ class ShopifyStore(db.Model):
     access_token = db.Column(db.String(255), nullable=False)
     charge_id = db.Column(db.String(255), nullable=True, index=True)  # Shopify charge ID for billing
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    is_active = db.Column(db.Boolean, default=True)
+    is_active = db.Column(db.Boolean, default=True, index=True)  # Added index for composite queries
     uninstalled_at = db.Column(db.DateTime, nullable=True)  # When app was uninstalled
+    
+    # Composite index for common query pattern: filter_by(shop_url=shop, is_active=True)
+    __table_args__ = (
+        db.Index('idx_shopify_store_shop_active', 'shop_url', 'is_active'),
+        db.Index('idx_shopify_store_user_active', 'user_id', 'is_active'),
+    )
     
     @validates('access_token')
     def validate_access_token(self, key, value):

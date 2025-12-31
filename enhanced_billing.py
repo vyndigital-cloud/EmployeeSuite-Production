@@ -218,13 +218,15 @@ def subscribe():
     # Use Shopify Billing API
     from shopify_billing import create_shopify_subscription
     try:
+        # Get decrypted access token
+        access_token = store.get_access_token()
+        if not access_token:
+            return "Store not properly connected. Please reconnect your store.", 400
+        
         confirmation_url = create_shopify_subscription(
             store.shop_url,
-            store.access_token,
-            current_user.id,
-            plan_name="Employee Suite Premium",
-            price=price,
-            trial_days=TRIAL_DAYS
+            access_token,
+            current_user.id
         )
         
         # Store plan info in session
