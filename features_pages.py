@@ -861,7 +861,9 @@ def comprehensive_dashboard_page():
         
         <div class="container">
             <h1 style="font-size: 32px; font-weight: 600; margin-bottom: 8px;">Comprehensive Dashboard</h1>
-            <p style="color: #6d7175; margin-bottom: 32px;">View all reports in one place</p>
+            <p style="color: #6d7175; margin-bottom: 32px;">View all reports (Orders, Inventory, Revenue) in one unified view</p>
+            
+            <div id="alert-container"></div>
             
             <div class="card">
                 <button class="btn" onclick="loadDashboard()" style="margin-bottom: 24px;">Load All Reports</button>
