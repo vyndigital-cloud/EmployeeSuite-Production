@@ -46,8 +46,11 @@ def export_orders_csv():
         if not store:
             return "No store connected", 404
         
-        # Get orders
-        client = ShopifyClient(store.shop_url, store.access_token)
+        # Get orders - decrypt token before use
+        access_token = store.get_access_token()
+        if not access_token:
+            return "Store not properly connected. Please reconnect your store.", 400
+        client = ShopifyClient(store.shop_url, access_token)
         orders_data = client._make_request("orders.json?status=any&limit=250")
         
         if "error" in orders_data:

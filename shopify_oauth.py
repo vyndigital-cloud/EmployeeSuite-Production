@@ -465,20 +465,26 @@ def callback():
     
     if store:
         # CRITICAL: Always update access_token when reconnecting (gets new token from new Partners app)
+        # Encrypt the token before storing
+        from data_encryption import encrypt_access_token
+        encrypted_token = encrypt_access_token(access_token)
         old_token_preview = store.access_token[:10] if store.access_token and len(store.access_token) > 10 else (store.access_token or "None")
         new_token_preview = access_token[:10] if len(access_token) > 10 else access_token
         old_user_id = store.user_id
-        store.access_token = access_token
+        store.access_token = encrypted_token
         store.shop_id = shop_id
         store.is_active = True
         store.user_id = user.id  # Ensure it's linked to the correct user
         logger.info(f"Updated existing store {shop} with new OAuth access_token (old: {old_token_preview}..., new: {new_token_preview}..., old_user_id: {old_user_id}, new_user_id: {user.id})")
     else:
+        # Encrypt the token before storing
+        from data_encryption import encrypt_access_token
+        encrypted_token = encrypt_access_token(access_token)
         store = ShopifyStore(
             user_id=user.id,
             shop_url=shop,
             shop_id=shop_id,
-            access_token=access_token,
+            access_token=encrypted_token,
             is_active=True
         )
         db.session.add(store)

@@ -677,7 +677,7 @@ def cancel_subscription():
         api_version = '2025-10'
         url = f"https://{store.shop_url}/admin/api/{api_version}/recurring_application_charges/{store.charge_id}.json"
         headers = {
-            'X-Shopify-Access-Token': store.access_token,
+            'X-Shopify-Access-Token': store.get_access_token() or '',
             'Content-Type': 'application/json'
         }
         

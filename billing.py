@@ -805,26 +805,69 @@ def confirm_charge():
         return safe_redirect(subscribe_url, shop=shop, host=host)
     
     shop_url = store.shop_url
-    access_token = store.access_token
+    access_token = store.get_access_token()
+    if not access_token:
+        subscribe_url = url_for('billing.subscribe', error='Store not properly connected. Please reconnect your store.', shop=shop, host=host)
+        return safe_redirect(subscribe_url, shop=shop, host=host)
     
     # Check charge status
     status_result = get_charge_status(shop_url, access_token, charge_id)
     
     if not status_result.get('success'):
-        subscribe_url = url_for('billing.subscribe', error='Could not verify subscription', shop=shop, host=host)
+        # Clear charge_id if status check fails to prevent inconsistent state
+        store.charge_id = None
+        db.session.commit()
+        subscribe_url = url_for('billing.subscribe', error='Could not verify subscription. Please try again.', shop=shop, host=host)
         return safe_redirect(subscribe_url, shop=shop, host=host)
     
     status = status_result.get('status', '')
     
     if status == 'accepted':
         # Merchant approved - activate the charge
-        activate_result = activate_recurring_charge(shop_url, access_token, charge_id)
+        # Use database transaction with lock to prevent race conditions
+        try:
+            db.session.begin()
+            # Lock the store row for update
+            store = ShopifyStore.query.with_for_update().filter_by(shop_url=shop_url, user_id=user.id).first()
+            if not store:
+                db.session.rollback()
+                subscribe_url = url_for('billing.subscribe', error='Store not found', shop=shop, host=host)
+                return safe_redirect(subscribe_url, shop=shop, host=host)
+            
+            # Re-fetch access token with lock
+            access_token = store.get_access_token()
+            if not access_token:
+                db.session.rollback()
+                subscribe_url = url_for('billing.subscribe', error='Store not properly connected', shop=shop, host=host)
+                return safe_redirect(subscribe_url, shop=shop, host=host)
+            
+            # Double-check charge status with locked store
+            status_result = get_charge_status(shop_url, access_token, charge_id)
+            if not status_result.get('success') or status_result.get('status') != 'accepted':
+                db.session.rollback()
+                subscribe_url = url_for('billing.subscribe', error='Could not verify subscription', shop=shop, host=host)
+                return safe_redirect(subscribe_url, shop=shop, host=host)
+            
+            # Activate the charge
+            activate_result = activate_recurring_charge(shop_url, access_token, charge_id)
+            
+            if activate_result.get('success'):
+                # Update user subscription status
+                user.is_subscribed = True
+                store.charge_id = str(charge_id)
+                db.session.commit()
+            else:
+                db.session.rollback()
+                logger.error(f"Failed to activate charge for {shop_url}: {activate_result.get('error')}")
+                subscribe_url = url_for('billing.subscribe', error='Failed to activate subscription', shop=shop, host=host)
+                return safe_redirect(subscribe_url, shop=shop, host=host)
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error in charge activation transaction: {e}")
+            subscribe_url = url_for('billing.subscribe', error='Error processing subscription', shop=shop, host=host)
+            return safe_redirect(subscribe_url, shop=shop, host=host)
         
         if activate_result.get('success'):
-            # Update user subscription status
-            user.is_subscribed = True
-            store.charge_id = str(charge_id)
-            db.session.commit()
             
             logger.info(f"Subscription activated for {shop_url}, charge_id: {charge_id}")
             
@@ -894,7 +937,7 @@ def cancel_subscription():
     # Cancel via Shopify API
     url = f"https://{store.shop_url}/admin/api/{SHOPIFY_API_VERSION}/recurring_application_charges/{store.charge_id}.json"
     headers = {
-        'X-Shopify-Access-Token': store.access_token,
+        'X-Shopify-Access-Token': store.get_access_token() or '',
         'Content-Type': 'application/json'
     }
     

@@ -64,11 +64,29 @@ class ShopifyStore(db.Model):
         return self.is_active and bool(self.access_token and self.access_token.strip())
     
     def get_access_token(self):
-        """Get access token, returning None if empty/invalid (for validation checks)"""
+        """Get access token, decrypting if encrypted, returning None if empty/invalid"""
         token = self.access_token
         if not token or not token.strip():
             return None
-        return token
+        # Decrypt the token if it's encrypted (try decryption, fallback to plaintext for backwards compatibility)
+        try:
+            from data_encryption import decrypt_access_token
+            # Try to decrypt (will return None if decryption fails or token is not encrypted)
+            decrypted = decrypt_access_token(token)
+            if decrypted:
+                return decrypted
+            # If decryption returns None, token might be plaintext (backwards compatibility)
+            # Return original token if it looks like a valid Shopify token (starts with shpat_)
+            if token.startswith('shpat_') or token.startswith('shpca_'):
+                return token
+            # Otherwise return None (invalid/empty token)
+            return None
+        except Exception:
+            # If decryption fails, try to return as plaintext for backwards compatibility
+            # This handles the migration period where some tokens are encrypted and some are not
+            if token.startswith('shpat_') or token.startswith('shpca_'):
+                return token
+            return None
     
     def __repr__(self):
         return f'<ShopifyStore {self.shop_url}>'
