@@ -68,24 +68,36 @@ class ShopifyStore(db.Model):
         token = self.access_token
         if not token or not token.strip():
             return None
-        # Decrypt the token if it's encrypted (try decryption, fallback to plaintext for backwards compatibility)
+        
+        # Check if token looks like a valid Shopify token (plaintext)
+        # Shopify tokens start with shpat_ or shpca_ and are ~32-40 chars
+        if token.startswith('shpat_') or token.startswith('shpca_'):
+            # Token is plaintext - return as-is (backwards compatibility or not encrypted)
+            return token
+        
+        # Token doesn't look like plaintext, try to decrypt
         try:
             from data_encryption import decrypt_access_token
-            # Try to decrypt (will return None if decryption fails or token is not encrypted)
+            from logging_config import logger
+            
+            # Try to decrypt
             decrypted = decrypt_access_token(token)
             if decrypted:
-                return decrypted
-            # If decryption returns None, token might be plaintext (backwards compatibility)
-            # Return original token if it looks like a valid Shopify token (starts with shpat_)
-            if token.startswith('shpat_') or token.startswith('shpca_'):
-                return token
-            # Otherwise return None (invalid/empty token)
-            return None
-        except Exception:
-            # If decryption fails, try to return as plaintext for backwards compatibility
-            # This handles the migration period where some tokens are encrypted and some are not
-            if token.startswith('shpat_') or token.startswith('shpca_'):
-                return token
+                # Verify decrypted token looks valid
+                if decrypted.startswith('shpat_') or decrypted.startswith('shpca_'):
+                    return decrypted
+                else:
+                    # Decryption succeeded but result doesn't look like a token
+                    logger.warning(f"Decrypted token doesn't match expected format (starts with: {decrypted[:10] if len(decrypted) > 10 else decrypted})")
+                    return None
+            else:
+                # Decryption returned None - token might be corrupted or invalid encrypted format
+                logger.warning(f"Decryption returned None for token (length: {len(token)}, starts with: {token[:20]})")
+                return None
+        except Exception as e:
+            # If decryption fails with exception, log and return None
+            from logging_config import logger
+            logger.error(f"Error decrypting access token: {e}")
             return None
     
     def __repr__(self):

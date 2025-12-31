@@ -11,6 +11,14 @@ class ShopifyClient:
         self.access_token = access_token
         self.api_version = "2025-10"  # Match app.json API version
         
+        # Debug logging: Verify token format
+        if access_token:
+            logger.debug(f"ShopifyClient initialized with token: {access_token[:10]}... (length: {len(access_token)}, starts with: {access_token[:5]})")
+            if not (access_token.startswith('shpat_') or access_token.startswith('shpca_')):
+                logger.warning(f"WARNING: Access token doesn't match expected format! Token starts with: {access_token[:20]}")
+        else:
+            logger.error("ShopifyClient initialized with None/empty access_token!")
+        
     def _get_headers(self):
         return {
             "X-Shopify-Access-Token": self.access_token,
