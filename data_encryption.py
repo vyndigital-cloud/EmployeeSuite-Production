@@ -48,10 +48,11 @@ def encrypt_data(data):
         if data is None:
             return None
         
-        # Check if ENCRYPTION_KEY is set
+        # CRITICAL: Check if ENCRYPTION_KEY is set BEFORE attempting encryption
+        # If not set, return None to indicate encryption should be skipped (store plaintext)
         encryption_key = os.getenv('ENCRYPTION_KEY')
         if not encryption_key:
-            logger.warning("ENCRYPTION_KEY not set - cannot encrypt data. Returning None to indicate encryption failed.")
+            logger.warning("ENCRYPTION_KEY not set - cannot encrypt data. Returning None to indicate encryption should be skipped.")
             return None
         
         cipher = get_cipher()
