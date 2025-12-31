@@ -572,10 +572,19 @@ def connect_store():
         # Continue anyway - validation is optional
         pass
     
+    # Encrypt the token before storing (CRITICAL: same as OAuth flow)
+    from data_encryption import encrypt_access_token
+    encrypted_token = encrypt_access_token(access_token)
+    
+    # If encryption failed (returned None), store plaintext with warning (for backwards compatibility)
+    if encrypted_token is None:
+        logger.warning(f"Encryption failed for manual token, storing as plaintext (ENCRYPTION_KEY may not be set)")
+        encrypted_token = access_token
+    
     new_store = ShopifyStore(
         user_id=user.id,
         shop_url=shop_url,
-        access_token=access_token,
+        access_token=encrypted_token,
         is_active=True
     )
     

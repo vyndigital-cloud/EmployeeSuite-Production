@@ -8,18 +8,66 @@ logger = logging.getLogger(__name__)
 class ShopifyClient:
     def __init__(self, shop_url, access_token):
         self.shop_url = shop_url.replace('https://', '').replace('http://', '')
+        
+        # CRITICAL: If token doesn't look like a valid Shopify token, try to decrypt it
+        # This is a safeguard in case a caller passes an encrypted token
+        if access_token and not (access_token.startswith('shpat_') or access_token.startswith('shpca_')):
+            # Token might be encrypted - try to decrypt
+            try:
+                from data_encryption import decrypt_access_token
+                decrypted = decrypt_access_token(access_token)
+                if decrypted and (decrypted.startswith('shpat_') or decrypted.startswith('shpca_')):
+                    logger.info(f"ShopifyClient: Decrypted token (was encrypted)")
+                    access_token = decrypted
+                else:
+                    logger.warning(f"ShopifyClient: Token doesn't match expected format and decryption failed or returned invalid format")
+            except Exception as e:
+                logger.warning(f"ShopifyClient: Failed to decrypt token: {e}")
+        
         self.access_token = access_token
         self.api_version = "2025-10"  # Match app.json API version
         
         # Debug logging: Verify token format
         if access_token:
-            logger.debug(f"ShopifyClient initialized with token: {access_token[:10]}... (length: {len(access_token)}, starts with: {access_token[:5]})")
-            if not (access_token.startswith('shpat_') or access_token.startswith('shpca_')):
+            token_preview = access_token[:10] if len(access_token) > 10 else access_token
+            token_length = len(access_token)
+            starts_with_shpat = access_token.startswith('shpat_') if access_token else False
+            starts_with_shpca = access_token.startswith('shpca_') if access_token else False
+            
+            logger.info(f"ShopifyClient initialized with token: {token_preview}... (length: {token_length}, starts with shpat_: {starts_with_shpat}, starts with shpca_: {starts_with_shpca})")
+            
+            # #region agent log
+            try:
+                import json
+                import time
+                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({"sessionId":"debug-session","runId":"token-debug","hypothesisId":"F","location":"shopify_integration.py:init","message":"ShopifyClient initialized","data":{"token_preview":token_preview,"token_length":token_length,"token_starts_with_shpat":starts_with_shpat,"token_starts_with_shpca":starts_with_shpca},"timestamp":int(time.time()*1000)})+'\n')
+            except Exception: pass
+            # #endregion
+            
+            if not (starts_with_shpat or starts_with_shpca):
                 logger.warning(f"WARNING: Access token doesn't match expected format! Token starts with: {access_token[:20]}")
         else:
             logger.error("ShopifyClient initialized with None/empty access_token!")
         
     def _get_headers(self):
+        # Debug logging: Verify token format before API call
+        if self.access_token:
+            token_preview = self.access_token[:10] if len(self.access_token) > 10 else self.access_token
+            token_length = len(self.access_token)
+            logger.debug(f"Using token for API call: {token_preview}... (length: {token_length})")
+            
+            # #region agent log
+            try:
+                import json
+                import time
+                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({"sessionId":"debug-session","runId":"token-debug","hypothesisId":"G","location":"shopify_integration.py:_get_headers","message":"Token used in API headers","data":{"token_preview":token_preview,"token_length":token_length,"token_starts_with_shpat":self.access_token.startswith('shpat_') if self.access_token else False},"timestamp":int(time.time()*1000)})+'\n')
+            except Exception: pass
+            # #endregion
+        else:
+            logger.error("CRITICAL: No access token available for API call!")
+        
         return {
             "X-Shopify-Access-Token": self.access_token,
             "Content-Type": "application/json"

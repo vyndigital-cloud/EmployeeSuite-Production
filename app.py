@@ -728,6 +728,7 @@ DASHBOARD_HTML = """
             text-decoration: none;
             color: #6d7175;
             transition: background 0.15s;
+            position: relative;
         }
         .nav-btn:hover {
             background: #f6f6f7;
@@ -741,6 +742,70 @@ DASHBOARD_HTML = """
         .nav-btn-primary:hover {
             background: #006e52;
             color: #fff !important;
+        }
+        /* Quick Access Menu */
+        .quick-menu {
+            position: relative;
+            display: inline-block;
+        }
+        .quick-menu-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            background: #f6f6f7;
+            color: #202223;
+            border: 1px solid #e1e3e5;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .quick-menu-btn:hover {
+            background: #e1e3e5;
+        }
+        .quick-menu-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: #ffffff;
+            border: 1px solid #e1e3e5;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 220px;
+            z-index: 1000;
+            overflow: hidden;
+        }
+        .quick-menu-dropdown.show {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+        .quick-menu-item {
+            display: block;
+            padding: 12px 16px;
+            color: #202223;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.15s;
+            border-bottom: 1px solid #f6f6f7;
+        }
+        .quick-menu-item:last-child {
+            border-bottom: none;
+        }
+        .quick-menu-item:hover {
+            background: #f6f6f7;
+        }
+        .quick-menu-item-icon {
+            display: inline-block;
+            width: 20px;
+            margin-right: 8px;
+            text-align: center;
+        }
+        .quick-menu-shortcut {
+            float: right;
+            color: #8c9196;
+            font-size: 12px;
+            font-family: 'SF Mono', 'Monaco', monospace;
         }
         
         /* Container - Shopify Spacing */
@@ -1352,6 +1417,40 @@ DASHBOARD_HTML = """
                 <span>Employee Suite</span>
             </a>
             <div class="header-nav">
+                <div class="quick-menu">
+                    <button class="quick-menu-btn" onclick="toggleQuickMenu(event)">⚡ Quick Access</button>
+                    <div class="quick-menu-dropdown" id="quickMenu">
+                        <a href="/features/csv-exports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="quick-menu-item">
+                            <span class="quick-menu-item-icon">📥</span>
+                            CSV Exports
+                            <span class="quick-menu-shortcut">⌘E</span>
+                        </a>
+                        <a href="/features/scheduled-reports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="quick-menu-item">
+                            <span class="quick-menu-item-icon">📅</span>
+                            Scheduled Reports
+                            <span class="quick-menu-shortcut">⌘S</span>
+                        </a>
+                        <a href="/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="quick-menu-item">
+                            <span class="quick-menu-item-icon">📊</span>
+                            Comprehensive Dashboard
+                            <span class="quick-menu-shortcut">⌘D</span>
+                        </a>
+                        <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="quick-menu-item">
+                            <span class="quick-menu-item-icon">🎉</span>
+                            New Features
+                        </a>
+                        <div style="border-top: 1px solid #e1e3e5; margin: 8px 0;"></div>
+                        <a href="/settings/shopify{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="quick-menu-item">
+                            <span class="quick-menu-item-icon">⚙️</span>
+                            Settings
+                            <span class="quick-menu-shortcut">⌘,</span>
+                        </a>
+                        <a href="{% if host %}{{ APP_URL }}/subscribe?shop={{ shop }}&host={{ host }}{% else %}{{ url_for('billing.subscribe') }}{% if shop %}?shop={{ shop }}{% endif %}{% endif %}" class="quick-menu-item">
+                            <span class="quick-menu-item-icon">💳</span>
+                            Subscribe
+                        </a>
+                    </div>
+                </div>
                 <a href="/settings/shopify{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="nav-btn">Settings</a>
                 <a href="{% if host %}{{ APP_URL }}/subscribe?shop={{ shop }}&host={{ host }}{% else %}{{ url_for('billing.subscribe') }}{% if shop %}?shop={{ shop }}{% endif %}{% endif %}" class="nav-btn nav-btn-primary">Subscribe</a>
                 <a href="/logout" class="nav-btn">Logout</a>
@@ -1364,9 +1463,15 @@ DASHBOARD_HTML = """
             <div>
                 <div class="page-title">Dashboard</div>
                 <div class="page-subtitle">Monitor your Shopify store operations with inventory tracking, order monitoring, and comprehensive revenue analytics. 7-day free trial, no setup fees.</div>
-                <div style="margin-top: 16px;">
+                <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
                     <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #008060 0%, #006e52 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; box-shadow: 0 2px 8px rgba(0, 128, 96, 0.2); transition: all 0.2s;">
                         🎉 Explore New Features →
+                    </a>
+                    <a href="/features/csv-exports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="display: inline-block; padding: 12px 20px; background: #ffffff; color: #008060; border: 1px solid #008060; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px; transition: all 0.2s;">
+                        📥 Export Data
+                    </a>
+                    <a href="/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="display: inline-block; padding: 12px 20px; background: #ffffff; color: #008060; border: 1px solid #008060; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px; transition: all 0.2s;">
+                        📊 Full Dashboard
                     </a>
                 </div>
             </div>
@@ -2920,13 +3025,35 @@ DASHBOARD_HTML = """
         // END ROBUST BUTTON EVENT HANDLING
         // ============================================================================
         
-// Keyboard shortcuts for power users
+// Quick Menu Toggle
+        function toggleQuickMenu(event) {
+            event.stopPropagation();
+            var menu = document.getElementById('quickMenu');
+            if (menu) {
+                menu.classList.toggle('show');
+            }
+        }
+        // Close quick menu when clicking outside
+        document.addEventListener('click', function(e) {
+            var menu = document.getElementById('quickMenu');
+            var btn = e.target.closest('.quick-menu-btn');
+            if (menu && !btn && !e.target.closest('.quick-menu-dropdown')) {
+                menu.classList.remove('show');
+            }
+        });
+        
+        // Keyboard shortcuts for power users
         document.addEventListener('keydown', function(e) {
+            // Don't trigger shortcuts when typing in inputs
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+                return;
+            }
+            
             // Ctrl/Cmd + 1 = Process Orders
             if ((e.ctrlKey || e.metaKey) && e.key === '1') {
                 e.preventDefault();
                 {% if has_access %}
-                var btn = document.querySelector('.card-btn[onclick*="processOrders"]');
+                var btn = document.querySelector('.card-btn[data-action="processOrders"]');
                 if (btn) processOrders(btn);
                 {% else %}
                 showSubscribePrompt();
@@ -2936,7 +3063,7 @@ DASHBOARD_HTML = """
             if ((e.ctrlKey || e.metaKey) && e.key === '2') {
                 e.preventDefault();
                 {% if has_access %}
-                var btn = document.querySelector('.card-btn[onclick*="updateInventory"]');
+                var btn = document.querySelector('.card-btn[data-action="updateInventory"]');
                 if (btn) updateInventory(btn);
                 {% else %}
                 showSubscribePrompt();
@@ -2946,11 +3073,36 @@ DASHBOARD_HTML = """
             if ((e.ctrlKey || e.metaKey) && e.key === '3') {
                 e.preventDefault();
                 {% if has_access %}
-                var btn = document.querySelector('.card-btn[onclick*="generateReport"]');
+                var btn = document.querySelector('.card-btn[data-action="generateReport"]');
                 if (btn) generateReport(btn);
                 {% else %}
                 showSubscribePrompt();
                 {% endif %}
+            }
+            // Ctrl/Cmd + E = CSV Exports
+            if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+                e.preventDefault();
+                window.location.href = '/features/csv-exports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}';
+            }
+            // Ctrl/Cmd + S = Scheduled Reports
+            if ((e.ctrlKey || e.metaKey) && e.key === 's' && !e.shiftKey) {
+                e.preventDefault();
+                window.location.href = '/features/scheduled-reports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}';
+            }
+            // Ctrl/Cmd + D = Comprehensive Dashboard
+            if ((e.ctrlKey || e.metaKey) && e.key === 'd' && !e.shiftKey) {
+                e.preventDefault();
+                window.location.href = '/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}';
+            }
+            // Ctrl/Cmd + , = Settings
+            if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+                e.preventDefault();
+                window.location.href = '/settings/shopify{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}';
+            }
+            // Escape = Close quick menu
+            if (e.key === 'Escape') {
+                var menu = document.getElementById('quickMenu');
+                if (menu) menu.classList.remove('show');
             }
         });
         

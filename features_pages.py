@@ -123,12 +123,15 @@ WELCOME_HTML = '''
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <a href="/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="text-decoration: none; color: inherit; font-weight: 600; font-size: 18px;">Employee Suite</a>
-            <div>
-                <a href="/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="color: #6d7175; text-decoration: none; margin-right: 20px;">Dashboard</a>
-                <a href="/subscribe{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="color: #008060; text-decoration: none; font-weight: 500;">Subscribe</a>
+        <div class="header">
+            <div class="header-content">
+                <a href="/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="text-decoration: none; color: inherit; font-weight: 600; font-size: 18px;">← Employee Suite</a>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <a href="/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="color: #6d7175; text-decoration: none; padding: 6px 12px; border-radius: 6px; transition: background 0.15s;">Dashboard</a>
+                <a href="/features/csv-exports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="color: #6d7175; text-decoration: none; padding: 6px 12px; border-radius: 6px; transition: background 0.15s;">CSV Exports</a>
+                <a href="/features/scheduled-reports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="color: #6d7175; text-decoration: none; padding: 6px 12px; border-radius: 6px; transition: background 0.15s;">Scheduled</a>
+                <a href="/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="color: #6d7175; text-decoration: none; padding: 6px 12px; border-radius: 6px; transition: background 0.15s;">Full Dashboard</a>
+                <a href="/subscribe{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="color: #008060; text-decoration: none; font-weight: 500; padding: 6px 12px;">Subscribe</a>
             </div>
         </div>
     </div>
@@ -273,6 +276,9 @@ def csv_exports_page():
                 justify-content: space-between;
                 align-items: center;
             }
+            .header-nav a:hover {
+                background: #f6f6f7;
+            }
             .container {
                 max-width: 1000px;
                 margin: 0 auto;
@@ -344,11 +350,16 @@ def csv_exports_page():
             
             <div class="card">
                 <div class="card-title">📦 Export Orders</div>
-                <div class="date-filter">
-                    <input type="date" id="orders-start" class="date-input" placeholder="Start Date">
-                    <input type="date" id="orders-end" class="date-input" placeholder="End Date">
-                    <a href="#" id="export-orders" class="btn">Export Orders CSV</a>
+            <div class="date-filter">
+                <input type="date" id="orders-start" class="date-input" placeholder="Start Date">
+                <input type="date" id="orders-end" class="date-input" placeholder="End Date">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button onclick="setDateRange('orders', 7)" style="padding: 8px 12px; background: #f6f6f7; border: 1px solid #e1e3e5; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.15s;">Last 7 Days</button>
+                    <button onclick="setDateRange('orders', 30)" style="padding: 8px 12px; background: #f6f6f7; border: 1px solid #e1e3e5; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.15s;">Last 30 Days</button>
+                    <button onclick="setDateRange('orders', 90)" style="padding: 8px 12px; background: #f6f6f7; border: 1px solid #e1e3e5; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.15s;">Last 90 Days</button>
                 </div>
+                <a href="#" id="export-orders" class="btn">Export Orders CSV</a>
+            </div>
             </div>
             
             <div class="card">
@@ -361,17 +372,50 @@ def csv_exports_page():
             
             <div class="card">
                 <div class="card-title">💰 Export Revenue</div>
-                <div class="date-filter">
-                    <input type="date" id="revenue-start" class="date-input" placeholder="Start Date">
-                    <input type="date" id="revenue-end" class="date-input" placeholder="End Date">
-                    <a href="#" id="export-revenue" class="btn">Export Revenue CSV</a>
+            <div class="date-filter">
+                <input type="date" id="revenue-start" class="date-input" placeholder="Start Date">
+                <input type="date" id="revenue-end" class="date-input" placeholder="End Date">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button onclick="setDateRange('revenue', 7)" style="padding: 8px 12px; background: #f6f6f7; border: 1px solid #e1e3e5; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.15s;">Last 7 Days</button>
+                    <button onclick="setDateRange('revenue', 30)" style="padding: 8px 12px; background: #f6f6f7; border: 1px solid #e1e3e5; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.15s;">Last 30 Days</button>
+                    <button onclick="setDateRange('revenue', 90)" style="padding: 8px 12px; background: #f6f6f7; border: 1px solid #e1e3e5; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.15s;">Last 90 Days</button>
                 </div>
+                <a href="#" id="export-revenue" class="btn">Export Revenue CSV</a>
+            </div>
             </div>
             
             {% endif %}
         </div>
         
         <script>
+            // Set date range helper function
+            function setDateRange(type, days) {
+                const end = new Date();
+                const start = new Date();
+                start.setDate(start.getDate() - days);
+                
+                const formatDate = (date) => {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
+                
+                if (type === 'orders') {
+                    document.getElementById('orders-start').value = formatDate(start);
+                    document.getElementById('orders-end').value = formatDate(end);
+                } else if (type === 'revenue') {
+                    document.getElementById('revenue-start').value = formatDate(start);
+                    document.getElementById('revenue-end').value = formatDate(end);
+                }
+            }
+            
+            // Set default date ranges on page load (last 30 days)
+            document.addEventListener('DOMContentLoaded', function() {
+                setDateRange('orders', 30);
+                setDateRange('revenue', 30);
+            });
+            
             // Show success message
             function showSuccess(message) {
                 const alert = document.createElement('div');

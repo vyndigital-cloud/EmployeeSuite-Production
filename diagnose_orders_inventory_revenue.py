@@ -93,14 +93,16 @@ def check_shopify_stores():
                 user = store.user
                 print(f"\nStore: {store.shop_url}")
                 print(f"  - User: {user.email if user else 'Unknown'}")
-                print(f"  - Access Token: {'✅ Present' if store.access_token else '❌ Missing'}")
+                access_token_check = store.get_access_token()
+                print(f"  - Access Token: {'✅ Present' if access_token_check else '❌ Missing'}")
                 print(f"  - Is Active: {'✅' if store.is_active else '❌'}")
                 
                 # Test API connection
-                if store.access_token:
+                access_token = store.get_access_token()
+                if access_token:
                     try:
                         from shopify_integration import ShopifyClient
-                        client = ShopifyClient(store.shop_url, store.access_token)
+                        client = ShopifyClient(store.shop_url, access_token)
                         # Try a simple API call
                         test_result = client._make_request("shop.json")
                         if "error" in test_result:
