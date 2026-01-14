@@ -436,10 +436,16 @@ def _handle_oauth_callback():
     user = None
     try:
         if current_user.is_authenticated:
-            user = current_user
-            logger.info(f"OAuth callback: Using existing logged-in user {user.email} (ID: {user.id})")
-    except Exception:
+            # CRITICAL: Get the actual User object from database, NOT the LocalProxy
+            # Using current_user directly causes RecursionError when accessing user.id later
+            user_id = current_user.get_id()
+            if user_id:
+                user = User.query.get(int(user_id))
+                if user:
+                    logger.info(f"OAuth callback: Using existing logged-in user {user.email} (ID: {user.id})")
+    except Exception as e:
         # current_user not loaded yet or not authenticated - will create/find shop-based user
+        logger.debug(f"Could not get current_user: {e}")
         pass
     
     if not user:
