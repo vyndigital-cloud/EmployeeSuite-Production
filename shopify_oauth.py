@@ -733,23 +733,33 @@ def verify_hmac(params):
     """Verify Shopify HMAC"""
     hmac_to_verify = params.get('hmac')
     if not hmac_to_verify:
+        logger.error("HMAC verification failed: No hmac parameter in request")
         return False
-    
+
+    # CRITICAL: Check that API secret is set before trying to use it
+    if not SHOPIFY_API_SECRET:
+        logger.error("HMAC verification failed: SHOPIFY_API_SECRET is not set!")
+        return False
+
     # Create copy without hmac
     params_copy = dict(params)
     params_copy.pop('hmac', None)
-    
+
     # Build query string
     query_string = '&'.join([f"{k}={v}" for k, v in sorted(params_copy.items())])
-    
-    # Calculate HMAC
-    calculated_hmac = hmac.new(
-        SHOPIFY_API_SECRET.encode('utf-8'),
-        query_string.encode('utf-8'),
-        hashlib.sha256
-    ).hexdigest()
-    
-    return hmac.compare_digest(calculated_hmac, hmac_to_verify)
+
+    try:
+        # Calculate HMAC
+        calculated_hmac = hmac.new(
+            SHOPIFY_API_SECRET.encode('utf-8'),
+            query_string.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+
+        return hmac.compare_digest(calculated_hmac, hmac_to_verify)
+    except Exception as e:
+        logger.error(f"HMAC verification exception: {e}")
+        return False
 
 def exchange_code_for_token(shop, code):
     """Exchange authorization code for access token"""
