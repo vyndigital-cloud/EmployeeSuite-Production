@@ -57,7 +57,7 @@ SUBSCRIBE_HTML = '''
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Subscribe - Employee Suite</title>
+    <title>Subscribe - Employee Suite {{ plan_name }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="utf-8">
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
@@ -65,12 +65,14 @@ SUBSCRIBE_HTML = '''
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f6f6f7;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #202223;
             line-height: 1.5;
+            min-height: 100vh;
         }
-        .header { 
-            background: #ffffff;
+        .header {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
             border-bottom: 1px solid #e1e3e5;
             position: sticky;
             top: 0;
@@ -88,53 +90,97 @@ SUBSCRIBE_HTML = '''
         .logo { font-size: 16px; font-weight: 600; color: #202223; text-decoration: none; }
         .nav-btn { padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none; color: #6d7175; }
         .nav-btn:hover { background: #f6f6f7; color: #202223; }
-        .container { max-width: 600px; margin: 0 auto; padding: 32px 24px; }
-        .page-title { font-size: 28px; font-weight: 600; color: #202223; margin-bottom: 8px; }
-        .page-subtitle { font-size: 15px; color: #6d7175; margin-bottom: 32px; }
-        .pricing-card { 
+        .container { max-width: 500px; margin: 0 auto; padding: 48px 24px; }
+        .page-title { font-size: 32px; font-weight: 700; color: #fff; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .page-subtitle { font-size: 16px; color: rgba(255,255,255,0.9); margin-bottom: 32px; }
+        .pricing-card {
             background: #ffffff;
-            border: 1px solid #e1e3e5;
-            border-radius: 8px;
-            padding: 32px;
+            border-radius: 16px;
+            padding: 40px 32px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        .plan-badge {
+            display: inline-block;
+            background: {% if plan == 'business' %}linear-gradient(135deg, #10b981, #059669){% else %}linear-gradient(135deg, #f59e0b, #d97706){% endif %};
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
         }
         .btn {
             width: 100%;
-            padding: 12px 16px;
-            background: #008060;
+            padding: 16px 24px;
+            background: {% if plan == 'business' %}linear-gradient(135deg, #10b981, #059669){% else %}linear-gradient(135deg, #f59e0b, #d97706){% endif %};
             color: #fff;
             border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.15s;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px {% if plan == 'business' %}rgba(16, 185, 129, 0.4){% else %}rgba(245, 158, 11, 0.4){% endif %};
         }
-        .btn:hover { background: #006e52; }
-        .btn:disabled { background: #8c9196; cursor: not-allowed; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px {% if plan == 'business' %}rgba(16, 185, 129, 0.5){% else %}rgba(245, 158, 11, 0.5){% endif %}; }
+        .btn:disabled { background: #8c9196; cursor: not-allowed; box-shadow: none; transform: none; }
         .error-banner {
             background: #fff4f4;
             border: 1px solid #fecaca;
-            border-left: 3px solid #d72c0d;
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-bottom: 20px;
+            border-left: 4px solid #d72c0d;
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
             color: #d72c0d;
             font-size: 14px;
         }
         .info-banner {
             background: #e3fcef;
             border: 1px solid #b2f5d1;
-            border-left: 3px solid #008060;
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-bottom: 20px;
+            border-left: 4px solid #008060;
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
             color: #006e52;
             font-size: 14px;
         }
+        .feature-list { list-style: none; margin: 24px 0; }
+        .feature-list li {
+            padding: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: #374151;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .feature-list li:last-child { border-bottom: none; }
+        .feature-list li::before {
+            content: "";
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 50%;
+            flex-shrink: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'%3E%3Cpath fill-rule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clip-rule='evenodd'/%3E%3C/svg%3E");
+            background-size: 12px;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 24px;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-link:hover { color: #fff; }
         @media (max-width: 768px) {
-            .container { padding: 24px 16px; }
-            .page-title { font-size: 24px; }
-            .pricing-card { padding: 24px; }
+            .container { padding: 32px 16px; }
+            .page-title { font-size: 26px; }
+            .pricing-card { padding: 28px 20px; }
         }
     </style>
 </head>
@@ -142,31 +188,33 @@ SUBSCRIBE_HTML = '''
     <div class="header">
         <div class="header-content">
             <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="logo">Employee Suite</a>
-            <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="nav-btn">Back to Dashboard</a>
+            <a href="/enhanced-billing/pricing" class="nav-btn">View All Plans</a>
         </div>
     </div>
-    
+
     <div class="container">
-        <div style="text-align: center; margin-bottom: 40px;">
-            <h1 class="page-title">{% if not has_access %}Restore Full Access{% else %}Premium Plan{% endif %}</h1>
+        <a href="/enhanced-billing/pricing" class="back-link">← Back to pricing</a>
+
+        <div style="text-align: center; margin-bottom: 32px;">
+            <h1 class="page-title">{% if not has_access %}Restore Full Access{% else %}{{ plan_name }} Plan{% endif %}</h1>
             <p class="page-subtitle">
                 {% if not has_access %}
                 Your trial has ended. Subscribe to restore full access.
                 {% elif trial_active and not is_subscribed %}
                 Subscribe now to ensure uninterrupted access when your trial ends.
                 {% else %}
-                Get unlimited access to Employee Suite for $99/month.
+                Unlock powerful features with Employee Suite {{ plan_name }}.
                 {% endif %}
             </p>
         </div>
-        
+
         {% if error %}
         <div class="error-banner" style="white-space: pre-line;">{{ error }}</div>
         {% endif %}
-        
+
         {% if not has_store %}
-        <div class="error-banner" style="background: #fff4f4; border: 1px solid #fecaca; border-left: 3px solid #d72c0d; padding: 16px 20px;">
-            <div style="font-weight: 600; color: #202223; margin-bottom: 8px; font-size: 15px;">⚠️ Connect Your Shopify Store First</div>
+        <div class="error-banner">
+            <div style="font-weight: 600; color: #202223; margin-bottom: 8px; font-size: 15px;">Connect Your Shopify Store First</div>
             <div style="color: #6d7175; font-size: 14px; margin-bottom: 16px; line-height: 1.5;">
                 You need to connect your Shopify store before you can subscribe. This only takes 30 seconds.
             </div>
@@ -175,65 +223,75 @@ SUBSCRIBE_HTML = '''
             </a>
         </div>
         {% endif %}
-        
+
         {% if trial_active and not is_subscribed %}
         <div class="info-banner">
             <strong>{{ days_left }} day{{ 's' if days_left != 1 else '' }} left in your trial</strong><br>
             Subscribe now to avoid interruption.
         </div>
         {% endif %}
-        
+
         <div class="pricing-card">
             <div style="text-align: center; margin-bottom: 24px;">
-                <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; color: #6d7175; margin-bottom: 12px;">Monthly Subscription</div>
-                <div style="font-size: 48px; font-weight: 700; color: #202223; margin-bottom: 8px;">$99<span style="font-size: 20px; font-weight: 500; color: #6d7175;">/month</span></div>
+                <span class="plan-badge">{{ plan_name }}</span>
+                <div style="font-size: 56px; font-weight: 800; color: #1a1a2e; margin: 16px 0 8px; line-height: 1;">
+                    ${{ price }}<span style="font-size: 18px; font-weight: 500; color: #9ca3af;">/month</span>
+                </div>
                 <div style="font-size: 14px; color: #6d7175;">7-day free trial • Cancel anytime</div>
             </div>
-            
-            <div style="background: #f6f6f7; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
-                <div style="font-size: 16px; font-weight: 600; color: #202223; margin-bottom: 16px;">Everything included:</div>
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <div style="display: flex; align-items: center; gap: 12px; font-size: 14px;">
-                        <span style="color: #008060; font-weight: 600;">✓</span>
-                        <span>Order Monitoring & Tracking</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 12px; font-size: 14px;">
-                        <span style="color: #008060; font-weight: 600;">✓</span>
-                        <span>Inventory Management with Low Stock Alerts</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 12px; font-size: 14px;">
-                        <span style="color: #008060; font-weight: 600;">✓</span>
-                        <span>Revenue Analytics & Reporting</span>
-                    </div>
-                </div>
-            </div>
-            
+
+            <ul class="feature-list">
+                {% if plan == 'pro' %}
+                <li>Everything in Free plan</li>
+                <li>CSV exports (all reports)</li>
+                <li>Date range filtering</li>
+                <li>Auto-download reports</li>
+                <li>Low-stock alerts</li>
+                <li>Up to 3 store connections</li>
+                <li>90 days data history</li>
+                {% elif plan == 'business' %}
+                <li>Everything in Pro plan</li>
+                <li>Scheduled email reports</li>
+                <li>Daily/weekly/monthly delivery</li>
+                <li>SMS notifications</li>
+                <li>Unlimited stores</li>
+                <li>Unlimited data history</li>
+                <li>API access</li>
+                <li>Priority support</li>
+                {% else %}
+                <li>Order Monitoring & Tracking</li>
+                <li>Inventory Management</li>
+                <li>Revenue Analytics & Reporting</li>
+                {% endif %}
+            </ul>
+
             <form id="subscribe-form" method="POST" action="/billing/create-charge">
                 <input type="hidden" name="shop" value="{{ shop }}">
                 <input type="hidden" name="host" value="{{ host }}">
+                <input type="hidden" name="plan" value="{{ plan }}">
                 <button type="submit" class="btn" id="subscribe-btn" {% if not has_store %}disabled{% endif %}>
                     {% if not has_store %}
                         Connect Store to Subscribe
                     {% elif not has_access %}
                         Restore Access Now
                     {% else %}
-                        Subscribe Now
+                        Start 7-Day Free Trial
                     {% endif %}
                 </button>
             </form>
-            
+
             {% if not has_store %}
-            <p style="text-align: center; font-size: 13px; color: #6d7175; margin-top: 12px;">
+            <p style="text-align: center; font-size: 13px; color: #6d7175; margin-top: 16px;">
                 Click the button above to connect your store, then return here to subscribe.
             </p>
             {% else %}
-            <p style="text-align: center; font-size: 12px; color: #6d7175; margin-top: 16px;">
+            <p style="text-align: center; font-size: 12px; color: #6d7175; margin-top: 20px;">
                 Billed through your Shopify account. Cancel anytime from your Shopify admin.
             </p>
             {% endif %}
-            
+        </div>
     </div>
-    
+
     <script>
         // Prevent double-submit
         document.getElementById('subscribe-form').addEventListener('submit', function(e) {
@@ -377,39 +435,55 @@ This is a one-time setup required for all Shopify apps to use billing."""
         return f"Subscription error: {error_msg[:150]}"
 
 
-def create_recurring_charge(shop_url, access_token, return_url):
+def create_recurring_charge(shop_url, access_token, return_url, plan_type='pro'):
     """
     Create a recurring application charge using Shopify Billing API
     This is MANDATORY for Shopify App Store apps
+
+    plan_type: 'pro' ($29/mo) or 'business' ($99/mo)
     """
     import requests
     # #region agent log
     import json
     try:
         with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"J","location":"billing.py:343","message":"Create recurring charge start","data":{"shop_url":shop_url,"has_token":bool(access_token),"return_url":return_url},"timestamp":int(__import__('time').time()*1000)})+'\n')
+            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"J","location":"billing.py:343","message":"Create recurring charge start","data":{"shop_url":shop_url,"has_token":bool(access_token),"return_url":return_url,"plan_type":plan_type},"timestamp":int(__import__('time').time()*1000)})+'\n')
     except: pass
     # #endregion
+
+    # Plan pricing configuration
+    PLAN_CONFIG = {
+        'pro': {'name': 'Employee Suite Pro', 'price': 29.00},
+        'business': {'name': 'Employee Suite Business', 'price': 99.00},
+        # Legacy support
+        'premium': {'name': 'Employee Suite Business', 'price': 99.00},
+    }
+
+    # Get plan config, default to Pro
+    plan = PLAN_CONFIG.get(plan_type, PLAN_CONFIG['pro'])
+
     url = f"https://{shop_url}/admin/api/{SHOPIFY_API_VERSION}/recurring_application_charges.json"
     headers = {
         'X-Shopify-Access-Token': access_token,
         'Content-Type': 'application/json'
     }
-    
+
     # Automatically enable test mode for development stores
     is_dev_store = shop_url.endswith('.myshopify.com') and ('-dev' in shop_url or 'dev' in shop_url.lower())
     test_mode = os.getenv('SHOPIFY_BILLING_TEST', 'false').lower() == 'true' or is_dev_store
-    
+
     payload = {
         'recurring_application_charge': {
-            'name': 'Employee Suite Pro',
-            'price': 99.00,
+            'name': plan['name'],
+            'price': plan['price'],
             'return_url': return_url,
             'trial_days': 7,
             'test': test_mode
         }
     }
-    
+
+    logger.info(f"Creating {plan_type} plan charge: {plan['name']} at ${plan['price']}/mo")
+
     if test_mode:
         logger.info(f"Using test mode for charge creation (dev store: {is_dev_store})")
     
@@ -544,10 +618,18 @@ def get_charge_status(shop_url, access_token, charge_id):
 @billing_bp.route('/subscribe')
 def subscribe():
     """Subscribe page - uses Shopify Billing API"""
-    # Get shop context
+    # Get shop context and plan type
     shop = request.args.get('shop', '')
     host = request.args.get('host', '')
-    
+    plan = request.args.get('plan', 'pro')  # Default to 'pro' plan
+
+    # Plan configuration
+    PLAN_INFO = {
+        'pro': {'name': 'Pro', 'price': 29},
+        'business': {'name': 'Business', 'price': 99},
+    }
+    plan_info = PLAN_INFO.get(plan, PLAN_INFO['pro'])
+
     # For embedded apps, check if there's a shop parameter and try to find user from store
     # For standalone, use Flask-Login
     user = None
@@ -561,44 +643,50 @@ def subscribe():
                 user = store.user
     except Exception:
         pass
-    
+
     # If no user found, show message about needing to connect store
     if not user:
-        return render_template_string(SUBSCRIBE_HTML, 
-                                     trial_active=False, 
+        return render_template_string(SUBSCRIBE_HTML,
+                                     trial_active=False,
                                      has_access=False,
                                      days_left=0,
                                      is_subscribed=False,
                                      shop=shop,
                                      host=host,
                                      has_store=False,
+                                     plan=plan,
+                                     plan_name=plan_info['name'],
+                                     price=plan_info['price'],
                                      error='Please connect your Shopify store first to subscribe.')
-    
+
     # Check if user has a connected store
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     has_store = store is not None and store.is_connected()
-    
+
     # If no shop param, try to get from user's store
     if not shop and store:
         shop = store.shop_url
-    
+
     trial_active = user.is_trial_active()
     has_access = user.has_access()
     days_left = (user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
-    
+
     # Get error from query params, but override with store connection error if needed
     error = request.args.get('error')
     if not has_store and not error:
         error = 'No Shopify store connected'
-    
-    return render_template_string(SUBSCRIBE_HTML, 
-                                 trial_active=trial_active, 
+
+    return render_template_string(SUBSCRIBE_HTML,
+                                 trial_active=trial_active,
                                  has_access=has_access,
                                  days_left=days_left,
                                  is_subscribed=user.is_subscribed,
                                  shop=shop,
                                  host=host,
                                  has_store=has_store,
+                                 plan=plan,
+                                 plan_name=plan_info['name'],
+                                 price=plan_info['price'],
                                  error=error)
 
 
@@ -625,6 +713,7 @@ def create_charge():
     # #endregion
     shop = request.form.get('shop') or request.args.get('shop', '')
     host = request.form.get('host') or request.args.get('host', '')
+    plan_type = request.form.get('plan') or request.args.get('plan', 'pro')  # Get plan type from form
     
     # For embedded apps, try to find user from shop parameter
     # For standalone, use Flask-Login
@@ -698,11 +787,11 @@ def create_charge():
         dashboard_url = f'/dashboard?shop={shop_url}&host={host}'
         return safe_redirect(dashboard_url, shop=shop_url, host=host)
     
-    # Build return URL for after Shopify approval
-    return_url = f"{APP_URL}/billing/confirm?shop={shop_url}&host={host}"
+    # Build return URL for after Shopify approval (include plan_type)
+    return_url = f"{APP_URL}/billing/confirm?shop={shop_url}&host={host}&plan={plan_type}"
     
     # Create recurring charge via Shopify Billing API
-    result = create_recurring_charge(shop_url, access_token, return_url)
+    result = create_recurring_charge(shop_url, access_token, return_url, plan_type)
     # #region agent log
     try:
         with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
@@ -771,9 +860,12 @@ def confirm_charge():
     Handle return from Shopify after merchant approves/declines charge
     Shopify adds charge_id to the return URL
     """
+    from enhanced_models import SubscriptionPlan, PLAN_PRICES
+
     shop = request.args.get('shop', '')
     host = request.args.get('host', '')
     charge_id = request.args.get('charge_id')
+    plan_type = request.args.get('plan', 'pro')  # Get plan from return URL
     
     if not charge_id:
         logger.warning("No charge_id in billing confirm callback")
@@ -854,9 +946,36 @@ def confirm_charge():
                 # Update user subscription status
                 user.is_subscribed = True
                 store.charge_id = str(charge_id)
+
+                # Create or update SubscriptionPlan record
+                plan_price = PLAN_PRICES.get(plan_type, PLAN_PRICES.get('pro', 29.00))
+                existing_plan = SubscriptionPlan.query.filter_by(user_id=user.id).first()
+                if existing_plan:
+                    existing_plan.plan_type = plan_type
+                    existing_plan.price_usd = plan_price
+                    existing_plan.charge_id = str(charge_id)
+                    existing_plan.status = 'active'
+                    existing_plan.cancelled_at = None
+                    # Set features based on plan
+                    existing_plan.multi_store_enabled = (plan_type == 'business')
+                    existing_plan.automated_reports_enabled = (plan_type == 'business')
+                    existing_plan.scheduled_delivery_enabled = (plan_type == 'business')
+                else:
+                    new_plan = SubscriptionPlan(
+                        user_id=user.id,
+                        plan_type=plan_type,
+                        price_usd=plan_price,
+                        charge_id=str(charge_id),
+                        status='active',
+                        multi_store_enabled=(plan_type == 'business'),
+                        automated_reports_enabled=(plan_type == 'business'),
+                        scheduled_delivery_enabled=(plan_type == 'business'),
+                    )
+                    db.session.add(new_plan)
+
                 db.session.commit()
-                
-                logger.info(f"Subscription activated for {shop_url}, charge_id: {charge_id}")
+
+                logger.info(f"Subscription activated for {shop_url}, plan: {plan_type}, charge_id: {charge_id}")
                 
                 # Show success page
                 return render_template_string(SUCCESS_HTML, 
@@ -878,10 +997,36 @@ def confirm_charge():
         # Already active
         user.is_subscribed = True
         store.charge_id = str(charge_id)
+
+        # Create or update SubscriptionPlan record for already active case
+        plan_price = PLAN_PRICES.get(plan_type, PLAN_PRICES.get('pro', 29.00))
+        existing_plan = SubscriptionPlan.query.filter_by(user_id=user.id).first()
+        if existing_plan:
+            existing_plan.plan_type = plan_type
+            existing_plan.price_usd = plan_price
+            existing_plan.charge_id = str(charge_id)
+            existing_plan.status = 'active'
+            existing_plan.cancelled_at = None
+            existing_plan.multi_store_enabled = (plan_type == 'business')
+            existing_plan.automated_reports_enabled = (plan_type == 'business')
+            existing_plan.scheduled_delivery_enabled = (plan_type == 'business')
+        else:
+            new_plan = SubscriptionPlan(
+                user_id=user.id,
+                plan_type=plan_type,
+                price_usd=plan_price,
+                charge_id=str(charge_id),
+                status='active',
+                multi_store_enabled=(plan_type == 'business'),
+                automated_reports_enabled=(plan_type == 'business'),
+                scheduled_delivery_enabled=(plan_type == 'business'),
+            )
+            db.session.add(new_plan)
+
         db.session.commit()
-        
-        return render_template_string(SUCCESS_HTML, 
-                                     shop=shop_url, 
+
+        return render_template_string(SUCCESS_HTML,
+                                     shop=shop_url,
                                      host=host,
                                      api_key=os.getenv('SHOPIFY_API_KEY', ''))
     

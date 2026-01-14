@@ -8,8 +8,63 @@ from sqlalchemy.orm import validates
 from models import db, User, ShopifyStore
 
 # Subscription Plan Types
-PLAN_MANUAL = 'manual'  # $9.95/month
-PLAN_AUTOMATED = 'automated'  # $29/month
+PLAN_FREE = 'free'        # $0/month - Dashboard, 1 store, view-only
+PLAN_PRO = 'pro'          # $29/month - CSV exports, 3 stores, date filtering
+PLAN_BUSINESS = 'business' # $99/month - Automation, unlimited stores, priority support
+
+# Legacy plan type mappings (for backwards compatibility)
+PLAN_MANUAL = PLAN_PRO
+PLAN_AUTOMATED = PLAN_BUSINESS
+
+# Plan Pricing
+PLAN_PRICES = {
+    PLAN_FREE: 0.00,
+    PLAN_PRO: 29.00,
+    PLAN_BUSINESS: 99.00,
+}
+
+# Plan Features
+PLAN_FEATURES = {
+    PLAN_FREE: {
+        'name': 'Free',
+        'price': 0,
+        'stores_limit': 1,
+        'data_days': 7,
+        'csv_exports': False,
+        'auto_download': False,
+        'scheduled_reports': False,
+        'email_reports': False,
+        'sms_reports': False,
+        'priority_support': False,
+        'api_access': False,
+    },
+    PLAN_PRO: {
+        'name': 'Pro',
+        'price': 29,
+        'stores_limit': 3,
+        'data_days': 90,
+        'csv_exports': True,
+        'auto_download': True,
+        'scheduled_reports': False,
+        'email_reports': False,
+        'sms_reports': False,
+        'priority_support': False,
+        'api_access': False,
+    },
+    PLAN_BUSINESS: {
+        'name': 'Business',
+        'price': 99,
+        'stores_limit': -1,  # Unlimited
+        'data_days': -1,     # Unlimited
+        'csv_exports': True,
+        'auto_download': True,
+        'scheduled_reports': True,
+        'email_reports': True,
+        'sms_reports': True,
+        'priority_support': True,
+        'api_access': True,
+    },
+}
 
 class UserSettings(db.Model):
     """User preferences and settings"""
@@ -133,6 +188,18 @@ def get_user_plan(user):
     plan = SubscriptionPlan.query.filter_by(user_id=user.id, status='active').first()
     return plan
 
+def get_user_plan_type(user):
+    """Get user's plan type string, defaults to FREE"""
+    plan = get_user_plan(user)
+    if plan:
+        return plan.plan_type
+    return PLAN_FREE
+
+def get_plan_features(user):
+    """Get features dict for user's plan"""
+    plan_type = get_user_plan_type(user)
+    return PLAN_FEATURES.get(plan_type, PLAN_FEATURES[PLAN_FREE])
+
 def get_user_settings(user):
     """Get or create user settings"""
     settings = UserSettings.query.filter_by(user_id=user.id).first()
@@ -143,12 +210,46 @@ def get_user_settings(user):
     return settings
 
 def is_automated_plan(user):
-    """Check if user has automated plan"""
+    """Check if user has automated/business plan (scheduled reports)"""
     plan = get_user_plan(user)
-    return plan and plan.plan_type == PLAN_AUTOMATED
+    return plan and plan.plan_type == PLAN_BUSINESS
+
+def is_pro_or_higher(user):
+    """Check if user has Pro or Business plan"""
+    plan = get_user_plan(user)
+    return plan and plan.plan_type in [PLAN_PRO, PLAN_BUSINESS]
+
+def can_export_csv(user):
+    """Check if user can export CSV files"""
+    features = get_plan_features(user)
+    return features.get('csv_exports', False)
+
+def can_auto_download(user):
+    """Check if user can use auto-download"""
+    features = get_plan_features(user)
+    return features.get('auto_download', False)
+
+def can_scheduled_reports(user):
+    """Check if user can use scheduled reports"""
+    features = get_plan_features(user)
+    return features.get('scheduled_reports', False)
 
 def can_multi_store(user):
     """Check if user can connect multiple stores"""
     plan = get_user_plan(user)
-    return plan and plan.multi_store_enabled
+    if not plan:
+        return False
+    features = PLAN_FEATURES.get(plan.plan_type, PLAN_FEATURES[PLAN_FREE])
+    stores_limit = features.get('stores_limit', 1)
+    return stores_limit == -1 or stores_limit > 1
+
+def get_stores_limit(user):
+    """Get max stores allowed for user's plan"""
+    features = get_plan_features(user)
+    return features.get('stores_limit', 1)
+
+def get_data_days_limit(user):
+    """Get max data history days for user's plan"""
+    features = get_plan_features(user)
+    return features.get('data_days', 7)
 
