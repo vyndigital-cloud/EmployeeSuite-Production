@@ -3042,7 +3042,7 @@ DASHBOARD_HTML = """
             }
         });
         
-        // Keyboard shortcuts for power users
+// Keyboard shortcuts for power users
         document.addEventListener('keydown', function(e) {
             // Don't trigger shortcuts when typing in inputs
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
@@ -4178,18 +4178,18 @@ def api_process_orders():
         # Get authenticated user (supports both Flask-Login and session tokens)
         logger.info('Step 1: Getting authenticated user...')
         user, error_response = get_authenticated_user()
-        
+
         if error_response:
             logger.warning('Step 1 FAILED: Authentication error')
             logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
             return error_response
-        
+
         logger.info(f'Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, "email") else "N/A"}')
-        
+
         # Check access
         logger.info('Step 2: Checking user access...')
         has_access = user.has_access() if user else False
-        
+
         if not has_access:
             logger.warning(f'Step 2 FAILED: User {user.id if hasattr(user, "id") else "N/A"} does not have access')
             return jsonify({
@@ -4199,13 +4199,13 @@ def api_process_orders():
                 'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
                 'subscribe_url': url_for('billing.subscribe')
             }), 403
-        
+
         logger.info(f'Step 2 SUCCESS: User {user.id if hasattr(user, "id") else "N/A"} has access')
-        
+
         # Store user ID before login_user to avoid recursion issues
         user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
         logger.info(f'Step 3: User ID extracted: {user_id}')
-        
+
         # Temporarily set current_user for process_orders() function
         # (it expects current_user to be set)
         logger.info('Step 4: Logging in user...')
@@ -4274,17 +4274,17 @@ def api_update_inventory():
         # Get authenticated user (supports both Flask-Login and session tokens)
         logger.info('Step 1: Getting authenticated user...')
         user, error_response = get_authenticated_user()
-        
+
         if error_response:
             logger.warning('Step 1 FAILED: Authentication error')
             logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
             return error_response
-        
+
         logger.info(f'Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, "email") else "N/A"}')
-        
+
         logger.info('Step 2: Checking user access...')
         has_access = user.has_access() if user else False
-        
+
         if not has_access:
             logger.warning(f'Step 2 FAILED: User {user.id if hasattr(user, "id") else "N/A"} does not have access')
             return jsonify({
@@ -4294,13 +4294,13 @@ def api_update_inventory():
                 'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
                 'subscribe_url': url_for('billing.subscribe')
             }), 403
-        
+
         logger.info(f'Step 2 SUCCESS: User {user.id if hasattr(user, "id") else "N/A"} has access')
-        
+
         # Store user ID before login_user to avoid recursion issues
         user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
         logger.info(f'Step 3: User ID extracted: {user_id}')
-        
+
         # Set current_user for update_inventory() function
         logger.info('Step 4: Logging in user...')
         from flask_login import login_user
@@ -4726,7 +4726,9 @@ def rate_limit_exceeded(error):
     return jsonify({'error': 'Rate limit exceeded. Please try again later.'}), 429
 
 # CSV Export Endpoints
-@app.route('/api/export/inventory', methods=['GET'])
+# Note: Primary inventory export is at /api/export/inventory via enhanced_features.py
+# This is a legacy/simple version for backwards compatibility
+@app.route('/api/export/inventory-simple', methods=['GET'])
 @login_required
 @require_access
 def export_inventory_csv():

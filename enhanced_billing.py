@@ -191,110 +191,18 @@ def pricing_page():
     '''
     return html
 
-@enhanced_billing_bp.route('/subscribe', methods=['GET'])
-@login_required
-def subscribe():
-    """Subscribe to premium plan"""
-    plan_type = 'premium'  # Single premium plan
-    
-    # Check if user already has active subscription
-    existing_plan = SubscriptionPlan.query.filter_by(
-        user_id=current_user.id,
-        status='active'
-    ).first()
-    
-    if existing_plan:
-        return redirect('/dashboard')
-    
-    # Get user's store for Shopify billing
-    store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
-    
-    if not store:
-        return redirect('/settings/shopify?redirect=/subscribe?plan=' + plan_type)
-    
-    # Create subscription plan - Premium $99/month
-    price = PREMIUM_PLAN_PRICE
-    
-    # Use Shopify Billing API
-    from shopify_billing import create_shopify_subscription
-    try:
-        # Get decrypted access token
-        access_token = store.get_access_token()
-        if not access_token:
-            return "Store not properly connected. Please reconnect your store.", 400
-        
-        confirmation_url = create_shopify_subscription(
-            store.shop_url,
-            access_token,
-            current_user.id
-        )
-        
-        # Store plan info in session
-        session['pending_plan'] = 'premium'
-        session['pending_price'] = float(price)
-        
-        return safe_redirect(confirmation_url, shop=store.shop_url)
-    except Exception as e:
-        logger.error(f"Error creating subscription: {str(e)}", exc_info=True)
-        return f"Error creating subscription: {str(e)}", 500
-
-@enhanced_billing_bp.route('/billing/confirm', methods=['GET'])
-@login_required
-def confirm_subscription():
-    """Confirm subscription after Shopify approval"""
-    charge_id = request.args.get('charge_id')
-    
-    if not charge_id:
-        return "Missing charge_id", 400
-    
-    # Get pending plan from session
-    plan_type = session.get('pending_plan', 'premium')
-    price = session.get('pending_price', PREMIUM_PLAN_PRICE)
-    
-    # Create subscription plan record - Premium plan
-    # Use transaction with lock to prevent race conditions
-    try:
-        from models import User
-        # Lock user row for update
-        user = User.query.with_for_update().filter_by(id=current_user.id).first()
-        if not user:
-            return "User not found", 404
-        
-        plan = SubscriptionPlan(
-            user_id=user.id,
-            plan_type='premium',
-            price_usd=price,
-            charge_id=charge_id,
-            status='active',
-            multi_store_enabled=True,
-            staff_connections_enabled=True,
-            automated_reports_enabled=True,
-            scheduled_delivery_enabled=True
-        )
-        
-        # Update user subscription status
-        user.is_subscribed = True
-        # Don't extend trial on subscription - user is now subscribed
-        # Trial should end when user subscribes, not extend
-        
-        db.session.add(plan)
-        try:
-            db.session.commit()
-        except Exception as commit_error:
-            logger.error(f"Error committing subscription plan: {commit_error}", exc_info=True)
-            db.session.rollback()
-            return f"Error processing subscription: {str(commit_error)}", 500
-    except Exception as e:
-        logger.error(f"Error creating subscription plan: {e}", exc_info=True)
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-        return f"Error processing subscription: {str(e)}", 500
-    
-    # Clear session
-    session.pop('pending_plan', None)
-    session.pop('pending_price', None)
-    
-    return redirect('/dashboard?subscribed=1')
+# NOTE: These routes are disabled to prevent conflicts with billing.py
+# The app uses url_for('billing.subscribe') which requires the billing_bp routes
+#
+# @enhanced_billing_bp.route('/subscribe', methods=['GET'])
+# @login_required
+# def subscribe():
+#     """Subscribe to premium plan - DISABLED, using billing.py version"""
+#     pass
+#
+# @enhanced_billing_bp.route('/billing/confirm', methods=['GET'])
+# @login_required
+# def confirm_subscription():
+#     """Confirm subscription - DISABLED, using billing.py version"""
+#     pass
 
