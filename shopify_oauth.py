@@ -372,6 +372,7 @@ def install():
 @oauth_bp.route('/auth/callback')
 def callback():
     """Handle Shopify OAuth callback"""
+    import traceback
     # #region agent log
     try:
         import json
@@ -379,6 +380,18 @@ def callback():
             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"M","location":"shopify_oauth.py:320","message":"OAuth callback entry","data":{"shop":request.args.get('shop',''),"code":bool(request.args.get('code')),"state":request.args.get('state',''),"host":request.args.get('host',''),"full_url":request.url,"referer":request.headers.get('Referer',''),"user_agent":request.headers.get('User-Agent','')[:100]},"timestamp":int(__import__('time').time()*1000)})+'\n')
     except: pass
     # #endregion
+
+    try:
+        return _handle_oauth_callback()
+    except Exception as e:
+        error_trace = traceback.format_exc()
+        logger.error(f"OAuth callback EXCEPTION: {str(e)}")
+        logger.error(f"Full traceback:\n{error_trace}")
+        return f"OAuth error: {str(e)}", 500
+
+
+def _handle_oauth_callback():
+    """Internal handler for OAuth callback - separated for better error handling"""
     # CRITICAL: Check API credentials before proceeding
     if not SHOPIFY_API_KEY or not SHOPIFY_API_SECRET:
         logger.error("OAuth callback failed: Missing API credentials")
