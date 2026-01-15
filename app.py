@@ -2020,41 +2020,19 @@ DASHBOARD_HTML = """
                         if (bridgeState && bridgeState.ready && bridgeState.app) {
                             window.shopifyApp = bridgeState.app;
                             window.appBridgeReady = true;
-                            // Continue with API call directly (don't retry function - skip debounce)
-                proceedWithApiCall();
-                        } else {
-                            setButtonLoading(button, false);
-                            document.getElementById('output').innerHTML = `
-                                <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
-                                    <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">⏳ App Bridge Not Ready</div>
-                                    <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${bridgeState && bridgeState.error ? bridgeState.error : 'Please wait while the app initializes.'}</div>
-                                    <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"processOrders\"]'); if (btn) setTimeout(function(){processOrders(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
-                                </div>
-                            `;
                         }
+                        // Always proceed with API call - will use session token if available, cookie auth as fallback
+                        proceedWithApiCall();
                     }).catch(function(error) {
-                        setButtonLoading(button, false);
-                        document.getElementById('output').innerHTML = `
-                            <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;">
-                                <div style="font-size: 15px; font-weight: 600; color: #d72c0d; margin-bottom: 8px;">❌ App Bridge Error</div>
-                                <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${error.message || 'Please refresh the page.'}</div>
-                                <button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>
-                            </div>
-                        `;
+                        console.warn('App Bridge not available, using cookie auth fallback:', error.message);
+                        // Fall back to cookie auth instead of showing error
+                        proceedWithApiCall();
                     });
                     return;
-                } else if (!window.appBridgeReady) {
-                    // Fallback to original sync check
-                setButtonLoading(button, false);
-                document.getElementById('output').innerHTML = `
-                    <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
-                        <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">⏳ Initializing App...</div>
-                        <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please wait while the app initializes. This should only take a moment.</div>
-                        <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"processOrders\"]'); if (btn) setTimeout(function(){processOrders(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
-                    </div>
-                `;
-                } // Close else if (!window.appBridgeReady)
-            } // Close if (isEmbedded)
+                }
+            }
+            // App Bridge ready or not embedded - proceed with API call
+            proceedWithApiCall(); // Close if (isEmbedded)
             
             // Extract API call logic into function (called when Promise resolves or App Bridge ready)
             function proceedWithApiCall() {
@@ -2100,33 +2078,20 @@ DASHBOARD_HTML = """
                     // Debug logging removed for performance
                     return fetch(apiUrl, {
                         headers: {'Authorization': 'Bearer ' + token},
-                        signal: controller.signal
+                        signal: controller.signal,
+                        credentials: 'include'  // Include cookies as fallback auth
                     });
                 }).catch(function(err) {
-                    // Debug logging removed for performance
-                    // Don't show error if request was cancelled
+                    // If session token fails, try cookie auth
                     if (err.name === 'AbortError') {
                         return;
                     }
-                    // Show detailed error for debugging
-                    console.error('❌ Session token error:', err);
-                    setButtonLoading(button, false);
-                    var errorMsg = err.message || 'Unknown error';
-                    document.getElementById('output').innerHTML = `
-                        <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;">
-                            <div style="font-size: 15px; font-weight: 600; color: #d72c0d; margin-bottom: 8px;">🔒 Session Token Error</div>
-                            <div style="font-size: 14px; color: #6d7175; margin-bottom: 12px; line-height: 1.5;">${errorMsg}</div>
-                            <div style="font-size: 13px; color: #8c9196; margin-bottom: 16px; padding: 12px; background: #f6f6f7; border-radius: 4px;">
-                                <strong>Debug info:</strong><br>
-                                App Bridge ready: ${window.appBridgeReady ? 'Yes' : 'No'}<br>
-                                App Bridge exists: ${window.shopifyApp ? 'Yes' : 'No'}<br>
-                                Embedded mode: ${window.isEmbedded ? 'Yes' : 'No'}
-                            </div>
-                            <button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; margin-right: 8px;">Refresh Page</button>
-                            <button onclick="console.log('App Bridge:', window.shopifyApp, 'Ready:', window.appBridgeReady)" style="padding: 8px 16px; background: #f6f6f7; color: #202223; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Debug Console</button>
-                        </div>
-                    `;
-                    throw err; // Stop execution
+                    console.warn('Session token failed, trying cookie auth:', err.message);
+                    // Fall back to cookie auth
+                    return fetch(apiUrl, {
+                        signal: controller.signal,
+                        credentials: 'include'
+                    });
                 });
             } else {
                 // Debug logging removed for performance
@@ -2305,52 +2270,23 @@ DASHBOARD_HTML = """
             var fetchPromise;
             var isEmbedded = window.isEmbedded; // Use global flag
             
-            // PERFECTED: Wait for App Bridge (uses Promise if available, sync check as fallback)
-            if (isEmbedded) {
-                // Try Promise-based wait first
-                if (window.waitForAppBridge && typeof window.waitForAppBridge === 'function' && !window.appBridgeReady) {
-                    // Wait for Promise to resolve
-                    window.waitForAppBridge().then(function(bridgeState) {
-                        if (bridgeState && bridgeState.ready && bridgeState.app) {
-                            window.shopifyApp = bridgeState.app;
-                            window.appBridgeReady = true;
-                            // Continue with API call directly (don't retry function - skip debounce)
-                            proceedWithApiCall();
-                        } else {
-                            setButtonLoading(button, false);
-                            document.getElementById('output').innerHTML = `
-                                <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
-                                    <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">⏳ App Bridge Not Ready</div>
-                                    <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${bridgeState && bridgeState.error ? bridgeState.error : 'Please wait while the app initializes.'}</div>
-                                    <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"processOrders\"]'); if (btn) setTimeout(function(){processOrders(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
-                                </div>
-                            `;
-                        }
-                    }).catch(function(error) {
-                        setButtonLoading(button, false);
-                        document.getElementById('output').innerHTML = `
-                            <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;">
-                                <div style="font-size: 15px; font-weight: 600; color: #d72c0d; margin-bottom: 8px;">❌ App Bridge Error</div>
-                                <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${error.message || 'Please refresh the page.'}</div>
-                                <button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>
-                            </div>
-                        `;
-                    });
-                    return;
-                } else if (!window.appBridgeReady) {
-                    // Fallback to original sync check
-                setButtonLoading(button, false);
-                document.getElementById('output').innerHTML = `
-                    <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
-                        <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">⏳ Initializing App...</div>
-                        <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please wait while the app initializes. This should only take a moment.</div>
-                        <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"updateInventory\"]'); if (btn) setTimeout(function(){updateInventory(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
-                    </div>
-                `;
-                } // Close else if (!window.appBridgeReady)
-            } // Close if (isEmbedded)
-            
-            // Extract API call logic into function (called when Promise resolves or App Bridge ready)
+            // Wait for App Bridge if available, but fall back to cookie auth if not
+            if (isEmbedded && window.waitForAppBridge && typeof window.waitForAppBridge === 'function' && !window.appBridgeReady) {
+                window.waitForAppBridge().then(function(bridgeState) {
+                    if (bridgeState && bridgeState.ready && bridgeState.app) {
+                        window.shopifyApp = bridgeState.app;
+                        window.appBridgeReady = true;
+                    }
+                    proceedWithApiCall();
+                }).catch(function(error) {
+                    console.warn('App Bridge not available, using cookie auth fallback:', error.message);
+                    proceedWithApiCall();
+                });
+                return;
+            }
+            proceedWithApiCall();
+
+            // Extract API call logic into function
             function proceedWithApiCall() {
                 if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
                 // In embedded mode, we MUST have session token - retry up to 3 times
@@ -2391,30 +2327,25 @@ DASHBOARD_HTML = """
                     // Debug logging removed for performance
                     return fetch(apiUrl, {
                         headers: {'Authorization': 'Bearer ' + token},
-                        signal: controller.signal
+                        signal: controller.signal,
+                        credentials: 'include'  // Include cookies as fallback
                     });
                 }).catch(function(err) {
-                    // Don't show error if request was cancelled
                     if (err.name === 'AbortError') {
                         return;
                     }
-                    // Show professional error instead of trying without auth
-                    setButtonLoading(button, false);
-                    document.getElementById('output').innerHTML = `
-                        <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
-                            <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Session Error</div>
-                            <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Unable to verify your session. This usually happens when the page has been open for a while.</div>
-                            <button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>
-                        </div>
-                    `;
-                    throw err; // Stop execution
+                    console.warn('Session token failed, trying cookie auth:', err.message);
+                    // Fall back to cookie auth
+                    return fetch(apiUrl, {
+                        signal: controller.signal,
+                        credentials: 'include'
+                    });
                 });
             } else {
                 // Not embedded - use regular fetch (Flask-Login handles auth)
-                // CRITICAL: Include credentials (cookies) for standalone access
                 fetchPromise = fetch('/api/update_inventory', {
                     signal: controller.signal,
-                    credentials: 'include'  // Include cookies for Flask-Login
+                    credentials: 'include'
                 });
             }
             
@@ -2558,52 +2489,23 @@ DASHBOARD_HTML = """
             var fetchPromise;
             var isEmbedded = window.isEmbedded; // Use global flag
             
-            // PERFECTED: Wait for App Bridge (uses Promise if available, sync check as fallback)
-            if (isEmbedded) {
-                // Try Promise-based wait first
-                if (window.waitForAppBridge && typeof window.waitForAppBridge === 'function' && !window.appBridgeReady) {
-                    // Wait for Promise to resolve
-                    window.waitForAppBridge().then(function(bridgeState) {
-                        if (bridgeState && bridgeState.ready && bridgeState.app) {
-                            window.shopifyApp = bridgeState.app;
-                            window.appBridgeReady = true;
-                            // Continue with API call directly (don't retry function - skip debounce)
-                            proceedWithApiCall();
-                        } else {
-                            setButtonLoading(button, false);
-                            document.getElementById('output').innerHTML = `
-                                <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
-                                    <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">⏳ App Bridge Not Ready</div>
-                                    <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${bridgeState && bridgeState.error ? bridgeState.error : 'Please wait while the app initializes.'}</div>
-                                    <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"processOrders\"]'); if (btn) setTimeout(function(){processOrders(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
-                                </div>
-                            `;
-                        }
-                    }).catch(function(error) {
-                        setButtonLoading(button, false);
-                        document.getElementById('output').innerHTML = `
-                            <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;">
-                                <div style="font-size: 15px; font-weight: 600; color: #d72c0d; margin-bottom: 8px;">❌ App Bridge Error</div>
-                                <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${error.message || 'Please refresh the page.'}</div>
-                                <button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>
-                            </div>
-                        `;
-                    });
-                    return;
-                } else if (!window.appBridgeReady) {
-                    // Fallback to original sync check
-                setButtonLoading(button, false);
-                document.getElementById('output').innerHTML = `
-                    <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
-                        <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">⏳ Initializing App...</div>
-                        <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please wait while the app initializes. This should only take a moment.</div>
-                        <button onclick="var btn = document.querySelector('.card-btn[onclick*=\"generateReport\"]'); if (btn) setTimeout(function(){generateReport(btn);}, 500);" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
-                    </div>
-                `;
-                } // Close else if (!window.appBridgeReady)
-            } // Close if (isEmbedded)
-            
-            // Extract API call logic into function (called when Promise resolves or App Bridge ready)
+            // Wait for App Bridge if available, but fall back to cookie auth if not
+            if (isEmbedded && window.waitForAppBridge && typeof window.waitForAppBridge === 'function' && !window.appBridgeReady) {
+                window.waitForAppBridge().then(function(bridgeState) {
+                    if (bridgeState && bridgeState.ready && bridgeState.app) {
+                        window.shopifyApp = bridgeState.app;
+                        window.appBridgeReady = true;
+                    }
+                    proceedWithApiCall();
+                }).catch(function(error) {
+                    console.warn('App Bridge not available, using cookie auth fallback:', error.message);
+                    proceedWithApiCall();
+                });
+                return;
+            }
+            proceedWithApiCall();
+
+            // Extract API call logic into function
             function proceedWithApiCall() {
                 if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
                 // In embedded mode, we MUST have session token - retry up to 3 times
@@ -2646,33 +2548,27 @@ DASHBOARD_HTML = """
                     // Debug logging removed for performance
                     return fetch(reportUrl, {
                         headers: {'Authorization': 'Bearer ' + token},
-                        signal: controller.signal
+                        signal: controller.signal,
+                        credentials: 'include'  // Include cookies as fallback
                     });
                 }).catch(function(err) {
-                    // Don't show error if request was cancelled
                     if (err.name === 'AbortError') {
                         return;
                     }
-                    // Show professional error instead of trying without auth
-                    setButtonLoading(button, false);
-                    document.getElementById('output').innerHTML = `
-                        <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
-                            <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Session Error</div>
-                            <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Unable to verify your session. This usually happens when the page has been open for a while.</div>
-                            <button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>
-                        </div>
-                    `;
-                    throw err; // Stop execution
+                    console.warn('Session token failed, trying cookie auth:', err.message);
+                    // Fall back to cookie auth
+                    return fetch(reportUrl, {
+                        signal: controller.signal,
+                        credentials: 'include'
+                    });
                 });
             } else {
-                // Not embedded - use regular fetch (Flask-Login handles auth)
-                // CRITICAL: Include credentials (cookies) for standalone access
-                // Get shop from URL or use current shop
+                // Not embedded - use regular fetch with cookie auth
                 const shopUrl = new URLSearchParams(window.location.search).get('shop') || '';
                 const reportUrl = shopUrl ? `/api/generate_report?shop=${encodeURIComponent(shopUrl)}` : '/api/generate_report';
                 fetchPromise = fetch(reportUrl, {
                     signal: controller.signal,
-                    credentials: 'include'  // Include cookies for Flask-Login
+                    credentials: 'include'
                 });
             }
             
