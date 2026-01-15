@@ -469,28 +469,40 @@ def load_user(user_id):
 
 @login_manager.unauthorized_handler
 def unauthorized():
-    """Handle unauthorized access - redirect embedded apps to OAuth, standalone to login"""
+    """Handle unauthorized access - ALWAYS redirect to OAuth (Shopify-only app)"""
     from flask import request, redirect, url_for, has_request_context
-    # CRITICAL: Only use request context if we're in a request
+
+    # CRITICAL: This is a Shopify-only app - NO login form, always OAuth
     if not has_request_context():
-        # Not in a request context - return a simple redirect
-        return redirect('/login')
-    
-    # Check if this is an embedded app request
-    shop = request.args.get('shop')
-    embedded = request.args.get('embedded')
+        return redirect('/install')
+
+    # Get shop from request params or session
+    shop = request.args.get('shop') or session.get('shop') or session.get('current_shop')
     host = request.args.get('host')
-    
-    # CRITICAL: For embedded apps, redirect to OAuth (Shopify's embedded auth flow)
-    # DO NOT redirect to login form - embedded apps use OAuth
-    if embedded == '1' or (shop and host):
-        if shop:
-            install_url = url_for('oauth.install', shop=shop, host=host) if host else url_for('oauth.install', shop=shop)
-            logger.info(f"Unauthorized embedded app request - redirecting to OAuth via install route: {install_url}")
-            return safe_redirect(install_url, shop=shop, host=host)
-    
-    # For standalone access, redirect to login form
-    return redirect(url_for('auth.login'))
+
+    # Try to extract shop from Referer header
+    if not shop:
+        referer = request.headers.get('Referer', '')
+        if 'myshopify.com' in referer or 'admin.shopify.com' in referer:
+            try:
+                from urllib.parse import urlparse
+                parsed = urlparse(referer)
+                if '.myshopify.com' in parsed.netloc:
+                    shop = parsed.netloc
+                elif '/store/' in parsed.path:
+                    shop_name = parsed.path.split('/store/')[1].split('/')[0]
+                    shop = f"{shop_name}.myshopify.com"
+            except Exception:
+                pass
+
+    # If we have shop, redirect to OAuth
+    if shop:
+        install_url = url_for('oauth.install', shop=shop, host=host) if host else url_for('oauth.install', shop=shop)
+        logger.info(f"Unauthorized - redirecting to OAuth: {install_url}")
+        return safe_redirect(install_url, shop=shop, host=host)
+
+    # No shop found - redirect to install page (NOT login)
+    return redirect('/install')
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(shopify_bp)
