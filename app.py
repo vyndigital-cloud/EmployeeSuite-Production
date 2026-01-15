@@ -1844,7 +1844,20 @@ DASHBOARD_HTML = """
         
         // Get APP_URL from template or use current origin (FIXED: was using template literal incorrectly)
         var APP_URL = '{{ APP_URL|default("") }}' || window.location.origin;
-        
+
+        // CRITICAL: Extract shop, host, and id_token from URL for API calls
+        var urlParams = new URLSearchParams(window.location.search);
+        var SHOP_PARAM = urlParams.get('shop') || '';
+        var HOST_PARAM = urlParams.get('host') || '';
+        var ID_TOKEN = urlParams.get('id_token') || '';
+
+        // Store in window for global access
+        window.SHOP_PARAM = SHOP_PARAM;
+        window.HOST_PARAM = HOST_PARAM;
+        window.ID_TOKEN = ID_TOKEN;
+
+        console.log('Shop params loaded:', {shop: SHOP_PARAM, hasIdToken: !!ID_TOKEN});
+
         // Network status detection with visual indicator
         var isOnline = navigator.onLine;
         function updateConnectionStatus() {
@@ -2055,38 +2068,46 @@ DASHBOARD_HTML = """
                     });
                 }
                 
-                fetchPromise = getTokenWithRetry().then(function(token) {
-                    if (!token) {
-                        throw new Error('Unable to get session token. Please refresh the page.');
-                    }
-                    // CRITICAL: Use absolute URL in embedded mode to prevent iframe URL resolution issues
-                    var apiUrl = '/api/process_orders';
-                    if (isEmbedded) {
-                        apiUrl = APP_URL + '/api/process_orders';
-                    }
-                    // Debug logging removed for performance
-                    return fetch(apiUrl, {
-                        headers: {'Authorization': 'Bearer ' + token},
-                        signal: controller.signal,
-                        credentials: 'include'  // Include cookies as fallback auth
-                    });
-                }).catch(function(err) {
-                    // If session token fails, try cookie auth
-                    if (err.name === 'AbortError') {
-                        return;
-                    }
-                    console.warn('Session token failed, trying cookie auth:', err.message);
-                    // Fall back to cookie auth
-                    return fetch(apiUrl, {
+                // Build API URL with shop param
+                var apiUrl = '/api/process_orders';
+                if (window.SHOP_PARAM) {
+                    apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
+                }
+                if (isEmbedded) {
+                    apiUrl = APP_URL + apiUrl;
+                }
+
+                // Use id_token from URL if available, otherwise try App Bridge
+                if (window.ID_TOKEN) {
+                    fetchPromise = fetch(apiUrl, {
+                        headers: {'Authorization': 'Bearer ' + window.ID_TOKEN},
                         signal: controller.signal,
                         credentials: 'include'
                     });
-                });
+                } else {
+                    fetchPromise = getTokenWithRetry().then(function(token) {
+                        var headers = token ? {'Authorization': 'Bearer ' + token} : {};
+                        return fetch(apiUrl, {
+                            headers: headers,
+                            signal: controller.signal,
+                            credentials: 'include'
+                        });
+                    }).catch(function(err) {
+                        if (err.name === 'AbortError') return;
+                        // Fall back to cookie auth with shop param
+                        return fetch(apiUrl, {
+                            signal: controller.signal,
+                            credentials: 'include'
+                        });
+                    });
+                }
             } else {
-                // Debug logging removed for performance
-                // Not embedded - use regular fetch (Flask-Login handles auth)
-                // CRITICAL: Include credentials (cookies) for standalone access
-                fetchPromise = fetch('/api/process_orders', {
+                // Not embedded - use regular fetch with shop param if available
+                var apiUrl = '/api/process_orders';
+                if (window.SHOP_PARAM) {
+                    apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
+                }
+                fetchPromise = fetch(apiUrl, {
                     signal: controller.signal,
                     credentials: 'include'
                 });
@@ -2277,62 +2298,77 @@ DASHBOARD_HTML = """
 
             // Extract API call logic into function
             function proceedWithApiCall() {
-                if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
-                // In embedded mode, we MUST have session token - retry up to 3 times
-                var retryCount = 0;
-                var maxRetries = 2; // Optimized: reduced from 3
-                
-                function getTokenWithRetry() {
-                    return window.shopifyApp.getSessionToken().then(function(token) {
-                        if (!token && retryCount < maxRetries) {
-                            retryCount++;
-                            return new Promise(function(resolve, reject) {
-                                setTimeout(function() { getTokenWithRetry().then(resolve).catch(reject); }, 100); // Optimized: reduced from 300ms
-                            });
-                        }
-                        return token;
-                }).catch(function(err) {
-                        // If error and haven't exceeded retries, retry
-                        if (retryCount < maxRetries) {
-                            retryCount++;
-                            return new Promise(function(resolve, reject) {
-                                setTimeout(function() { getTokenWithRetry().then(resolve).catch(reject); }, 100); // Optimized: reduced from 300ms
-                            });
-                        }
-                        // Max retries exceeded, throw error
-                        throw err;
-                    });
+                // Build API URL with shop param
+                var apiUrl = '/api/update_inventory';
+                if (window.SHOP_PARAM) {
+                    apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
                 }
-                
-                fetchPromise = getTokenWithRetry().then(function(token) {
-                    if (!token) {
-                        throw new Error('Unable to get session token. Please refresh the page.');
-                    }
-                    // CRITICAL: Use absolute URL in embedded mode to prevent iframe URL resolution issues
-                    var apiUrl = '/api/update_inventory';
-                    if (isEmbedded) {
-                        apiUrl = APP_URL + '/api/update_inventory';
-                    }
-                    // Debug logging removed for performance
-                    return fetch(apiUrl, {
-                        headers: {'Authorization': 'Bearer ' + token},
-                        signal: controller.signal,
-                        credentials: 'include'  // Include cookies as fallback
-                    });
-                }).catch(function(err) {
-                    if (err.name === 'AbortError') {
-                        return;
-                    }
-                    console.warn('Session token failed, trying cookie auth:', err.message);
-                    // Fall back to cookie auth
-                    return fetch(apiUrl, {
+                if (isEmbedded) {
+                    apiUrl = APP_URL + apiUrl;
+                }
+
+                // Use id_token from URL if available
+                if (window.ID_TOKEN) {
+                    fetchPromise = fetch(apiUrl, {
+                        headers: {'Authorization': 'Bearer ' + window.ID_TOKEN},
                         signal: controller.signal,
                         credentials: 'include'
                     });
-                });
+                } else if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
+                    // Try App Bridge token
+                    var retryCount = 0;
+                    var maxRetries = 2;
+
+                    function getTokenWithRetry() {
+                        return window.shopifyApp.getSessionToken().then(function(token) {
+                            if (!token && retryCount < maxRetries) {
+                                retryCount++;
+                                return new Promise(function(resolve, reject) {
+                                    setTimeout(function() { getTokenWithRetry().then(resolve).catch(reject); }, 100);
+                                });
+                            }
+                            return token;
+                        }).catch(function(err) {
+                            if (retryCount < maxRetries) {
+                                retryCount++;
+                                return new Promise(function(resolve, reject) {
+                                    setTimeout(function() { getTokenWithRetry().then(resolve).catch(reject); }, 100);
+                                });
+                            }
+                            throw err;
+                        });
+                    }
+
+                    fetchPromise = getTokenWithRetry().then(function(token) {
+                        var headers = token ? {'Authorization': 'Bearer ' + token} : {};
+                        return fetch(apiUrl, {
+                            headers: headers,
+                            signal: controller.signal,
+                            credentials: 'include'
+                        });
+                    }).catch(function(err) {
+                        if (err.name === 'AbortError') return;
+                        return fetch(apiUrl, {
+                            signal: controller.signal,
+                            credentials: 'include'
+                        });
+                    });
+                } else {
+                    // No token - try with shop param only
+                    fetchPromise = fetch(apiUrl, {
+                        signal: controller.signal,
+                        credentials: 'include'
+                    });
+                }
+            } // end proceedWithApiCall
+            proceedWithApiCall();
             } else {
-                // Not embedded - use regular fetch (Flask-Login handles auth)
-                fetchPromise = fetch('/api/update_inventory', {
+                // Not embedded - use regular fetch with shop param
+                var apiUrl = '/api/update_inventory';
+                if (window.SHOP_PARAM) {
+                    apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
+                }
+                fetchPromise = fetch(apiUrl, {
                     signal: controller.signal,
                     credentials: 'include'
                 });
@@ -2496,70 +2532,47 @@ DASHBOARD_HTML = """
 
             // Extract API call logic into function
             function proceedWithApiCall() {
-                if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
-                // In embedded mode, we MUST have session token - retry up to 3 times
-                var retryCount = 0;
-                var maxRetries = 2; // Optimized: reduced from 3
-                
-                function getTokenWithRetry() {
-                    return window.shopifyApp.getSessionToken().then(function(token) {
-                        if (!token && retryCount < maxRetries) {
-                            retryCount++;
-                            return new Promise(function(resolve, reject) {
-                                setTimeout(function() { getTokenWithRetry().then(resolve).catch(reject); }, 100); // Optimized: reduced from 300ms
-                            });
-                        }
-                        return token;
-                }).catch(function(err) {
-                        // If error and haven't exceeded retries, retry
-                        if (retryCount < maxRetries) {
-                            retryCount++;
-                            return new Promise(function(resolve, reject) {
-                                setTimeout(function() { getTokenWithRetry().then(resolve).catch(reject); }, 100); // Optimized: reduced from 300ms
-                            });
-                        }
-                        // Max retries exceeded, throw error
-                        throw err;
-                    });
+                // Build report URL with shop param
+                var reportUrl = '/api/generate_report';
+                if (window.SHOP_PARAM) {
+                    reportUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
                 }
-                
-                fetchPromise = getTokenWithRetry().then(function(token) {
-                    if (!token) {
-                        throw new Error('Unable to get session token. Please refresh the page.');
-                    }
-                    // Get shop from URL or use current shop
-                    const shopUrl = new URLSearchParams(window.location.search).get('shop') || '';
-                    var reportUrl = shopUrl ? `/api/generate_report?shop=${encodeURIComponent(shopUrl)}` : '/api/generate_report';
-                    // CRITICAL: Use absolute URL in embedded mode to prevent iframe URL resolution issues
-                    if (isEmbedded) {
-                        reportUrl = APP_URL + reportUrl;
-                    }
-                    // Debug logging removed for performance
-                    return fetch(reportUrl, {
-                        headers: {'Authorization': 'Bearer ' + token},
-                        signal: controller.signal,
-                        credentials: 'include'  // Include cookies as fallback
-                    });
-                }).catch(function(err) {
-                    if (err.name === 'AbortError') {
-                        return;
-                    }
-                    console.warn('Session token failed, trying cookie auth:', err.message);
-                    // Fall back to cookie auth
-                    return fetch(reportUrl, {
+                if (isEmbedded) {
+                    reportUrl = APP_URL + reportUrl;
+                }
+
+                // Use id_token from URL if available
+                if (window.ID_TOKEN) {
+                    fetchPromise = fetch(reportUrl, {
+                        headers: {'Authorization': 'Bearer ' + window.ID_TOKEN},
                         signal: controller.signal,
                         credentials: 'include'
                     });
-                });
-            } else {
-                // Not embedded - use regular fetch with cookie auth
-                const shopUrl = new URLSearchParams(window.location.search).get('shop') || '';
-                const reportUrl = shopUrl ? `/api/generate_report?shop=${encodeURIComponent(shopUrl)}` : '/api/generate_report';
-                fetchPromise = fetch(reportUrl, {
-                    signal: controller.signal,
-                    credentials: 'include'
-                });
-            }
+                } else if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
+                    // Try App Bridge token
+                    fetchPromise = window.shopifyApp.getSessionToken().then(function(token) {
+                        var headers = token ? {'Authorization': 'Bearer ' + token} : {};
+                        return fetch(reportUrl, {
+                            headers: headers,
+                            signal: controller.signal,
+                            credentials: 'include'
+                        });
+                    }).catch(function(err) {
+                        if (err.name === 'AbortError') return;
+                        return fetch(reportUrl, {
+                            signal: controller.signal,
+                            credentials: 'include'
+                        });
+                    });
+                } else {
+                    // No token - use shop param in URL
+                    fetchPromise = fetch(reportUrl, {
+                        signal: controller.signal,
+                        credentials: 'include'
+                    });
+                }
+            } // end proceedWithApiCall
+            proceedWithApiCall();
             
             // Execute the Promise chain
             fetchPromise
