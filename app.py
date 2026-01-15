@@ -70,40 +70,17 @@ def log_event(location, message, data=None, hypothesis_id='GENERAL'):
 
 def safe_redirect(url, shop=None, host=None):
     """
-    Safe redirect that works in both embedded and standalone contexts.
-    For embedded apps, uses window.top.location.href to break out of iframe.
-    For standalone, uses regular Flask redirect.
+    Safe redirect for Shopify embedded apps.
+    Uses standard HTTP redirect - Shopify handles iframe navigation.
     """
-    # Check if we're in an embedded context
-    is_embedded = bool(host) or bool(shop) or request.args.get('embedded') == '1'
-    
-    if is_embedded:
-        # Embedded app - use window.top.location.href to break out of iframe
-        redirect_html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Redirecting...</title>
-    <script>
-        // Break out of iframe immediately
-        if (window.top !== window.self) {{
-            window.top.location.href = '{url}';
-        }} else {{
-            window.location.href = '{url}';
-        }}
-    </script>
-    <noscript>
-        <meta http-equiv="refresh" content="0;url={url}">
-    </noscript>
-</head>
-<body>
-    <p>Redirecting... <a href="{url}">Click here if not redirected</a></p>
-</body>
-</html>"""
-        return Response(redirect_html, mimetype='text/html')
-    else:
-        # Standalone - use regular Flask redirect
+    # For Shopify OAuth URLs, always use standard redirect
+    # Shopify's OAuth flow handles the iframe breaking automatically
+    if 'myshopify.com' in url or 'shopify.com' in url:
         return redirect(url)
+
+    # For internal app URLs, use standard redirect
+    # The browser/Shopify will handle this correctly
+    return redirect(url)
 from flask_login import LoginManager, login_required, current_user, login_user
 from flask_bcrypt import Bcrypt
 import logging
