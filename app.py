@@ -4051,6 +4051,27 @@ def get_authenticated_user():
                 'message': 'If this continues, please refresh the page or contact support.'
             }), 401)
     
+    # Try shop parameter authentication (for Shopify embedded apps after OAuth redirect)
+    # This is the common case - OAuth redirects to dashboard?shop=xxx without a token
+    shop_param = request.args.get('shop')
+    if shop_param:
+        logger.info(f"Trying shop parameter authentication for: {shop_param}")
+        try:
+            from models import ShopifyStore, db
+            # Normalize shop domain
+            shop_domain = shop_param.replace('https://', '').replace('http://', '').split('/')[0]
+            if not shop_domain.endswith('.myshopify.com'):
+                shop_domain = f"{shop_domain}.myshopify.com"
+
+            store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
+            if store and store.user:
+                logger.info(f"✅ Shop parameter auth successful - user {store.user.id} from shop {shop_domain}")
+                return store.user, None
+            else:
+                logger.warning(f"No active store found for shop param: {shop_domain}")
+        except Exception as e:
+            logger.error(f"Error in shop parameter auth: {e}", exc_info=True)
+
     # No authentication found
     return None, (jsonify({
         'error': 'Please sign in to continue.',
