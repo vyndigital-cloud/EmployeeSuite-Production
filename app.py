@@ -255,14 +255,21 @@ def handle_all_exceptions(e):
     error_message = str(e)
     error_location = f"{request.endpoint or 'unknown'}:{request.method}"
     
-    # Get full request context
+    # Get full request context (SANITIZED - no passwords/tokens)
+    def sanitize_form_data(form_dict):
+        """Remove sensitive fields from form data before logging"""
+        if not form_dict:
+            return None
+        sensitive_fields = {'password', 'confirm_password', 'access_token', 'token', 'secret', 'api_key', 'api_secret'}
+        return {k: '[REDACTED]' if k.lower() in sensitive_fields else v for k, v in form_dict.items()}
+
     error_data = {
         'url': request.url,
         'method': request.method,
         'endpoint': request.endpoint,
         'args': dict(request.args),
-        'form_data': dict(request.form) if request.form else None,
-        'headers': dict(request.headers),
+        'form_data': sanitize_form_data(dict(request.form)) if request.form else None,
+        'headers': {k: v for k, v in dict(request.headers).items() if k.lower() not in ('cookie', 'authorization')},
         'remote_addr': request.remote_addr,
         'user_agent': request.headers.get('User-Agent'),
         'referer': request.headers.get('Referer'),
@@ -290,7 +297,14 @@ def handle_404(e):
     from flask import request
     import logging
     
-    # Enhanced error data with all possible context
+    # Sanitize sensitive form data
+    def _sanitize(form_dict):
+        if not form_dict:
+            return None
+        sensitive = {'password', 'confirm_password', 'access_token', 'token', 'secret', 'api_key', 'api_secret'}
+        return {k: '[REDACTED]' if k.lower() in sensitive else v for k, v in form_dict.items()}
+
+    # Enhanced error data with all possible context (SANITIZED)
     error_data = {
         'url': request.url,
         'path': request.path,
@@ -301,7 +315,7 @@ def handle_404(e):
         'user_agent': request.headers.get('User-Agent'),
         'remote_addr': request.remote_addr,
         'args': dict(request.args),
-        'form_data': dict(request.form) if request.form else None,
+        'form_data': _sanitize(dict(request.form)) if request.form else None,
         'is_api_request': request.path.startswith('/api/'),
         'is_static': request.path.startswith('/static/'),
     }
@@ -366,13 +380,15 @@ def handle_500(e):
 
 @app.errorhandler(400)
 def handle_400(e):
-    """Log 400 errors with full context"""
+    """Log 400 errors with full context (SANITIZED)"""
     from flask import request
+    sensitive = {'password', 'confirm_password', 'access_token', 'token', 'secret', 'api_key', 'api_secret'}
+    safe_form = {k: '[REDACTED]' if k.lower() in sensitive else v for k, v in dict(request.form).items()} if request.form else None
     error_data = {
         'url': request.url,
         'method': request.method,
         'args': dict(request.args),
-        'form_data': dict(request.form) if request.form else None,
+        'form_data': safe_form,
     }
     log_comprehensive_error('400', str(e), f"{request.endpoint or 'unknown'}:{request.method}", error_data)
     return str(e), 400
