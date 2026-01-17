@@ -2236,10 +2236,7 @@ DASHBOARD_HTML = """
                     `;
                 });
             } // Close proceedWithApiCall function
-            
-            // Call proceedWithApiCall to execute the promise chain
-            proceedWithApiCall();
-            } // Close processOrders function
+        } // Close processOrders function
         
         // Ensure function is in global scope
         window.processOrders = processOrders;
@@ -2470,11 +2467,8 @@ DASHBOARD_HTML = """
                     `;
                 });
             } // Close proceedWithApiCall function
-            
-            // Call proceedWithApiCall to execute the promise chain
-            proceedWithApiCall();
         }
-        
+
         // Ensure function is in global scope
         window.updateInventory = updateInventory;
         
@@ -2572,8 +2566,7 @@ DASHBOARD_HTML = """
                     });
                 }
             } // end proceedWithApiCall
-            proceedWithApiCall();
-            
+
             // Execute the Promise chain
             fetchPromise
                 .then(r => {
@@ -2651,12 +2644,8 @@ DASHBOARD_HTML = """
                         `;
                     }
                 });
-            } // Close proceedWithApiCall function
-            
-            // Call proceedWithApiCall to execute the promise chain
-            proceedWithApiCall();
         }
-        
+
         // Ensure function is in global scope
         window.generateReport = generateReport;
         
