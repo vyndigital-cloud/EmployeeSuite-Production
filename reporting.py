@@ -258,61 +258,7 @@ def generate_report(user_id=None, shop_url=None):
             import gc
             gc.collect()
             logger.info(f"Memory cleanup: Collected garbage after fetching {len(all_orders_raw)} orders")
-        
-        # Continue with order processing...
-        try:
-            for iteration in range(max_iterations):
-                # Make request and get response
-                orders_data = client._make_request(endpoint)
-                
-                if "error" in orders_data:
-                    # If error on first request, check if it's authentication failure
-                    if iteration == 0:
-                        error_msg = orders_data['error']
-                        # If authentication failed, mark store as inactive
-                        if "Authentication failed" in error_msg or "401" in str(orders_data):
-                            logger.warning(f"Authentication failed for store {store.shop_url} (user {user_id}) - marking as inactive")
-                            try:
-                                store.is_active = False
-                                db.session.commit()
-                            except Exception as db_error:
-                                logger.error(f"Failed to update store status: {db_error}")
-                                db.session.rollback()
-                            return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>Authentication failed - Please reconnect your store</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
-                        return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>{orders_data['error']}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
-                    # Otherwise, we've fetched all available orders
-                    break
-                
-                orders = orders_data.get('orders', [])
-                if not orders or len(orders) == 0:
-                    break
-                
-                all_orders_raw.extend(orders)
-                logger.info(f"Fetched {len(orders)} orders (iteration {iteration + 1}), total so far: {len(all_orders_raw)}")
-                
-                # Check if we got fewer than limit (last page)
-                if len(orders) < limit:
-                    logger.info(f"Fetched all orders. Total: {len(all_orders_raw)}")
-                    break
-                
-                # For Shopify REST API, use since_id pagination
-                # Get the highest order ID from current batch to fetch next page
-                if orders:
-                    last_order_id = max(order.get('id', 0) for order in orders)
-                    endpoint = f"orders.json?status=any&limit={limit}&since_id={last_order_id}"
-                else:
-                    break
-                    
-        except Exception as e:
-            # If pagination fails, try fetching without pagination (all orders, may be limited)
-            try:
-                orders_data = client._make_request("orders.json?status=any&limit=250")
-                if "error" not in orders_data:
-                    all_orders_raw = orders_data.get('orders', [])
-                    logger.warning(f"Pagination failed, fetched {len(all_orders_raw)} orders without pagination")
-            except Exception:
-                return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify API error</div><div style='margin-bottom: 12px;'>{str(e)}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
-        
+
         # Filter for paid orders client-side to ensure we get ALL paid orders
         # Debug: Log all financial_status values to see what we're getting
         financial_statuses = [order.get('financial_status', 'MISSING') for order in all_orders_raw]
