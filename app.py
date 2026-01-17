@@ -221,7 +221,7 @@ engine_options = {
     'echo': False,  # Disable SQL logging for performance
 }
 
-# PostgreSQL-specific options
+# PostgreSQL-specific options (compatible with Neon pooled connections)
 if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql://'):
     engine_options.update({
         'pool_size': 2,  # Ultra-conservative to prevent connection exhaustion and segfaults
@@ -229,8 +229,7 @@ if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql://'):
         'pool_recycle': 600,  # Recycle connections after 10 minutes (prevent stale connections)
         'pool_timeout': 5,  # Shorter timeout for getting connection from pool
         'connect_args': {
-            'connect_timeout': 3,  # Fast connection timeout
-            'options': '-c statement_timeout=20000'  # 20 second query timeout (prevent hangs)
+            'connect_timeout': 10,  # Connection timeout in seconds
         },
         'isolation_level': 'READ_COMMITTED',  # Prevent deadlocks
     })
