@@ -17,7 +17,7 @@ SHOPIFY_API_VERSION = '2025-10'
 APP_URL = os.getenv('SHOPIFY_APP_URL', 'https://employeesuite-production.onrender.com')
 
 def safe_redirect(url, shop=None, host=None):
-    """Safe redirect for embedded/standalone contexts"""
+    """Safe redirect for embedded/standalone contexts - App Bridge compliant"""
     is_embedded = bool(host) or bool(shop) or request.args.get('embedded') == '1'
     if is_embedded:
         redirect_html = f"""<!DOCTYPE html>
@@ -25,12 +25,20 @@ def safe_redirect(url, shop=None, host=None):
 <head>
     <meta charset="utf-8">
     <title>Redirecting...</title>
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <script>
-        if (window.top !== window.self) {{
-            window.top.location.href = '{url}';
-        }} else {{
-            window.location.href = '{url}';
-        }}
+        (function() {{
+            var targetUrl = '{url}';
+            if (targetUrl.includes('myshopify.com') || targetUrl.includes('shopify.com')) {{
+                if (window.shopify && window.shopify.Redirect) {{
+                    window.shopify.Redirect.dispatch(window.shopify.Redirect.Action.REMOTE, targetUrl);
+                }} else {{
+                    window.location.href = targetUrl;
+                }}
+            }} else {{
+                window.location.href = targetUrl;
+            }}
+        }})();
     </script>
 </head>
 <body>

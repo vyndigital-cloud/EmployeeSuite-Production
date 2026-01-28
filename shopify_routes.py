@@ -11,26 +11,39 @@ shopify_bp = Blueprint('shopify', __name__)
 def safe_redirect(url, shop=None, host=None):
     """
     Safe redirect that works in both embedded and standalone contexts.
-    For embedded apps, uses window.top.location.href to break out of iframe.
+    For embedded apps, uses App Bridge Redirect action (Shopify 2025+ compliant).
     For standalone, uses regular Flask redirect.
     """
     # Check if we're in an embedded context
     is_embedded = bool(host) or bool(shop) or request.args.get('embedded') == '1'
-    
+
     if is_embedded:
-        # Embedded app - use window.top.location.href to break out of iframe
+        # Embedded app - use App Bridge Redirect (compliant with Shopify frame policies)
         redirect_html = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <title>Redirecting...</title>
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <script>
-        // Break out of iframe immediately
-        if (window.top !== window.self) {{
-            window.top.location.href = '{url}';
-        }} else {{
-            window.location.href = '{url}';
-        }}
+        (function() {{
+            var shopOrigin = '{shop or ""}';
+            var hostParam = '{host or ""}';
+            var targetUrl = '{url}';
+
+            // Use App Bridge for Shopify URLs (OAuth, admin, etc.)
+            if (targetUrl.includes('myshopify.com') || targetUrl.includes('shopify.com')) {{
+                if (window.shopify && window.shopify.Redirect) {{
+                    window.shopify.Redirect.dispatch(window.shopify.Redirect.Action.REMOTE, targetUrl);
+                }} else {{
+                    // Fallback: Shopify handles OAuth redirects at HTTP level
+                    window.location.href = targetUrl;
+                }}
+            }} else {{
+                // Internal app URLs - standard redirect
+                window.location.href = targetUrl;
+            }}
+        }})();
     </script>
     <noscript>
         <meta http-equiv="refresh" content="0;url={url}">
@@ -458,19 +471,25 @@ def shopify_settings():
             # Embedded mode - redirect to install using client-side redirect
             from flask import url_for
             install_url = url_for('oauth.install', shop=shop, host=host)
-            # Use string formatting instead of template to avoid iframe redirect issues
+            # Use App Bridge compliant redirect
             redirect_html = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <title>Install Required</title>
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <script>
-        window.top.location.href = '{install_url}';
+        // App Bridge compliant redirect for embedded apps
+        if (window.shopify && window.shopify.Redirect) {{
+            window.shopify.Redirect.dispatch(window.shopify.Redirect.Action.APP, '{install_url}');
+        }} else {{
+            window.location.href = '{install_url}';
+        }}
     </script>
 </head>
 <body>
     <p>Redirecting to install...</p>
-    <a href="{install_url}" target="_top">Click here if redirect doesn't work</a>
+    <a href="{install_url}">Click here if redirect doesn't work</a>
 </body>
 </html>"""
             return redirect_html
