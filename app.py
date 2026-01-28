@@ -2373,19 +2373,7 @@ DASHBOARD_HTML = """
                     });
                 }
             } // end proceedWithApiCall
-            proceedWithApiCall();
-            } else {
-                // Not embedded - use regular fetch with shop param
-                var apiUrl = '/api/update_inventory';
-                if (window.SHOP_PARAM) {
-                    apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
-                }
-                fetchPromise = fetch(apiUrl, {
-                    signal: controller.signal,
-                    credentials: 'include'
-                });
-            }
-            
+
             // Execute the Promise chain
             fetchPromise
                 .then(r => {
