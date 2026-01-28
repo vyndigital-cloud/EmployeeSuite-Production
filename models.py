@@ -73,37 +73,12 @@ class ShopifyStore(db.Model):
         """Get access token, decrypting if encrypted, returning None if empty/invalid"""
         token = self.access_token
         if not token or not token.strip():
-            # #region agent log
-            try:
-                import json
-                import time
-                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"models.py:get_access_token","message":"Token is empty or None","data":{"shop_url":self.shop_url if hasattr(self,'shop_url') else "unknown"},"timestamp":int(time.time()*1000)})+'\n')
-            except: pass
-            # #endregion
             return None
-        
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"models.py:get_access_token","message":"Token retrieved from DB","data":{"token_length":len(token),"token_starts_with_shpat":token.startswith('shpat_') if token else False,"token_starts_with_shpca":token.startswith('shpca_') if token else False,"token_preview":token[:20] if token and len(token) > 20 else token},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         
         # Check if token looks like a valid Shopify token (plaintext)
         # Shopify tokens start with shpat_ or shpca_ and are ~32-40 chars
         if token.startswith('shpat_') or token.startswith('shpca_'):
             # Token is plaintext - return as-is (backwards compatibility or not encrypted)
-            # #region agent log
-            try:
-                import json
-                import time
-                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"models.py:get_access_token","message":"Returning plaintext token","data":{"token_preview":token[:10]},"timestamp":int(time.time()*1000)})+'\n')
-            except: pass
-            # #endregion
             return token
         
         # Token doesn't look like plaintext, try to decrypt
@@ -111,75 +86,24 @@ class ShopifyStore(db.Model):
             from data_encryption import decrypt_access_token
             from logging_config import logger
             
-            # #region agent log
-            try:
-                import json
-                import time
-                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"models.py:get_access_token","message":"Attempting decryption","data":{"token_length":len(token),"token_preview":token[:20]},"timestamp":int(time.time()*1000)})+'\n')
-            except: pass
-            # #endregion
-            
             # Try to decrypt
             decrypted = decrypt_access_token(token)
-            
-            # #region agent log
-            try:
-                import json
-                import time
-                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"models.py:get_access_token","message":"Decryption result","data":{"decrypted_success":bool(decrypted),"decrypted_length":len(decrypted) if decrypted else 0,"decrypted_preview":decrypted[:10] if decrypted else None,"decrypted_starts_with_shpat":decrypted.startswith('shpat_') if decrypted else False},"timestamp":int(time.time()*1000)})+'\n')
-            except: pass
-            # #endregion
-            
             if decrypted:
                 # Verify decrypted token looks valid
                 if decrypted.startswith('shpat_') or decrypted.startswith('shpca_'):
-                    # #region agent log
-                    try:
-                        import json
-                        import time
-                        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"models.py:get_access_token","message":"Returning decrypted token","data":{"token_preview":decrypted[:10]},"timestamp":int(time.time()*1000)})+'\n')
-                    except: pass
-                    # #endregion
                     return decrypted
                 else:
                     # Decryption succeeded but result doesn't look like a token
                     logger.warning(f"Decrypted token doesn't match expected format (starts with: {decrypted[:10] if len(decrypted) > 10 else decrypted})")
-                    # #region agent log
-                    try:
-                        import json
-                        import time
-                        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"models.py:get_access_token","message":"Decrypted token invalid format","data":{"decrypted_preview":decrypted[:20] if decrypted else None},"timestamp":int(time.time()*1000)})+'\n')
-                    except: pass
-                    # #endregion
                     return None
             else:
                 # Decryption returned None - token might be corrupted or invalid encrypted format
                 logger.warning(f"Decryption returned None for token (length: {len(token)}, starts with: {token[:20]})")
-                # #region agent log
-                try:
-                    import json
-                    import time
-                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"D","location":"models.py:get_access_token","message":"Decryption returned None","data":{"token_length":len(token),"token_preview":token[:20]},"timestamp":int(time.time()*1000)})+'\n')
-                except: pass
-                # #endregion
                 return None
         except Exception as e:
             # If decryption fails with exception, log and return None
             from logging_config import logger
             logger.error(f"Error decrypting access token: {e}")
-            # #region agent log
-            try:
-                import json
-                import time
-                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"D","location":"models.py:get_access_token","message":"Decryption exception","data":{"error":str(e)[:200]},"timestamp":int(time.time()*1000)})+'\n')
-            except: pass
-            # #endregion
             return None
     
     def __repr__(self):

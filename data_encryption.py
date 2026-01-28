@@ -69,41 +69,12 @@ def decrypt_data(encrypted_data):
     try:
         if encrypted_data is None:
             return None
-        
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"D","location":"data_encryption.py:decrypt_data","message":"Decrypt attempt","data":{"encrypted_length":len(encrypted_data) if encrypted_data else 0,"encrypted_preview":encrypted_data[:20] if encrypted_data else None,"has_encryption_key":bool(os.getenv('ENCRYPTION_KEY'))},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
-        
         cipher = get_cipher()
         encrypted_bytes = base64.urlsafe_b64decode(encrypted_data.encode())
         decrypted = cipher.decrypt(encrypted_bytes)
-        result = decrypted.decode()
-        
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"D","location":"data_encryption.py:decrypt_data","message":"Decrypt success","data":{"decrypted_length":len(result) if result else 0,"decrypted_preview":result[:10] if result else None},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
-        
-        return result
+        return decrypted.decode()
     except Exception as e:
         logger.error(f"Decryption error: {e}")
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"D","location":"data_encryption.py:decrypt_data","message":"Decrypt error","data":{"error":str(e)[:200]},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         return None
 
 def encrypt_access_token(token):
