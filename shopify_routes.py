@@ -434,21 +434,7 @@ SETTINGS_HTML = '''
 @shopify_bp.route('/settings/shopify')
 def shopify_settings():
     """Shopify settings page - works in both embedded and standalone modes"""
-    # #region agent log
-    try:
-        import json
-        import time
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"SHOPIFY_SETTINGS","location":"shopify_routes.py:421","message":"Shopify settings route accessed","data":{"has_shop":bool(request.args.get('shop')),"has_host":bool(request.args.get('host')),"has_success":bool(request.args.get('success')),"has_error":bool(request.args.get('error'))},"timestamp":int(time.time()*1000)})+'\n')
-    except: pass
-    # #endregion
-    # #region agent log
-    import json
-    try:
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"K","location":"shopify_routes.py:384","message":"Shopify settings route called","data":{"shop":request.args.get('shop',''),"host":request.args.get('host','')},"timestamp":int(__import__('time').time()*1000)})+'\n')
-    except: pass
-    # #endregion
+
     shop = request.args.get('shop', '')
     host = request.args.get('host', '')
     

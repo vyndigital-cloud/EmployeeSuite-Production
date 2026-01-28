@@ -36,15 +36,6 @@ class ShopifyClient:
             
             logger.info(f"ShopifyClient initialized with token: {token_preview}... (length: {token_length}, starts with shpat_: {starts_with_shpat}, starts with shpca_: {starts_with_shpca})")
             
-            # #region agent log
-            try:
-                import json
-                import time
-                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({"sessionId":"debug-session","runId":"token-debug","hypothesisId":"F","location":"shopify_integration.py:init","message":"ShopifyClient initialized","data":{"token_preview":token_preview,"token_length":token_length,"token_starts_with_shpat":starts_with_shpat,"token_starts_with_shpca":starts_with_shpca},"timestamp":int(time.time()*1000)})+'\n')
-            except Exception: pass
-            # #endregion
-            
             if not (starts_with_shpat or starts_with_shpca):
                 logger.warning(f"WARNING: Access token doesn't match expected format! Token starts with: {access_token[:20]}")
         else:
@@ -56,15 +47,6 @@ class ShopifyClient:
             token_preview = self.access_token[:10] if len(self.access_token) > 10 else self.access_token
             token_length = len(self.access_token)
             logger.debug(f"Using token for API call: {token_preview}... (length: {token_length})")
-            
-            # #region agent log
-            try:
-                import json
-                import time
-                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({"sessionId":"debug-session","runId":"token-debug","hypothesisId":"G","location":"shopify_integration.py:_get_headers","message":"Token used in API headers","data":{"token_preview":token_preview,"token_length":token_length,"token_starts_with_shpat":self.access_token.startswith('shpat_') if self.access_token else False},"timestamp":int(time.time()*1000)})+'\n')
-            except Exception: pass
-            # #endregion
         else:
             logger.error("CRITICAL: No access token available for API call!")
         
@@ -78,14 +60,6 @@ class ShopifyClient:
         Make API request with automatic retry logic (professional standard)
         Retries on network errors with exponential backoff
         """
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:17","message":"_make_request ENTRY","data":{"endpoint":endpoint[:100],"shop_url":self.shop_url[:50],"retries":retries},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         url = f"https://{self.shop_url}/admin/api/{self.api_version}/{endpoint}"
         headers = self._get_headers()
         headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -94,25 +68,9 @@ class ShopifyClient:
         
         for attempt in range(retries):
             try:
-                # #region agent log
-                try:
-                    import json
-                    import time
-                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:30","message":"Before GET request","data":{"attempt":attempt+1,"url":url[:100]},"timestamp":int(time.time()*1000)})+'\n')
-                except: pass
-                # #endregion
                 response = requests.get(url, headers=headers, timeout=10)  # Reduced for faster failures
                 # CRITICAL: Check status code BEFORE raise_for_status to handle 403 properly
                 status_code = response.status_code
-                # #region agent log
-                try:
-                    import json
-                    import time
-                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:33","message":"After GET request","data":{"status_code":status_code,"attempt":attempt+1},"timestamp":int(time.time()*1000)})+'\n')
-                except: pass
-                # #endregion
                 if status_code == 403:
                     # Permission denied - missing scopes
                     error_detail = "Access denied - Missing required permissions"
@@ -120,14 +78,6 @@ class ShopifyClient:
                     try:
                         response_text = response.text[:500]  # Get first 500 chars for logging
                         error_data = response.json()
-                        # #region agent log
-                        try:
-                            import json
-                            import time
-                            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                                f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"A","location":"shopify_integration.py:403-direct","message":"403 response received","data":{"endpoint":endpoint,"shop_url":self.shop_url,"response_text":response_text,"error_data_keys":list(error_data.keys()) if isinstance(error_data,dict) else "not_dict"},"timestamp":int(time.time()*1000)})+'\n')
-                        except: pass
-                        # #endregion
                         if isinstance(error_data, dict):
                             errors = error_data.get('errors', {})
                             if isinstance(errors, dict):
@@ -147,25 +97,9 @@ class ShopifyClient:
                         elif isinstance(error_data, str):
                             error_detail = error_data
                     except (ValueError, AttributeError, TypeError) as parse_error:
-                        # #region agent log
-                        try:
-                            import json
-                            import time
-                            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                                f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"B","location":"shopify_integration.py:403-parse","message":"Failed to parse 403 response","data":{"endpoint":endpoint,"parse_error":str(parse_error),"response_text":response_text[:200]},"timestamp":int(time.time()*1000)})+'\n')
-                        except: pass
-                        # #endregion
                         # Use response text if JSON parsing failed
                         if response_text:
                             error_detail = response_text[:200] if len(response_text) < 200 else response_text[:200] + "..."
-                    # #region agent log
-                    try:
-                        import json
-                        import time
-                        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                            f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"C","location":"shopify_integration.py:403-return","message":"Returning 403 error","data":{"endpoint":endpoint,"error_detail":error_detail[:200],"status_code":403},"timestamp":int(time.time()*1000)})+'\n')
-                    except: pass
-                    # #endregion
                     return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
                 response.raise_for_status()
                 return response.json()
@@ -210,14 +144,6 @@ class ShopifyClient:
                     try:
                         response_text = response.text[:500]  # Get first 500 chars for logging
                         error_data = response.json()
-                        # #region agent log
-                        try:
-                            import json
-                            import time
-                            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                                f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"A","location":"shopify_integration.py:403-direct","message":"403 response received","data":{"endpoint":endpoint,"shop_url":self.shop_url,"response_text":response_text,"error_data_keys":list(error_data.keys()) if isinstance(error_data,dict) else "not_dict"},"timestamp":int(time.time()*1000)})+'\n')
-                        except: pass
-                        # #endregion
                         if isinstance(error_data, dict):
                             errors = error_data.get('errors', {})
                             if isinstance(errors, dict):
@@ -237,25 +163,9 @@ class ShopifyClient:
                         elif isinstance(error_data, str):
                             error_detail = error_data
                     except (ValueError, AttributeError, TypeError) as parse_error:
-                        # #region agent log
-                        try:
-                            import json
-                            import time
-                            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                                f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"B","location":"shopify_integration.py:403-parse","message":"Failed to parse 403 response","data":{"endpoint":endpoint,"parse_error":str(parse_error),"response_text":response_text[:200]},"timestamp":int(time.time()*1000)})+'\n')
-                        except: pass
-                        # #endregion
                         # Use response text if JSON parsing failed
                         if response_text:
                             error_detail = response_text[:200] if len(response_text) < 200 else response_text[:200] + "..."
-                    # #region agent log
-                    try:
-                        import json
-                        import time
-                        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                            f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"C","location":"shopify_integration.py:403-return","message":"Returning 403 error","data":{"endpoint":endpoint,"error_detail":error_detail[:200],"status_code":403},"timestamp":int(time.time()*1000)})+'\n')
-                    except: pass
-                    # #endregion
                     return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
                 elif status_code == 429:
                     # Rate limit - wait but not too long
@@ -292,14 +202,6 @@ class ShopifyClient:
         Make GraphQL request with automatic retry logic (professional standard)
         Retries on network errors with exponential backoff
         """
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:136","message":"_make_graphql_request ENTRY","data":{"shop_url":self.shop_url[:50],"has_variables":bool(variables),"retries":retries},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         url = f"https://{self.shop_url}/admin/api/{self.api_version}/graphql.json"
         headers = self._get_headers()
         headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -310,25 +212,9 @@ class ShopifyClient:
         
         for attempt in range(retries):
             try:
-                # #region agent log
-                try:
-                    import json
-                    import time
-                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:151","message":"Before GraphQL POST request","data":{"attempt":attempt+1,"url":url[:100]},"timestamp":int(time.time()*1000)})+'\n')
-                except: pass
-                # #endregion
                 response = requests.post(url, json=payload, headers=headers, timeout=10)  # Reduced from 15s for faster failures
                 # CRITICAL: Check status code BEFORE raise_for_status to handle 403 properly
                 status_code = response.status_code
-                # #region agent log
-                try:
-                    import json
-                    import time
-                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:154","message":"After GraphQL POST request","data":{"status_code":status_code,"attempt":attempt+1},"timestamp":int(time.time()*1000)})+'\n')
-                except: pass
-                # #endregion
                 if status_code == 403:
                     # Permission denied - missing scopes
                     error_detail = "Access denied - Missing required permissions"
@@ -336,14 +222,6 @@ class ShopifyClient:
                     try:
                         response_text = response.text[:500]  # Get first 500 chars for logging
                         error_data = response.json()
-                        # #region agent log
-                        try:
-                            import json
-                            import time
-                            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                                f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"A","location":"shopify_integration.py:403-direct","message":"403 response received","data":{"endpoint":endpoint,"shop_url":self.shop_url,"response_text":response_text,"error_data_keys":list(error_data.keys()) if isinstance(error_data,dict) else "not_dict"},"timestamp":int(time.time()*1000)})+'\n')
-                        except: pass
-                        # #endregion
                         if isinstance(error_data, dict):
                             errors = error_data.get('errors', {})
                             if isinstance(errors, dict):
@@ -363,25 +241,9 @@ class ShopifyClient:
                         elif isinstance(error_data, str):
                             error_detail = error_data
                     except (ValueError, AttributeError, TypeError) as parse_error:
-                        # #region agent log
-                        try:
-                            import json
-                            import time
-                            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                                f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"B","location":"shopify_integration.py:403-parse","message":"Failed to parse 403 response","data":{"endpoint":endpoint,"parse_error":str(parse_error),"response_text":response_text[:200]},"timestamp":int(time.time()*1000)})+'\n')
-                        except: pass
-                        # #endregion
                         # Use response text if JSON parsing failed
                         if response_text:
                             error_detail = response_text[:200] if len(response_text) < 200 else response_text[:200] + "..."
-                    # #region agent log
-                    try:
-                        import json
-                        import time
-                        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                            f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"C","location":"shopify_integration.py:403-return","message":"Returning 403 error","data":{"endpoint":endpoint,"error_detail":error_detail[:200],"status_code":403},"timestamp":int(time.time()*1000)})+'\n')
-                    except: pass
-                    # #endregion
                     return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
                 response.raise_for_status()
                 
@@ -464,14 +326,6 @@ class ShopifyClient:
                     try:
                         response_text = response.text[:500]  # Get first 500 chars for logging
                         error_data = response.json()
-                        # #region agent log
-                        try:
-                            import json
-                            import time
-                            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                                f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"A","location":"shopify_integration.py:403-direct","message":"403 response received","data":{"endpoint":endpoint,"shop_url":self.shop_url,"response_text":response_text,"error_data_keys":list(error_data.keys()) if isinstance(error_data,dict) else "not_dict"},"timestamp":int(time.time()*1000)})+'\n')
-                        except: pass
-                        # #endregion
                         if isinstance(error_data, dict):
                             errors = error_data.get('errors', {})
                             if isinstance(errors, dict):
@@ -491,25 +345,9 @@ class ShopifyClient:
                         elif isinstance(error_data, str):
                             error_detail = error_data
                     except (ValueError, AttributeError, TypeError) as parse_error:
-                        # #region agent log
-                        try:
-                            import json
-                            import time
-                            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                                f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"B","location":"shopify_integration.py:403-parse","message":"Failed to parse 403 response","data":{"endpoint":endpoint,"parse_error":str(parse_error),"response_text":response_text[:200]},"timestamp":int(time.time()*1000)})+'\n')
-                        except: pass
-                        # #endregion
                         # Use response text if JSON parsing failed
                         if response_text:
                             error_detail = response_text[:200] if len(response_text) < 200 else response_text[:200] + "..."
-                    # #region agent log
-                    try:
-                        import json
-                        import time
-                        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                            f.write(json.dumps({"sessionId":"debug-session","runId":"403-debug","hypothesisId":"C","location":"shopify_integration.py:403-return","message":"Returning 403 error","data":{"endpoint":endpoint,"error_detail":error_detail[:200],"status_code":403},"timestamp":int(time.time()*1000)})+'\n')
-                    except: pass
-                    # #endregion
                     return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
                 elif status_code == 429:
                     # Rate limit - wait but not too long
@@ -547,14 +385,6 @@ class ShopifyClient:
         Get products using GraphQL (migrated from deprecated REST API)
         Returns same format as before for backward compatibility
         """
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:257","message":"get_products ENTRY","data":{"shop_url":self.shop_url[:50]},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         # GraphQL query to fetch products with variants and inventory
         # Migrated from deprecated REST API /products.json endpoint
         # Using GraphQL Admin API as required by Shopify (deadline: 2025-04-01)
@@ -605,24 +435,7 @@ class ShopifyClient:
             variables = {"first": 250}  # Max 250 products per request
             if cursor:
                 variables["after"] = cursor
-            
-            # #region agent log
-            try:
-                import json
-                import time
-                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:306","message":"Before GraphQL request","data":{"has_cursor":bool(cursor)},"timestamp":int(time.time()*1000)})+'\n')
-            except: pass
-            # #endregion
             data = self._make_graphql_request(query, variables)
-            # #region agent log
-            try:
-                import json
-                import time
-                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"shopify_integration.py:308","message":"After GraphQL request","data":{"has_error":isinstance(data,dict) and 'error' in data,"has_errors":isinstance(data,dict) and 'errors' in data,"has_data":isinstance(data,dict) and 'data' in data},"timestamp":int(time.time()*1000)})+'\n')
-            except: pass
-            # #endregion
             
             if "error" in data:
                 return {"error": data["error"]}

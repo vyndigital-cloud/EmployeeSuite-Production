@@ -5,14 +5,6 @@ from logging_config import logger
 
 def generate_report(user_id=None, shop_url=None):
     """Generate revenue report from Shopify data"""
-    # #region agent log
-    try:
-        import json
-        import time
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"reporting.py:6","message":"generate_report ENTRY","data":{"user_id_provided":bool(user_id),"user_id":user_id,"shop_url_provided":bool(shop_url),"shop_url":shop_url[:50] if shop_url else None},"timestamp":int(time.time()*1000)})+'\n')
-    except: pass
-    # #endregion
     # CRITICAL: Catch ALL exceptions including segfault precursors (BaseException)
     # This prevents worker crashes (code 139) from corrupting the entire process
     try:
@@ -34,36 +26,10 @@ def generate_report(user_id=None, shop_url=None):
             # If shop_url is provided, use it to find the specific store; otherwise use first active store for user
             if shop_url:
                 logger.info(f"Generating report for shop_url: {shop_url}, user_id: {user_id}")
-                # #region agent log
-                try:
-                    import json
-                    import time
-                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"SHOP_OWNERSHIP","location":"reporting.py:27","message":"Checking shop ownership","data":{"shop_url":shop_url,"user_id":user_id},"timestamp":int(time.time()*1000)})+'\n')
-                except: pass
-                # #endregion
                 store = ShopifyStore.query.filter_by(shop_url=shop_url, is_active=True).first()
-                # #region agent log
-                try:
-                    import json
-                    import time
-                    store_owner = store.user_id if store else None
-                    all_stores_for_user = [s.shop_url for s in ShopifyStore.query.filter_by(user_id=user_id, is_active=True).all()] if user_id else []
-                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"SHOP_OWNERSHIP","location":"reporting.py:30","message":"Shop ownership check result","data":{"shop_url":shop_url,"user_id":user_id,"store_found":bool(store),"store_owner":store_owner,"stores_for_user":all_stores_for_user},"timestamp":int(time.time()*1000)})+'\n')
-                except: pass
-                # #endregion
                 # Verify the store belongs to this user (security check)
                 if store and store.user_id != user_id:
                     logger.warning(f"Shop {shop_url} does not belong to user {user_id}, denying access")
-                    # #region agent log
-                    try:
-                        import json
-                        import time
-                        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"SHOP_OWNERSHIP","location":"reporting.py:32","message":"Shop ownership mismatch","data":{"shop_url":shop_url,"user_id":user_id,"store_owner":store.user_id if store else None},"timestamp":int(time.time()*1000)})+'\n')
-                    except: pass
-                    # #endregion
                     store = None
             else:
                 # Fallback: use first active store for user
@@ -79,14 +45,6 @@ def generate_report(user_id=None, shop_url=None):
             except Exception:
                 pass  # Ignore rollback errors to prevent cascading failures
             # DO NOT call db.session.remove() here - it corrupts connection state and causes segfaults
-            # #region agent log
-            try:
-                import json
-                import time
-                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"SHOP_OWNERSHIP","location":"reporting.py:64","message":"Database exception in generate_report","data":{"user_id":user_id,"error":str(db_error)[:200]},"timestamp":int(time.time()*1000)})+'\n')
-            except: pass
-            # #endregion
             return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Database connection error</div><div style='margin-bottom: 12px;'>Please try again in a moment.</div></div></div>"}
         
         if not store:
@@ -98,14 +56,6 @@ def generate_report(user_id=None, shop_url=None):
             return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Store not properly connected</div><div style='margin-bottom: 12px;'>Missing or invalid access token. Please reconnect your store.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Reconnect Store →</a></div></div>"}
         
         client = ShopifyClient(store.shop_url, access_token)
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"reporting.py:95","message":"Before API calls","data":{"shop_url":store.shop_url[:50]},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         
         # CRITICAL: Memory management - process in batches to prevent segfaults
         # Limit total memory usage by processing orders in chunks
@@ -119,24 +69,8 @@ def generate_report(user_id=None, shop_url=None):
         # Removing sessions manually can corrupt connection state and cause segfaults
         try:
             for iteration in range(max_iterations):
-                # #region agent log
-                try:
-                    import json
-                    import time
-                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"reporting.py:110","message":"Before _make_request call","data":{"iteration":iteration,"endpoint":endpoint},"timestamp":int(time.time()*1000)})+'\n')
-                except: pass
-                # #endregion
                 # Make request and get response
                 orders_data = client._make_request(endpoint)
-                # #region agent log
-                try:
-                    import json
-                    import time
-                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"ALL_BROKEN","location":"reporting.py:112","message":"After _make_request call","data":{"iteration":iteration,"has_error":isinstance(orders_data,dict) and 'error' in orders_data,"has_orders":isinstance(orders_data,dict) and 'orders' in orders_data,"orders_count":len(orders_data.get('orders',[])) if isinstance(orders_data,dict) else 0},"timestamp":int(time.time()*1000)})+'\n')
-                except: pass
-                # #endregion
                 
                 if "error" in orders_data:
                     # If error on first request, check if it's authentication or permission failure
@@ -163,14 +97,6 @@ def generate_report(user_id=None, shop_url=None):
                         # Check for permission denied (403) - missing scopes
                         elif orders_data.get('permission_denied') or "Access denied" in error_msg or "403" in str(orders_data) or "permission" in error_msg.lower() or "Check your app permissions" in error_msg or "Missing required permissions" in error_msg:
                             logger.warning(f"Permission denied (403) for store {store.shop_url} (user {user_id}) - missing required scopes")
-                            # #region agent log
-                            try:
-                                import json
-                                import time
-                                with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"PERMISSIONS","location":"reporting.py:109","message":"403 permission denied","data":{"shop_url":store.shop_url,"user_id":user_id,"error":error_msg[:200]},"timestamp":int(time.time()*1000)})+'\n')
-                            except: pass
-                            # #endregion
                             return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Permission denied</div><div style='margin-bottom: 12px;'>Your store connection is missing required permissions. Please disconnect and reconnect your store to grant the necessary access.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Reconnect Store →</a></div></div>"}
                         return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>{orders_data['error']}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
                     # Otherwise, we've fetched all available orders

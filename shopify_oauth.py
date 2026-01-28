@@ -36,14 +36,6 @@ ACCESS_MODE = 'offline'
 @oauth_bp.route('/install')
 def install():
     """Initiate Shopify OAuth - Professional error handling"""
-    # #region agent log
-    try:
-        import json
-        import time
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"OAUTH","location":"shopify_oauth.py:33","message":"OAuth install route accessed","data":{"has_shop":bool(request.args.get('shop')),"has_host":bool(request.args.get('host')),"has_api_key":bool(SHOPIFY_API_KEY),"has_api_secret":bool(SHOPIFY_API_SECRET)},"timestamp":int(time.time()*1000)})+'\n')
-    except: pass
-    # #endregion
     # CRITICAL: Check API credentials before proceeding
     if not SHOPIFY_API_KEY or not SHOPIFY_API_SECRET:
         from flask import render_template_string
@@ -99,13 +91,6 @@ def install():
         """), 500
     
     shop = request.args.get('shop', '').strip()
-    # #region agent log
-    import json
-    try:
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"I","location":"shopify_oauth.py:86","message":"Install route called","data":{"shop":shop,"has_shop":bool(shop),"has_api_key":bool(SHOPIFY_API_KEY),"has_api_secret":bool(SHOPIFY_API_SECRET),"redirect_uri":REDIRECT_URI},"timestamp":int(__import__('time').time()*1000)})+'\n')
-    except: pass
-    # #endregion
     if not shop:
         from flask import render_template_string
         return render_template_string("""
@@ -234,22 +219,7 @@ def install():
     logger.info(f"OAuth install: Using redirect_uri={REDIRECT_URI} (must match Partners Dashboard exactly)")
     logger.info(f"OAuth install: Requesting scopes: {scopes_string}")
     logger.info(f"OAuth install: Scope breakdown - read_orders: {'read_orders' in scopes_string}, read_products: {'read_products' in scopes_string}, read_inventory: {'read_inventory' in scopes_string}")
-    # #region agent log
-    try:
-        import json
-        import time
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"shopify_oauth.py:198","message":"OAuth scope request","data":{"requested_scopes":SCOPES,"shop":shop,"api_key_preview":SHOPIFY_API_KEY[:8] if SHOPIFY_API_KEY else None},"timestamp":int(time.time()*1000)})+'\n')
-    except: pass
-    # #endregion
-    # #region agent log
-    try:
-        import json
-        import time
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"I","location":"shopify_oauth.py:202","message":"OAuth URL generated","data":{"redirect_uri":REDIRECT_URI,"shop":shop,"auth_url":auth_url},"timestamp":int(time.time()*1000)})+'\n')
-    except: pass
-    # #endregion
+
     
     query_string = '&'.join([f"{k}={quote(str(v), safe='')}" for k, v in params.items()])
     full_auth_url = f"{auth_url}?{query_string}"
@@ -373,13 +343,6 @@ def install():
 def callback():
     """Handle Shopify OAuth callback"""
     import traceback
-    # #region agent log
-    try:
-        import json
-        with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"M","location":"shopify_oauth.py:320","message":"OAuth callback entry","data":{"shop":request.args.get('shop',''),"code":bool(request.args.get('code')),"state":request.args.get('state',''),"host":request.args.get('host',''),"full_url":request.url,"referer":request.headers.get('Referer',''),"user_agent":request.headers.get('User-Agent','')[:100]},"timestamp":int(__import__('time').time()*1000)})+'\n')
-    except: pass
-    # #endregion
 
     try:
         return _handle_oauth_callback()
@@ -625,14 +588,6 @@ def exchange_code_for_token(shop, code):
                 data = response.json()
                 access_token = data.get('access_token') if isinstance(data, dict) else None
                 granted_scopes = data.get('scope', '') if isinstance(data, dict) else ''
-                # #region agent log
-                try:
-                    import json
-                    import time
-                    with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"shopify_oauth.py:564","message":"OAuth token exchange success","data":{"shop":shop,"requested_scopes":SCOPES,"granted_scopes":granted_scopes,"scopes_match":granted_scopes == SCOPES or set(granted_scopes.split(',')) == set(SCOPES.split(','))},"timestamp":int(time.time()*1000)})+'\n')
-                except: pass
-                # #endregion
                 if access_token:
                     logger.info(f"OAuth token exchange: Requested scopes: {SCOPES}")
                     logger.info(f"OAuth token exchange: Granted scopes: {granted_scopes}")
@@ -656,26 +611,9 @@ def exchange_code_for_token(shop, code):
             except (ValueError, KeyError) as e:
                 logger.error(f"Error parsing access token response: {e}")
                 return None
-        
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"shopify_oauth.py:572","message":"OAuth token exchange failed","data":{"shop":shop,"status_code":response.status_code,"response_text":response.text[:200] if hasattr(response, 'text') else None},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         return None
     except requests.exceptions.RequestException as e:
         logger.error(f"Error requesting access token: {e}")
-        # #region agent log
-        try:
-            import json
-            import time
-            with open('/Users/essentials/Documents/1EmployeeSuite-FIXED/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"shopify_oauth.py:575","message":"OAuth token exchange exception","data":{"shop":shop,"error":str(e)[:200]},"timestamp":int(time.time()*1000)})+'\n')
-        except: pass
-        # #endregion
         return None
 
 def get_shop_info(shop, access_token):
