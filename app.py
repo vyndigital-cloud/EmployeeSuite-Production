@@ -333,10 +333,32 @@ def handle_404(e):
     # Return appropriate response based on request type
     if request.path.startswith('/api/'):
         return jsonify({'error': 'Not found', 'path': request.path, 'method': request.method}), 404
-    
-    # For non-API requests, let the second handler (not_found) handle HTML response
-    # This prevents duplicate handler conflicts
-    pass  # Will fall through to not_found handler
+
+    # For non-API requests, return a user-friendly 404 page
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Page Not Found - Employee Suite</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f6f6f7; }
+            .container { text-align: center; padding: 40px 24px; max-width: 500px; }
+            h1 { font-size: 20px; font-weight: 600; color: #202223; margin-bottom: 12px; }
+            p { font-size: 14px; color: #6d7175; line-height: 1.5; margin-bottom: 24px; }
+            .btn { display: inline-block; padding: 10px 20px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500; }
+            .btn:hover { background: #006e52; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Page not found</h1>
+            <p>The page you're looking for doesn't exist or has been moved.</p>
+            <a href="/dashboard" class="btn">Go to Dashboard</a>
+        </div>
+    </body>
+    </html>
+    """), 404
 
 @app.errorhandler(500)
 def handle_500(e):
@@ -593,7 +615,6 @@ def close_db(error):
         # Catch ALL exceptions including segfault precursors (SystemExit, KeyboardInterrupt, etc.)
         # CRITICAL: Never let teardown crash - response already sent
         # Silently ignore all errors to prevent segfaults
-        pass
         logger.debug(f"Teardown error handled (non-critical): {type(e).__name__}")
     # CRITICAL: Do NOT access request or response here
     # This function is called during app context teardown, which can happen outside requests
@@ -2366,9 +2387,8 @@ DASHBOARD_HTML = """
                         credentials: 'include'
                     });
                 }
-            } // end proceedWithApiCall
 
-            // Execute the Promise chain
+            // Execute the Promise chain inside proceedWithApiCall so it runs in all code paths
             fetchPromise
                 .then(r => {
                     // Check if request was cancelled
@@ -2392,14 +2412,14 @@ DASHBOARD_HTML = """
                 .then(d => {
                     // Check if request was cancelled
                     if (!d) return;
-                    
+
                     setButtonLoading(button, false);
                     activeRequests.updateInventory = null;
                     if (debounceTimers.updateInventory) {
                         clearTimeout(debounceTimers.updateInventory);
                         debounceTimers.updateInventory = null;
                     }
-                    
+
                     if (d.success) {
                         const icon = '✅';
                         document.getElementById('output').innerHTML = `
@@ -2441,19 +2461,19 @@ DASHBOARD_HTML = """
                     if (err.name === 'AbortError') {
                         return;
                     }
-                    
+
                     setButtonLoading(button, false);
                     activeRequests.updateInventory = null;
                     if (debounceTimers.updateInventory) {
                         clearTimeout(debounceTimers.updateInventory);
                         debounceTimers.updateInventory = null;
                     }
-                    
+
                     var errorMessage = 'Unable to connect to server. Please check your internet connection and try again.';
                     if (!isOnline) {
                         errorMessage = 'No internet connection. Please check your network and try again.';
                     }
-                    
+
                     document.getElementById('output').innerHTML = `
                         <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
                             <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Connection Error</div>
@@ -2562,9 +2582,8 @@ DASHBOARD_HTML = """
                         credentials: 'include'
                     });
                 }
-            } // end proceedWithApiCall
 
-            // Execute the Promise chain
+            // Execute the Promise chain inside proceedWithApiCall so it runs in all code paths
             fetchPromise
                 .then(r => {
                     // Check if request was cancelled
@@ -2582,14 +2601,14 @@ DASHBOARD_HTML = """
                 .then(html => {
                     // Check if request was cancelled
                     if (!html) return;
-                    
+
                     setButtonLoading(button, false);
                     activeRequests.generateReport = null;
                     if (debounceTimers.generateReport) {
                         clearTimeout(debounceTimers.generateReport);
                         debounceTimers.generateReport = null;
                     }
-                    
+
                     // Check if the HTML contains an error message (from backend)
                     if (html.includes('Error Loading revenue') || html.includes('No Shopify store connected')) {
                         // Backend already formatted the error, display directly
@@ -2612,14 +2631,14 @@ DASHBOARD_HTML = """
                     if (err.name === 'AbortError') {
                         return;
                     }
-                    
+
                     setButtonLoading(button, false);
                     activeRequests.generateReport = null;
                     if (debounceTimers.generateReport) {
                         clearTimeout(debounceTimers.generateReport);
                         debounceTimers.generateReport = null;
                     }
-                    
+
                     // Check if error message is HTML (from backend) or plain text (network error)
                     if (err.message && err.message.includes('Error Loading revenue')) {
                         // Backend error HTML
@@ -2630,7 +2649,7 @@ DASHBOARD_HTML = """
                         if (!isOnline) {
                             errorMessage = 'No internet connection. Please check your network and try again.';
                         }
-                        
+
                         document.getElementById('output').innerHTML = `
                             <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
                                 <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Connection Error</div>
@@ -2641,6 +2660,7 @@ DASHBOARD_HTML = """
                         `;
                     }
                 });
+            } // end proceedWithApiCall
         }
 
         // Ensure function is in global scope
@@ -3172,22 +3192,6 @@ def home():
                         db.session.rollback()
                     except Exception:
                         pass
-                    finally:
-                        try:
-                            db.session.remove()
-                        except Exception:
-                            pass
-                    has_shopify = False
-                except BaseException:
-                    try:
-                        db.session.rollback()
-                    except Exception:
-                        pass
-                    finally:
-                        try:
-                            db.session.remove()
-                        except Exception:
-                            pass
                     has_shopify = False
             elif shop:
                 # Check if store exists even without user auth
@@ -4069,7 +4073,7 @@ def api_process_orders():
     logger.info(f'Request method: {request.method}')
     logger.info(f'Request path: {request.path}')
     logger.info(f'Request URL: {request.url}')
-    logger.info(f'Request headers: {dict(request.headers)}')
+    logger.info(f'Request content-type: {request.headers.get("Content-Type", "none")}')
     logger.info(f'Request args: {dict(request.args)}')
     logger.info(f'Has Authorization header: {bool(request.headers.get("Authorization"))}')
     logger.info(f'Has shop parameter: {bool(request.args.get("shop"))}')
@@ -4165,7 +4169,7 @@ def api_update_inventory():
     logger.info(f'Request method: {request.method}')
     logger.info(f'Request path: {request.path}')
     logger.info(f'Request URL: {request.url}')
-    logger.info(f'Request headers: {dict(request.headers)}')
+    logger.info(f'Request content-type: {request.headers.get("Content-Type", "none")}')
     logger.info(f'Request args: {dict(request.args)}')
     logger.info(f'Has Authorization header: {bool(request.headers.get("Authorization"))}')
     logger.info(f'Has shop parameter: {bool(request.args.get("shop"))}')
@@ -4270,7 +4274,7 @@ def api_generate_report():
     logger.info(f'Request method: {request.method}')
     logger.info(f'Request path: {request.path}')
     logger.info(f'Request URL: {request.url}')
-    logger.info(f'Request headers: {dict(request.headers)}')
+    logger.info(f'Request content-type: {request.headers.get("Content-Type", "none")}')
     logger.info(f'Request args: {dict(request.args)}')
     logger.info(f'Has Authorization header: {bool(request.headers.get("Authorization"))}')
     logger.info(f'Has shop parameter: {bool(request.args.get("shop"))}')
