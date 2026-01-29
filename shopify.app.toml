@@ -5,42 +5,39 @@ name = "Employee Suite"
 application_url = "https://employeesuite-production.onrender.com"
 embedded = true
 
+[webhooks]
+api_version = "2025-10"
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/data_request"
+  compliance_topics = [ "customers/data_request" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/redact"
+  compliance_topics = [ "customers/redact" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/shop/redact"
+  compliance_topics = [ "shop/redact" ]
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstall"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app_subscriptions/update" ]
+  uri = "/webhooks/app_subscriptions/update"
+
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "read_inventory,read_orders,read_products"
-optional_scopes = []
+optional_scopes = [ ]
 use_legacy_install_flow = false
 
 [auth]
 redirect_urls = [
   "https://employeesuite-production.onrender.com/auth/callback"
 ]
-
-[webhooks]
-api_version = "2025-10"
-
-# App lifecycle webhooks (MANDATORY)
-[[webhooks.subscriptions]]
-topics = ["app/uninstalled"]
-uri = "https://employeesuite-production.onrender.com/webhooks/app/uninstall"
-
-# Billing webhooks (for subscription status updates)
-[[webhooks.subscriptions]]
-topics = ["app_subscriptions/update"]
-uri = "https://employeesuite-production.onrender.com/webhooks/app_subscriptions/update"
-
-# GDPR Mandatory compliance webhooks
-[[webhooks.subscriptions]]
-compliance_topics = ["customers/data_request"]
-uri = "https://employeesuite-production.onrender.com/webhooks/customers/data_request"
-
-[[webhooks.subscriptions]]
-compliance_topics = ["customers/redact"]
-uri = "https://employeesuite-production.onrender.com/webhooks/customers/redact"
-
-[[webhooks.subscriptions]]
-compliance_topics = ["shop/redact"]
-uri = "https://employeesuite-production.onrender.com/webhooks/shop/redact"
 
 [pos]
 embedded = false
