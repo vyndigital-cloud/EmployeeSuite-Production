@@ -1545,7 +1545,7 @@ DASHBOARD_HTML = """
                 <div class="card-title">Order Processing</div>
                 <div class="card-description">View pending and unfulfilled Shopify orders. Monitor order status and payment information.</div>
                 {% if has_access %}
-                <button type="button" class="card-btn" data-action="processOrders" aria-label="View pending orders">
+                <button type="button" class="card-btn" data-action="processOrders" onclick="if(window.processOrders)window.processOrders(this)" aria-label="View pending orders">
                     <span>View Orders</span>
                     <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
@@ -1562,7 +1562,7 @@ DASHBOARD_HTML = """
                 <div class="card-title">Inventory Management</div>
                 <div class="card-description">Monitor stock levels across all products. Get low-stock alerts and complete inventory visibility.</div>
                 {% if has_access %}
-                <button type="button" class="card-btn" data-action="updateInventory" aria-label="Check inventory levels">
+                <button type="button" class="card-btn" data-action="updateInventory" onclick="if(window.updateInventory)window.updateInventory(this)" aria-label="Check inventory levels">
                     <span>Check Inventory</span>
                     <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
@@ -1579,7 +1579,7 @@ DASHBOARD_HTML = """
                 <div class="card-title">Revenue Analytics</div>
                 <div class="card-description">Generate revenue reports with product-level breakdown and insights.</div>
                 {% if has_access %}
-                <button type="button" class="card-btn" data-action="generateReport" aria-label="Generate revenue report">
+                <button type="button" class="card-btn" data-action="generateReport" onclick="if(window.generateReport)window.generateReport(this)" aria-label="Generate revenue report">
                     <span>Generate Report</span>
                     <span style="font-size: 12px; opacity: 0.8;">→</span>
                 </button>
@@ -2686,7 +2686,8 @@ DASHBOARD_HTML = """
         // CRITICAL: Skip debug endpoint to prevent infinite loops and performance issues
         (function() {
             var originalFetch = window.fetch;
-            window.fetch = function(...args) {
+            window.fetch = function() {
+                var args = Array.prototype.slice.call(arguments);
                 var url = args[0];
                 var options = args[1] || {};
                 var method = options.method || 'GET';
