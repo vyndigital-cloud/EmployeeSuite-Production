@@ -23,7 +23,7 @@ if not SHOPIFY_API_SECRET:
 # CRITICAL: These scopes MUST be enabled in Shopify Partners Dashboard → App Setup → Access Scopes
 # If you get 403 errors, verify these scopes are CHECKED in Partners Dashboard
 # The order doesn't matter, but ALL of these must be requested and granted
-SCOPES = 'read_orders,read_products,read_inventory'  # read_orders FIRST to ensure it's included
+SCOPES = 'read_orders,read_all_orders,read_products,read_inventory'  # read_all_orders added for full history analytics
 # CRITICAL: Shopify only allows ONE redirect URI in Partners Dashboard
 # We MUST always use the production URL: https://employeesuite-production.onrender.com/auth/callback
 # Even when running locally, OAuth callbacks will go to production, then you can test locally after OAuth completes
@@ -185,7 +185,8 @@ def install():
     # CRITICAL: Ensure ALL required scopes are included
     # These scopes MUST match what's configured in shopify.app.toml and Partners Dashboard
     required_scopes = [
-        'read_orders',      # Required for orders API (prevents 403 errors)
+        'read_orders',      # Required for recent orders
+        'read_all_orders',  # Required for full history analytics ($99/mo premium features)
         'read_products',    # Required for products API
         'read_inventory',   # Required for inventory API
     ]

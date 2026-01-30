@@ -89,4 +89,3 @@ But Shopify **validates** the redirect_uri parameter against what's configured i
 
 
 
-

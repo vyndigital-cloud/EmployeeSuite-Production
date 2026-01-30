@@ -105,12 +105,7 @@ from features_pages import features_pages_bp
 from session_token_verification import verify_session_token
 from order_processing import process_orders
 from inventory import update_inventory
-from inventory import update_inventory
 from reporting import generate_report
-from analytics import analytics_bp
-
-# Register new analytics blueprint
-app.register_blueprint(analytics_bp)
 
 from logging_config import logger
 from access_control import require_access
@@ -202,206 +197,7 @@ if database_url.startswith('postgresql://'):
         test_conn = psycopg2.connect(
             host=parsed.hostname,
             port=parsed.port or 5432,
-            user=parsed.username,
-            password=parsed.password,
-            database=parsed.path[1:] if parsed.path else None,
-            connect_timeout=3
-        )
-        test_conn.close()
-        logger.info("✅ PostgreSQL connection successful")
-        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-    except Exception as e:
-        logger.warning(f"⚠️  PostgreSQL connection failed: {e}")
-        logger.info("🔄 Falling back to SQLite database")
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///employeesuite.db'
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# Performance optimizations - Optimized for speed
-# Base engine options (work for all databases)
-engine_options = {
-    'pool_pre_ping': True,  # CRITICAL: Verify connections before using (prevents segfaults)
-    'echo': False,  # Disable SQL logging for performance
-}
-
-# PostgreSQL-specific options (compatible with Neon pooled connections)
-if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql://'):
-    engine_options.update({
-        'pool_size': 2,  # Ultra-conservative to prevent connection exhaustion and segfaults
-        'max_overflow': 3,  # Minimal overflow for stability
-        'pool_recycle': 600,  # Recycle connections after 10 minutes (prevent stale connections)
-        'pool_timeout': 5,  # Shorter timeout for getting connection from pool
-        'connect_args': {
-            'connect_timeout': 10,  # Connection timeout in seconds
-        },
-        'isolation_level': 'READ_COMMITTED',  # Prevent deadlocks
-    })
-
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = engine_options
-
-db.init_app(app)
-
-# ============================================================================
-# COMPREHENSIVE ERROR LOGGING SYSTEM - Capture EVERY error crumb
-# ============================================================================
-from logging_config import log_comprehensive_error, logger
-
-# Global error handler for ALL exceptions
-@app.errorhandler(Exception)
-def handle_all_exceptions(e):
-    """Catch and log EVERY exception with full details"""
-    from flask import request, jsonify
-    import traceback
-    
-    error_type = type(e).__name__
-    error_message = str(e)
-    error_location = f"{request.endpoint or 'unknown'}:{request.method}"
-    
-    # Get full request context (SANITIZED - no passwords/tokens)
-    def sanitize_form_data(form_dict):
-        """Remove sensitive fields from form data before logging"""
-        if not form_dict:
-            return None
-        sensitive_fields = {'password', 'confirm_password', 'access_token', 'token', 'secret', 'api_key', 'api_secret'}
-        return {k: '[REDACTED]' if k.lower() in sensitive_fields else v for k, v in form_dict.items()}
-
-    error_data = {
-        'url': request.url,
-        'method': request.method,
-        'endpoint': request.endpoint,
-        'args': dict(request.args),
-        'form_data': sanitize_form_data(dict(request.form)) if request.form else None,
-        'headers': {k: v for k, v in dict(request.headers).items() if k.lower() not in ('cookie', 'authorization')},
-        'remote_addr': request.remote_addr,
-        'user_agent': request.headers.get('User-Agent'),
-        'referer': request.headers.get('Referer'),
-    }
-    
-    # Log with full stack trace
-    exc_info = sys.exc_info()
-    log_comprehensive_error(error_type, error_message, error_location, error_data, exc_info)
-    
-    # Return appropriate response
-    if request.path.startswith('/api/'):
-        return jsonify({
-            'success': False,
-            'error': error_message,
-            'error_type': error_type,
-            'location': error_location
-        }), 500
-    else:
-        return f"<h1>Error: {error_message}</h1><pre>{traceback.format_exc()}</pre>", 500
-
-# Specific error handlers for common error types
-@app.errorhandler(404)
-def handle_404(e):
-    """Log 404 errors with full context - Enhanced per external feedback"""
-    from flask import request
-    import logging
-    
-    # Sanitize sensitive form data
-    def _sanitize(form_dict):
-        if not form_dict:
-            return None
-        sensitive = {'password', 'confirm_password', 'access_token', 'token', 'secret', 'api_key', 'api_secret'}
-        return {k: '[REDACTED]' if k.lower() in sensitive else v for k, v in form_dict.items()}
-
-    # Enhanced error data with all possible context (SANITIZED)
-    error_data = {
-        'url': request.url,
-        'path': request.path,
-        'full_path': request.full_path,
-        'method': request.method,
-        'endpoint': request.endpoint or 'unknown',
-        'referer': request.headers.get('Referer'),
-        'user_agent': request.headers.get('User-Agent'),
-        'remote_addr': request.remote_addr,
-        'args': dict(request.args),
-        'form_data': _sanitize(dict(request.form)) if request.form else None,
-        'is_api_request': request.path.startswith('/api/'),
-        'is_static': request.path.startswith('/static/'),
-    }
-    
-    # Log to both comprehensive error system and standard logging
-    location = f"{request.endpoint or 'unknown'}:{request.method}"
-    log_comprehensive_error('HTTP_404', str(e), location, error_data)
-    
-    # Also log to standard logger with full details (per external feedback)
-    logger.error(f"404 error occurred: {request.method} {request.path}")
-    logger.error(f"Full URL: {request.url}")
-    logger.error(f"Referer: {request.headers.get('Referer', 'None')}")
-    logger.error(f"User-Agent: {request.headers.get('User-Agent', 'None')}")
-    logger.error(f"Requested endpoint: {request.endpoint or 'unknown'}")
-    
-    # Return appropriate response based on request type
-    if request.path.startswith('/api/'):
-        return jsonify({'error': 'Not found', 'path': request.path, 'method': request.method}), 404
-
-    # For non-API requests, return a user-friendly 404 page
-    return render_template_string("""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Page Not Found - Employee Suite</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f6f6f7; }
-            .container { text-align: center; padding: 40px 24px; max-width: 500px; }
-            h1 { font-size: 20px; font-weight: 600; color: #202223; margin-bottom: 12px; }
-            p { font-size: 14px; color: #6d7175; line-height: 1.5; margin-bottom: 24px; }
-            .btn { display: inline-block; padding: 10px 20px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500; }
-            .btn:hover { background: #006e52; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>Page not found</h1>
-            <p>The page you're looking for doesn't exist or has been moved.</p>
-            <a href="/dashboard" class="btn">Go to Dashboard</a>
-        </div>
-    </body>
-    </html>
-    """), 404
-
-@app.errorhandler(500)
-def handle_500(e):
-    """Log all 500 internal server errors with stack trace (per external feedback)"""
-    from flask import request
-    import traceback
-    import logging
-    
-    error_data = {
-        'url': request.url,
-        'method': request.method,
-        'endpoint': request.endpoint,
-        'args': dict(request.args),
-        'path': request.path,
-        'referer': request.headers.get('Referer'),
-        'user_agent': request.headers.get('User-Agent'),
-    }
-    
-    # Get full stack trace
-    exc_info = sys.exc_info()
-    stack_trace = ''.join(traceback.format_exception(*exc_info)) if exc_info[0] else traceback.format_exc()
-    
-    # Log to comprehensive error system
-    log_comprehensive_error('500', str(e), f"{request.endpoint or 'unknown'}:{request.method}", error_data, exc_info)
-    
-    # Also log to standard logger with full details (per external feedback)
-    logger.error(f"500 Error: {e}, Path: {request.path}")
-    logger.error(f"Full URL: {request.url}")
-    logger.error(f"Stack trace:\n{stack_trace}")
-    
-    # Return user-friendly error message
-    if request.path.startswith('/api/'):
-        return jsonify({
-            'success': False,
-            'error': 'An internal server error occurred. Please try again later.',
-            'error_type': 'InternalServerError'
-        }), 500
-    
+--
     return str(e), 500
 
 @app.errorhandler(400)
@@ -632,441 +428,7 @@ def validate_request_security():
     # Global request logging (per external feedback)
     logger.info(f'Making request to: {request.path}, Method: {request.method}')
     
-    # Skip database initialization for health checks (used by Render for deployment verification)
-    # Skip validation for static files, health checks
-    if request.endpoint in ('static', 'health') or request.endpoint is None:
-        return
-    
-    # Ensure database is initialized (lazy initialization - non-blocking)
-    # Only initialize on actual requests, not health checks
-    ensure_db_initialized()
-    
-    
-    # Skip for webhook endpoints (they have HMAC verification)
-    # Note: Both /webhook/ (singular) and /webhooks/ (plural) are used
-    if request.path.startswith('/webhook/') or request.path.startswith('/webhooks/'):
-        return
-    
-    # Skip for billing endpoints (Stripe handles security)
-    if request.path.startswith('/billing/') or request.path in ('/subscribe', '/create-checkout-session'):
-        return
-    
-    # Skip for OAuth callbacks (Shopify handles security)
-    if request.path.startswith('/auth/callback') or request.path.startswith('/install'):
-        return
-    
-    # Skip for API endpoints (they have their own auth)
-    if request.path.startswith('/api/'):
-        return
-    
-    # Skip for export endpoints (they have their own auth)
-    if request.path.startswith('/api/export/'):
-        return
-    
-    # Only check request size for POST/PUT requests (not GET)
-    if request.method in ('POST', 'PUT') and request.content_length and request.content_length > MAX_REQUEST_SIZE:
-        log_security_event('request_too_large', f"IP: {request.remote_addr}, Size: {request.content_length}", 'WARNING')
-        return jsonify({'error': 'Request too large'}), 413
-
-DASHBOARD_HTML = """
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Dashboard - Employee Suite</title>
-    <!-- Shopify App Bridge - v4 Compatible: MUST BE FIRST SCRIPT -->
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-    <script>
-        (function() {
-            var urlParams = new URLSearchParams(window.location.search);
-            var host = urlParams.get('host');
-            var shop = urlParams.get('shop');
-
-            window.appBridgeReady = false;
-            window.isEmbedded = !!host;
-            window.appBridgeReadyPromise = new Promise(function(resolve) {
-                window.appBridgeReadyResolve = resolve;
-            });
-            window.waitForAppBridge = function() {
-                return window.appBridgeReadyPromise;
-            };
-
-            if (window.isEmbedded && document.body) {
-                document.body.classList.add('embedded');
-            }
-
-            if (!host) {
-                window.shopifyApp = null;
-                window.appBridgeReady = true;
-                if (window.appBridgeReadyResolve) {
-                    window.appBridgeReadyResolve({ ready: true, embedded: false, app: null });
-                }
-                return;
-            }
-
-            // App Bridge v4: exposes window.shopify automatically
-            function init() {
-                if (window.shopify) {
-                    window.shopifyApp = window.shopify;
-                    window.appBridgeReady = true;
-                    if (window.appBridgeReadyResolve) {
-                        window.appBridgeReadyResolve({ ready: true, embedded: true, app: window.shopify });
-                    }
-                    return;
-                }
-                setTimeout(init, 50);
-            }
-            init();
-        })();
-    </script>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Critical: Prevent any blocking - render immediately -->
-    <style>
-        /* Inline critical CSS - no blocking */
-        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-    </style>
-    <!-- Defer non-critical resources -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Shopify Polaris CSS - only load in embedded mode -->
-    <script>
-        // App Bridge CSS removed - it's optional and the file doesn't exist at the CDN URL
-        // App Bridge JavaScript provides all necessary functionality without CSS
-    </script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f6f6f7;
-            color: #202223;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            min-height: 100vh;
-            line-height: 1.5;
-            margin: 0;
-            padding: 0;
-        }
-        
-        html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-        }
-        
-        /* Header - Hide in embedded mode (Shopify provides navigation) */
-        .header {
-            background: #ffffff;
-            border-bottom: 1px solid #e1e3e5;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        
-        /* Hide header when embedded - Shopify admin has its own nav */
-        body.embedded .header {
-            display: none !important;
-        }
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
-            height: 64px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            font-size: 16px;
-            font-weight: 600;
-            color: #202223;
-            text-decoration: none;
-            letter-spacing: -0.2px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .header-nav {
-            display: flex;
-            gap: 4px;
-            align-items: center;
-        }
-        .nav-btn {
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            text-decoration: none;
-            color: #6d7175;
-            transition: background 0.15s;
-            position: relative;
-        }
-        .nav-btn:hover {
-            background: #f6f6f7;
-            color: #202223;
-        }
-        .nav-btn-primary {
-            background: #008060;
-            color: #fff !important;
-            transition: background 0.2s ease;
-        }
-        .nav-btn-primary:hover {
-            background: #006e52;
-            color: #fff !important;
-        }
-        /* Quick Access Menu */
-        .quick-menu {
-            position: relative;
-            display: inline-block;
-        }
-        .quick-menu-btn {
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            background: #f6f6f7;
-            color: #202223;
-            border: 1px solid #e1e3e5;
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-        .quick-menu-btn:hover {
-            background: #e1e3e5;
-        }
-        .quick-menu-dropdown {
-            display: none;
-            position: absolute;
-            top: 100%;
-            right: 0;
-            margin-top: 8px;
-            background: #ffffff;
-            border: 1px solid #e1e3e5;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            min-width: 220px;
-            z-index: 1000;
-            overflow: hidden;
-        }
-        .quick-menu-dropdown.show {
-            display: block;
-            animation: fadeIn 0.2s ease;
-        }
-        .quick-menu-item {
-            display: block;
-            padding: 12px 16px;
-            color: #202223;
-            text-decoration: none;
-            font-size: 14px;
-            transition: background 0.15s;
-            border-bottom: 1px solid #f6f6f7;
-        }
-        .quick-menu-item:last-child {
-            border-bottom: none;
-        }
-        .quick-menu-item:hover {
-            background: #f6f6f7;
-        }
-        .quick-menu-item-icon {
-            display: inline-block;
-            width: 20px;
-            margin-right: 8px;
-            text-align: center;
-        }
-        .quick-menu-shortcut {
-            float: right;
-            color: #8c9196;
-            font-size: 12px;
-            font-family: 'SF Mono', 'Monaco', monospace;
-        }
-        
-        /* Container - Shopify Spacing */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 32px 24px;
-        }
-        
-        /* Adjust container padding for embedded mode */
-        body.embedded .container {
-            padding: 20px 24px;
-        }
-        
-        /* Remove footer in embedded mode */
-        body.embedded footer {
-            display: none !important;
-        }
-        
-        /* Clean up body background for embedded */
-        body.embedded {
-            background: #ffffff;
-        }
-        
-        .page-title {
-            font-size: 32px;
-            font-weight: 600;
-            color: #202223;
-            margin-bottom: 8px;
-            letter-spacing: -0.3px;
-        }
-        .page-subtitle {
-            font-size: 15px;
-            color: #6d7175;
-            margin-bottom: 32px;
-            font-weight: 400;
-            line-height: 1.5;
-            max-width: 600px;
-        }
-        
-        /* Banner - Shopify Style */
-        .banner {
-            background: #ffffff;
-            border: 1px solid #e1e3e5;
-            border-radius: 8px;
-            padding: 16px 20px;
-            margin-bottom: 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .banner-warning {
-            background: #fffbf0;
-            border-color: #fef3c7;
-        }
-        .banner-info {
-            background: #f0f4ff;
-            border-color: #dbeafe;
-        }
-        .banner-content h3 {
-            font-size: 15px;
-            font-weight: 600;
-            color: #202223;
-            margin-bottom: 4px;
-        }
-        .banner-content p {
-            font-size: 14px;
-            color: #6d7175;
-            font-weight: 400;
-        }
-        .banner-action {
-            background: #008060;
-            color: #fff;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            text-decoration: none;
-            white-space: nowrap;
-            transition: background 0.15s;
-        }
-        .banner-action:hover {
-            background: #006e52;
-        }
-        
-        /* Cards Grid - Shopify Style */
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 32px;
-        }
-        .card {
-            background: #ffffff;
-            border: 1px solid #e1e3e5;
-            border-radius: 8px;
-            padding: 24px;
-            transition: box-shadow 0.15s;
-        }
-        
-        .card:hover {
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        }
-        
-        .card-icon {
-            font-size: 32px;
-            margin-bottom: 16px;
-            line-height: 1;
-            display: inline-block;
-        }
-        
-        .card-title {
-            font-size: 17px;
-            font-weight: 600;
-            color: #202223;
-            margin-bottom: 8px;
-            letter-spacing: -0.2px;
-        }
-        .card-description {
-            font-size: 14px;
-            color: #6d7175;
-            line-height: 1.5;
-            margin-bottom: 20px;
-            font-weight: 400;
-        }
-        .card-btn {
-            width: 100%;
-            background: #008060;
-            color: #fff;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.15s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .card-btn:hover {
-            background: #006e52;
-        }
-        
-        .card-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            background: #6d7175;
-        }
-        
-        /* Output - Shopify Style */
-        .output-container {
-            background: #ffffff;
-            border: 1px solid #e1e3e5;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .output-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid #e1e3e5;
-            font-size: 14px;
-            font-weight: 600;
-            color: #202223;
-            background: #f6f6f7;
-        }
-        #output {
-            padding: 20px;
-            min-height: 200px;
-            font-size: 14px;
-            line-height: 1.6;
-            color: #6d7175;
-            font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
-        }
-        #output:empty:before {
-            content: 'Click any button above to get started. Your results will appear here.';
-            color: #8c9196;
-            font-style: italic;
-            text-align: center;
-            padding: 40px 20px;
-            display: block;
-        }
-        #output:empty {
-            display: flex;
-            align-items: center;
+--
             justify-content: center;
             background: #fafafa;
         }
@@ -1141,8 +503,156 @@ DASHBOARD_HTML = """
         }
     </style>
 
-    <!-- Consolidated App Bridge moved to top of head -->
+    <!-- Shopify App Bridge - v4 Compatible -->
+    <script>
+        (function() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var host = urlParams.get('host');
+            var shop = urlParams.get('shop');
 
+            // Global flag to track App Bridge readiness
+            window.appBridgeReady = false;
+            window.isEmbedded = !!host;
+
+            // Promise-based App Bridge ready system
+            window.appBridgeReadyPromise = new Promise(function(resolve) {
+                window.appBridgeReadyResolve = resolve;
+            });
+            window.waitForAppBridge = function() {
+                return window.appBridgeReadyPromise;
+            };
+
+            // Add embedded class to body for CSS targeting
+            if (window.isEmbedded && document.body) {
+                document.body.classList.add('embedded');
+            }
+
+            // Only load if we have host (embedded mode)
+            if (!host) {
+                window.shopifyApp = null;
+                window.appBridgeReady = true;
+                if (window.appBridgeReadyResolve) {
+                    window.appBridgeReadyResolve({ ready: true, embedded: false, app: null });
+                }
+                return;
+            }
+
+            // Load App Bridge CDN (delivers v4)
+            var script = document.createElement('script');
+            script.src = 'https://cdn.shopify.com/shopifycloud/app-bridge.js';
+            script.async = true;
+            script.crossOrigin = 'anonymous';
+
+            script.onload = function() {
+                try {
+                    var attempts = 0;
+                    var maxAttempts = 40; // 40 * 50ms = 2s max
+
+                    function init() {
+                        attempts++;
+
+                        // App Bridge v4: exposes window.shopify automatically
+                        if (window.shopify) {
+                            window.shopifyApp = window.shopify;
+                            window.appBridgeReady = true;
+
+                            if (window.appBridgeReadyResolve) {
+                                window.appBridgeReadyResolve({
+                                    ready: true,
+                                    embedded: true,
+                                    app: window.shopify
+                                });
+                            }
+
+                            window.dispatchEvent(new CustomEvent('appbridge:ready', {
+                                detail: { app: window.shopify, embedded: true }
+                            }));
+
+                            enableEmbeddedButtons();
+                            return;
+                        }
+
+                        // Fallback: check v3 global names
+                        var AppBridge = window['app-bridge'] || window['ShopifyAppBridge'];
+                        if (AppBridge) {
+                            try {
+                                var createApp = AppBridge.default || AppBridge.create || AppBridge;
+                                if (typeof createApp === 'function') {
+                                    var apiKey = '{{ SHOPIFY_API_KEY or "" }}'.trim();
+                                    if (apiKey && host) {
+                                        window.shopifyApp = createApp({
+                                            apiKey: apiKey,
+                                            host: host.trim()
+                                        });
+                                        window.appBridgeReady = true;
+                                        if (window.appBridgeReadyResolve) {
+                                            window.appBridgeReadyResolve({
+                                                ready: true,
+                                                embedded: true,
+                                                app: window.shopifyApp
+                                            });
+                                        }
+                                        window.dispatchEvent(new CustomEvent('appbridge:ready', {
+                                            detail: { app: window.shopifyApp, embedded: true }
+                                        }));
+                                        enableEmbeddedButtons();
+                                        return;
+                                    }
+                                }
+                            } catch (v3Err) {
+                                console.warn('App Bridge v3 fallback failed:', v3Err.message);
+                            }
+                        }
+
+                        // Neither v4 nor v3 found yet - retry
+                        if (attempts < maxAttempts) {
+                            setTimeout(init, 50);
+                            return;
+                        }
+
+                        // Timeout
+                        window.shopifyApp = null;
+                        window.appBridgeReady = true;
+                        if (window.appBridgeReadyResolve) {
+                            window.appBridgeReadyResolve({ ready: false, embedded: true, app: null });
+                        }
+                        showAppBridgeError('App Bridge failed to initialize. Please refresh the page or contact support.');
+                    }
+
+                    init();
+                } catch (e) {
+                    window.shopifyApp = null;
+                    window.appBridgeReady = true;
+                    if (window.appBridgeReadyResolve) {
+                        window.appBridgeReadyResolve({ ready: false, embedded: true, app: null });
+                    }
+                    showAppBridgeError('Failed to load App Bridge: ' + e.message);
+                }
+            };
+
+            script.onerror = function() {
+                window.shopifyApp = null;
+                window.appBridgeReady = true;
+                if (window.appBridgeReadyResolve) {
+                    window.appBridgeReadyResolve({ ready: false, embedded: true, app: null });
+                }
+                showAppBridgeError('Network Error: Unable to load App Bridge. Please check your connection and refresh.');
+            };
+
+            document.head.appendChild(script);
+
+            function showAppBridgeError(message) {
+                var output = document.getElementById('output');
+                if (output) {
+                    output.innerHTML = '<div style="padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px; color: #d72c0d;"><strong>App Bridge Error:</strong><br>' + message + '</div>';
+                }
+            }
+
+            function enableEmbeddedButtons() {
+                // Buttons enabled by default
+            }
+        })();
+    </script>
     
     <!-- Google Analytics - Load after page renders -->
     <script>
@@ -1261,98 +771,6 @@ DASHBOARD_HTML = """
         </div>
         {% endif %}
         
-        
-        {% if has_shopify and quick_stats.has_data and is_subscribed %}
-        <!-- PREMIUM: PROPRIETARY FORECASTING ENGINE ($99/mo Value) -->
-        <div id="executive-insights" style="margin-bottom: 32px; display: none; animation: fadeIn 0.6s ease-out;">
-            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3); position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
-                <!-- Background decoration -->
-                <div style="position: absolute; top: -50px; right: -50px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, rgba(0, 0, 0, 0) 70%); pointer-events: none;"></div>
-                <div style="position: absolute; bottom: -50px; left: -50px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, rgba(0, 0, 0, 0) 70%); pointer-events: none;"></div>
-                
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 2; flex-wrap: wrap; gap: 20px;">
-                    <div>
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                            <span style="background: rgba(99, 102, 241, 0.2); color: #a5b4fc; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px; border: 1px solid rgba(99, 102, 241, 0.3);">AI Forecast</span>
-                            <span style="color: #94a3b8; font-size: 13px; font-weight: 500;">Inventory Intelligence</span>
-                        </div>
-                        <h2 style="font-size: 24px; font-weight: 700; color: white; margin-bottom: 8px; letter-spacing: -0.5px; line-height: 1.2;">Stockout Risk Detected</h2>
-                        <p style="color: #cbd5e1; font-size: 14px; max-width: 550px; line-height: 1.6;"> Our predictive engine analyzed your recent sales velocity. <strong id="risk-count" style="color: white; font-weight: 600;">-- items</strong> are projected to run out of stock within the next 7 days.</p>
-                    </div>
-                    <div style="text-align: right; background: rgba(0,0,0,0.2); padding: 12px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-                        <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px; font-weight: 500;">Potential Revenue Loss</div>
-                        <div id="risk-revenue" style="font-size: 28px; font-weight: 700; color: #f87171; letter-spacing: -1px; line-height: 1;">--</div>
-                    </div>
-                </div>
-
-                <!-- Risk Items Table -->
-                <div style="margin-top: 24px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05);">
-                    <div style="padding: 12px 16px; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; font-weight: 600; display: flex; justify-content: space-between;">
-                        <span>High Risk Items</span>
-                        <span>Projection</span>
-                    </div>
-                    <div id="risk-list" style="display: flex; flex-direction: column;">
-                        <!-- JS injected items here -->
-                        <div style="text-align: center; color: #94a3b8; font-size: 13px; padding: 20px;">Analyzing sales patterns...</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <script>
-            // Fetch AI Forecast - Only if subscribed
-            document.addEventListener('DOMContentLoaded', function() {
-                // Safety check for template variable
-                var isSubscribed = {{ 'true' if is_subscribed else 'false' }};
-                if (!isSubscribed) return;
-                
-                var shopParam = '{{ shop or "" }}';
-                var fetchUrl = '/api/analytics/forecast' + (shopParam ? '?shop=' + encodeURIComponent(shopParam) : '');
-                
-                fetch(fetchUrl)
-                    .then(function(r) { return r.json(); })
-                    .then(function(data) {
-                        if (data.metrics && data.metrics.at_risk_count > 0) {
-                            var container = document.getElementById('executive-insights');
-                            if (container) {
-                                container.style.display = 'block';
-                                document.getElementById('risk-count').innerText = data.metrics.at_risk_count + ' items';
-                                
-                                // Format currency
-                                var formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-                                document.getElementById('risk-revenue').innerText = formatter.format(data.metrics.total_potential_loss);
-                                
-                                // Render items
-                                var list = document.getElementById('risk-list');
-                                list.innerHTML = '';
-                                
-                                data.items.forEach(function(item, index) {
-                                    // Only show top 3 to keep it compact
-                                    if (index >= 3) return;
-                                    
-                                    var borderStyle = index < Math.min(data.items.length, 3) - 1 ? 'border-bottom: 1px solid rgba(255,255,255,0.05);' : '';
-                                    
-                                    var row = '<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; ' + borderStyle + ' transition: background 0.2s;" onmouseover="this.style.background=\\'rgba(255,255,255,0.05)\\'" onmouseout="this.style.background=\\'transparent\\'">';
-                                    row += '<div>';
-                                    row += '<div style="color: white; font-weight: 500; font-size: 14px;">' + item.product_title + '</div>';
-                                    row += '<div style="color: #94a3b8; font-size: 12px; margin-top: 2px;">Velocity: ' + item.velocity + '</div>';
-                                    row += '</div>';
-                                    row += '<div style="text-align: right;">';
-                                    row += '<div style="color: #f87171; font-weight: 600; font-size: 13px;">' + item.days_remaining + ' days left</div>';
-                                    row += '<div style="color: #64748b; font-size: 11px; margin-top: 2px;">Stock: ' + item.current_stock + '</div>';
-                                    row += '</div>';
-                                    row += '</div>';
-                                    list.innerHTML += row;
-                                });
-                                
-                                if (data.items.length > 3) {
-                                    list.innerHTML += '<div style="padding: 10px; text-align: center; border-top: 1px solid rgba(255,255,255,0.05);"><a href="/features/dashboard" style="color: #a5b4fc; font-size: 12px; text-decoration: none;">View all ' + data.metrics.at_risk_count + ' risks →</a></div>';
-                                }
-                            }
-                        }
-                    })
-                    .catch(function(e) { console.error("Forecast error:", e); });
-            });
-        </script>
         
         {% if has_shopify and quick_stats.has_data and is_subscribed %}
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; animation: fadeIn 0.5s ease-in;">
@@ -1490,299 +908,7 @@ DASHBOARD_HTML = """
                     <div class="card-icon">📊</div>
                     <span style="background: #008060; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">NEW</span>
                 </div>
-                <div class="card-title">Comprehensive Dashboard</div>
-                <div class="card-description">View all three reports (Orders, Inventory, Revenue) in one unified dashboard view.</div>
-                {% if has_access %}
-                <a href="/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="card-btn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; background: #008060; color: white;">
-                    <span>View Dashboard</span>
-                    <span style="font-size: 12px; opacity: 0.9;">→</span>
-                </a>
-                {% else %}
-                <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="card-btn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; background: #008060; color: white;">
-                    <span>Learn More</span>
-                    <span style="font-size: 12px; opacity: 0.9;">→</span>
-                </a>
-                {% endif %}
-            </div>
-        </div>
-        
-        <div id="connection-status" style="display: none; margin-bottom: 16px;"></div>
-        <div class="output-container">
-            <div class="output-header">Results</div>
-            <div id="output"></div>
-        </div>
-    </div>
-    
-    <script>
-        // ============================================================================
-        // COMPREHENSIVE JAVASCRIPT ERROR LOGGING - Capture EVERY error crumb
-        // ============================================================================
-        
-        // CRITICAL: Store original console.error BEFORE intercepting it
-        // This prevents infinite recursion when logJavaScriptError uses console.error
-        var originalConsoleError = console.error;
-        
-        // Guard flag to prevent recursive logging
-        var isLoggingError = false;
-        
-        // Function to log JavaScript errors to backend
-        function logJavaScriptError(errorType, errorMessage, errorLocation, errorData, stackTrace) {
-            // Prevent infinite recursion
-            if (isLoggingError) {
-                // If we're already logging an error, use original console.error to break the cycle
-                originalConsoleError.call(console, '[ERROR LOGGED]', errorType, ':', errorMessage);
-                return;
-            }
-            
-            isLoggingError = true;
-            try {
-                var errorLog = {
-                    timestamp: new Date().toISOString(),
-                    error_type: errorType,
-                    error_message: errorMessage,
-                    error_location: errorLocation,
-                    stack_trace: stackTrace,
-                    error_data: errorData || {},
-                    user_agent: navigator.userAgent,
-                    url: window.location.href,
-                    referer: document.referrer,
-                    viewport: {
-                        width: window.innerWidth,
-                        height: window.innerHeight
-                    },
-                    session_id: 'js-session-' + Date.now()
-                };
-                
-                // Send to backend error logging endpoint
-                fetch('/api/log_error', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(errorLog),
-                    credentials: 'include'
-                }).catch(function(err) {
-                    // If logging fails, use original console.error to prevent recursion
-                    originalConsoleError.call(console, 'Failed to log error to backend:', err);
-                    originalConsoleError.call(console, 'Original error:', errorLog);
-                });
-                
-                // Also log to console for immediate visibility - use originalConsoleError to prevent recursion
-                originalConsoleError.call(console, '[ERROR LOGGED]', errorType, ':', errorMessage);
-                originalConsoleError.call(console, 'Location:', errorLocation);
-                originalConsoleError.call(console, 'Stack:', stackTrace);
-                if (errorData) originalConsoleError.call(console, 'Data:', errorData);
-            } catch (e) {
-                // Last resort - use original console.error to prevent recursion
-                originalConsoleError.call(console, 'Error logging system failed:', e);
-                originalConsoleError.call(console, 'Original error:', errorMessage);
-            } finally {
-                // Always reset the flag
-                isLoggingError = false;
-            }
-        }
-        
-        // Global error handler - catches ALL unhandled errors
-        window.addEventListener('error', function(event) {
-            logJavaScriptError(
-                'JavaScriptError',
-                event.message || 'Unknown error',
-                event.filename + ':' + event.lineno + ':' + event.colno,
-                {
-                    error: event.error ? event.error.toString() : null,
-                    type: event.type,
-                    target: event.target ? event.target.tagName : null
-                },
-                event.error ? (event.error.stack || 'No stack trace') : 'No stack trace'
-            );
-        }, true); // Use capture phase to catch all errors
-        
-        // Unhandled promise rejection handler - Enhanced to prevent freezing
-        window.addEventListener('unhandledrejection', function(event) {
-            var error = event.reason;
-            var errorMessage = error ? (error.message || error.toString() || 'Unhandled promise rejection') : 'Unknown promise rejection';
-            var stackTrace = error && error.stack ? error.stack : 'No stack trace';
-            
-            // Use originalConsoleError to prevent recursion
-            originalConsoleError.call(console, '❌ Unhandled promise rejection:', error);
-            originalConsoleError.call(console, 'This may cause the application to freeze. Error:', errorMessage);
-            
-            logJavaScriptError(
-                'UnhandledPromiseRejection',
-                errorMessage,
-                'Promise rejection',
-                {
-                    reason: error ? error.toString() : null,
-                    promise: event.promise ? event.promise.toString() : null
-                },
-                stackTrace
-            );
-            
-            // Prevent default browser error handling and application freeze
-            event.preventDefault();
-            
-            // Show user-friendly error message if possible
-            try {
-                var outputEl = document.getElementById('output');
-                if (outputEl) {
-                    outputEl.innerHTML = '<div style="padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;"><div style="font-size: 15px; font-weight: 600; color: #d72c0d; margin-bottom: 8px;">⚠️ An error occurred</div><div style="font-size: 14px; color: #6d7175;">Please refresh the page and try again.</div></div>';
-                }
-            } catch(e) {
-                // If showing error fails, use originalConsoleError to prevent recursion
-                originalConsoleError.call(console, 'Failed to show error message:', e);
-            }
-        });
-        
-        // Console error interceptor (catches console.error calls)
-        // CRITICAL: originalConsoleError is already defined above to prevent recursion
-        console.error = function() {
-            var args = Array.prototype.slice.call(arguments);
-            
-            // Skip logging if we're already in the middle of logging (prevents recursion)
-            if (isLoggingError) {
-                // Just call original and return immediately
-                originalConsoleError.apply(console, args);
-                return;
-            }
-            
-            var errorMessage = args.map(function(arg) {
-                if (typeof arg === 'object') {
-                    try {
-                        return JSON.stringify(arg);
-                    } catch(e) {
-                        return arg.toString();
-                    }
-                }
-                return String(arg);
-            }).join(' ');
-            
-            // Check if this is a log from our own error logging system (prevent recursion)
-            if (errorMessage.includes('[ERROR LOGGED]') || 
-                errorMessage.includes('Failed to log error to backend') ||
-                errorMessage.includes('Error logging system failed')) {
-                // This is our own logging, just call original and return
-                originalConsoleError.apply(console, args);
-                return;
-            }
-            
-            logJavaScriptError(
-                'ConsoleError',
-                errorMessage,
-                'console.error',
-                {arguments: args},
-                new Error().stack || 'No stack trace'
-            );
-            
-            // Call original console.error
-            originalConsoleError.apply(console, args);
-        };
-        
-        // Try-catch wrapper for async functions
-        window.addEventListener('unhandledrejection', function(event) {
-            // Already handled above, but ensure we catch everything
-        });
-        
-        // ============================================================================
-        // END COMPREHENSIVE JAVASCRIPT ERROR LOGGING
-        // ============================================================================
-        
-        
-        // Early function check - verify functions will be available (before definitions)
-        console.log('🔍 Early function check (before definitions):', {
-            processOrders: typeof window.processOrders,
-            updateInventory: typeof window.updateInventory,
-            generateReport: typeof window.generateReport
-        });
-        // Professional request management - prevent duplicate requests and cancel previous ones
-        var activeRequests = {
-            processOrders: null,
-            updateInventory: null,
-            generateReport: null
-        };
-        
-        // Debounce timers to prevent rapid clicks
-        var debounceTimers = {
-            processOrders: null,
-            updateInventory: null,
-            generateReport: null
-        };
-        
-        // Get APP_URL from template or use current origin (FIXED: was using template literal incorrectly)
-        var APP_URL = '{{ APP_URL|default("") }}' || window.location.origin;
-
-        // CRITICAL: Extract shop, host, and id_token from URL for API calls
-        var urlParams = new URLSearchParams(window.location.search);
-        var SHOP_PARAM = urlParams.get('shop') || '';
-        var HOST_PARAM = urlParams.get('host') || '';
-        var ID_TOKEN = urlParams.get('id_token') || '';
-
-        // Store in window for global access
-        window.SHOP_PARAM = SHOP_PARAM;
-        window.HOST_PARAM = HOST_PARAM;
-        window.ID_TOKEN = ID_TOKEN;
-
-        console.log('Shop params loaded:', {shop: SHOP_PARAM, hasIdToken: !!ID_TOKEN});
-
-        // Network status detection with visual indicator
-        var isOnline = navigator.onLine;
-        function updateConnectionStatus() {
-            var statusEl = document.getElementById('connection-status');
-            if (statusEl) {
-                if (isOnline) {
-                    statusEl.style.display = 'none';
-                } else {
-                    statusEl.style.display = 'block';
-                    statusEl.innerHTML = '<div style="padding: 8px 16px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 6px; font-size: 13px; color: #202223; text-align: center;">⚠️ No internet connection</div>';
-                }
-            }
-        }
-        
-        window.addEventListener('online', function() {
-            isOnline = true;
-            // Connection restored
-            updateConnectionStatus();
-            // Show success message
-            var statusEl = document.getElementById('connection-status');
-            if (statusEl) {
-                statusEl.style.display = 'block';
-                statusEl.innerHTML = '<div style="padding: 8px 16px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; font-size: 13px; color: #166534; text-align: center;">✅ Connection restored</div>';
-                setTimeout(function() {
-                    statusEl.style.display = 'none';
-                }, 3000);
-            }
-        });
-        window.addEventListener('offline', function() {
-            isOnline = false;
-            // Connection lost
-            updateConnectionStatus();
-        });
-        
-        // Cancel previous request if user clicks another button
-        function cancelPreviousRequest(requestType) {
-            if (activeRequests[requestType] && activeRequests[requestType].abort) {
-                activeRequests[requestType].abort();
-                activeRequests[requestType] = null;
-            }
-        }
-        
-        // Debounce function to prevent rapid clicks (professional standard)
-        function debounce(func, requestType, delay) {
-            return function() {
-                var context = this;
-                var args = arguments;
-                
-                // Cancel previous timer
-                if (debounceTimers[requestType]) {
-                    clearTimeout(debounceTimers[requestType]);
-                }
-                
-                // Set new timer
-                debounceTimers[requestType] = setTimeout(function() {
-                    func.apply(context, args);
-                    debounceTimers[requestType] = null;
-                }, delay);
-            };
-        }
-        
-        function showSubscribePrompt() {
+--
             document.getElementById('output').innerHTML = `
                 <div style="padding: 32px; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-radius: 16px; border: 2px solid #dc2626; text-align: center; animation: fadeIn 0.3s ease-in;">
                     <div style="font-size: 48px; margin-bottom: 16px;">🔒</div>
@@ -2589,147 +1715,7 @@ DASHBOARD_HTML = """
                                 url: url,
                                 method: method,
                                 error: error.message || 'Unknown error',
-                                errorName: error.name || 'Unknown',
-                                duration: duration + 'ms',
-                                timestamp: new Date().toISOString()
-                            });
-                        }
-                        
-                        throw error;
-                    });
-            };
-        })();
-        
-        // ============================================================================
-        // ROBUST BUTTON EVENT HANDLING - Event Delegation Pattern (Most Reliable)
-        // ============================================================================
-        // Use event delegation - attach ONE listener to document that handles ALL button clicks
-        // This works even if buttons are added dynamically or listeners fail to attach
-        // FIXED: Always wait for DOMContentLoaded to ensure DOM and dependencies are ready
-        // FIXED: Verify functions exist before setting up listener (per external feedback)
-        document.addEventListener('DOMContentLoaded', function setupEventDelegation() {
-            console.log('✅ DOMContentLoaded fired');
-            
-            // Verify functions are assigned to window before setting up listener
-            var functionsReady = typeof window.processOrders === 'function' &&
-                                 typeof window.updateInventory === 'function' &&
-                                 typeof window.generateReport === 'function';
-            
-            if (!functionsReady) {
-                console.error('❌ Functions not ready yet. Retrying in 100ms...');
-                console.log('Function status:', {
-                    processOrders: typeof window.processOrders,
-                    updateInventory: typeof window.updateInventory,
-                    generateReport: typeof window.generateReport
-                });
-                // Retry after short delay
-                setTimeout(setupEventDelegation, 100);
-                return;
-            }
-            
-            console.log('✅ All functions ready:', {
-                processOrders: typeof window.processOrders,
-                updateInventory: typeof window.updateInventory,
-                generateReport: typeof window.generateReport
-            });
-            
-            var buttonsFound = document.querySelectorAll('.card-btn[data-action]').length;
-            console.log('✅ Buttons found:', buttonsFound);
-            
-            
-            // CRITICAL: Add EARLY click listener to catch ALL clicks before anything else
-            // OPTIMIZED: Only log button clicks to reduce performance impact
-            document.addEventListener('click', function(e) {
-                // Only log if it's actually a button click (reduces noise)
-                var closestBtn = e.target.closest('.card-btn[data-action]');
-                if (!closestBtn) return; // Skip non-button clicks
-                
-            }, true); // Capture phase - fires FIRST
-            
-            // Attach click listener to document for event delegation (per external feedback)
-            document.addEventListener('click', function(e) {
-                // Find the closest button with data-action attribute
-                var btn = e.target.closest('.card-btn[data-action]');
-                if (!btn) {
-                    return; // Exit if clicked element is not a button (no logging to reduce noise)
-                }
-                
-                // ENHANCED LOGGING: Capture state before action (OPTIMIZED - minimal logging)
-                var action = btn.getAttribute('data-action');
-                console.log('✅ Button clicked:', action);
-                
-                // Check CSS/pointer-events issues (only log if there's a problem)
-                var computedStyle = window.getComputedStyle(btn);
-                var pointerEvents = computedStyle.pointerEvents;
-                var display = computedStyle.display;
-                var visibility = computedStyle.visibility;
-                
-                if (pointerEvents === 'none' || display === 'none' || visibility === 'hidden') {
-                    console.warn('⚠️ Button CSS issue:', {
-                        pointerEvents: pointerEvents,
-                        display: display,
-                        visibility: visibility
-                    });
-                }
-                
-                
-                e.preventDefault(); // Prevent any default behavior
-                e.stopPropagation();
-                
-                if (!action) {
-                    console.warn('⚠️ Button has no data-action attribute');
-                    return; // No action specified
-                }
-                
-                // Check if button is disabled
-                if (btn.disabled) {
-                    console.warn('⚠️ Button is disabled, ignoring click');
-                    return;
-                }
-                
-                // Route to appropriate function based on data-action (per external feedback)
-                // Enhanced error handling to prevent application freezing
-                if (window[action] && typeof window[action] === 'function') {
-                    try {
-                        console.log('✅ Calling function:', action);
-                        window[action](btn); // Call the corresponding function
-                    } catch(err) {
-                        // Catch synchronous errors to prevent freezing
-                        console.error('❌ Error executing function:', action, err);
-                        console.error('Error details:', {
-                            message: err.message,
-                            name: err.name,
-                            stack: err.stack ? err.stack.substring(0, 300) : 'no stack',
-                            buttonState: {
-                                disabled: btn.disabled,
-                                innerHTML: btn.innerHTML.substring(0, 50)
-                            }
-                        });
-                        // Show user-friendly error message
-                        var outputEl = document.getElementById('output');
-                        if (outputEl) {
-                            outputEl.innerHTML = '<div style="padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;"><div style="font-size: 15px; font-weight: 600; color: #d72c0d; margin-bottom: 8px;">❌ Error</div><div style="font-size: 14px; color: #6d7175;">An error occurred: ' + (err.message || 'Unknown error') + '</div></div>';
-                        }
-                        // Re-enable button
-                        btn.disabled = false;
-                        if (btn.dataset.originalText) {
-                            btn.innerHTML = btn.dataset.originalText;
-                        }
-                    }
-                } else {
-                    console.error('❌ Function not found for action:', action); // Log error for missing function (per external feedback)
-                    console.error('Available functions:', {
-                        processOrders: typeof window.processOrders,
-                        updateInventory: typeof window.updateInventory,
-                        generateReport: typeof window.generateReport,
-                        requestedAction: typeof window[action]
-                    });
-                }
-            }, true); // Use capture phase to catch early
-            
-            console.log('✅ Event delegation listener attached successfully');
-            
-            // CRITICAL: Add direct button test listeners as backup
+--
             // This will help us verify if buttons are clickable at all
             var testButtons = document.querySelectorAll('.card-btn[data-action]');
             console.log('🔍 Found buttons for direct testing:', testButtons.length);
@@ -3986,533 +2972,7 @@ def api_process_orders():
         # Re-raise system exits (like from sys.exit())
         logger.error('=== PROCESS ORDERS REQUEST FAILED: SystemExit ===')
         raise
-    except BaseException as e:
-        # Catch all other exceptions including segmentation faults precursors
-        logger.error(f"Critical error processing orders for user {user_id}: {type(e).__name__}: {str(e)}", exc_info=True)
-        logger.error(f"Error type: {type(e).__name__}")
-        logger.error(f"Error message: {str(e)}")
-        logger.error(f"Stack trace: {traceback.format_exc()}")
-        from performance import clear_cache as clear_perf_cache
-        try:
-            clear_perf_cache()
-        except Exception:
-            pass
-        logger.error('=== PROCESS ORDERS REQUEST FAILED: Critical Error ===')
-        return jsonify({"error": "An unexpected error occurred. Please try again or contact support if this persists.", "success": False}), 500
-
-@app.route('/api/update_inventory', methods=['GET', 'POST'])
-def api_update_inventory():
-    """Update inventory endpoint with enhanced logging"""
-    logger.info('=== UPDATE INVENTORY REQUEST START ===')
-    logger.info(f'Request method: {request.method}')
-    logger.info(f'Request path: {request.path}')
-    logger.info(f'Request URL: {request.url}')
-    logger.info(f'Request content-type: {request.headers.get("Content-Type", "none")}')
-    logger.info(f'Request args: {dict(request.args)}')
-    logger.info(f'Has Authorization header: {bool(request.headers.get("Authorization"))}')
-    logger.info(f'Has shop parameter: {bool(request.args.get("shop"))}')
-    
-    
-    try:
-        # Get authenticated user (supports both Flask-Login and session tokens)
-        logger.info('Step 1: Getting authenticated user...')
-        user, error_response = get_authenticated_user()
-
-        if error_response:
-            logger.warning('Step 1 FAILED: Authentication error')
-            logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
-            return error_response
-
-        logger.info(f'Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, "email") else "N/A"}')
-
-        logger.info('Step 2: Checking user access...')
-        has_access = user.has_access() if user else False
-
-        if not has_access:
-            logger.warning(f'Step 2 FAILED: User {user.id if hasattr(user, "id") else "N/A"} does not have access')
-            return jsonify({
-                'error': 'Subscription required',
-                'success': False,
-                'action': 'subscribe',
-                'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
-                'subscribe_url': url_for('billing.subscribe')
-            }), 403
-
-        logger.info(f'Step 2 SUCCESS: User {user.id if hasattr(user, "id") else "N/A"} has access')
-
-        # Store user ID before login_user to avoid recursion issues
-        user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
-        logger.info(f'Step 3: User ID extracted: {user_id}')
-
-        # Set current_user for update_inventory() function
-        logger.info('Step 4: Logging in user...')
-        from flask_login import login_user
-        login_user(user, remember=False)
-        logger.info('Step 4 SUCCESS: User logged in')
-    
-        # Import at function level to avoid UnboundLocalError
-        logger.info('Step 5: Clearing cache...')
-        from performance import clear_cache as clear_perf_cache
-        clear_perf_cache('get_products')
-        logger.info('Step 5 SUCCESS: Cache cleared')
-        
-        
-        logger.info(f'Step 6: Calling update_inventory for user {user_id}...')
-        # Pass user_id directly to prevent recursion from accessing current_user
-        result = update_inventory(user_id=user_id)
-        logger.info(f'Step 6 SUCCESS: update_inventory returned')
-        logger.info(f'Result type: {type(result)}, Is dict: {isinstance(result, dict)}')
-        if isinstance(result, dict):
-            logger.info(f'Result keys: {list(result.keys())}')
-            logger.info(f'Result success: {result.get("success", "N/A")}')
-            if 'error' in result:
-                logger.warning(f'Result contains error: {result.get("error")}')
-        
-        
-        logger.info('=== UPDATE INVENTORY REQUEST SUCCESS ===')
-        if isinstance(result, dict):
-            # Store inventory data in session for CSV export
-            if result.get('success') and 'inventory_data' in result:
-                from flask import session
-                session['inventory_data'] = result['inventory_data']
-                logger.info('Inventory data stored in session for CSV export')
-            return jsonify(result)
-        else:
-            return jsonify({"success": False, "error": str(result)})
-            
-    except MemoryError as e:
-        logger.error(f"Memory error updating inventory for user {user_id}: {str(e)}", exc_info=True)
-        logger.error("Clearing cache...")
-        from performance import clear_cache as clear_perf_cache
-        clear_perf_cache()
-        logger.error('=== UPDATE INVENTORY REQUEST FAILED: Memory Error ===')
-        return jsonify({"success": False, "error": "Memory error - please try again"}), 500
-    except SystemExit:
-        # Re-raise system exits (like from sys.exit())
-        logger.error('=== UPDATE INVENTORY REQUEST FAILED: SystemExit ===')
-        raise
-    except BaseException as e:
-        # Catch all other exceptions including segmentation faults precursors
-        logger.error(f"Critical error updating inventory for user {user_id}: {type(e).__name__}: {str(e)}", exc_info=True)
-        logger.error(f"Error type: {type(e).__name__}")
-        logger.error(f"Error message: {str(e)}")
-        logger.error(f"Stack trace: {traceback.format_exc()}")
-        from performance import clear_cache as clear_perf_cache
-        try:
-            clear_perf_cache()
-        except Exception:
-            pass
-        logger.error('=== UPDATE INVENTORY REQUEST FAILED: Critical Error ===')
-        return jsonify({"success": False, "error": "An unexpected error occurred. Please try again or contact support if this persists."}), 500
-
-@app.route('/api/generate_report', methods=['GET', 'POST'])
-def api_generate_report():
-    """Generate revenue report with detailed crash logging"""
-    logger.info('=== GENERATE REPORT REQUEST START ===')
-    logger.info(f'Request method: {request.method}')
-    logger.info(f'Request path: {request.path}')
-    logger.info(f'Request URL: {request.url}')
-    logger.info(f'Request content-type: {request.headers.get("Content-Type", "none")}')
-    logger.info(f'Request args: {dict(request.args)}')
-    logger.info(f'Has Authorization header: {bool(request.headers.get("Authorization"))}')
-    logger.info(f'Has shop parameter: {bool(request.args.get("shop"))}')
-    
-    
-    user_id = None
-    try:
-        # Get authenticated user (supports both Flask-Login and session tokens)
-        logger.info('Step 1: Getting authenticated user...')
-        user, error_response = get_authenticated_user()
-        
-        if error_response:
-            logger.warning('Step 1 FAILED: Authentication error')
-            logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
-            return error_response
-        
-        logger.info(f'Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, "email") else "N/A"}')
-        
-        # Store user ID before login_user to avoid recursion issues
-        user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
-        logger.info(f'Step 2: User ID extracted: {user_id}')
-        
-        logger.info('Step 3: Checking user access...')
-        has_access = user.has_access() if user else False
-        
-        if not has_access:
-            logger.warning(f'Step 3 FAILED: User {user_id} does not have access')
-            return jsonify({
-                'error': 'Subscription required',
-                'success': False,
-                'action': 'subscribe',
-                'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
-                'subscribe_url': url_for('billing.subscribe')
-            }), 403
-        
-        logger.info(f'Step 3 SUCCESS: User {user_id} has access')
-        
-        # Set current_user for generate_report() function
-        logger.info('Step 4: Logging in user...')
-        from flask_login import login_user
-        login_user(user, remember=False)
-        logger.info('Step 4 SUCCESS: User logged in')
-        
-        logger.info(f'Step 5: Preparing to generate report for user {user_id}...')
-        
-        # Get shop_url from request args, session, or None (will use first active store)
-        from flask import session
-        shop_url = request.args.get('shop') or session.get('current_shop') or None
-        if shop_url:
-            logger.info(f'Step 5a: Using shop_url from request/session: {shop_url}')
-        else:
-            logger.info(f'Step 5a: No shop_url in request/session, will use first active store for user')
-        
-        # CRITICAL: DO NOT call db.session.remove() here - let SQLAlchemy manage connections
-        # Removing sessions before queries can cause segfaults by corrupting connection state
-        logger.info('Step 5b: Importing generate_report function...')
-        from reporting import generate_report
-        logger.info('Step 5b SUCCESS: generate_report function imported')
-        
-        
-        logger.info(f'Step 5c: Calling generate_report(user_id={user_id}, shop_url={shop_url})...')
-        data = generate_report(user_id=user_id, shop_url=shop_url)
-        logger.info(f'Step 5c SUCCESS: generate_report() returned')
-        logger.info(f'Result type: {type(data)}, Is dict: {isinstance(data, dict)}')
-        if isinstance(data, dict):
-            logger.info(f'Result keys: {list(data.keys())}')
-            if 'error' in data:
-                logger.warning(f'Result contains error: {data.get("error")}')
-            if 'message' in data:
-                logger.info(f'Result message: {data.get("message")[:100]}...' if len(str(data.get("message", ""))) > 100 else f'Result message: {data.get("message")}')
-        
-        if data.get('error') and data['error'] is not None:
-            error_msg = data['error']
-            logger.warning(f'Step 5d ERROR: Report generation returned error: {error_msg[:200]}')
-            if 'No Shopify store connected' in error_msg:
-                logger.info(f'Generate report: No store connected for user {user_id}')
-            else:
-                logger.error(f'Generate report error for user {user_id}: {error_msg}')
-            logger.error('=== GENERATE REPORT REQUEST FAILED: Report Error ===')
-            return error_msg, 500
-        
-        if not data.get('message'):
-            logger.warning(f'Step 5d WARNING: No message in report data')
-            logger.warning(f'Generate report returned no message for user {user_id}')
-            logger.error('=== GENERATE REPORT REQUEST FAILED: No Data ===')
-            return '<h3 class="error">❌ No report data available</h3>', 500
-        
-        html = data.get('message', '<h3 class="error">❌ No report data available</h3>')
-        logger.info(f'Step 5d: Report HTML generated, length: {len(html)} characters')
-        
-        from flask import session
-        if 'report_data' in data:
-            session['report_data'] = data['report_data']
-            logger.info('Step 5e: Report data stored in session for CSV export')
-        
-        logger.info('=== GENERATE REPORT REQUEST SUCCESS ===')
-        return html, 200
-        
-    except MemoryError as e:
-        logger.error('=== GENERATE REPORT REQUEST FAILED: Memory Error ===')
-        logger.error(f'Error type: {type(e).__name__}')
-        logger.error(f'Error message: {str(e)}')
-        logger.error(f'Full traceback:\n{traceback.format_exc()}')
-        logger.error(f'Memory error generating report for user {user_id} - clearing cache')
-        from performance import clear_cache as clear_perf_cache
-        clear_perf_cache()
-        return jsonify({"success": False, "error": "Memory error - please try again"}), 500
-    except SystemExit as e:
-        logger.error('=== GENERATE REPORT REQUEST FAILED: SystemExit ===')
-        logger.error(f'Error type: {type(e).__name__}')
-        logger.error(f'Error message: {str(e)}')
-        logger.error(f'Full traceback:\n{traceback.format_exc()}')
-        # Re-raise system exits (like from sys.exit())
-        raise
-    except BaseException as e:
-        logger.error('=== GENERATE REPORT REQUEST FAILED: Critical Error ===')
-        logger.error(f'Error type: {type(e).__name__}')
-        logger.error(f'Error message: {str(e)}')
-        logger.error(f'Full traceback:\n{traceback.format_exc()}')
-        logger.error(f'User ID: {user_id}')
-        logger.error(f'Exception args: {e.args}')
-        # Catch all other exceptions including segmentation faults precursors
-        logger.error(f'Critical error generating report for user {user_id}: {type(e).__name__}: {str(e)}', exc_info=True)
-        from performance import clear_cache as clear_perf_cache
-        try:
-            clear_perf_cache()
-        except Exception:
-            pass
-        return jsonify({"success": False, "error": "An unexpected error occurred. Please try again or contact support if this persists."}), 500
-    except Exception as e:
-        logger.error('=== GENERATE REPORT REQUEST FAILED: Exception ===')
-        logger.error(f'Error type: {type(e).__name__}')
-        logger.error(f'Error message: {str(e)}')
-        logger.error(f'Full traceback:\n{traceback.format_exc()}')
-        logging.error(f"User ID: {user_id}")
-        logging.error("=== END CRASH LOG ===")
-        logger.error(f"Error generating report for user {user_id}: {str(e)}", exc_info=True)
-        return jsonify({"success": False, "error": f"Failed to generate report: {str(e)}"}), 500
-
-# Note: This is a duplicate 404 handler - the main one is at line 286
-# Keeping for backward compatibility but routing to main handler
-@app.errorhandler(404)
-def not_found(error):
-    """404 error handler - professional error page (duplicate, routes to main handler)"""
-    # Route to main 404 handler which has enhanced logging
-    return handle_404(error)
-    
-    error_html = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Page Not Found - Employee Suite</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-        <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-                background: linear-gradient(135deg, #f5f5f5 0%, #fafafa 100%);
-                color: #171717;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                min-height: 100vh;
-                padding: 24px;
-            }
-            .error-container {
-                text-align: center;
-                max-width: 500px;
-            }
-            .error-code {
-                font-size: 120px;
-                font-weight: 700;
-                color: #4a7338;
-                line-height: 1;
-                margin-bottom: 16px;
-            }
-            .error-title {
-                font-size: 28px;
-                font-weight: 600;
-                color: #0a0a0a;
-                margin-bottom: 12px;
-            }
-            .error-message {
-                font-size: 16px;
-                color: #737373;
-                margin-bottom: 32px;
-                line-height: 1.6;
-            }
-            .error-actions {
-                display: flex;
-                gap: 12px;
-                justify-content: center;
-                flex-wrap: wrap;
-            }
-            .btn {
-                padding: 12px 24px;
-                border-radius: 8px;
-                font-size: 15px;
-                font-weight: 500;
-                text-decoration: none;
-                transition: all 0.2s;
-                border: none;
-                cursor: pointer;
-            }
-            .btn-primary {
-                background: #4a7338;
-                color: #fff;
-            }
-            .btn-primary:hover {
-                background: #3a5c2a;
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(74, 115, 56, 0.3);
-            }
-            .btn-secondary {
-                background: #fff;
-                color: #525252;
-                border: 1px solid #e5e5e5;
-            }
-            .btn-secondary:hover {
-                background: #fafafa;
-                border-color: #d4d4d4;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="error-container">
-            <div class="error-code">404</div>
-            <h1 class="error-title">Page Not Found</h1>
-            <p class="error-message">The page you're looking for doesn't exist or has been moved.</p>
-            <div class="error-actions">
-                <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
-                <a href="/" class="btn btn-secondary">Home</a>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-    return error_html, 404
-
-@app.errorhandler(500)
-def internal_error(error):
-    """500 error handler - professional error page"""
-    db.session.rollback()
-    log_security_event('500_error', f"Path: {request.path}, Error: {str(error)}", 'ERROR')
-    
-    # Return JSON for API requests, HTML for browser requests
-    if request.path.startswith('/api/'):
-        return jsonify({'error': 'An internal error occurred. Please try again later.'}), 500
-    
-    error_html = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Server Error - Employee Suite</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-        <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-                background: linear-gradient(135deg, #f5f5f5 0%, #fafafa 100%);
-                color: #171717;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                min-height: 100vh;
-                padding: 24px;
-            }
-            .error-container {
-                text-align: center;
-                max-width: 500px;
-            }
-            .error-code {
-                font-size: 120px;
-                font-weight: 700;
-                color: #dc2626;
-                line-height: 1;
-                margin-bottom: 16px;
-            }
-            .error-title {
-                font-size: 28px;
-                font-weight: 600;
-                color: #0a0a0a;
-                margin-bottom: 12px;
-            }
-            .error-message {
-                font-size: 16px;
-                color: #737373;
-                margin-bottom: 32px;
-                line-height: 1.6;
-            }
-            .error-actions {
-                display: flex;
-                gap: 12px;
-                justify-content: center;
-                flex-wrap: wrap;
-            }
-            .btn {
-                padding: 12px 24px;
-                border-radius: 8px;
-                font-size: 15px;
-                font-weight: 500;
-                text-decoration: none;
-                transition: all 0.2s;
-                border: none;
-                cursor: pointer;
-            }
-            .btn-primary {
-                background: #4a7338;
-                color: #fff;
-            }
-            .btn-primary:hover {
-                background: #3a5c2a;
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(74, 115, 56, 0.3);
-            }
-            .btn-secondary {
-                background: #fff;
-                color: #525252;
-                border: 1px solid #e5e5e5;
-            }
-            .btn-secondary:hover {
-                background: #fafafa;
-                border-color: #d4d4d4;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="error-container">
-            <div class="error-code">500</div>
-            <h1 class="error-title">Server Error</h1>
-            <p class="error-message">Something went wrong on our end. We've been notified and are working on a fix.</p>
-            <div class="error-actions">
-                <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
-                <a href="javascript:location.reload()" class="btn btn-secondary">Try Again</a>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-    return error_html, 500
-
-@app.errorhandler(413)
-def request_too_large(error):
-    """413 error handler for oversized requests"""
-    log_security_event('request_too_large', f"IP: {request.remote_addr}, Size: {request.content_length}", 'WARNING')
-    return jsonify({'error': 'Request too large'}), 413
-
-@app.errorhandler(429)
-def rate_limit_exceeded(error):
-    """429 error handler for rate limiting"""
-    log_security_event('rate_limit_exceeded', f"IP: {request.remote_addr}, Path: {request.path}", 'WARNING')
-    return jsonify({'error': 'Rate limit exceeded. Please try again later.'}), 429
-
-# CSV Export Endpoints
-# Note: Primary inventory export is at /api/export/inventory via enhanced_features.py
-# This is a legacy/simple version for backwards compatibility
-@app.route('/api/export/inventory-simple', methods=['GET'])
-@login_required
-@require_access
-def export_inventory_csv():
-    """Export inventory to CSV"""
-    try:
-        from flask import session, Response
-        from inventory import check_inventory
-        import csv
-        import io
-        
-        # Get inventory data from session or regenerate
-        inventory_data = session.get('inventory_data', [])
-        
-        if not inventory_data:
-            # Regenerate if not in session
-            result = check_inventory()
-            if result.get('success') and 'inventory_data' in result:
-                inventory_data = result['inventory_data']
-                session['inventory_data'] = inventory_data
-        
-        if not inventory_data:
-            return "No inventory data available. Please check inventory first.", 404
-        
-        # Create CSV
-        output = io.StringIO()
-        writer = csv.writer(output)
-        writer.writerow(['Product', 'SKU', 'Stock', 'Price'])
-        
-        for item in inventory_data:
-            writer.writerow([
-                item.get('product', 'N/A'),
-                item.get('sku', 'N/A'),
-                item.get('stock', 0),
-                item.get('price', 'N/A')
-            ])
-        
-        # Return CSV file
-        response = Response(
-            output.getvalue(),
-            mimetype='text/csv',
-            headers={'Content-Disposition': f'attachment; filename=inventory_{datetime.utcnow().strftime("%Y%m%d")}.csv'}
+--
         )
         return response
         

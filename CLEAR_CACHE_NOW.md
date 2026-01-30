@@ -57,4 +57,3 @@ The CSP configuration in code includes `'unsafe-eval'`:
 
 
 
-

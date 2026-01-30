@@ -1,0 +1,818 @@
+import sys
+import os
+import signal
+import traceback
+import logging
+
+# Load environment variables from .env file if it exists
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed, skip
+
+# Force single-threaded numpy/pandas operations to prevent segfaults
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['OMP_NUM_THREADS'] = '1'
+
+# CRITICAL: Set up detailed crash logging for debugging segfaults
+# This will help us identify exactly where crashes occur
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout,
+    force=True  # Override any existing config
+)
+
+# CRITICAL: Set signal handlers to prevent segfaults from crashing entire worker
+# This catches SIGSEGV (segmentation fault) and logs it instead of crashing
+def segfault_handler(signum, frame):
+    """Handle segmentation faults gracefully"""
+    import traceback
+    from logging_config import logger
+    logger.critical(f"Segmentation fault detected (signal {signum}) - attempting graceful recovery")
+    logger.critical(f"Traceback: {''.join(traceback.format_stack(frame))}")
+    # Don't exit - let the worker restart naturally
+    # This prevents the entire process from crashing
+
+# Only set handler if not in a subprocess (gunicorn workers are subprocesses)
+# Setting signal handlers in workers can interfere with gunicorn's process management
+if os.getpid() != 1:  # Not the main process (PID 1 is usually the main process)
+    try:
+        # Note: SIGSEGV handler may not work in all environments
+        # Gunicorn handles worker crashes automatically
+        pass
+    except Exception:
+        pass
+
+from flask import Flask, jsonify, render_template_string, redirect, url_for, request, session, Response
+
+# Comprehensive instrumentation helper
+def log_event(location, message, data=None, hypothesis_id='GENERAL'):
+    """Log event using proper logging framework"""
+    try:
+        import json
+        import time
+        log_entry = {
+            "sessionId": "debug-session",
+            "runId": "run1",
+            "hypothesisId": hypothesis_id,
+            "location": location,
+            "message": message,
+            "data": data or {},
+            "timestamp": int(time.time() * 1000)
+        }
+        # Use logging framework instead of file writes
+        logger.info(f"DEBUG_EVENT: {json.dumps(log_entry)}")
+    except Exception as e:
+        logger.error(f"Failed to log event: {e}")
+
+def safe_redirect(url, shop=None, host=None):
+    """
+    Safe redirect for Shopify embedded apps.
+    Uses standard HTTP redirect - Shopify handles iframe navigation.
+    """
+    # For Shopify OAuth URLs, always use standard redirect
+    # Shopify's OAuth flow handles the iframe breaking automatically
+    if 'myshopify.com' in url or 'shopify.com' in url:
+        return redirect(url)
+
+    # For internal app URLs, use standard redirect
+    # The browser/Shopify will handle this correctly
+    return redirect(url)
+from flask_login import LoginManager, login_required, current_user, login_user
+from flask_bcrypt import Bcrypt
+import logging
+from datetime import datetime
+
+from models import db, User, ShopifyStore
+from auth import auth_bp
+from shopify_oauth import oauth_bp
+from shopify_routes import shopify_bp
+from billing import billing_bp
+from admin_routes import admin_bp
+from legal_routes import legal_bp
+from faq_routes import faq_bp
+from rate_limiter import init_limiter
+from webhook_stripe import webhook_bp
+from webhook_shopify import webhook_shopify_bp
+from gdpr_compliance import gdpr_bp
+# Enhanced features
+from enhanced_features import enhanced_bp
+from enhanced_billing import enhanced_billing_bp
+from features_pages import features_pages_bp
+from session_token_verification import verify_session_token
+from order_processing import process_orders
+from inventory import update_inventory
+from reporting import generate_report
+
+from logging_config import logger
+from access_control import require_access
+from security_enhancements import (
+    add_security_headers, 
+    MAX_REQUEST_SIZE,
+    sanitize_input_enhanced,
+    log_security_event,
+    require_https
+)
+from performance import compress_response
+
+# Initialize Sentry for error monitoring (if DSN is provided)
+sentry_dsn = os.getenv('SENTRY_DSN')
+if sentry_dsn:
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
+    
+    # CRITICAL: Disable profiling and traces to prevent segfaults after responses
+    # These features can cause crashes when sending data to Sentry after response is sent
+    sentry_sdk.init(
+        dsn=sentry_dsn,
+        integrations=[
+            FlaskIntegration(),
+            SqlalchemyIntegration(),
+            LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)
+        ],
+        traces_sample_rate=0.0,  # DISABLED - causes segfaults after responses
+        profiles_sample_rate=0.0,  # DISABLED - causes segfaults after responses
+        environment=os.getenv('ENVIRONMENT', 'production'),
+--
+                return; // Already processing
+            }
+            
+            // Cancel previous request if exists
+            cancelPreviousRequest('processOrders');
+            
+            // Check network status
+            if (!isOnline) {
+                document.getElementById('output').innerHTML = `
+                    <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                        <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">No Internet Connection</div>
+                        <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please check your internet connection and try again.</div>
+                        <button onclick="processOrders(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            setButtonLoading(button, true);
+            showSkeletonLoading(); // Show skeleton immediately for better UX
+            setTimeout(function() {
+                showLoading('Loading orders...');
+            }, 100);
+            
+            // Create AbortController for request cancellation
+            var controller = new AbortController();
+            activeRequests.processOrders = controller;
+            
+            // Get session token if in embedded mode - seamless integration
+            var fetchPromise;
+            var isEmbedded = window.isEmbedded; // Use global flag
+            
+            // PERFECTED: Wait for App Bridge (uses Promise if available, sync check as fallback)
+            if (isEmbedded) {
+                // Try Promise-based wait first
+                if (window.waitForAppBridge && typeof window.waitForAppBridge === 'function' && !window.appBridgeReady) {
+                    // Wait for Promise to resolve
+                    window.waitForAppBridge().then(function(bridgeState) {
+                        if (bridgeState && bridgeState.ready && bridgeState.app) {
+                            window.shopifyApp = bridgeState.app;
+                            window.appBridgeReady = true;
+                        }
+                        // Always proceed with API call - will use session token if available, cookie auth as fallback
+                        proceedWithApiCall();
+                    }).catch(function(error) {
+                        console.warn('App Bridge not available, using cookie auth fallback:', error.message);
+                        // Fall back to cookie auth instead of showing error
+                        proceedWithApiCall();
+                    });
+                    return;
+                }
+            }
+            // App Bridge ready or not embedded - proceed with API call
+            proceedWithApiCall(); // Close if (isEmbedded)
+            
+            // Extract API call logic into function (called when Promise resolves or App Bridge ready)
+            function proceedWithApiCall() {
+                // Debug logging removed for performance
+                if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
+                // In embedded mode, we MUST have session token - retry up to 3 times
+                var retryCount = 0;
+                var maxRetries = 2; // Optimized: reduced from 3
+                
+                function getTokenWithRetry() {
+                    // Debug logging removed for performance
+                    return window.shopifyApp.getSessionToken().then(function(token) {
+                        if (!token && retryCount < maxRetries) {
+                            retryCount++;
+                            return new Promise(function(resolve, reject) {
+                                setTimeout(function() { getTokenWithRetry().then(resolve).catch(reject); }, 100); // Optimized: reduced from 300ms
+                            });
+                        }
+                        return token;
+                    }).catch(function(err) {
+                        // Debug logging removed for performance - only log if max retries exceeded
+                        // If error and haven't exceeded retries, retry
+                        if (retryCount < maxRetries) {
+                            retryCount++;
+                            return new Promise(function(resolve, reject) {
+                                setTimeout(function() { getTokenWithRetry().then(resolve).catch(reject); }, 100); // Optimized: reduced from 300ms
+                            });
+                        }
+                        // Max retries exceeded, throw error
+                        throw err;
+                    });
+                }
+                
+                // Build API URL with shop param
+                var apiUrl = '/api/process_orders';
+                if (window.SHOP_PARAM) {
+                    apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
+                }
+                if (isEmbedded) {
+                    apiUrl = APP_URL + apiUrl;
+                }
+
+                // Use id_token from URL if available, otherwise try App Bridge
+                if (window.ID_TOKEN) {
+                    fetchPromise = fetch(apiUrl, {
+                        headers: {'Authorization': 'Bearer ' + window.ID_TOKEN},
+                        signal: controller.signal,
+                        credentials: 'include'
+                    });
+                } else {
+                    fetchPromise = getTokenWithRetry().then(function(token) {
+                        var headers = token ? {'Authorization': 'Bearer ' + token} : {};
+                        return fetch(apiUrl, {
+                            headers: headers,
+                            signal: controller.signal,
+                            credentials: 'include'
+                        });
+                    }).catch(function(err) {
+                        if (err.name === 'AbortError') return;
+                        // Fall back to cookie auth with shop param
+                        return fetch(apiUrl, {
+                            signal: controller.signal,
+                            credentials: 'include'
+                        });
+                    });
+                }
+            } else {
+                // Not embedded - use regular fetch with shop param if available
+                var apiUrl = '/api/process_orders';
+                if (window.SHOP_PARAM) {
+                    apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
+                }
+                fetchPromise = fetch(apiUrl, {
+                    signal: controller.signal,
+                    credentials: 'include'
+                });
+            }
+
+            // Execute the Promise chain
+            fetchPromise
+                .then(r => {
+                    // Debug logging removed for performance
+                    // Check if request was cancelled
+                    if (controller.signal.aborted) {
+                        return null;
+                    }
+                    // Enhanced API response verification per external feedback
+                    console.log('📡 API Response received:', {
+                        status: r.status,
+                        statusText: r.statusText,
+                        url: r.url,
+                        ok: r.ok,
+                        contentType: r.headers.get('content-type')
+                    });
+                    
+                    if (!r.ok) {
+                        // Enhanced error logging per external feedback
+                        console.error('❌ API request failed:', {
+                            status: r.status,
+                            statusText: r.statusText,
+                            url: r.url,
+                            ok: r.ok
+                        });
+                        if (r.status === 404) {
+                            console.error('❌ 404 Not Found - Endpoint does not exist:', r.url);
+                            console.error('This may indicate a missing API route or incorrect URL');
+                        } else if (r.status === 500) {
+                            console.error('❌ 500 Internal Server Error - Server-side error occurred');
+                            console.error('Check server logs for detailed error information');
+                        }
+                        // Try to parse JSON, but handle non-JSON responses
+                        return r.text().then(function(text) {
+                            var err = {};
+                            try {
+                                err = JSON.parse(text);
+                            } catch(e) {
+                                // Not JSON - use text as error message
+                                err = {error: text || 'Unknown error', message: text || 'Unknown error'};
+                            }
+                            // Extract error from multiple possible fields
+                            var errorMsg = err.error || err.message || err.detail || err.description || (typeof err === 'string' ? err : 'API error unknown');
+                            throw new Error(errorMsg);
+                        });
+                    }
+                    return r.json();
+                })
+                .then(d => {
+                    // Check if request was cancelled
+                    if (!d) return;
+                    
+                    setButtonLoading(button, false);
+                    activeRequests.processOrders = null;
+                    if (debounceTimers.processOrders) {
+                        clearTimeout(debounceTimers.processOrders);
+                        debounceTimers.processOrders = null;
+                    }
+                    
+                    if (d.success) {
+                        const icon = '✅';
+                        document.getElementById('output').innerHTML = `
+                            <div style="animation: fadeIn 0.3s ease-in;">
+                                <h3 class="success" style="display: flex; align-items: center; gap: 8px;">
+                                    <span>${icon}</span>
+                                    <span>Orders Loaded</span>
+                                </h3>
+                                <div style="margin-top: 12px; line-height: 1.6;">${d.message || d.error || 'No details available'}</div>
+                            </div>
+                        `;
+                    } else {
+                        // Professional error display with actionable buttons
+                        var errorHtml = '<div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">';
+                        errorHtml += '<div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">' + (d.error || 'Something went wrong') + '</div>';
+                        if (d.message) {
+                            errorHtml += '<div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">' + d.message + '</div>';
+                        }
+                        if (d.action === 'refresh') {
+                            errorHtml += '<button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>';
+                        } else if (d.action === 'subscribe' && d.subscribe_url) {
+                            errorHtml += '<a href="' + d.subscribe_url + '" style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Subscribe Now</a>';
+                        } else if (d.action === 'install') {
+                            errorHtml += '<a href="/settings/shopify" style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Connect Store</a>';
+                        } else if (d.action === 'retry') {
+                            errorHtml += '<button onclick="processOrders(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>';
+                        }
+                        errorHtml += '</div>';
+                        document.getElementById('output').innerHTML = errorHtml;
+                    }
+                })
+                .catch(err => {
+                    // Enhanced error handling per external feedback - prevent application freezing
+                    console.error('❌ Failed to process orders:', err);
+                    console.error('Error details:', {
+                        message: err.message,
+                        name: err.name,
+                        stack: err.stack ? err.stack.substring(0, 300) : 'no stack'
+                    });
+                    
+                    
+                    // Always re-enable button and clear timers to prevent freezing
+                    setButtonLoading(button, false);
+                    activeRequests.processOrders = null;
+                    if (debounceTimers.processOrders) {
+                        clearTimeout(debounceTimers.processOrders);
+                        debounceTimers.processOrders = null;
+                    }
+                    console.error('❌ API request error:', err);
+                    var errorDetails = '';
+                    if (err.message) {
+                        errorDetails = '<div style="font-size: 12px; color: #8c9196; margin-top: 8px; padding: 8px; background: #f6f6f7; border-radius: 4px;">' + err.message + '</div>';
+                    }
+                    document.getElementById('output').innerHTML = `
+                        <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;">
+                            <h3 class="error" style="color: #d72c0d; margin-bottom: 12px;">❌ Connection Error</h3>
+                            <p style="margin-top: 12px; color: #6d7175;">Unable to connect to server. Please check your internet connection and try again.</p>
+                            ${errorDetails}
+                            <p style="margin-top: 12px; font-size: 13px; color: #737373;">💡 Tip: If this persists, go to Settings and verify your Shopify store is connected.</p>
+                            <button onclick="processOrders(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 12px;">Try Again</button>
+                        </div>
+                    `;
+                });
+            } // Close proceedWithApiCall function
+        } // Close processOrders function
+        
+        // Ensure function is in global scope
+        window.processOrders = processOrders;
+        
+        function updateInventory(button) {
+            // Debug logging removed for performance - only log errors if needed
+            // Prevent rapid clicks (debounce)
+            if (debounceTimers.updateInventory) {
+                return; // Already processing
+            }
+            
+            // Cancel previous request if exists
+            cancelPreviousRequest('updateInventory');
+            
+            // Check network status
+            if (!isOnline) {
+                document.getElementById('output').innerHTML = `
+                    <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                        <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">No Internet Connection</div>
+                        <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please check your internet connection and try again.</div>
+                        <button onclick="updateInventory(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            setButtonLoading(button, true);
+            showSkeletonLoading(); // Show skeleton immediately for better UX
+            setTimeout(function() {
+                showLoading('Loading inventory...');
+            }, 100);
+            
+            // Create AbortController for request cancellation
+            var controller = new AbortController();
+            activeRequests.updateInventory = controller;
+            
+            // Get session token if in embedded mode - seamless integration
+            var fetchPromise;
+            var isEmbedded = window.isEmbedded; // Use global flag
+            
+            // Wait for App Bridge if available, but fall back to cookie auth if not
+            if (isEmbedded && window.waitForAppBridge && typeof window.waitForAppBridge === 'function' && !window.appBridgeReady) {
+                window.waitForAppBridge().then(function(bridgeState) {
+                    if (bridgeState && bridgeState.ready && bridgeState.app) {
+                        window.shopifyApp = bridgeState.app;
+                        window.appBridgeReady = true;
+                    }
+                    proceedWithApiCall();
+                }).catch(function(error) {
+                    console.warn('App Bridge not available, using cookie auth fallback:', error.message);
+                    proceedWithApiCall();
+                });
+                return;
+            }
+            proceedWithApiCall();
+
+            // Extract API call logic into function
+            function proceedWithApiCall() {
+                // Build API URL with shop param
+                var apiUrl = '/api/update_inventory';
+                if (window.SHOP_PARAM) {
+                    apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
+                }
+                if (isEmbedded) {
+                    apiUrl = APP_URL + apiUrl;
+                }
+
+                // Use id_token from URL if available
+                if (window.ID_TOKEN) {
+                    fetchPromise = fetch(apiUrl, {
+                        headers: {'Authorization': 'Bearer ' + window.ID_TOKEN},
+                        signal: controller.signal,
+                        credentials: 'include'
+                    });
+                } else if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
+                    // Try App Bridge token
+                    var retryCount = 0;
+                    var maxRetries = 2;
+
+                    function getTokenWithRetry() {
+                        return window.shopifyApp.getSessionToken().then(function(token) {
+                            if (!token && retryCount < maxRetries) {
+                                retryCount++;
+                                return new Promise(function(resolve, reject) {
+                                    setTimeout(function() { getTokenWithRetry().then(resolve).catch(reject); }, 100);
+                                });
+                            }
+                            return token;
+                        }).catch(function(err) {
+                            if (retryCount < maxRetries) {
+                                retryCount++;
+                                return new Promise(function(resolve, reject) {
+                                    setTimeout(function() { getTokenWithRetry().then(resolve).catch(reject); }, 100);
+                                });
+                            }
+                            throw err;
+                        });
+                    }
+
+                    fetchPromise = getTokenWithRetry().then(function(token) {
+                        var headers = token ? {'Authorization': 'Bearer ' + token} : {};
+                        return fetch(apiUrl, {
+                            headers: headers,
+                            signal: controller.signal,
+                            credentials: 'include'
+                        });
+                    }).catch(function(err) {
+                        if (err.name === 'AbortError') return;
+                        return fetch(apiUrl, {
+                            signal: controller.signal,
+                            credentials: 'include'
+                        });
+                    });
+                } else {
+                    // No token - try with shop param only
+                    fetchPromise = fetch(apiUrl, {
+                        signal: controller.signal,
+                        credentials: 'include'
+                    });
+                }
+
+            // Execute the Promise chain inside proceedWithApiCall so it runs in all code paths
+            fetchPromise
+                .then(r => {
+                    // Check if request was cancelled
+                    if (controller.signal.aborted) {
+                        return null;
+                    }
+                    if (!r.ok) {
+                        return r.text().then(text => {
+                            try {
+                                var json = JSON.parse(text);
+                                var errorMsg = json.error || json.message || json.detail || json.description || 'Request failed';
+                                throw new Error(errorMsg);
+                            } catch (e) {
+                                if (e.message && e.message !== 'Request failed') throw e;
+                                throw new Error(text || 'Network error');
+                            }
+                        });
+                    }
+                    return r.json();
+                })
+                .then(d => {
+                    // Check if request was cancelled
+                    if (!d) return;
+
+                    setButtonLoading(button, false);
+                    activeRequests.updateInventory = null;
+                    if (debounceTimers.updateInventory) {
+                        clearTimeout(debounceTimers.updateInventory);
+                        debounceTimers.updateInventory = null;
+                    }
+
+                    if (d.success) {
+                        const icon = '✅';
+                        document.getElementById('output').innerHTML = `
+                            <div style="animation: fadeIn 0.3s ease-in;">
+                                <h3 class="success" style="display: flex; align-items: center; gap: 8px;">
+                                    <span>${icon}</span>
+                                    <span>Inventory Updated</span>
+                                </h3>
+                                <div style="margin-top: 12px; white-space: pre-wrap; line-height: 1.6;">${d.message || d.error || 'No details available'}</div>
+                            </div>
+                        `;
+                    } else {
+                        // Professional error display with actionable buttons
+                        var errorHtml = '<div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">';
+                        errorHtml += '<div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">' + (d.error || 'Something went wrong') + '</div>';
+                        if (d.message) {
+                            errorHtml += '<div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">' + d.message + '</div>';
+                        }
+                        if (d.action === 'refresh') {
+                            errorHtml += '<button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>';
+                        } else if (d.action === 'subscribe' && d.subscribe_url) {
+                            errorHtml += '<a href="' + d.subscribe_url + '" style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Subscribe Now</a>';
+                        } else if (d.action === 'install') {
+                            errorHtml += '<a href="/settings/shopify" style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Connect Store</a>';
+                        } else if (d.action === 'retry') {
+                            errorHtml += '<button onclick="updateInventory(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>';
+                        } else {
+                            // Fallback: try to display HTML error if it's HTML
+                            if (d.error && d.error.includes('<')) {
+                                errorHtml = '<div style="animation: fadeIn 0.3s ease-in;">' + d.error + '</div>';
+                            }
+                        }
+                        if (!errorHtml.includes('</div>')) errorHtml += '</div>';
+                        document.getElementById('output').innerHTML = errorHtml;
+                    }
+                })
+                .catch(err => {
+                    // Don't show error if request was cancelled
+                    if (err.name === 'AbortError') {
+                        return;
+                    }
+
+                    setButtonLoading(button, false);
+                    activeRequests.updateInventory = null;
+                    if (debounceTimers.updateInventory) {
+                        clearTimeout(debounceTimers.updateInventory);
+                        debounceTimers.updateInventory = null;
+                    }
+
+                    var errorMessage = 'Unable to connect to server. Please check your internet connection and try again.';
+                    if (!isOnline) {
+                        errorMessage = 'No internet connection. Please check your network and try again.';
+                    }
+
+                    document.getElementById('output').innerHTML = `
+                        <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                            <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Connection Error</div>
+                            <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${errorMessage}</div>
+                            <button onclick="updateInventory(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; margin-right: 8px;">Try Again</button>
+                            <a href="/settings/shopify" style="display: inline-block; padding: 8px 16px; background: #f6f6f7; color: #202223; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Check Settings</a>
+                        </div>
+                    `;
+                });
+            } // Close proceedWithApiCall function
+        }
+
+        // Ensure function is in global scope
+        window.updateInventory = updateInventory;
+        
+        function generateReport(button) {
+            // Debug logging removed for performance - only log errors if needed
+            // Prevent rapid clicks (debounce)
+            if (debounceTimers.generateReport) {
+                return; // Already processing
+            }
+            
+            // Cancel previous request if exists
+            cancelPreviousRequest('generateReport');
+            
+            // Check network status
+            if (!isOnline) {
+                document.getElementById('output').innerHTML = `
+                    <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                        <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">No Internet Connection</div>
+                        <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please check your internet connection and try again.</div>
+                        <button onclick="generateReport(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            setButtonLoading(button, true);
+            showSkeletonLoading(); // Show skeleton immediately for better UX
+            setTimeout(function() {
+                showLoading('Generating report...');
+            }, 100);
+            
+            // Create AbortController for request cancellation
+            var controller = new AbortController();
+            activeRequests.generateReport = controller;
+            
+            // Get session token if in embedded mode - seamless integration
+            var fetchPromise;
+            var isEmbedded = window.isEmbedded; // Use global flag
+            
+            // Wait for App Bridge if available, but fall back to cookie auth if not
+            if (isEmbedded && window.waitForAppBridge && typeof window.waitForAppBridge === 'function' && !window.appBridgeReady) {
+                window.waitForAppBridge().then(function(bridgeState) {
+                    if (bridgeState && bridgeState.ready && bridgeState.app) {
+                        window.shopifyApp = bridgeState.app;
+                        window.appBridgeReady = true;
+                    }
+                    proceedWithApiCall();
+                }).catch(function(error) {
+                    console.warn('App Bridge not available, using cookie auth fallback:', error.message);
+                    proceedWithApiCall();
+                });
+                return;
+            }
+            proceedWithApiCall();
+
+            // Extract API call logic into function
+            function proceedWithApiCall() {
+                // Build report URL with shop param
+                var reportUrl = '/api/generate_report';
+                if (window.SHOP_PARAM) {
+                    reportUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
+                }
+                if (isEmbedded) {
+                    reportUrl = APP_URL + reportUrl;
+                }
+
+                // Use id_token from URL if available
+                if (window.ID_TOKEN) {
+                    fetchPromise = fetch(reportUrl, {
+                        headers: {'Authorization': 'Bearer ' + window.ID_TOKEN},
+                        signal: controller.signal,
+                        credentials: 'include'
+                    });
+                } else if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
+                    // Try App Bridge token
+                    fetchPromise = window.shopifyApp.getSessionToken().then(function(token) {
+                        var headers = token ? {'Authorization': 'Bearer ' + token} : {};
+                        return fetch(reportUrl, {
+                            headers: headers,
+                            signal: controller.signal,
+                            credentials: 'include'
+                        });
+                    }).catch(function(err) {
+                        if (err.name === 'AbortError') return;
+                        return fetch(reportUrl, {
+                            signal: controller.signal,
+                            credentials: 'include'
+                        });
+                    });
+                } else {
+                    // No token - use shop param in URL
+                    fetchPromise = fetch(reportUrl, {
+                        signal: controller.signal,
+                        credentials: 'include'
+                    });
+                }
+
+            // Execute the Promise chain inside proceedWithApiCall so it runs in all code paths
+            fetchPromise
+                .then(r => {
+                    // Check if request was cancelled
+                    if (controller.signal.aborted) {
+                        return null;
+                    }
+                    if (!r.ok) {
+                        // If error response, try to get error HTML
+                        return r.text().then(html => {
+                            throw new Error(html);
+                        });
+                    }
+                    return r.text();
+                })
+                .then(html => {
+                    // Check if request was cancelled
+                    if (!html) return;
+
+                    setButtonLoading(button, false);
+                    activeRequests.generateReport = null;
+                    if (debounceTimers.generateReport) {
+                        clearTimeout(debounceTimers.generateReport);
+                        debounceTimers.generateReport = null;
+                    }
+
+                    // Check if the HTML contains an error message (from backend)
+                    if (html.includes('Error Loading revenue') || html.includes('No Shopify store connected')) {
+                        // Backend already formatted the error, display directly
+                        document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${html}</div>`;
+                    } else {
+                        // Success - display with title
+                        document.getElementById('output').innerHTML = `
+                            <div style="animation: fadeIn 0.3s ease-in;">
+                                <h3 class="success" style="display: flex; align-items: center; gap: 8px;">
+                                    <span>✅</span>
+                                    <span>Revenue Report Generated</span>
+                                </h3>
+                                <div style="margin-top: 12px; line-height: 1.6;">${html}</div>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(err => {
+                    // Don't show error if request was cancelled
+                    if (err.name === 'AbortError') {
+                        return;
+                    }
+
+                    setButtonLoading(button, false);
+                    activeRequests.generateReport = null;
+                    if (debounceTimers.generateReport) {
+                        clearTimeout(debounceTimers.generateReport);
+                        debounceTimers.generateReport = null;
+                    }
+
+                    // Check if error message is HTML (from backend) or plain text (network error)
+                    if (err.message && err.message.includes('Error Loading revenue')) {
+                        // Backend error HTML
+                        document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${err.message}</div>`;
+                    } else {
+                        // Network error
+                        var errorMessage = 'Unable to generate report. Please check your internet connection and try again.';
+                        if (!isOnline) {
+                            errorMessage = 'No internet connection. Please check your network and try again.';
+                        }
+
+                        document.getElementById('output').innerHTML = `
+                            <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                                <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Connection Error</div>
+                                <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${errorMessage}</div>
+                                <button onclick="generateReport(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; margin-right: 8px;">Try Again</button>
+                                <a href="/settings/shopify" style="display: inline-block; padding: 8px 16px; background: #f6f6f7; color: #202223; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Check Settings</a>
+                            </div>
+                        `;
+                    }
+                });
+            } // end proceedWithApiCall
+        }
+
+        // Ensure function is in global scope
+        window.generateReport = generateReport;
+        
+        // ============================================================================
+        // FUNCTION AVAILABILITY VERIFICATION (Per External Feedback)
+        // ============================================================================
+        // Log function availability immediately after all assignments
+        console.log('Function check:', {
+            processOrders: typeof window.processOrders,
+            updateInventory: typeof window.updateInventory,
+            generateReport: typeof window.generateReport
+        });
+        
+        // Immediate function check after all assignments
+        console.log('✅ Function check (after all assignments):', {
+            processOrders: typeof window.processOrders,
+            updateInventory: typeof window.updateInventory,
+            generateReport: typeof window.generateReport
+        });
+        
+        // Verify all functions are properly assigned
+        if (typeof window.processOrders !== 'function' ||
+            typeof window.updateInventory !== 'function' ||
+            typeof window.generateReport !== 'function') {
+            console.error('❌ CRITICAL: Functions not properly assigned to window!');

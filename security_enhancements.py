@@ -199,52 +199,10 @@ def check_request_size():
         return False
     return True
 
-# Rate limiting per IP (additional layer)
-from collections import defaultdict
-from time import time
+# Rate limiting per IP - MOVED to rate_limiter.py (using Flask-Limiter)
+# This custom implementation is deprecated in favor of the standard library
+# which provides better memory management and key handling.
 
-_rate_limit_store = defaultdict(list)
-_rate_limit_cleanup = time()
-
-def rate_limit_by_ip(max_requests=500, window=3600):
-    """Rate limit decorator based on IP address"""
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            global _rate_limit_cleanup
-            
-            # Cleanup old entries every 5 minutes
-            current_time = time()
-            if current_time - _rate_limit_cleanup > 300:
-                cutoff = current_time - window
-                for ip in list(_rate_limit_store.keys()):
-                    _rate_limit_store[ip] = [t for t in _rate_limit_store[ip] if t > cutoff]
-                    if not _rate_limit_store[ip]:
-                        del _rate_limit_store[ip]
-                _rate_limit_cleanup = current_time
-            
-            # Get client IP
-            client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
-            if client_ip:
-                client_ip = client_ip.split(',')[0].strip()
-            
-            # Check rate limit
-            now = time()
-            cutoff = now - window
-            requests = [t for t in _rate_limit_store[client_ip] if t > cutoff]
-            
-            if len(requests) >= max_requests:
-                logger.warning(f"Rate limit exceeded for IP: {client_ip}")
-                from flask import jsonify
-                return jsonify({'error': 'Rate limit exceeded. Please try again later.'}), 429
-            
-            # Add current request
-            requests.append(now)
-            _rate_limit_store[client_ip] = requests
-            
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
 
 # Enhanced input sanitization
 from markupsafe import escape
