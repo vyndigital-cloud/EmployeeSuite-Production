@@ -110,7 +110,7 @@ from reporting import generate_report
 from analytics import analytics_bp
 
 # Register new analytics blueprint
-app.register_blueprint(analytics_bp)
+# MOVED BELOW to after app initialization
 
 from logging_config import logger
 from access_control import require_access
@@ -537,6 +537,7 @@ app.register_blueprint(gdpr_bp)
 app.register_blueprint(enhanced_bp)
 app.register_blueprint(enhanced_billing_bp)
 app.register_blueprint(features_pages_bp)
+app.register_blueprint(analytics_bp)
 
 # Initialize rate limiter with global 1000 req/hour (increased from 200 to allow legitimate usage)
 limiter = init_limiter(app)
