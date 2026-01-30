@@ -30,32 +30,49 @@ def check_inventory(user_id=None):
         return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Store not properly connected</div><div style='margin-bottom: 12px;'>Missing or invalid access token. Please reconnect your store.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Reconnect Store →</a></div></div>"}
     
     try:
-        client = ShopifyClient(store.shop_url, access_token)
+        # Use GraphQL to bypass protected customer data restrictions
+        from shopify_graphql import ShopifyGraphQLClient
+        graphql_client = ShopifyGraphQLClient(store.shop_url, access_token)
         
         # Get products with error handling
         try:
-            products = client.get_products()
+            products_result = graphql_client.get_all_products()
+            
+            if isinstance(products_result, dict) and 'error' in products_result:
+                error_msg = products_result['error']
+                # If authentication failed, mark store as inactive
+                if 'authentication' in error_msg.lower() or '401' in error_msg:
+                    logger.warning(f"Authentication failed for store {store.shop_url} (user {user_id}) - marking as inactive")
+                    try:
+                        store.is_active = False
+                        db.session.commit()
+                    except Exception as db_error:
+                        logger.error(f"Failed to update store status: {db_error}")
+                        db.session.rollback()
+                    return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>Authentication failed - Please reconnect your store</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
+                return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>{error_msg}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
+            
+            # Convert GraphQL products to expected format
+            products = []
+            for product_node in products_result:
+                # Get variants for detailed inventory
+                variants = product_node.get('variants', {}).get('edges', [])
+                for variant_edge in variants:
+                    variant = variant_edge['node']
+                    products.append({
+                        'product': product_node.get('title', 'Unknown'),
+                        'variant_title': variant.get('title', ''),
+                        'sku': variant.get('sku', 'N/A'),
+                        'price': variant.get('price', 'N/A'),
+                        'stock': variant.get('inventoryQuantity', 0)
+                    })
+                    
         except requests.exceptions.Timeout:
             return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Connection timeout</div><div style='margin-bottom: 12px;'>Shopify API is taking too long to respond. Please try again in a moment.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
         except requests.exceptions.ConnectionError:
             return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Connection error</div><div style='margin-bottom: 12px;'>Cannot connect to Shopify. Check your internet connection and verify your store is connected.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
         except Exception as e:
             return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify API error</div><div style='margin-bottom: 12px;'>{str(e)}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
-        
-        # Check if products returned an error
-        if isinstance(products, dict) and "error" in products:
-            error_msg = products['error']
-            # If authentication failed, mark store as inactive
-            if "Authentication failed" in error_msg or "401" in str(products):
-                logger.warning(f"Authentication failed for store {store.shop_url} (user {user_id}) - marking as inactive")
-                try:
-                    store.is_active = False
-                    db.session.commit()
-                except Exception as db_error:
-                    logger.error(f"Failed to update store status: {db_error}")
-                    db.session.rollback()
-                return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>Authentication failed - Please reconnect your store</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
-            return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>{error_msg}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
         
         if not products or len(products) == 0:
             return {"success": True, "message": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 8px 12px; background: #f0fdf4; border-left: 2px solid #16a34a; border-radius: 4px; font-size: 12px; color: #166534;'>✅ No products found in your store.</div>"}

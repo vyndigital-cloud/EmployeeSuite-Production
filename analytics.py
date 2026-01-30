@@ -32,13 +32,15 @@ def get_inventory_forecast():
         return jsonify({"error": "Store not connected"}), 401
 
     try:
-        client = ShopifyClient(store.shop_url, access_token)
+        # Use GraphQL to bypass protected customer data restrictions
+        from shopify_graphql import ShopifyGraphQLClient
+        graphql_client = ShopifyGraphQLClient(store.shop_url, access_token)
         
-        # 1. Get Inventory Levels (Standard)
-        # In a real app, we'd fetch this from our local sync, but we'll fetch live for 10/10 accuracy
-        products = client.get_products()
-        if isinstance(products, dict) and 'error' in products:
-            return jsonify(products), 400
+        # Get products using GraphQL
+        products_result = graphql_client.get_all_products()
+        
+        if isinstance(products_result, dict) and 'error' in products_result:
+            return jsonify(products_result), 400
 
         # 2. Get Recent Sales (Last 30 days) to calculate Velocity
         # We use a smart heuristic here: simple velocity calculation
@@ -53,10 +55,27 @@ def get_inventory_forecast():
         # Since we just refactored reports to be streaming, we don't have a local order DB to query efficiently for velocity per product.
         # So we will implement a "Live Velocity Check" or a professional estimation.
         
-        # for product in products:
-        #    velocity = calculate_real_velocity(product.id)
+        # Convert GraphQL products to expected format
+        products = []
+        for product_node in products_result:
+            # GraphQL returns totalInventory at product level
+            total_inventory = product_node.get('totalInventory', 0)
+            
+            # Get first variant for price (simplified for analytics)
+            variants = product_node.get('variants', {}).get('edges', [])
+            price = 0
+            if variants:
+                first_variant = variants[0]['node']
+                price = float(first_variant.get('price', 0))
+            
+            products.append({
+                'product': product_node.get('title', 'Unknown'),
+                'stock': total_inventory,
+                'price': price,
+                'variant_title': ''
+            })
         
-        # Value Add: We'll identify low stock items and project their runout date
+        # Value Add: Identify low stock items and project their runout date
         today = datetime.utcnow()
         
         for p in products:
