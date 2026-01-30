@@ -530,14 +530,19 @@ def _handle_oauth_callback():
     else:
         logger.info(f"OAuth login for standalone access (cookie auth)")
     
-    # After OAuth completes, redirect to dashboard with shop/host params
-    # Simple redirect - Shopify handles iframe navigation
-    dashboard_url = f"/dashboard?shop={shop}"
+    # After OAuth completes, redirect appropriately
     if host:
-        dashboard_url += f"&host={host}"
-
-    logger.info(f"OAuth complete, redirecting to: {dashboard_url}")
-    return redirect(dashboard_url)
+        # Embedded: redirect back into Shopify admin so app loads in iframe
+        # The top-level window is at the OAuth callback URL, so we redirect
+        # it back to the Shopify admin which will reload the embedded app
+        admin_url = f"https://{shop}/admin/apps/{SHOPIFY_API_KEY}"
+        logger.info(f"OAuth complete (embedded), redirecting to Shopify admin: {admin_url}")
+        return redirect(admin_url)
+    else:
+        # Standalone: redirect directly to dashboard
+        dashboard_url = f"/dashboard?shop={shop}"
+        logger.info(f"OAuth complete (standalone), redirecting to: {dashboard_url}")
+        return redirect(dashboard_url)
 
 def verify_hmac(params):
     """Verify Shopify HMAC"""
