@@ -1354,6 +1354,7 @@ DASHBOARD_HTML = """
                     .catch(function(e) { console.error("Forecast error:", e); });
             });
         </script>
+        {% endif %}
         
         {% if has_shopify and quick_stats.has_data and is_subscribed %}
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; animation: fadeIn 0.5s ease-in;">
