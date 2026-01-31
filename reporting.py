@@ -174,14 +174,15 @@ def generate_report(user_id=None, shop_url=None):
         html += f"<a href='/api/export/report' style='padding: 6px 12px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 500; white-space: nowrap; transition: background 0.15s; margin-left: 16px; flex-shrink: 0;'>📥 Export CSV</a>"
         html += f"</div>"
         
+        
+        # Prepare data for report generation (MUST be before HTML uses it)
+        total_orders = total_orders_count
+        
         # Summary box - minimalistic (NO button here)
         html += f"<div style='padding: 8px 12px; background: #f0fdf4; border-left: 2px solid #16a34a; border-radius: 4px; margin-bottom: 12px;'>"
         html += f"<div style='font-weight: 600; color: #166534; font-size: 12px;'>${total_revenue:,.2f}</div>"
         html += f"<div style='color: #166534; font-size: 11px; margin-top: 2px;'>{total_orders} orders</div>"
         html += "</div>"
-        
-        # Prepare data for report generation
-        total_orders = total_orders_count
         
         # Product list - minimalistic, same style as inventory
         for product, revenue in sorted_products[:10]:
