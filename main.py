@@ -1,68 +1,44 @@
-# main.py
+#!/usr/bin/env python3
+"""
+Main entry point for MissionControl Shopify App
+Uses application factory pattern to avoid circular imports
+"""
+
 import os
 import sys
-from order_processing import process_orders
-from inventory import update_inventory
-from reporting import generate_report
+from pathlib import Path
+
+# Add the project directory to Python path
+project_dir = Path(__file__).parent.absolute()
+if str(project_dir) not in sys.path:
+    sys.path.insert(0, str(project_dir))
+
+from app_factory import create_app
+from config import get_config
 
 
-def get_creds_path(filename="creds.json"):
-    """
-    Get the path for creds.json in both dev and PyInstaller environments
-    """
-    if getattr(sys, 'frozen', False):
-        # Running as PyInstaller exe
-        base_path = sys._MEIPASS
+def main():
+    """Main application entry point"""
+    # Get configuration
+    config = get_config()
+
+    # Create application
+    app = create_app()
+
+    # Run in development mode if DEBUG is enabled
+    if config.DEBUG and not config.is_production():
+        app.run(
+            host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=True, threaded=True
+        )
     else:
-        # Running as normal script
-        base_path = os.path.abspath(".")
-    
-    return os.path.join(base_path, filename)
+        # In production, this should be run with gunicorn
+        print("Production mode detected. Use gunicorn to run:")
+        print(f"gunicorn -w 4 -b 0.0.0.0:{os.getenv('PORT', 5000)} main:app")
+        return app
 
 
-def run_suite():
-    """
-    Main function to run the entire Employee Suite automation
-    """
-    print("="*60)
-    print("Starting 1 Employee Suite Automation ✅")
-    print("="*60)
-    
-    # Get creds path
-    creds_path = get_creds_path()
-    
-    # Step 1: Process Orders
-    print("\nStep 1: Processing Orders...")
-    try:
-        order_result = process_orders(creds_path=creds_path)
-        print(f"✅ {order_result}")
-    except Exception as e:
-        print(f"❌ Error in order processing: {e}")
-    
-    # Step 2: Update Inventory
-    print("\nStep 2: Updating Inventory...")
-    try:
-        inventory_result = update_inventory()
-        print(f"✅ {inventory_result}")
-    except Exception as e:
-        print(f"❌ Error in inventory update: {e}")
-    
-    # Step 3: Generate Report
-    print("\nStep 3: Generating Profit Report...")
-    try:
-        report_df = generate_report()
-        if not report_df.empty:
-            print(f"✅ Report generated with {len(report_df)} items")
-            print(f"\nTotal Profit: ${report_df['profit'].sum():.2f}")
-        else:
-            print("❌ Report is empty")
-    except Exception as e:
-        print(f"❌ Error in report generation: {e}")
-    
-    print("\n" + "="*60)
-    print("Suite execution complete!")
-    print("="*60)
-
+# For WSGI servers (Gunicorn, uWSGI, etc.)
+app = create_app()
 
 if __name__ == "__main__":
-    run_suite()
+    main()
