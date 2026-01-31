@@ -4791,3 +4791,5 @@ if __name__ == '__main__':
     # Debug mode only in development (gunicorn overrides this in production)
     debug_mode = os.getenv('DEBUG', 'False').lower() == 'true'
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
+
+# Force deploy Sat Jan 31 18:38:17 AWST 2026
