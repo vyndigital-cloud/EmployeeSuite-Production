@@ -19,7 +19,7 @@ os.environ['OMP_NUM_THREADS'] = '1'
 # CRITICAL: Set up detailed crash logging for debugging segfaults
 # This will help us identify exactly where crashes occur
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     stream=sys.stdout,
     force=True  # Override any existing config
@@ -102,7 +102,7 @@ from gdpr_compliance import gdpr_bp
 from enhanced_features import enhanced_bp
 from enhanced_billing import enhanced_billing_bp
 from features_pages import features_pages_bp
-from session_token_verification import verify_session_token
+from session_token_verification import verify_session_token, get_shop_from_session_token
 from order_processing import process_orders
 from inventory import update_inventory
 from reporting import generate_report
@@ -3912,8 +3912,9 @@ def get_authenticated_user():
     }), 401)
 
 @app.route('/api/process_orders', methods=['GET', 'POST'])
+@verify_session_token
 def api_process_orders():
-    """Process orders endpoint with enhanced logging"""
+    """Process orders with detailed crash logging"""
     logger.info('=== PROCESS ORDERS REQUEST START ===')
     logger.info(f'Request method: {request.method}')
     logger.info(f'Request path: {request.path}')
@@ -3923,18 +3924,46 @@ def api_process_orders():
     logger.info(f'Has Authorization header: {bool(request.headers.get("Authorization"))}')
     logger.info(f'Has shop parameter: {bool(request.args.get("shop"))}')
     
+    # Get shop from verified token
+    shop_domain = get_shop_from_session_token()
+    if not shop_domain:
+        # Fallback to query param if not embedded (for testing)
+        shop_domain = request.args.get('shop')
+
+    user = None
+    if shop_domain:
+         from models import ShopifyStore
+         store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
+         if store:
+             user = store.user
+
+    # Fallback to get_authenticated_user if token auth failed or no shop found
+    if not user:
+        user_auth, error_response = get_authenticated_user()
+        if error_response:
+             # If both failed, return error
+             return error_response
+        user = user_auth
+
+    # Ensure we have a user
+    if not user:
+         return jsonify({'error': 'Authentication failed', 'success': False}), 401
     
     try:
         # Get authenticated user (supports both Flask-Login and session tokens)
         logger.info('Step 1: Getting authenticated user...')
-        user, error_response = get_authenticated_user()
+        # The user is already resolved by the new logic above, so we just use it.
+        # user, error_response = get_authenticated_user() # This line is removed
 
-        if error_response:
-            logger.warning('Step 1 FAILED: Authentication error')
-            logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
-            return error_response
+        # if error_response: # This block is removed
+        #     logger.warning('Step 1 FAILED: Authentication error')
+        #     logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
+        #     return error_response
 
+        global_user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+    
         logger.info(f'Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, "email") else "N/A"}')
+        user_id = global_user_id
 
         # Check access
         logger.info('Step 2: Checking user access...')
@@ -4113,40 +4142,38 @@ def api_update_inventory():
         return jsonify({"success": False, "error": "An unexpected error occurred. Please try again or contact support if this persists."}), 500
 
 @app.route('/api/generate_report', methods=['GET', 'POST'])
+@verify_session_token
 def api_generate_report():
     """Generate revenue report with detailed crash logging"""
     logger.info('=== GENERATE REPORT REQUEST START ===')
-    logger.info(f'Request method: {request.method}')
-    logger.info(f'Request path: {request.path}')
-    logger.info(f'Request URL: {request.url}')
-    logger.info(f'Request content-type: {request.headers.get("Content-Type", "none")}')
-    logger.info(f'Request args: {dict(request.args)}')
-    logger.info(f'Has Authorization header: {bool(request.headers.get("Authorization"))}')
-    logger.info(f'Has shop parameter: {bool(request.args.get("shop"))}')
     
-    
-    user_id = None
-    try:
-        # Get authenticated user (supports both Flask-Login and session tokens)
-        logger.info('Step 1: Getting authenticated user...')
+    # Get shop from verified token
+    shop_domain = get_shop_from_session_token()
+    if not shop_domain:
+        shop_domain = request.args.get('shop')
+
+    user = None
+    if shop_domain:
+         store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
+         if store:
+             user = store.user
+             
+    if not user:
         user, error_response = get_authenticated_user()
-        
         if error_response:
-            logger.warning('Step 1 FAILED: Authentication error')
-            logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
             return error_response
-        
+            
+    # Ensure we have a user
+    if not user:
+         return jsonify({'error': 'Authentication failed', 'success': False}), 401
+    
+    global_user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
+    
+    try:
         logger.info(f'Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, "email") else "N/A"}')
+        user_id = global_user_id
         
-        # Store user ID before login_user to avoid recursion issues
-        user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
-        logger.info(f'Step 2: User ID extracted: {user_id}')
-        
-        logger.info('Step 3: Checking user access...')
-        has_access = user.has_access() if user else False
-        
-        if not has_access:
-            logger.warning(f'Step 3 FAILED: User {user_id} does not have access')
+        if not user.has_access():
             return jsonify({
                 'error': 'Subscription required',
                 'success': False,
@@ -4154,28 +4181,29 @@ def api_generate_report():
                 'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
                 'subscribe_url': url_for('billing.subscribe')
             }), 403
-        
+            
         logger.info(f'Step 3 SUCCESS: User {user_id} has access')
         
         # Set current_user for generate_report() function
+        # (it expects current_user to be set)
         logger.info('Step 4: Logging in user...')
         from flask_login import login_user
         login_user(user, remember=False)
         logger.info('Step 4 SUCCESS: User logged in')
         
-        logger.info(f'Step 5: Preparing to generate report for user {user_id}...')
         
-        # Get shop_url from request args, session, or None (will use first active store)
-        from flask import session
-        shop_url = request.args.get('shop') or session.get('current_shop') or None
-        if shop_url:
-            logger.info(f'Step 5a: Using shop_url from request/session: {shop_url}')
-        else:
-            logger.info(f'Step 5a: No shop_url in request/session, will use first active store for user')
+        # Check for shop parameter - needed for report generation
+        shop_url = request.args.get('shop')
+        if not shop_url and hasattr(user, 'shopify_stores'):
+            # Try to get shop from user's stores
+            active_store = next((s for s in user.shopify_stores if s.is_active), None)
+            if active_store:
+                shop_url = active_store.shop_url
+                logger.info(f'Step 4b: Found shop_url from user stores: {shop_url}')
         
-        # CRITICAL: DO NOT call db.session.remove() here - let SQLAlchemy manage connections
-        # Removing sessions before queries can cause segfaults by corrupting connection state
-        logger.info('Step 5b: Importing generate_report function...')
+        logger.info(f'Step 5: Calling generate_report for user {user_id}, shop: {shop_url}...')
+        
+        # Import dynamically to avoid circular imports
         from reporting import generate_report
         logger.info('Step 5b SUCCESS: generate_report function imported')
         

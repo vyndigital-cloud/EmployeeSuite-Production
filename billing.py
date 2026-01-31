@@ -82,7 +82,7 @@ SUBSCRIBE_HTML = '''
     <!-- Shopify App Bridge -->
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <script>
-        var apiKey = '{{ config_api_key }}'; // Injected by server if available
+        var apiKey = '{{ config_api_key }}';
         var shopOrigin = '{{ shop }}';
         if (apiKey && shopOrigin) {
             var AppBridge = window['app-bridge'];
@@ -94,329 +94,290 @@ SUBSCRIBE_HTML = '''
             });
         }
     </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --p-color-bg-surface: #ffffff;
-            --p-color-bg-app: #f1f2f4;
-            --p-color-text: #202223;
-            --p-color-text-subdued: #6d7175;
-            --p-color-action-primary: #008060;
-            --p-color-action-primary-hover: #006e52;
-            --p-border-radius-base: 8px;
-            --p-shadow-card: 0px 0px 5px rgba(23, 24, 24, 0.05), 0px 1px 2px rgba(0, 0, 0, 0.15);
-            --p-font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            --primary: #008060;
+            --primary-dark: #006e52;
+            --surface: #ffffff;
+            --background: #f1f2f4;
+            --text-main: #1a1a1a;
+            --text-sub: #616161;
+            --border: #e1e3e5;
+            --radius: 12px;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
-
+        
         body {
-            font-family: var(--p-font-family);
-            background-color: var(--p-color-bg-app);
-            color: var(--p-color-text);
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--background);
+            color: var(--text-main);
             margin: 0;
-            padding: 0;
+            padding: 40px 20px;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
         }
 
-        .layout {
-            max-width: 900px;
+        .container {
+            max-width: 1000px;
             width: 100%;
-            padding: 40px 20px;
             display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: 40px;
+            grid-template-columns: 1fr 400px;
+            gap: 48px;
             align-items: start;
         }
 
-        /* Value Proposition Section (Left) */
-        .value-prop {
+        /* Left Column */
+        .brand-section {
             padding-top: 20px;
         }
 
         .back-link {
             display: inline-flex;
             align-items: center;
-            color: var(--p-color-text-subdued);
+            color: var(--text-sub);
             text-decoration: none;
             font-size: 14px;
-            margin-bottom: 24px;
             font-weight: 500;
-            transition: color 0.15s;
+            margin-bottom: 32px;
+            transition: color 0.2s;
         }
-
-        .back-link:hover {
-            color: var(--p-color-action-primary);
-        }
-
-        .brand-pill {
+        .back-link:hover { color: var(--primary); }
+        
+        .badge {
             display: inline-block;
-            background: #e3fcef;
-            color: #006e52;
-            font-weight: 600;
-            font-size: 12px;
-            padding: 4px 10px;
+            background: #E3FCEF;
+            color: #006E52;
+            padding: 6px 12px;
             border-radius: 20px;
-            margin-bottom: 16px;
-            letter-spacing: 0.5px;
+            font-size: 12px;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 24px;
         }
 
         h1 {
-            font-size: 32px;
+            font-size: 42px;
+            line-height: 1.1;
             font-weight: 700;
-            margin: 0 0 12px 0;
-            line-height: 1.2;
-            color: #1a1a1a;
+            margin: 0 0 16px 0;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #1a1a1a 0%, #4a4a4a 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .subtitle {
-            font-size: 16px;
-            color: var(--p-color-text-subdued);
-            line-height: 1.5;
-            margin-bottom: 32px;
-            max-width: 440px;
+            font-size: 18px;
+            color: var(--text-sub);
+            line-height: 1.6;
+            margin-bottom: 48px;
+            max-width: 480px;
         }
 
-        .feature-grid {
+        .features-grid {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
         }
 
-        .feature-card {
-            display: flex;
-            gap: 16px;
+        .feature-item {
+            background: var(--surface);
+            padding: 24px;
+            border-radius: var(--radius);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            border: 1px solid rgba(0,0,0,0.03);
+            transition: transform 0.2s;
         }
+        .feature-item:hover { transform: translateY(-2px); }
 
         .feature-icon {
-            width: 40px;
-            height: 40px;
-            background: #ffffff;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            flex-shrink: 0;
+            font-size: 24px;
+            margin-bottom: 12px;
+            display: inline-block;
         }
 
-        .feature-content h3 {
-            font-size: 15px;
+        .feature-item h3 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
             font-weight: 600;
-            margin: 0 0 4px 0;
         }
 
-        .feature-content p {
-            font-size: 14px;
-            color: var(--p-color-text-subdued);
+        .feature-item p {
             margin: 0;
+            font-size: 14px;
+            color: var(--text-sub);
             line-height: 1.5;
         }
 
-        /* Checkout Card (Right) */
+        /* Right Column - Checkout */
         .checkout-card {
-            background: var(--p-color-bg-surface);
-            border-radius: var(--p-border-radius-base);
-            box-shadow: var(--p-shadow-card);
+            background: var(--surface);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
             overflow: hidden;
             position: sticky;
             top: 40px;
+            border: 1px solid var(--border);
         }
 
         .card-header {
-            padding: 24px 24px 20px;
-            border-bottom: 1px solid #e1e3e5;
+            padding: 32px;
+            background: #ffffff;
+            border-bottom: 1px solid #f0f0f0;
+            text-align: center;
         }
 
-        .plan-name {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--p-color-text-subdued);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
-
-        .price-container {
+        .plan-price {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--text-main);
             display: flex;
-            align-items: baseline;
-            gap: 4px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 16px 0;
         }
-
-        .price {
-            font-size: 36px;
-            font-weight: 700;
-            color: var(--p-color-text);
-        }
-
-        .period {
-            font-size: 14px;
-            color: var(--p-color-text-subdued);
+        .plan-price span {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-sub);
         }
 
         .card-body {
-            padding: 24px;
+            padding: 32px;
+            background: #fafbfb;
         }
 
-        .checklist {
-            margin-bottom: 24px;
+        .benefit-list {
+            margin-bottom: 32px;
         }
 
-        .check-item {
+        .benefit-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
-            font-size: 14px;
+            gap: 12px;
+            margin-bottom: 16px;
+            font-size: 15px;
             color: #374151;
         }
-
-        .check-icon {
-            color: var(--p-color-action-primary);
-            flex-shrink: 0;
-            width: 16px;
-            height: 16px;
+        .check {
+            color: var(--primary);
+            width: 20px;
+            height: 20px;
         }
 
-        .check-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .btn-subscribe {
+        .cta-button {
             display: block;
             width: 100%;
-            background-color: var(--p-color-action-primary);
+            padding: 18px;
+            background: var(--primary);
             color: white;
-            padding: 14px;
             border: none;
-            border-radius: 6px;
-            font-size: 15px;
+            border-radius: 8px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s ease;
-            box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+            transition: all 0.2s;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
-
-        .btn-subscribe:hover {
-            background-color: var(--p-color-action-primary-hover);
+        .cta-button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 128, 96, 0.2);
         }
-
-        .btn-subscribe:disabled {
-            background-color: #a8a8a8;
+        .cta-button:disabled {
+            background: #ccc;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
-        .guarantee-text {
+        .guarantee {
             text-align: center;
-            font-size: 12px;
-            color: var(--p-color-text-subdued);
             margin-top: 16px;
-            line-height: 1.4;
-        }
-
-        .error-banner {
-            background: #fff5f5;
-            border: 1px solid #fed7d7;
-            color: #c53030;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 20px;
             font-size: 13px;
-            line-height: 1.4;
+            color: var(--text-sub);
+        }
+        
+        .error-box {
+            background: #FFF5F5;
+            border: 1px solid #FED7D7;
+            color: #C53030;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
         }
 
-        /* Responsive */
-        @media (max-width: 800px) {
-            .layout {
-                grid-template-columns: 1fr;
-                gap: 32px;
-                padding: 24px 16px;
-            }
-            .checkout-card {
-                position: static;
-                max-width: 500px;
-                margin: 0 auto;
-            }
+        @media (max-width: 850px) {
+            .container { grid-template-columns: 1fr; gap: 32px; }
+            .checkout-card { max-width: 500px; margin: 0 auto; }
+            h1 { font-size: 32px; }
         }
     </style>
 </head>
 <body>
-    <div class="layout">
-        <!-- Left Column: Value Proposition -->
-        <div class="value-prop">
-            <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="back-link">
-                <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor" style="margin-right: 4px;">
-                    <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/>
-                </svg>
-                Back to Dashboard
-            </a>
-
+    <div class="container">
+        <!-- Value Prop -->
+        <div class="brand-section">
+            <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="back-link">← Back to Dashboard</a>
+            
             <div>
-                <span class="brand-pill">Inventory Intelligence</span>
-                <h1>Upgrade Your Store's Brain</h1>
-                <p class="subtitle">
-                    Stop guessing. Start knowing. Get purely data-driven insights to optimize stock, reduce waste, and maximize profit margins.
-                </p>
+                <span class="badge">Inventory Intelligence</span>
+                <h1>Stop Guessing.<br>Start Optimizing.</h1>
+                <p class="subtitle">Join 500+ merchants using data to cut dead stock and predict sales. Automate your inventory decisions today.</p>
             </div>
 
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">🔍</div>
-                    <div class="feature-content">
-                        <h3>Dead Stock Detection</h3>
-                        <p>Identify items that haven't sold in 60+ days but are tying up your capital.</p>
-                    </div>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <span class="feature-icon">🚀</span>
+                    <h3>Smart Forecasting</h3>
+                    <p>Predict inventory needs 30 days out based on real sales velocity.</p>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📈</div>
-                    <div class="feature-content">
-                        <h3>Smart Forecasts</h3>
-                        <p>Predict inventory needs based on real sales velocity, not just gut feeling.</p>
-                    </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🛡️</span>
+                    <h3>Dead Stock Protection</h3>
+                    <p>Identify slow-moving items instantly to free up trapped capital.</p>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">⚡</div>
-                    <div class="feature-content">
-                        <h3>Automated Alerts</h3>
-                        <p>Get notified instantly when high-velocity items drop below safe levels.</p>
-                    </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🔔</span>
+                    <h3>Low Stock Alerts</h3>
+                    <p>Get notified before you run out of your best sellers.</p>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📊</div>
-                    <div class="feature-content">
-                        <h3>Profit Analytics</h3>
-                        <p>See true profitability per SKU, factoring in storage and holding costs.</p>
-                    </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📊</span>
+                    <h3>Profit Analytics</h3>
+                    <p>See true item-level profitability including storage costs.</p>
                 </div>
             </div>
         </div>
 
-        <!-- Right Column: Checkout Card -->
+        <!-- Checkout -->
         <div class="checkout-card">
             <div class="card-header">
-                <div class="plan-name">{{ plan_name }} Plan</div>
-                <div class="price-container">
-                    <span class="price">${{ price }}</span>
-                    <span class="period">/ month</span>
-                </div>
+                <div style="font-weight: 600; color: var(--text-sub); letter-spacing: 1px; text-transform: uppercase; font-size: 12px;">{{ plan_name }} Plan</div>
+                <div class="plan-price">${{ price }}<span>/mo</span></div>
+                <div style="font-size: 14px; color: var(--primary); font-weight: 500; background: #e3fcef; display: inline-block; padding: 4px 12px; border-radius: 12px;">7-Day Free Trial</div>
             </div>
-            
+
             <div class="card-body">
                 {% if error %}
-                    <div class="error-banner">
-                        <strong>Something went wrong:</strong><br>
-                        {{ error }}
-                    </div>
+                <div class="error-box">
+                    <svg style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <div>{{ error }}</div>
+                </div>
                 {% endif %}
 
-                <div class="checklist">
+                <div class="benefit-list">
                     {% for feature in features %}
-                    <div class="check-item">
-                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                        </svg>
+                    <div class="benefit-item">
+                        <svg class="check" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                         <span>{{ feature }}</span>
                     </div>
                     {% endfor %}
@@ -427,26 +388,22 @@ SUBSCRIBE_HTML = '''
                     <input type="hidden" name="host" value="{{ host }}">
                     <input type="hidden" name="plan" value="{{ plan }}">
                     
-                    <button type="submit" class="btn-subscribe" id="subscribe-btn" {% if not has_store %}disabled{% endif %}>
+                    <button type="submit" class="cta-button" id="subscribe-btn" {% if not has_store %}disabled{% endif %}>
                         {% if not has_store %}
                             Connect Store First
                         {% else %}
-                            Start 7-Day Free Trial
+                            Start Free Trial
                         {% endif %}
                     </button>
                     
                     {% if not has_store %}
-                    <div style="text-align: center; margin-top: 12px;">
-                        <a href="/settings/shopify?shop={{ shop }}&host={{ host }}" style="font-size: 13px; color: #008060; text-decoration: none; font-weight: 500;">Connect Shopify Store &rarr;</a>
+                    <div style="text-align: center; margin-top: 16px;">
+                        <a href="/settings/shopify?shop={{ shop }}&host={{ host }}" style="font-size: 14px; color: var(--primary); text-decoration: none; font-weight: 600;">Connect Shopify Store &rarr;</a>
                     </div>
                     {% endif %}
                 </form>
 
-                <div class="guarantee-text">
-                    <strong>7-day free trial.</strong><br>
-                    You won't be charged until the trial ends.<br>
-                    Cancel anytime via Shopify Admin.
-                </div>
+                <p class="guarantee">No charge until trial ends. Cancel anytime.</p>
             </div>
         </div>
     </div>
@@ -455,7 +412,8 @@ SUBSCRIBE_HTML = '''
         document.getElementById('subscribe-form').addEventListener('submit', function(e) {
             var btn = document.getElementById('subscribe-btn');
             btn.disabled = true;
-            btn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite; margin-right: 8px;">⟳</span> Processing...';
+            btn.style.opacity = '0.7';
+            btn.innerHTML = 'Processing...';
         });
     </script>
 </body>
