@@ -3014,6 +3014,7 @@ def apple_touch_icon():
     return Response(status=204)
 
 @app.route('/')
+@app.route('/dashboard', endpoint='dashboard')
 def home():
     """Home page/Dashboard - Shared entry point for embedded and standalone"""
     # Check if this is an embedded app request from Shopify
@@ -3283,10 +3284,6 @@ def home():
 
 # Icon is served via Flask static file serving automatically
 
-@app.route('/dashboard')
-def dashboard_alias():
-    """Alias for / to ensure Shopify loads correctly"""
-    return home()
 
 
 @app.route('/cron/send-trial-warnings', methods=['GET', 'POST'])
@@ -3454,7 +3451,7 @@ def health():
     return jsonify({
         "status": overall_status,
         "service": "Employee Suite",
-        "version": "2.4",
+        "version": "2.5",
         "database": database_status,
         "checks": checks,
         "timestamp": datetime.utcnow().isoformat()
