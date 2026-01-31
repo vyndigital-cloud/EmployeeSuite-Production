@@ -1825,6 +1825,29 @@ DASHBOARD_HTML = """
             document.getElementById('output').innerHTML = skeleton;
         }
         
+        // CRITICAL: Helper to wait for App Bridge initialization
+        window.waitForAppBridge = function() {
+            return new Promise(function(resolve, reject) {
+                if (window.appBridgeReady && window.shopifyApp) {
+                    resolve({ready: true, app: window.shopifyApp});
+                    return;
+                }
+                var attempts = 0;
+                var maxAttempts = 50; // Wait up to 5 seconds
+                var interval = setInterval(function() {
+                    attempts++;
+                    if (window.appBridgeReady && window.shopifyApp) {
+                        clearInterval(interval);
+                        resolve({ready: true, app: window.shopifyApp});
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(interval);
+                        // Don't reject, just resolve with false to allow fallback logic to proceed
+                        resolve({ready: false});
+                    }
+                }, 100);
+            });
+        };
+        
         function setButtonLoading(button, isLoading) {
             if (isLoading) {
                 button.disabled = true;
@@ -4063,6 +4086,7 @@ def api_process_orders():
         return jsonify({"error": "An unexpected error occurred. Please try again or contact support if this persists.", "success": False}), 500
 
 @app.route('/api/update_inventory', methods=['GET', 'POST'])
+@verify_session_token
 def api_update_inventory():
     """Update inventory endpoint with enhanced logging"""
     logger.info('=== UPDATE INVENTORY REQUEST START ===')

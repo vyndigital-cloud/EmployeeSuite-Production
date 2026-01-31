@@ -446,20 +446,39 @@ def csv_exports_page():
                 if (start) url += '?start_date=' + start;
                 if (end) url += (start ? '&' : '?') + 'end_date=' + end;
                 
-                // Trigger download
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = '';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                setTimeout(() => {
+                // Use fetch to get the file with auth headers
+                fetch(url, {
+                    headers: {
+                        'Authorization': 'Bearer ' + (sessionToken || '')
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.blob();
+                    }
+                    throw new Error('Export failed');
+                })
+                .then(blob => {
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = `orders_export_${new Date().toISOString().split('T')[0]}.csv`; // Default name, backend might send content-disposition
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(downloadUrl);
+                    
+                    showSuccess('Orders CSV export started');
+                })
+                .catch(error => {
+                    console.error('Export error:', error);
+                    showAlert('Export failed: ' + error.message, 'error');
+                })
+                .finally(() => {
                     btn.textContent = originalText;
                     btn.style.opacity = '1';
                     btn.style.pointerEvents = 'auto';
-                    showSuccess('Orders CSV export started');
-                }, 500);
+                });
             });
             
             document.getElementById('export-inventory')?.addEventListener('click', function(e) {
@@ -473,19 +492,39 @@ def csv_exports_page():
                 const days = document.getElementById('inventory-days').value;
                 const url = '/api/export/inventory?days=' + (days || 30);
                 
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = '';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                setTimeout(() => {
+                // Use fetch to get the file with auth headers
+                fetch(url, {
+                    headers: {
+                        'Authorization': 'Bearer ' + (sessionToken || '')
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.blob();
+                    }
+                    throw new Error('Export failed');
+                })
+                .then(blob => {
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = `inventory_export_${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(downloadUrl);
+                    
+                    showSuccess('Inventory CSV export started');
+                })
+                .catch(error => {
+                    console.error('Export error:', error);
+                    showAlert('Export failed: ' + error.message, 'error');
+                })
+                .finally(() => {
                     btn.textContent = originalText;
                     btn.style.opacity = '1';
                     btn.style.pointerEvents = 'auto';
-                    showSuccess('Inventory CSV export started');
-                }, 500);
+                });
             });
             
             document.getElementById('export-revenue')?.addEventListener('click', function(e) {
@@ -502,19 +541,39 @@ def csv_exports_page():
                 if (start) url += '?start_date=' + start;
                 if (end) url += (start ? '&' : '?') + 'end_date=' + end;
                 
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = '';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                setTimeout(() => {
+                // Use fetch to get the file with auth headers
+                fetch(url, {
+                    headers: {
+                        'Authorization': 'Bearer ' + (sessionToken || '')
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.blob();
+                    }
+                    throw new Error('Export failed');
+                })
+                .then(blob => {
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = `revenue_export_${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(downloadUrl);
+                    
+                    showSuccess('Revenue CSV export started');
+                })
+                .catch(error => {
+                    console.error('Export error:', error);
+                    showAlert('Export failed: ' + error.message, 'error');
+                })
+                .finally(() => {
                     btn.textContent = originalText;
                     btn.style.opacity = '1';
                     btn.style.pointerEvents = 'auto';
-                    showSuccess('Revenue CSV export started');
-                }, 500);
+                });
             });
         </script>
     </body>
