@@ -2086,9 +2086,8 @@ DASHBOARD_HTML = """
                             <div style="animation: fadeIn 0.3s ease-in;">
                                 <h3 class="success" style="display: flex; align-items: center; gap: 8px;">
                                     <span>${icon}</span>
-                                    <span>Orders Loaded</span>
                                 </h3>
-                                <div style="margin-top: 12px; line-height: 1.6; color: #374151;">${d.message || d.error || 'No details available'}</div>
+                                <div style="margin-top: 12px; line-height: 1.6; color: #374151;">${d.html || d.message || d.error || 'No details available'}</div>
                             </div>
                         `;
                     } else {
@@ -2307,7 +2306,7 @@ DASHBOARD_HTML = """
                                     <span>${icon}</span>
                                     <span>Inventory Updated</span>
                                 </h3>
-                                <div style="margin-top: 12px; white-space: pre-wrap; line-height: 1.6;">${d.message || d.error || 'No details available'}</div>
+                                <div style="margin-top: 12px; white-space: pre-wrap; line-height: 1.6;">${d.html || d.message || d.error || 'No details available'}</div>
                             </div>
                         `;
                     } else {
@@ -2465,22 +2464,10 @@ DASHBOARD_HTML = """
 
             // Execute the Promise chain inside proceedWithApiCall so it runs in all code paths
             fetchPromise
-                .then(r => {
+                .then(r => r.json())
+                .then(d => {
                     // Check if request was cancelled
-                    if (controller.signal.aborted) {
-                        return null;
-                    }
-                    if (!r.ok) {
-                        // If error response, try to get error HTML
-                        return r.text().then(html => {
-                            throw new Error(html);
-                        });
-                    }
-                    return r.text();
-                })
-                .then(html => {
-                    // Check if request was cancelled
-                    if (!html) return;
+                    if (!d) return;
 
                     setButtonLoading(button, false);
                     activeRequests.generateReport = null;
@@ -2501,7 +2488,7 @@ DASHBOARD_HTML = """
                                     <span>✅</span>
                                     <span>Revenue Report Generated</span>
                                 </h3>
-                                <div style="margin-top: 12px; line-height: 1.6;">${html}</div>
+                                <div style="margin-top: 12px; line-height: 1.6;">${d.html || d.message || d.error || 'No details available'}</div>
                             </div>
                         `;
                     }
@@ -3022,6 +3009,29 @@ def home():
     embedded = request.args.get('embedded')
     host = request.args.get('host')
     
+    # LOCAL DEVELOPMENT MODE: Show dashboard with mock data when:
+    # 1. Not in production environment
+    # 2. No shop parameter (not trying to connect to Shopify)
+    # This allows testing the UI locally without Shopify OAuth redirects
+    is_local_dev = os.getenv('ENVIRONMENT', '').lower() != 'production' and not shop and not host
+    
+    if is_local_dev:
+        logger.info("LOCAL DEV MODE: Showing dashboard with mock data")
+        # Return dashboard with mock/demo data for local testing
+        APP_URL = os.getenv('APP_URL', request.url_root.rstrip('/'))
+        return render_template_string(DASHBOARD_HTML, 
+                                     trial_active=True, 
+                                     days_left=7, 
+                                     is_subscribed=False, 
+                                     has_shopify=True,  # Pretend connected for UI testing
+                                     has_access=True,
+                                     quick_stats={'has_data': True, 'pending_orders': 5, 'total_products': 42, 'low_stock_items': 3},
+                                     shop='demo-store.myshopify.com',
+                                     shop_domain='demo-store.myshopify.com',
+                                     SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', 'demo-api-key'),
+                                     APP_URL=APP_URL,
+                                     host='')
+    
     
     # Check Referer header as Shopify sends requests from admin.shopify.com
     referer = request.headers.get('Referer', '')
@@ -3418,7 +3428,7 @@ def health():
     return jsonify({
         "status": overall_status,
         "service": "Employee Suite",
-        "version": "2.6",
+        "version": "2.7",
         "database": database_status,
         "checks": checks,
         "timestamp": datetime.utcnow().isoformat()
@@ -3634,6 +3644,26 @@ def get_authenticated_user():
 @verify_session_token
 def api_process_orders():
     """Process orders with detailed crash logging"""
+    # LOCAL DEV MODE: Return mock data for local testing
+    is_local_dev = os.getenv('ENVIRONMENT', '').lower() != 'production'
+    shop_param = request.args.get('shop', '')
+    
+    if is_local_dev and (not shop_param or shop_param == 'demo-store.myshopify.com'):
+        logger.info('LOCAL DEV MODE: Returning mock orders data')
+        mock_html = '''
+        <div style="padding: 20px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px;">
+            <h3 style="color: #166534; margin-bottom: 16px;">📦 Mock Orders (Local Dev Mode)</h3>
+            <p style="color: #6d7175; margin-bottom: 12px;">This is mock data for local testing. Connect a real Shopify store to see actual orders.</p>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
+                <tr style="background: #f6f6f7;"><th style="padding: 8px; text-align: left; border: 1px solid #e1e3e5;">Order</th><th style="padding: 8px; text-align: left; border: 1px solid #e1e3e5;">Customer</th><th style="padding: 8px; text-align: left; border: 1px solid #e1e3e5;">Total</th><th style="padding: 8px; text-align: left; border: 1px solid #e1e3e5;">Status</th></tr>
+                <tr><td style="padding: 8px; border: 1px solid #e1e3e5;">#1001</td><td style="padding: 8px; border: 1px solid #e1e3e5;">John Doe</td><td style="padding: 8px; border: 1px solid #e1e3e5;">$129.99</td><td style="padding: 8px; border: 1px solid #e1e3e5;">Pending</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #e1e3e5;">#1002</td><td style="padding: 8px; border: 1px solid #e1e3e5;">Jane Smith</td><td style="padding: 8px; border: 1px solid #e1e3e5;">$79.50</td><td style="padding: 8px; border: 1px solid #e1e3e5;">Pending</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #e1e3e5;">#1003</td><td style="padding: 8px; border: 1px solid #e1e3e5;">Bob Wilson</td><td style="padding: 8px; border: 1px solid #e1e3e5;">$249.00</td><td style="padding: 8px; border: 1px solid #e1e3e5;">Unfulfilled</td></tr>
+            </table>
+        </div>
+        '''
+        return jsonify({'success': True, 'html': mock_html, 'mode': 'local_dev'})
+    
     logger.info('=== PROCESS ORDERS REQUEST START ===')
     logger.info(f'Request method: {request.method}')
     logger.info(f'Request path: {request.path}')
@@ -3759,6 +3789,26 @@ def api_process_orders():
 @verify_session_token
 def api_update_inventory():
     """Update inventory endpoint with enhanced logging"""
+    # LOCAL DEV MODE: Return mock data for local testing
+    is_local_dev = os.getenv('ENVIRONMENT', '').lower() != 'production'
+    shop_param = request.args.get('shop', '')
+    
+    if is_local_dev and (not shop_param or shop_param == 'demo-store.myshopify.com'):
+        logger.info('LOCAL DEV MODE: Returning mock inventory data')
+        mock_html = '''
+        <div style="padding: 20px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;">
+            <h3 style="color: #1e40af; margin-bottom: 16px;">📊 Mock Inventory (Local Dev Mode)</h3>
+            <p style="color: #6d7175; margin-bottom: 12px;">This is mock data for local testing. Connect a real Shopify store to see actual inventory.</p>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
+                <tr style="background: #f6f6f7;"><th style="padding: 8px; text-align: left; border: 1px solid #e1e3e5;">Product</th><th style="padding: 8px; text-align: left; border: 1px solid #e1e3e5;">SKU</th><th style="padding: 8px; text-align: left; border: 1px solid #e1e3e5;">Stock</th><th style="padding: 8px; text-align: left; border: 1px solid #e1e3e5;">Status</th></tr>
+                <tr><td style="padding: 8px; border: 1px solid #e1e3e5;">Premium Widget</td><td style="padding: 8px; border: 1px solid #e1e3e5;">WGT-001</td><td style="padding: 8px; border: 1px solid #e1e3e5;">45</td><td style="padding: 8px; border: 1px solid #e1e3e5; color: #166534;">In Stock</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #e1e3e5;">Basic Gadget</td><td style="padding: 8px; border: 1px solid #e1e3e5;">GDG-002</td><td style="padding: 8px; border: 1px solid #e1e3e5;">3</td><td style="padding: 8px; border: 1px solid #e1e3e5; color: #d72c0d;">Low Stock</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #e1e3e5;">Deluxe Bundle</td><td style="padding: 8px; border: 1px solid #e1e3e5;">BND-003</td><td style="padding: 8px; border: 1px solid #e1e3e5;">28</td><td style="padding: 8px; border: 1px solid #e1e3e5; color: #166534;">In Stock</td></tr>
+            </table>
+        </div>
+        '''
+        return jsonify({'success': True, 'html': mock_html, 'mode': 'local_dev'})
+    
     logger.info('=== UPDATE INVENTORY REQUEST START ===')
     logger.info(f'Request method: {request.method}')
     logger.info(f'Request path: {request.path}')
@@ -3865,6 +3915,34 @@ def api_update_inventory():
 @verify_session_token
 def api_generate_report():
     """Generate revenue report with detailed crash logging"""
+    # LOCAL DEV MODE: Return mock data for local testing
+    is_local_dev = os.getenv('ENVIRONMENT', '').lower() != 'production'
+    shop_param = request.args.get('shop', '')
+    
+    if is_local_dev and (not shop_param or shop_param == 'demo-store.myshopify.com'):
+        logger.info('LOCAL DEV MODE: Returning mock revenue data')
+        mock_html = '''
+        <div style="padding: 20px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px;">
+            <h3 style="color: #92400e; margin-bottom: 16px;">💰 Mock Revenue Report (Local Dev Mode)</h3>
+            <p style="color: #6d7175; margin-bottom: 12px;">This is mock data for local testing. Connect a real Shopify store to see actual revenue.</p>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px;">
+                <div style="background: white; padding: 16px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: 600; color: #166534;">$4,582.50</div>
+                    <div style="font-size: 14px; color: #6d7175;">Today</div>
+                </div>
+                <div style="background: white; padding: 16px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: 600; color: #166534;">$28,945.00</div>
+                    <div style="font-size: 14px; color: #6d7175;">This Week</div>
+                </div>
+                <div style="background: white; padding: 16px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: 600; color: #166534;">$124,680.75</div>
+                    <div style="font-size: 14px; color: #6d7175;">This Month</div>
+                </div>
+            </div>
+        </div>
+        '''
+        return jsonify({'success': True, 'html': mock_html, 'mode': 'local_dev'})
+    
     logger.info('=== GENERATE REPORT REQUEST START ===')
     
     # Get shop from verified token
