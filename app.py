@@ -2040,10 +2040,10 @@ DASHBOARD_HTML = """
                     }
                     
                     if (d.success) {
-                        const icon = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
+                        const icon = '✅';
                         document.getElementById('output').innerHTML = `
                             <div style="animation: fadeIn 0.3s ease-in;">
-                                <h3 class="success" style="display: flex; align-items: center; gap: 8px; color: #10B981;">
+                                <h3 class="success" style="display: flex; align-items: center; gap: 8px;">
                                     <span>${icon}</span>
                                     <span>Orders Loaded</span>
                                 </h3>
