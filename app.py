@@ -4212,10 +4212,31 @@ def api_generate_report():
         
         # Set current_user for generate_report() function
         # (it expects current_user to be set)
-        logger.info('Step 4: Logging in user...')
-        from flask_login import login_user
-        login_user(user, remember=False)
-        logger.info('Step 4 SUCCESS: User logged in')
+        
+        # CRITICAL FIX: RecursionError check
+        # If user is already authenticated (e.g. from get_authenticated_user returning current_user),
+        # calling login_user(user) with a proxy causes infinite recursion.
+        from flask_login import current_user
+        should_login = True
+        
+        if current_user and current_user.is_authenticated:
+            try:
+                # Check if we are already logged in as this user
+                current_id = current_user.id if hasattr(current_user, 'id') else getattr(current_user, 'id', None)
+                if str(current_id) == str(user_id):
+                    logger.info(f'Step 4: User {user_id} already logged in - skipping login_user to prevent recursion')
+                    should_login = False
+            except Exception as e:
+                logger.warning(f"Error checking current_user: {e}")
+        
+        if should_login:
+            logger.info('Step 4: Logging in user...')
+            from flask_login import login_user
+            # Ensure we are passing a real object not a proxy if possible, but safe_login check above handles most cases
+            login_user(user, remember=False)
+            logger.info('Step 4 SUCCESS: User logged in')
+        else:
+            logger.info('Step 4: Skipped login (already authenticated)')
         
         
         # Check for shop parameter - needed for report generation
