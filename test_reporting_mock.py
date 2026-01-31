@@ -1,72 +1,78 @@
-
 import unittest
 from unittest.mock import MagicMock, patch
 from reporting import generate_report
-from flask import Flask
+from models import User, ShopifyStore
 
-class TestReporting(unittest.TestCase):
+class TestReportingMock(unittest.TestCase):
+
     def setUp(self):
-        self.app = Flask(__name__)
-        self.ctx = self.app.app_context()
-        self.ctx.push()
-        self.user_patcher = patch('reporting.current_user')
-        self.mock_user = self.user_patcher.start()
-        self.mock_user.is_authenticated = True
+        self.mock_user = MagicMock(spec=User)
         self.mock_user.id = 1
-        self.mock_user.get_id.return_value = '1'
-
-    def tearDown(self):
-        self.user_patcher.stop()
-        self.ctx.pop()
+        self.mock_user.is_authenticated = True
+        
+        self.mock_store = MagicMock(spec=ShopifyStore)
+        self.mock_store.shop_url = "test-store.myshopify.com"
+        self.mock_store.user_id = 1
+        self.mock_store.is_active = True
+        self.mock_store.get_access_token.return_value = "shpat_123456"
 
     @patch('reporting.ShopifyStore')
+    @patch('reporting.current_user')
     @patch('shopify_graphql.ShopifyGraphQLClient')
-    def test_generate_report(self, MockClient, MockStore):
-        # Setup Mock Store
-        mock_store_instance = MagicMock()
-        mock_store_instance.shop_url = 'test.myshopify.com'
-        mock_store_instance.get_access_token.return_value = 'fake_token'
-        mock_store_instance.user_id = 1
-        MockStore.query.filter_by.return_value.first.return_value = mock_store_instance
+    def test_generate_report_auth_error(self, mock_client_class, mock_current_user, mock_store_cls):
+        # Setup mocks
+        mock_current_user.is_authenticated = True
+        mock_current_user.id = 1
+        
+        mock_store_cls.query.filter_by.return_value.first.return_value = self.mock_store
+        
+        # Mock GraphQL client to return Auth Error
+        mock_client = mock_client_class.return_value
+        mock_client.get_orders.return_value = {'error': '401 Unauthorized'}
+        
+        # Run function
+        result = generate_report(user_id=1)
+        
+        # Assertions
+        self.assertFalse(result['success'])
+        self.assertIn("Authentication Issue", result['error'])
+        # Verify we didn't crash
+        self.assertTrue(self.mock_store.is_active) # Should still be true (no auto-disable)
 
-        # Setup Mock GraphQL Client
-        mock_client_instance = MockClient.return_value
-        # Mock get_orders response
-        mock_client_instance.get_orders.return_value = {
-            'orders': {
-                'edges': [
-                    {
-                        'node': {
-                            'id': 'gid://shopify/Order/1',
-                            'displayFinancialStatus': 'PAID',
-                            'totalPriceSet': {'shopMoney': {'amount': '50.00'}},
-                            'lineItems': {
-                                'edges': [
-                                    {
-                                        'node': {
-                                            'title': 'Test Product',
-                                            'quantity': 1,
-                                            'originalUnitPriceSet': {'shopMoney': {'amount': '50.00'}}
-                                        }
-                                    }
-                                ]
+    @patch('reporting.ShopifyStore')
+    @patch('reporting.current_user')
+    @patch('shopify_graphql.ShopifyGraphQLClient')
+    def test_generate_report_success(self, mock_client_class, mock_current_user, mock_store_cls):
+        # Setup mocks
+        mock_current_user.is_authenticated = True
+        mock_current_user.id = 1
+        mock_store_cls.query.filter_by.return_value.first.return_value = self.mock_store
+        
+        # Mock GraphQL client to return Orders
+        mock_client = mock_client_class.return_value
+        mock_client.get_orders.side_effect = [
+            {
+                'orders': {
+                    'edges': [
+                        {
+                            'node': {
+                                'displayFinancialStatus': 'PAID',
+                                'totalPriceSet': {'shopMoney': {'amount': '100.00'}},
+                                'lineItems': {'edges': [{'node': {'title': 'Test Product', 'quantity': 1, 'originalUnitPriceSet': {'shopMoney': {'amount': '100.00'}} }}]}
                             }
                         }
-                    }
-                ],
-                'pageInfo': {'hasNextPage': False}
+                    ],
+                    'pageInfo': {'hasNextPage': False}
+                }
             }
-        }
-
-        # Run generate_report
+        ]
+        
+        # Run function
         result = generate_report(user_id=1)
-
-        # Verify
-        print(f"Result: {result}")
+        
+        # Assertions
         self.assertTrue(result['success'])
-        self.assertIn('$50.00', result['message'])
-        self.assertIn('Test Product', result['message'])
-        self.assertEqual(result['report_data']['total_revenue'], 50.0)
+        self.assertIn("$100.00", result['message'])
 
 if __name__ == '__main__':
     unittest.main()

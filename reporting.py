@@ -82,13 +82,9 @@ def generate_report(user_id=None, shop_url=None):
                     if iteration == 0:
                         error_msg = result['error']
                         if 'authentication' in error_msg.lower() or '401' in error_msg:
-                            logger.warning(f"Authentication failed for store {store.shop_url} (user {user_id})")
-                            try:
-                                store.is_active = False
-                                db.session.commit()
-                            except:
-                                pass
-                            return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Authentication failed</div><div style='margin-bottom: 12px;'>Your store connection has expired. Please reconnect your store.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Reconnect Store →</a></div></div>"}
+                            logger.warning(f"Authentication failed for store {store.shop_url} (user {user_id}) - Check Scopes/Token")
+                            # DO NOT disable store automatically - could be temporary
+                            return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Authentication Issue</div><div style='margin-bottom: 12px;'>We couldn't verify your store access. Please try reconnecting.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Reconnect Store →</a></div></div>"}
                         return {"success": False, "error": f"Shopify Error: {error_msg}"}
                     break
                 
