@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from flask import Flask
 from analytics import analytics_bp, get_inventory_forecast
 
-clss TestAnalytics(unittest.TestCase):
+class TestAnalytics(unittest.TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.app.register_blueprint(analytics_bp)

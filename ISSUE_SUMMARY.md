@@ -42,14 +42,3 @@ External review to identify:
 2. Test in different browsers/environments
 3. Add more granular instrumentation around click events
 4. Verify App Bridge initialization timing
-
-<<<<<<< HEAD
-
-
-=======
->>>>>>> 435f7f080afbe6538bc4e1b20a026900b2acdce6
-
-
-
-
-

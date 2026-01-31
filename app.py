@@ -1875,7 +1875,7 @@ DASHBOARD_HTML = """
             
             // Get session token if in embedded mode - seamless integration
             var fetchPromise;
-            var isEmbedded = window.isEmbedded; // Use global flag
+            var isEmbedded = window.isEmbedded || (window.location.search.indexOf('embedded=1') > -1) || (window.self !== window.top);
             
             // PERFECTED: Wait for App Bridge (uses Promise if available, sync check as fallback)
             if (isEmbedded) {
@@ -2101,6 +2101,7 @@ DASHBOARD_HTML = """
                 });
             } // Close proceedWithApiCall function
         } // Close processOrders function
+        window.processOrders = processOrders; // Ensure global availability immediately
         
         // Ensure function is in global scope
         window.processOrders = processOrders;
@@ -2319,6 +2320,7 @@ DASHBOARD_HTML = """
                 });
             } // Close proceedWithApiCall function
         }
+        window.updateInventory = updateInventory; // Ensure global availability immediately
 
         // Ensure function is in global scope
         window.updateInventory = updateInventory;
@@ -2496,6 +2498,7 @@ DASHBOARD_HTML = """
                 });
             } // end proceedWithApiCall
         }
+        window.generateReport = generateReport; // Ensure global availability immediately
 
         // Ensure function is in global scope
         window.generateReport = generateReport;
