@@ -130,7 +130,7 @@ def process_orders(creds_path='creds.json', user_id=None):
                 status_text = "Action needed"
                 border_color = '#f59e0b'
 
-            html += f"<div style='padding: 10px 12px; margin: 6px 0; background: #fff; border-left: 2px solid {border_color}; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;'><div style='flex: 1;'><div style='font-weight: 500; color: #171717; font-size: 13px;'>{order_name}</div><div style='color: #737373; margin-top: 2px; font-size: 11px;'>{status_text}</div></div><div style='text-align: right; margin-left: 16px;'><div style='font-weight: 600; color: #171717; font-size: 13px;'>${total}</div></div></div>"
+            html += f"<div style='padding: 10px 12px; margin: 6px 0; background: #fff; border-left: 2px solid {border_color}; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;'><div style='flex: 1;'><div style='font-weight: 500; color: #171717; font-size: 13px;'>{order_name}</div><div style='color: #737373; margin-top: 2px; font-size: 11px;'>{status_text}</div></div><div style='text-align: right; margin-left: 16px;'><div style='font-weight: 600; color: {border_color}; font-size: 13px;'>${total}</div></div></div>"
 
         html += f"<div style='color: #a3a3a3; font-size: 10px; margin-top: 12px; text-align: right;'>Updated: {timestamp}</div>"
         html += "</div>"

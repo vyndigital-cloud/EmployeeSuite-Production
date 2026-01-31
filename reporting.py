@@ -184,17 +184,7 @@ def generate_report(user_id=None, shop_url=None):
         # Product list - minimalistic, same style as inventory
         for product, revenue in sorted_products[:10]:
             percentage = (revenue / total_revenue) * 100 if total_revenue > 0 else 0
-            html += f"""
-            <div style='padding: 10px 12px; margin: 6px 0; background: #fff; border-left: 2px solid #16a34a; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;'>
-                <div style='flex: 1;'>
-                    <div style='font-weight: 500; color: #171717; font-size: 13px;'>{product}</div>
-                    <div style='color: #737373; margin-top: 2px; font-size: 11px;'>{percentage:.1f}% of total</div>
-                </div>
-                <div style='text-align: right; margin-left: 16px;'>
-                    <div style='font-weight: 600; color: #16a34a; font-size: 13px;'>${revenue:,.2f}</div>
-                </div>
-            </div>
-            """
+            html += f"<div style='padding: 10px 12px; margin: 6px 0; background: #fff; border-left: 2px solid #16a34a; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;'><div style='flex: 1;'><div style='font-weight: 500; color: #171717; font-size: 13px;'>{product}</div><div style='color: #737373; margin-top: 2px; font-size: 11px;'>{percentage:.1f}% of total</div></div><div style='text-align: right; margin-left: 16px;'><div style='font-weight: 600; color: #16a34a; font-size: 13px;'>${revenue:,.2f}</div></div></div>"
         
         html += f"<div style='color: #a3a3a3; font-size: 10px; margin-top: 12px; text-align: right;'>Updated: {timestamp}</div>"
         html += "</div>"
