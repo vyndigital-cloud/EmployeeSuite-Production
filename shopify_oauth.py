@@ -273,35 +273,29 @@ def install():
         # SIMPLEST FIX: Just show a link that opens in a new window
         # No JavaScript redirects, no App Bridge complexity - just works
         from flask import render_template_string
+        # Restore manual button - automatic redirects are often blocked in iframes
+        from flask import render_template_string
         return render_template_string(f"""
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="utf-8">
-            <title>Redirecting to Shopify - Employee Suite</title>
+            <title>Connect Shopify - Employee Suite</title>
             <meta name="viewport" content="width=device-width, initial-scale=1">
-            <script>
-                // AUTOMATIC REDIRECT: Avoid the 'Connect' screen loop
-                // If we're embedded, we must break the iframe to do OAuth
-                // This script handles it automatically
-                try {{
-                    // Try App Bridge redirect first (modern)
-                    if (window.shopify && window.shopify.unstable_redirect) {{
-                        window.shopify.unstable_redirect("{full_auth_url}");
-                    }} else {{
-                        // Standard top-level redirect fallback
-                        window.top.location.href = "{full_auth_url}";
-                    }}
-                }} catch (e) {{
-                    // Last resort fallback
-                    window.top.location.href = "{full_auth_url}";
-                }}
-            </script>
+            <style>
+                body {{ font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f6f6f7; }}
+                .card {{ background: white; padding: 32px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; max-width: 400px; }}
+                h1 {{ font-size: 20px; margin-bottom: 12px; color: #202223; }}
+                p {{ font-size: 14px; color: #6d7175; margin-bottom: 24px; line-height: 1.5; }}
+                .btn {{ background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; display: inline-block; }}
+            </style>
         </head>
-        <body style="font-family: -apple-system, system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f6f6f7;">
-            <div style="text-align: center; padding: 20px;">
-                <div style="margin-bottom: 20px;">Connecting to Shopify...</div>
-                <a href="{full_auth_url}" target="_top" style="color: #008060; text-decoration: none; font-size: 14px;">Click here if you are not redirected automatically</a>
+        <body>
+            <div class="card">
+                <h1>Connect Your Store</h1>
+                <p>Click the button below to authorize Employee Suite to manage your orders and inventory.</p>
+                <a href="{full_auth_url}" target="_top" class="btn">Connect Your Shopify Store →</a>
+                <div style="margin-top: 16px; font-size: 12px; color: #8c9196;">This will open the Shopify authorization screen.</div>
             </div>
         </body>
         </html>
@@ -516,9 +510,8 @@ def _handle_oauth_callback():
     # After OAuth completes, redirect appropriately
     if host:
         # Embedded: redirect back into Shopify admin so app loads in iframe
-        # Use modern Shopify admin URL format for better compatibility
-        shop_subdomain = shop.replace('.myshopify.com', '')
-        admin_url = f"https://admin.shopify.com/store/{shop_subdomain}/apps/employee-suite-3"
+        # Reverting to API Key URL - most reliable post-OAuth redirect
+        admin_url = f"https://{shop}/admin/apps/{SHOPIFY_API_KEY}"
         logger.info(f"OAuth complete (embedded), redirecting to Shopify admin: {admin_url}")
         return redirect(admin_url)
     else:

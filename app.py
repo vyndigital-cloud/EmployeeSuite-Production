@@ -3014,7 +3014,6 @@ def apple_touch_icon():
     return Response(status=204)
 
 @app.route('/')
-@app.route('/dashboard')
 def home():
     """Home page/Dashboard - Shared entry point for embedded and standalone"""
     # Check if this is an embedded app request from Shopify
@@ -3082,10 +3081,11 @@ def home():
             try:
                 # Better query: handles NULLs in is_active and picks latest
                 store = ShopifyStore.query.filter_by(shop_url=shop).order_by(ShopifyStore.is_active.desc(), ShopifyStore.created_at.desc()).first()
-                if store and store.is_active:
-                    pass # Keep it
+                if store and store.is_active != False:
+                    # Treat NULL as True (active) for existing stores
+                    pass
                 elif store:
-                    logger.warning(f"Store found for {shop} but is_active={store.is_active}")
+                    logger.warning(f"Store found for {shop} but explicitly inactive (is_active={store.is_active})")
             except Exception as e:
                 logger.error(f"Failed to query store for {shop}: {e}")
                 db.session.rollback()
@@ -3122,40 +3122,21 @@ def home():
                 is_subscribed = False
                 user_id = None
             
-            from models import ShopifyStore
-            has_shopify = False
             if user_id:
-                # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                 try:
-                    has_shopify = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first() is not None
-                except BaseException:
-                    try:
-                        db.session.rollback()
-                    except Exception:
-                        pass
+                    # Robust check: any store record for this user that isn't explicitly inactive
+                    has_shopify = ShopifyStore.query.filter(ShopifyStore.user_id == user_id, ShopifyStore.is_active != False).first() is not None
+                except Exception as e:
+                    logger.error(f"Error checking has_shopify for user {user_id}: {e}")
+                    db.session.rollback()
                     has_shopify = False
             elif shop:
-                # Check if store exists even without user auth
-                # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                 try:
-                    has_shopify = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first() is not None
-                except BaseException:
-                    try:
-                        db.session.rollback()
-                    except Exception:
-                        pass
-                    finally:
-                        # Removed db.session.remove() - causes segfaults
-                        pass
-                    has_shopify = False
-                except BaseException:
-                    try:
-                        db.session.rollback()
-                    except Exception:
-                        pass
-                    finally:
-                        # Removed db.session.remove() - causes segfaults
-                        pass
+                    # Robust check: any store record for this shop that isn't explicitly inactive
+                    has_shopify = ShopifyStore.query.filter(ShopifyStore.shop_url == shop, ShopifyStore.is_active != False).first() is not None
+                except Exception as e:
+                    logger.error(f"Error checking has_shopify for shop {shop}: {e}")
+                    db.session.rollback()
                     has_shopify = False
             
             # Skip slow API calls for embedded apps - just show empty stats
@@ -3166,32 +3147,20 @@ def home():
             
             shop_domain = shop or ''
             if has_shopify and user_id:
-                # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                 try:
-                    store = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first()
-                except BaseException:
-                    try:
-                        db.session.rollback()
-                    except Exception:
-                        pass
-                    finally:
-                        # Removed db.session.remove() - causes segfaults
-                        pass
+                    store = ShopifyStore.query.filter(ShopifyStore.user_id == user_id, ShopifyStore.is_active != False).order_by(ShopifyStore.created_at.desc()).first()
+                except Exception as e:
+                    logger.error(f"Error fetching store for user {user_id}: {e}")
+                    db.session.rollback()
                     store = None
                 if store and hasattr(store, 'shop_url') and store.shop_url:
                     shop_domain = store.shop_url
             elif shop:
-                # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
                 try:
-                    store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
-                except BaseException:
-                    try:
-                        db.session.rollback()
-                    except Exception:
-                        pass
-                    finally:
-                        # Removed db.session.remove() - causes segfaults
-                        pass
+                    store = ShopifyStore.query.filter(ShopifyStore.shop_url == shop, ShopifyStore.is_active != False).order_by(ShopifyStore.created_at.desc()).first()
+                except Exception as e:
+                    logger.error(f"Error fetching store for shop {shop}: {e}")
+                    db.session.rollback()
                     store = None
                 if store and hasattr(store, 'shop_url') and store.shop_url:
                     shop_domain = store.shop_url
@@ -3523,7 +3492,7 @@ def health():
     return jsonify({
         "status": overall_status,
         "service": "Employee Suite",
-        "version": "2.2",
+        "version": "2.3",
         "database": database_status,
         "checks": checks,
         "timestamp": datetime.utcnow().isoformat()
