@@ -47,9 +47,13 @@ def verify_session_token(f):
                 )
                 
                 # Verify audience (should be API key)
-                if payload.get('aud') != SHOPIFY_API_KEY:
-                    logger.warning(f"Invalid audience in session token: {payload.get('aud')}")
-                    return jsonify({'error': 'Invalid token audience'}), 401
+                aud = payload.get('aud')
+                if aud != SHOPIFY_API_KEY:
+                    logger.warning(f"Invalid audience in session token. Received: {aud}, Expected: {SHOPIFY_API_KEY[:4] + '****' if SHOPIFY_API_KEY else 'None'}")
+                    # CRITICAL DEBUG: If expected is None, we have a configuration error
+                    if not SHOPIFY_API_KEY:
+                        logger.error("SHOPIFY_API_KEY environment variable is NOT SET")
+                    return jsonify({'error': 'Invalid token audience (API Key mismatch)'}), 401
                 
                 # Verify destination (should match shop domain)
                 dest = payload.get('dest', '')
@@ -68,6 +72,13 @@ def verify_session_token(f):
                 return jsonify({'error': 'Token has expired'}), 401
             except jwt.InvalidTokenError as e:
                 logger.warning(f"Invalid session token: {e}")
+                # Try to decode without verification to debug audience mismatch
+                try:
+                    debug_payload = jwt.decode(token, options={"verify_signature": False})
+                    debug_aud = debug_payload.get('aud')
+                    logger.warning(f"DEBUG: Token audience was: {debug_aud}, Expected API Key: {SHOPIFY_API_KEY[:4] + '****' if SHOPIFY_API_KEY else 'None'}")
+                except:
+                    pass
                 return jsonify({'error': 'Invalid token'}), 401
             except Exception as e:
                 logger.error(f"Error verifying session token: {e}", exc_info=True)
