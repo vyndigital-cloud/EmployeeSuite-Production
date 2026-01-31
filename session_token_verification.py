@@ -42,6 +42,7 @@ def verify_session_token(f):
                         "verify_signature": True,
                         "verify_exp": True,
                         "verify_iat": True,
+                        "verify_aud": False,  # CRITICAL: We verify audience manually below
                         "require": ["iss", "dest", "aud", "sub", "exp", "nbf", "iat"]
                     }
                 )
