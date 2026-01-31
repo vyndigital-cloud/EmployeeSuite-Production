@@ -42,6 +42,18 @@ class ShopifyStore(db.Model):
     is_active = db.Column(db.Boolean, default=True, index=True)  # Added index for composite queries
     uninstalled_at = db.Column(db.DateTime, nullable=True)  # When app was uninstalled
     
+    def __init__(self, **kwargs):
+        """Initialize with validation"""
+        # Auto-parse shop_id if provided as GID
+        if 'shop_id' in kwargs:
+            try:
+                from shopify_utils import parse_gid
+                kwargs['shop_id'] = parse_gid(kwargs['shop_id'])
+            except ImportError:
+                # Fallback if utils not available (during circular imports)
+                pass
+        super(ShopifyStore, self).__init__(**kwargs)
+    
     # Composite index for common query pattern: filter_by(shop_url=shop, is_active=True)
     __table_args__ = (
         db.Index('idx_shopify_store_shop_active', 'shop_url', 'is_active'),
