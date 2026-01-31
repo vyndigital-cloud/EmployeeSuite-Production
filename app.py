@@ -3673,7 +3673,7 @@ def health():
     return jsonify({
         "status": overall_status,
         "service": "Employee Suite",
-        "version": "2.0",
+        "version": "2.1",
         "database": database_status,
         "checks": checks,
         "timestamp": datetime.utcnow().isoformat()
