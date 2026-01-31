@@ -1173,7 +1173,6 @@ DASHBOARD_HTML = """
     <div class="header">
         <div class="header-content">
             <a href="/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 10px; font-weight: 600;" class="logo">
-                <img src="/static/icon.svg" alt="Employee Suite" style="width: 28px; height: 28px; border-radius: 6px;">
                 <span>Employee Suite</span>
             </a>
             <div class="header-nav">
@@ -1785,13 +1784,17 @@ DASHBOARD_HTML = """
         
         function showSubscribePrompt() {
             document.getElementById('output').innerHTML = `
-                <div style="padding: 32px; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-radius: 16px; border: 2px solid #dc2626; text-align: center; animation: fadeIn 0.3s ease-in;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">🔒</div>
-                    <h3 style="color: #dc2626; margin-bottom: 12px; font-size: 20px;">Subscription Required</h3>
-                    <p style="color: #991b1b; margin-bottom: 8px; font-size: 15px;">Your trial has ended.</p>
-                    <p style="color: #737373; margin-bottom: 24px; font-size: 14px;">Subscribe now to continue using all Employee Suite features.</p>
-                    <a href="/subscribe?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}" style="display: inline-block; background: #0a0a0a; color: #fff; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.2s;">Subscribe Now →</a>
-                    <p style="color: #737373; margin-top: 16px; font-size: 13px;">$99/month • 7-day money-back guarantee</p>
+                <div style="padding: 40px; background: #fff; border-radius: 16px; border: 1px solid #e5e7eb; text-align: center; animation: fadeIn 0.3s ease-in; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+                    <div style="margin-bottom: 20px; display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background: #FEF2F2; border-radius: 50%;">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                    </div>
+                    <h3 style="color: #111827; margin-bottom: 8px; font-size: 20px; font-weight: 700;">Subscription Required</h3>
+                    <p style="color: #6B7280; margin-bottom: 24px; font-size: 15px; line-height: 1.5;">This feature is available on the Growth plan. Subscribe to unlock full access.</p>
+                    <a href="/subscribe?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}" style="display: inline-block; background: #2563EB; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.2s; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">Upgrade Now →</a>
+                    <p style="color: #9CA3AF; margin-top: 16px; font-size: 13px;">$99/month • 7-day money-back guarantee</p>
                 </div>
             `;
         }
@@ -2037,14 +2040,14 @@ DASHBOARD_HTML = """
                     }
                     
                     if (d.success) {
-                        const icon = '✅';
+                        const icon = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
                         document.getElementById('output').innerHTML = `
                             <div style="animation: fadeIn 0.3s ease-in;">
-                                <h3 class="success" style="display: flex; align-items: center; gap: 8px;">
+                                <h3 class="success" style="display: flex; align-items: center; gap: 8px; color: #10B981;">
                                     <span>${icon}</span>
                                     <span>Orders Loaded</span>
                                 </h3>
-                                <div style="margin-top: 12px; line-height: 1.6;">${d.message || d.error || 'No details available'}</div>
+                                <div style="margin-top: 12px; line-height: 1.6; color: #374151;">${d.message || d.error || 'No details available'}</div>
                             </div>
                         `;
                     } else {
@@ -4194,7 +4197,10 @@ def api_generate_report():
         
         # Check for shop parameter - needed for report generation
         shop_url = request.args.get('shop')
-        if not shop_url and hasattr(user, 'shopify_stores'):
+        if not shop_url and shop_domain:
+            shop_url = shop_domain
+            logger.info(f'Step 4b: Using shop_url from session token: {shop_url}')
+        elif not shop_url and hasattr(user, 'shopify_stores'):
             # Try to get shop from user's stores
             active_store = next((s for s in user.shopify_stores if s.is_active), None)
             if active_store:

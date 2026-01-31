@@ -51,7 +51,7 @@ def safe_redirect(url, shop=None, host=None):
 
 # Plan configuration
 PLANS = {
-    'pro': {'name': 'Growth', 'price': 29.00, 'features': [
+    'pro': {'name': 'Growth', 'price': 99.00, 'features': [
         'Inventory Intelligence Dashboard',
         'Smart Reorder Recommendations',
         'Dead Stock Alerts',
@@ -60,7 +60,7 @@ PLANS = {
         'Up to 3 Store Connections',
         'Email Support'
     ]},
-    'business': {'name': 'Scale', 'price': 99.00, 'features': [
+    'business': {'name': 'Scale', 'price': 297.00, 'features': [
         'Everything in Growth',
         'Advanced Multi-Location Sync',
         'Automated Supplier Emails',
@@ -94,316 +94,331 @@ SUBSCRIBE_HTML = '''
             });
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #008060;
-            --primary-dark: #006e52;
+            --primary: #2C6ECB; /* Trust Blue */
+            --accent: #F59E0B; /* Urgency Orange/Yellow */
+            --text-main: #111827;
+            --text-sub: #4B5563;
             --surface: #ffffff;
-            --background: #f1f2f4;
-            --text-main: #1a1a1a;
-            --text-sub: #616161;
-            --border: #e1e3e5;
-            --radius: 12px;
-            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+            --background: #F3F4F6;
         }
         
         body {
-            font-family: 'Inter', -apple-system, sans-serif;
+            font-family: 'Inter', sans-serif;
             background-color: var(--background);
             color: var(--text-main);
             margin: 0;
-            padding: 40px 20px;
+            padding: 20px;
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
         }
 
         .container {
-            max-width: 1000px;
-            width: 100%;
-            display: grid;
-            grid-template-columns: 1fr 400px;
-            gap: 48px;
-            align-items: start;
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Left Column */
-        .brand-section {
-            padding-top: 20px;
+        @media (min-width: 768px) {
+            .container {
+                flex-direction: row;
+            }
         }
 
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            color: var(--text-sub);
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 32px;
-            transition: color 0.2s;
-        }
-        .back-link:hover { color: var(--primary); }
-        
-        .badge {
-            display: inline-block;
-            background: #E3FCEF;
-            color: #006E52;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 24px;
+        /* LEFT SIDE - THE STACK */
+        .stack-column {
+            flex: 1.2;
+            padding: 40px;
+            background: #fdfdfd;
+            border-right: 1px solid #eee;
         }
 
         h1 {
-            font-size: 42px;
-            line-height: 1.1;
-            font-weight: 700;
-            margin: 0 0 16px 0;
-            letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #1a1a1a 0%, #4a4a4a 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 5px;
+            color: #111;
+            line-height: 1.2;
         }
-
-        .subtitle {
-            font-size: 18px;
-            color: var(--text-sub);
-            line-height: 1.6;
-            margin-bottom: 48px;
-            max-width: 480px;
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 24px;
-        }
-
-        .feature-item {
-            background: var(--surface);
-            padding: 24px;
-            border-radius: var(--radius);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            border: 1px solid rgba(0,0,0,0.03);
-            transition: transform 0.2s;
-        }
-        .feature-item:hover { transform: translateY(-2px); }
-
-        .feature-icon {
-            font-size: 24px;
-            margin-bottom: 12px;
-            display: inline-block;
-        }
-
-        .feature-item h3 {
-            margin: 0 0 8px 0;
+        
+        .sub-headline {
             font-size: 16px;
+            color: #666;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+
+        .stack-list {
+            margin-bottom: 30px;
+        }
+
+        .stack-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px dashed #e5e7eb;
+        }
+
+        .stack-item:last-child {
+            border-bottom: none;
+        }
+
+        .stack-name {
+            font-weight: 600;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stack-value {
+            font-weight: 700;
+            color: #DC2626; /* Red for value */
+        }
+
+        .check-icon {
+            color: #059669; /* Green check */
+            min-width: 20px;
+        }
+
+        .total-value-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 20px;
+            border-top: 2px solid #000;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        .total-value-label {
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .total-value-amount {
+            font-weight: 900;
+            text-decoration: line-through;
+            color: #6B7280;
+        }
+
+
+        /* RIGHT SIDE - THE OFFER */
+        .offer-column {
+            flex: 0.8;
+            padding: 40px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+        }
+        
+        .limited-time-badge {
+            background: #FEE2E2;
+            color: #991B1B;
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 99px;
+            display: inline-block;
+            margin: 0 auto 15px;
+            letter-spacing: 0.5px;
+        }
+
+        .price-area {
+            margin-bottom: 25px;
+        }
+
+        .price-label {
+            font-size: 14px;
+            color: #6B7280;
+            margin-bottom: 5px;
             font-weight: 600;
         }
 
-        .feature-item p {
-            margin: 0;
-            font-size: 14px;
-            color: var(--text-sub);
-            line-height: 1.5;
+        .price-main {
+            font-size: 60px;
+            font-weight: 900;
+            color: #111;
+            line-height: 1;
+            letter-spacing: -2px;
         }
-
-        /* Right Column - Checkout */
-        .checkout-card {
-            background: var(--surface);
-            border-radius: 16px;
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            position: sticky;
-            top: 40px;
-            border: 1px solid var(--border);
-        }
-
-        .card-header {
-            padding: 32px;
-            background: #ffffff;
-            border-bottom: 1px solid #f0f0f0;
-            text-align: center;
-        }
-
-        .plan-price {
-            font-size: 48px;
-            font-weight: 800;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin: 16px 0;
-        }
-        .plan-price span {
+        
+        .price-period {
             font-size: 16px;
+            color: #6B7280;
             font-weight: 500;
-            color: var(--text-sub);
-        }
-
-        .card-body {
-            padding: 32px;
-            background: #fafbfb;
-        }
-
-        .benefit-list {
-            margin-bottom: 32px;
-        }
-
-        .benefit-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 16px;
-            font-size: 15px;
-            color: #374151;
-        }
-        .check {
-            color: var(--primary);
-            width: 20px;
-            height: 20px;
         }
 
         .cta-button {
-            display: block;
-            width: 100%;
-            padding: 18px;
-            background: var(--primary);
-            color: white;
+            background: #F59E0B; /* Orange */
+            background: linear-gradient(to bottom, #FBBF24, #D97706);
+            color: #fff;
+            font-size: 20px;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 20px 15px;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            border-radius: 6px;
             cursor: pointer;
-            transition: all 0.2s;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            width: 100%;
+            box-shadow: 0 4px 0 #92400E;
+            transition: transform 0.1s, box-shadow 0.1s;
+            margin-bottom: 15px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            line-height: 1.2;
         }
+
         .cta-button:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 128, 96, 0.2);
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #92400E;
+            filter: brightness(1.1);
         }
-        .cta-button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
+
+        .cta-button:active {
+            transform: translateY(4px);
             box-shadow: none;
+        }
+        
+        .cta-subtext {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            font-weight: 500;
         }
 
         .guarantee {
-            text-align: center;
-            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 25px;
             font-size: 13px;
-            color: var(--text-sub);
+            color: #4B5563;
+            font-weight: 500;
         }
         
-        .error-box {
-            background: #FFF5F5;
-            border: 1px solid #FED7D7;
-            color: #C53030;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 24px;
-            font-size: 14px;
-            display: flex;
-            gap: 12px;
-            align-items: center;
+        .guarantee img {
+            width: 24px;
+            height: 24px;
+        }
+        
+        .error-message {
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            color: #991B1B;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            text-align: left;
         }
 
-        @media (max-width: 850px) {
-            .container { grid-template-columns: 1fr; gap: 32px; }
-            .checkout-card { max-width: 500px; margin: 0 auto; }
-            h1 { font-size: 32px; }
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Value Prop -->
-        <div class="brand-section">
-            <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="back-link">← Back to Dashboard</a>
-            
-            <div>
-                <span class="badge">Inventory Intelligence</span>
-                <h1>Stop Guessing.<br>Start Optimizing.</h1>
-                <p class="subtitle">Join 500+ merchants using data to cut dead stock and predict sales. Automate your inventory decisions today.</p>
+        <!-- THE STACK -->
+        <div class="stack-column">
+            <h1>Get The "Inventory Intelligence" System</h1>
+            <p class="sub-headline">Maximize profit by predicting demand & eliminating dead stock.</p>
+
+            <div class="stack-list">
+                <div class="stack-item">
+                    <div class="stack-name">
+                        <span class="check-icon">✓</span>
+                        Inventory Intelligence Dashboard
+                    </div>
+                    <div class="stack-value">$497/yr value</div>
+                </div>
+                <div class="stack-item">
+                    <div class="stack-name">
+                        <span class="check-icon">✓</span>
+                        Smart Reorder Recommendations
+                    </div>
+                    <div class="stack-value">$297/yr value</div>
+                </div>
+                <div class="stack-item">
+                    <div class="stack-name">
+                        <span class="check-icon">✓</span>
+                        Dead Stock Alerts (Stop Bleeding Cash)
+                    </div>
+                    <div class="stack-value">$197/yr value</div>
+                </div>
+                <div class="stack-item">
+                    <div class="stack-name">
+                        <span class="check-icon">✓</span>
+                        30-Day Sales AI Forecasting
+                    </div>
+                    <div class="stack-value">$997/yr value</div>
+                </div>
+                <div class="stack-item">
+                    <div class="stack-name">
+                        <span class="check-icon">✓</span>
+                        <strong>BONUS:</strong> Priority Email Support
+                    </div>
+                    <div class="stack-value">$197/yr value</div>
+                </div>
             </div>
 
-            <div class="features-grid">
-                <div class="feature-item">
-                    <span class="feature-icon">🚀</span>
-                    <h3>Smart Forecasting</h3>
-                    <p>Predict inventory needs 30 days out based on real sales velocity.</p>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">🛡️</span>
-                    <h3>Dead Stock Protection</h3>
-                    <p>Identify slow-moving items instantly to free up trapped capital.</p>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">🔔</span>
-                    <h3>Low Stock Alerts</h3>
-                    <p>Get notified before you run out of your best sellers.</p>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">📊</span>
-                    <h3>Profit Analytics</h3>
-                    <p>See true item-level profitability including storage costs.</p>
-                </div>
+            <div class="total-value-row">
+                <span class="total-value-label">Total Value:</span>
+                <span class="total-value-amount">$2,185/year</span>
             </div>
         </div>
 
-        <!-- Checkout -->
-        <div class="checkout-card">
-            <div class="card-header">
-                <div style="font-weight: 600; color: var(--text-sub); letter-spacing: 1px; text-transform: uppercase; font-size: 12px;">{{ plan_name }} Plan</div>
-                <div class="plan-price">${{ price }}<span>/mo</span></div>
-                <div style="font-size: 14px; color: var(--primary); font-weight: 500; background: #e3fcef; display: inline-block; padding: 4px 12px; border-radius: 12px;">7-Day Free Trial</div>
+        <!-- THE OFFER -->
+        <div class="offer-column">
+            <div class="limited-time-badge">Limited Time Offer</div>
+            
+            <div class="price-area">
+                <div class="price-label">Get Full Access Today For Just</div>
+                <div class="price-main">$99</div>
+                <div class="price-period">per month</div>
             </div>
 
-            <div class="card-body">
-                {% if error %}
-                <div class="error-box">
-                    <svg style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    <div>{{ error }}</div>
+            {% if error %}
+            <div class="error-message">
+                <strong>Wait!</strong> {{ error }}
+            </div>
+            {% endif %}
+
+            <form id="subscribe-form" method="POST" action="/billing/create-charge">
+                <input type="hidden" name="shop" value="{{ shop }}">
+                <input type="hidden" name="host" value="{{ host }}">
+                <input type="hidden" name="plan" value="{{ plan }}">
+                
+                <button type="submit" class="cta-button" id="subscribe-btn" {% if not has_store %}disabled{% endif %}>
+                    {% if not has_store %}
+                        Connect Store First
+                    {% else %}
+                        Start My 7-Day Free Trial >>
+                    {% endif %}
+                </button>
+                <div class="cta-subtext">No risk. Cancel anytime within 7 days.</div>
+                
+                {% if not has_store %}
+                <div style="margin-top: 15px;">
+                    <a href="/settings/shopify?shop={{ shop }}&host={{ host }}" style="color: #2C6ECB; font-weight: 600; text-decoration: none;">Connect Shopify Store First -></a>
                 </div>
                 {% endif %}
+            </form>
 
-                <div class="benefit-list">
-                    {% for feature in features %}
-                    <div class="benefit-item">
-                        <svg class="check" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                        <span>{{ feature }}</span>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <form id="subscribe-form" method="POST" action="/billing/create-charge">
-                    <input type="hidden" name="shop" value="{{ shop }}">
-                    <input type="hidden" name="host" value="{{ host }}">
-                    <input type="hidden" name="plan" value="{{ plan }}">
-                    
-                    <button type="submit" class="cta-button" id="subscribe-btn" {% if not has_store %}disabled{% endif %}>
-                        {% if not has_store %}
-                            Connect Store First
-                        {% else %}
-                            Start Free Trial
-                        {% endif %}
-                    </button>
-                    
-                    {% if not has_store %}
-                    <div style="text-align: center; margin-top: 16px;">
-                        <a href="/settings/shopify?shop={{ shop }}&host={{ host }}" style="font-size: 14px; color: var(--primary); text-decoration: none; font-weight: 600;">Connect Shopify Store &rarr;</a>
-                    </div>
-                    {% endif %}
-                </form>
-
-                <p class="guarantee">No charge until trial ends. Cancel anytime.</p>
+            <div class="guarantee">
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>30-Day Money Back Guarantee</span>
             </div>
         </div>
     </div>
@@ -412,8 +427,10 @@ SUBSCRIBE_HTML = '''
         document.getElementById('subscribe-form').addEventListener('submit', function(e) {
             var btn = document.getElementById('subscribe-btn');
             btn.disabled = true;
-            btn.style.opacity = '0.7';
-            btn.innerHTML = 'Processing...';
+            btn.style.opacity = '0.8';
+            btn.innerHTML = 'Creating Account...';
+            btn.style.transform = 'translateY(0)';
+            btn.style.boxShadow = 'none';
         });
     </script>
 </body>
