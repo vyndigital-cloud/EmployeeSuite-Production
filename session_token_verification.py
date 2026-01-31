@@ -61,11 +61,25 @@ def verify_session_token(f):
                     logger.warning(f"Invalid destination in session token: {dest}")
                     return jsonify({'error': 'Invalid token destination'}), 401
                 
-                # Store verified shop domain in request context
                 request.shop_domain = dest.replace('https://', '').split('/')[0]
                 request.session_token_verified = True
                 
                 logger.debug(f"Session token verified for shop: {request.shop_domain}")
+                
+                # Auto-login user for embedded app
+                try:
+                    from models import ShopifyStore, User
+                    from flask_login import login_user
+                    
+                    # Find store by domain
+                    store = ShopifyStore.query.filter_by(shop_url=request.shop_domain, is_active=True).first()
+                    if store and store.user_id:
+                        user = User.query.get(store.user_id)
+                        if user and user.has_access():
+                            login_user(user)
+                            logger.debug(f"Auto-logged in user {user.id} for shop {request.shop_domain}")
+                except Exception as e:
+                    logger.error(f"Error auto-logging in user: {e}")
                 
             except jwt.ExpiredSignatureError:
                 logger.warning("Expired session token")

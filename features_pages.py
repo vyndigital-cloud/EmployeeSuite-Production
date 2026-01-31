@@ -9,6 +9,7 @@ from flask import Blueprint, render_template_string, request, current_app
 from flask_login import login_required, current_user
 from access_control import require_access
 from models import ShopifyStore
+from app_bridge_integration import get_app_bridge_script
 
 features_pages_bp = Blueprint('features', __name__)
 
@@ -235,7 +236,12 @@ def welcome():
     """Welcome page showcasing all new features"""
     shop = request.args.get('shop', '')
     host = request.args.get('host', '')
-    return render_template_string(WELCOME_HTML, shop=shop, host=host)
+    
+    # Inject App Bridge script
+    app_bridge_script = get_app_bridge_script()
+    final_html = WELCOME_HTML.replace('</head>', f'{app_bridge_script}</head>')
+    
+    return render_template_string(final_html, shop=shop, host=host)
 
 @features_pages_bp.route('/features/csv-exports')
 @login_required
@@ -514,7 +520,13 @@ def csv_exports_page():
     </body>
     </html>
     '''
-    return render_template_string(HTML, shop=shop, host=host, has_store=has_store)
+
+    
+    # Inject App Bridge script
+    app_bridge_script = get_app_bridge_script()
+    final_html = HTML.replace('</head>', f'{app_bridge_script}</head>')
+    
+    return render_template_string(final_html, shop=shop, host=host, has_store=has_store)
 
 @features_pages_bp.route('/features/scheduled-reports')
 @login_required
@@ -836,7 +848,13 @@ def scheduled_reports_page():
     </body>
     </html>
     '''
-    return render_template_string(HTML, shop=shop, host=host)
+
+    
+    # Inject App Bridge script
+    app_bridge_script = get_app_bridge_script()
+    final_html = HTML.replace('</head>', f'{app_bridge_script}</head>')
+    
+    return render_template_string(final_html, shop=shop, host=host)
 
 @features_pages_bp.route('/features/dashboard')
 @login_required
@@ -1047,5 +1065,11 @@ def comprehensive_dashboard_page():
     </body>
     </html>
     '''
-    return render_template_string(HTML, shop=shop, host=host)
+
+    
+    # Inject App Bridge script
+    app_bridge_script = get_app_bridge_script()
+    final_html = HTML.replace('</head>', f'{app_bridge_script}</head>')
+    
+    return render_template_string(final_html, shop=shop, host=host)
 
