@@ -3358,269 +3358,137 @@ def dashboard():
     host = request.args.get('host')
     is_embedded = request.args.get('embedded') == '1' or shop or host or is_from_shopify_admin
     
-    # CRITICAL: If embedded but no shop param, try to extract from Referer
-    if is_embedded and not shop and is_from_shopify_admin:
+    # CRITICAL: Extract shop and host from Referer if missing (matches home logic)
+    if not shop and referer:
         try:
             from urllib.parse import urlparse, parse_qs
             parsed = urlparse(referer)
-            # Try extracting from netloc (e.g., employee-suite.myshopify.com)
-            if 'myshopify.com' in parsed.netloc:
-                shop = parsed.netloc.split('.')[0] + '.myshopify.com'
-                logger.info(f"Extracted shop from Referer netloc: {shop}")
-            # Try extracting from path (e.g., /store/employee-suite/...)
-            elif '/store/' in parsed.path:
+            
+            # Case 1: Direct link from admin
+            if 'admin.shopify.com' in parsed.netloc and '/store/' in parsed.path:
                 shop_name = parsed.path.split('/store/')[1].split('/')[0]
                 shop = f"{shop_name}.myshopify.com"
-                logger.info(f"Extracted shop from Referer path: {shop}")
-            # Try extracting from query params in Referer
+                logger.info(f"Extracted shop from Referer netloc: {shop}")
+            # Case 2: Query params in Referer
             elif parsed.query:
-                query_params = parse_qs(parsed.query)
-                if 'shop' in query_params:
-                    shop = query_params['shop'][0]
+                qs = parse_qs(parsed.query)
+                if 'shop' in qs:
+                    shop = qs['shop'][0]
                     logger.info(f"Extracted shop from Referer query: {shop}")
+                if 'host' in qs and not host:
+                    host = qs['host'][0]
         except Exception as e:
             logger.warning(f"Failed to extract shop from Referer: {e}")
             pass
-    
-    
-    # CRITICAL: For embedded apps without shop, show install message
-    # But don't redirect - just show a helpful message
-    if is_embedded and not shop:
-        logger.warning(f"Embedded app request but no shop param found - showing install message")
-        # Can't redirect to OAuth without shop, show install message
-        # render_template_string is already imported at top of file
-        return render_template_string("""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Install Required - Employee Suite</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f6f6f7; padding: 20px; }
-                .container { text-align: center; max-width: 500px; }
-                h1 { font-size: 20px; font-weight: 600; color: #202223; margin-bottom: 16px; }
-                p { font-size: 14px; color: #6d7175; line-height: 1.6; }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>Installation Required</h1>
-                <p>Please install Employee Suite from your Shopify admin panel to continue.</p>
-            </div>
-        </body>
-        </html>
-        """), 400
+            
+    # Normalize shop
+    if shop and not shop.endswith('.myshopify.com') and '.' not in shop:
+        shop = f"{shop}.myshopify.com"
     
     # For embedded apps, allow access without strict auth (App Bridge handles it)
-    # For regular requests without auth, redirect to home (which handles auth properly)
     if not is_embedded and not current_user.is_authenticated:
-        # Redirect to home instead of login - home route handles both embedded and standalone properly
         return redirect(url_for('home'))
-    
-    # If embedded but no session/store found, redirect to OAuth (Shopify's embedded auth flow)
-    if is_embedded and shop and not current_user.is_authenticated:
-        from models import ShopifyStore, db
-        store = None
-        # Check if store exists and is connected
-        try:
-            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
-        except Exception:
-            try:
-                db.session.rollback()
-            except Exception:
-                pass
         
-        # If no active store found or store is not connected, redirect to OAuth install flow
-        # CRITICAL: Use App Bridge redirect to avoid "accounts.shopify.com refused to connect" error
-        if not store or not store.is_connected():
-            logger.info(f"Embedded app - no active store found for {shop}, redirecting to OAuth via App Bridge")
-            from urllib.parse import quote
-            install_url = f"/install?shop={quote(shop)}" + (f"&host={quote(host)}" if host else "")
-            # Render HTML page that uses App Bridge to redirect in top-level window
-            return render_template_string(f"""<!DOCTYPE html>
+    # Check if user has connected Shopify
+    from models import ShopifyStore
+    store = None
+    has_shopify = False
+    user_authenticated = False
+    
+    # Try to authenticate via cookie
+    try:
+        user_authenticated = current_user.is_authenticated if hasattr(current_user, 'is_authenticated') else False
+    except Exception:
+        pass
+        
+    # Find store
+    try:
+        if user_authenticated:
+            store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+        elif shop:
+            # Fallback for embedded: query by shop_url
+            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            
+        if store:
+            has_shopify = True
+    except Exception:
+        try:
+            db.session.rollback()
+        except:
+            pass
+        store = None
+        
+    # If embedded but no store found, show install message (or redirect to OAuth if we have shop)
+    if is_embedded and not has_shopify:
+        if shop:
+             # Redirect to OAuth
+             logger.info(f"Embedded app - no active store found for {shop}, redirecting to OAuth")
+             from urllib.parse import quote
+             install_url = f"/install?shop={quote(shop)}" + (f"&host={quote(host)}" if host else "")
+             return render_template_string(f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <title>Connecting Store - Employee Suite</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <script>
-(function() {{
-            var host = '{host or ''}';
-            var apiKey = '{os.getenv("SHOPIFY_API_KEY", "")}';
-            var installUrl = '{install_url}';
-            var attempts = 0;
-            var maxAttempts = 100;
-            
-            function redirectToOAuth() {{
-                attempts++;
-
-                // App Bridge v4: window.shopify is available
-                if (window.shopify) {{
-                    window.open(installUrl, '_top');
-                    return;
-                }}
-
-                // App Bridge v3 fallback
-                var AppBridge = window['app-bridge'] || window['ShopifyAppBridge'];
-                if (AppBridge && host && apiKey && AppBridge.default && AppBridge.actions && AppBridge.actions.Redirect) {{
-                    try {{
-                        var app = AppBridge.default({{ apiKey: apiKey, host: host }});
-                        var Redirect = AppBridge.actions.Redirect;
-                        var redirect = Redirect.create(app);
-                        redirect.dispatch(Redirect.Action.REMOTE, installUrl);
-                        return;
-                    }} catch (e) {{
-                        console.error('App Bridge redirect error:', e);
-                    }}
-                }}
-
-                // Retry or show fallback button
-                if (attempts < maxAttempts) {{
-                    setTimeout(redirectToOAuth, 100);
-                }} else {{
-                    console.warn('⚠️ App Bridge not available, showing button with target="_top"');
-                    // CRITICAL: Never use programmatic redirects - show button with target="_top" instead
-                    // This prevents "accounts.shopify.com refused to connect" error
-                    // Use string concatenation to build HTML (not template literals to avoid f-string conflicts)
-                    var html = '<div style="padding: 40px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, \\'Segoe UI\\', Roboto, sans-serif; background: #fff; border-radius: 8px; max-width: 500px; margin: 40px auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">';
-                    html += '<h2 style="color: #202223; margin-bottom: 16px; font-size: 20px;">Connect Your Shopify Store</h2>';
-                    html += '<p style="color: #6d7175; margin-bottom: 24px; line-height: 1.5;">Click the button below to authorize the connection. This will open in the top-level window.</p>';
-                    html += '<a href="' + installUrl + '" target="_top" style="display: inline-block; background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px; transition: background 0.2s;">Continue to Shopify Authorization →</a>';
-                    html += '</div>';
-                    document.body.innerHTML = html;
-                }}
-            }}
-            
-            // Start redirect attempt
-            redirectToOAuth();
-        }})();
+        // Use top-level redirect for OAuth
+        window.top.location.href = "{install_url}";
     </script>
-    <style>
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            background: #f6f6f7;
-        }}
-        .container {{
-            text-align: center;
-            padding: 40px 24px;
-        }}
-        .spinner {{
-            width: 24px;
-            height: 24px;
-            border: 2px solid #e1e3e5;
-            border-top: 2px solid #008060;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 24px;
-        }}
-        @keyframes spin {{
-            to {{ transform: rotate(360deg); }}
-        }}
-        .title {{
-            font-size: 18px;
-            font-weight: 600;
-            color: #202223;
-            margin-bottom: 8px;
-        }}
-        .message {{
-            font-size: 14px;
-            color: #6d7175;
-        }}
-    </style>
 </head>
 <body>
-    <div class="container">
-        <div class="spinner"></div>
-        <div class="title">Connecting to Shopify</div>
-        <div class="message">Redirecting you to authorize the connection...</div>
-    </div>
+    <div style="padding: 20px; text-align: center;">Redirecting to installation...</div>
 </body>
 </html>""")
+        else:
+            return render_template_string("""
+            <!DOCTYPE html>
+            <html>
+            <head><title>Install Required</title></head>
+            <body>
+                <div style="text-align: center; padding: 40px;">
+                    <h1>Installation Required</h1>
+                    <p>Please install Employee Suite from your Shopify admin panel.</p>
+                </div>
+            </body>
+            </html>"""), 400
+
+    # User Properties
+    has_access = False
+    trial_active = False
+    days_left = 0
+    is_subscribed = False
     
-    # render_template_string is already imported at top of file - DO NOT import locally
-    
-    # For embedded requests, always render - never redirect
-    # This prevents iframe breaking
-    """Dashboard - accessible to all authenticated users, shows subscribe prompt if no access"""
-    
-    # Handle case where user might not be authenticated (for embedded apps)
-    # CRITICAL: Check authentication safely - current_user might not be loaded yet
-    try:
-        user_authenticated = current_user.is_authenticated if hasattr(current_user, 'is_authenticated') else False
-    except Exception:
-        user_authenticated = False
-    
+    # If authenticated, use user object
     if user_authenticated:
         try:
             has_access = current_user.has_access()
             trial_active = current_user.is_trial_active()
             days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
             is_subscribed = current_user.is_subscribed
-        except Exception as e:
-            logger.error(f"Error accessing user properties: {e}", exc_info=True)
-            has_access = False
-            trial_active = False
-            days_left = 0
-            is_subscribed = False
-    else:
-        # Embedded app without auth - show limited view
-        has_access = False
-        trial_active = False
-        days_left = 0
-        is_subscribed = False
-    
-    # Check if user has connected Shopify - OPTIMIZED: Single query instead of multiple
-    from models import ShopifyStore
-    store = None
-    has_shopify = False
-    shop_domain = shop or ''
-    
-    # OPTIMIZED: Single database query to get store (reduces from 3-4 queries to 1)
-    try:
-        if user_authenticated:
-            # Query by user_id first (most common case)
-            store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
-        elif shop:
-            # Fallback: query by shop_url for embedded apps
-            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
-        
-        if store:
-            has_shopify = True
-            shop_domain = store.shop_url if hasattr(store, 'shop_url') and store.shop_url else shop_domain
-    except BaseException as e:
-        # CRITICAL: Only rollback on exception, DO NOT call db.session.remove() - it can cause segfaults
-        try:
-            db.session.rollback()
-        except Exception:
+        except:
             pass
-        # DO NOT call db.session.remove() here - it corrupts connection state and causes segfaults
-        store = None
-        has_shopify = False
+    # If embedded + connected store, assume access for shell (App Bridge will verify via session token APIs)
+    elif is_embedded and has_shopify and store:
+        # We trust the shop param + store existence for the SHELL
+        # The data is protected by tokens
+        # We need to find the user associated with this store to get subscription status
+        if store.user:
+            try:
+                u = store.user
+                has_access = u.has_access()
+                trial_active = u.is_trial_active()
+                days_left = (u.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+                is_subscribed = u.is_subscribed
+            except:
+                pass
     
-    # Skip slow API calls on dashboard load - just show empty stats
-    # This prevents the page from hanging while waiting for Shopify API
-    # Users can click buttons to load data when they need it
+    # View Data
     quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
-    
-    # Store shop in session for API calls (if shop parameter is present)
-    if shop_domain:
-        from flask import session
-        session['current_shop'] = shop_domain
-        session.permanent = True
-        logger.info(f"Stored shop in session: {shop_domain} for user {current_user.id if user_authenticated else 'anonymous'}")
-    
-    # CRITICAL: Pass host parameter to template for App Bridge initialization
-    host_param = request.args.get('host', '')
-    shop_param = shop_domain or shop or request.args.get('shop', '')
-    
-    
+    shop_domain = shop or (store.shop_url if store else '')
+    host_param = host or request.args.get('host', '')
     APP_URL = os.getenv('APP_URL', request.url_root.rstrip('/'))
+    
     return render_template_string(DASHBOARD_HTML, 
                                  trial_active=trial_active, 
                                  days_left=days_left, 
@@ -3628,7 +3496,7 @@ def dashboard():
                                  has_shopify=has_shopify, 
                                  has_access=has_access,
                                  quick_stats=quick_stats,
-                                 shop=shop_param,
+                                 shop=shop_domain,
                                  shop_domain=shop_domain,
                                  SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
                                  APP_URL=APP_URL,
