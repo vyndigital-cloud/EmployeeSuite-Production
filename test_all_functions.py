@@ -122,7 +122,6 @@ def main():
         ('shopify_oauth', 'Shopify OAuth'),
         ('shopify_routes', 'Shopify routes'),
         ('shopify_integration', 'Shopify integration'),
-        ('shopify_billing', 'Shopify billing'),
         ('webhook_stripe', 'Stripe webhooks'),
         ('webhook_shopify', 'Shopify webhooks'),
         ('admin_routes', 'Admin routes'),

@@ -66,7 +66,12 @@ def customers_data_request():
         if not data:
             return jsonify({'error': 'Invalid JSON payload'}), 400
         
-        shop_domain = request.headers.get('X-Shopify-Shop-Domain')
+        shop_domain = request.headers.get('X-Shopify-Shop-Domain', '')
+        if shop_domain:
+            shop_domain = shop_domain.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+            if not shop_domain.endswith('.myshopify.com') and '.' not in shop_domain:
+                shop_domain = f"{shop_domain}.myshopify.com"
+
         customer_id = data.get('customer', {}).get('id')
         
         logger.info(f"GDPR data request for customer {customer_id} from shop {shop_domain}")
@@ -133,7 +138,12 @@ def customers_redact():
         if not data:
             return jsonify({'error': 'Invalid JSON payload'}), 400
         
-        shop_domain = request.headers.get('X-Shopify-Shop-Domain')
+        shop_domain = request.headers.get('X-Shopify-Shop-Domain', '')
+        if shop_domain:
+            shop_domain = shop_domain.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+            if not shop_domain.endswith('.myshopify.com') and '.' not in shop_domain:
+                shop_domain = f"{shop_domain}.myshopify.com"
+
         customer_id = data.get('customer', {}).get('id')
         email = data.get('customer', {}).get('email')
         
@@ -195,7 +205,12 @@ def shop_redact():
         if not data:
             return jsonify({'error': 'Invalid JSON payload'}), 400
         
-        shop_domain = request.headers.get('X-Shopify-Shop-Domain')
+        shop_domain = request.headers.get('X-Shopify-Shop-Domain', '')
+        if shop_domain:
+            shop_domain = shop_domain.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+            if not shop_domain.endswith('.myshopify.com') and '.' not in shop_domain:
+                shop_domain = f"{shop_domain}.myshopify.com"
+
         
         logger.info(f"GDPR shop deletion request for shop {shop_domain}")
         

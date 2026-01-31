@@ -100,7 +100,6 @@ from webhook_shopify import webhook_shopify_bp
 from gdpr_compliance import gdpr_bp
 # Enhanced features
 from enhanced_features import enhanced_bp
-from enhanced_billing import enhanced_billing_bp
 from features_pages import features_pages_bp
 from session_token_verification import verify_session_token, get_shop_from_session_token
 from order_processing import process_orders
@@ -534,7 +533,6 @@ app.register_blueprint(webhook_shopify_bp)
 app.register_blueprint(gdpr_bp)
 # Enhanced features blueprints
 app.register_blueprint(enhanced_bp)
-app.register_blueprint(enhanced_billing_bp)
 app.register_blueprint(features_pages_bp)
 app.register_blueprint(analytics_bp)
 
@@ -3055,9 +3053,12 @@ def home():
         except Exception as e:
             logger.warning(f"Failed to parse shop from Referer: {e}")
             
-    # Normalize shop
-    if shop and not shop.endswith('.myshopify.com') and '.' not in shop:
-        shop = f"{shop}.myshopify.com"
+    # Normalize shop domain - professional consistent normalization
+    if shop:
+        shop = shop.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+        if not shop.endswith('.myshopify.com') and '.' not in shop:
+            shop = f"{shop}.myshopify.com"
+
     
     # CRITICAL: For embedded apps, ALWAYS render dashboard - NEVER redirect
     # Redirects break iframes. Just render the dashboard HTML.
@@ -3381,9 +3382,12 @@ def dashboard():
             logger.warning(f"Failed to extract shop from Referer: {e}")
             pass
             
-    # Normalize shop
-    if shop and not shop.endswith('.myshopify.com') and '.' not in shop:
-        shop = f"{shop}.myshopify.com"
+    # Normalize shop domain - professional consistent normalization
+    if shop:
+        shop = shop.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+        if not shop.endswith('.myshopify.com') and '.' not in shop:
+            shop = f"{shop}.myshopify.com"
+
     
     # For embedded apps, allow access without strict auth (App Bridge handles it)
     if not is_embedded and not current_user.is_authenticated:
@@ -3420,6 +3424,7 @@ def dashboard():
         
     # If embedded but no store found, show install message (or redirect to OAuth if we have shop)
     if is_embedded and not has_shopify:
+        logger.warning(f"Dashboard: Embedded app but check failed - shop: {shop}, has_shopify: {has_shopify}, user_auth: {user_authenticated}") 
         if shop:
              # Redirect to OAuth
              logger.info(f"Embedded app - no active store found for {shop}, redirecting to OAuth")

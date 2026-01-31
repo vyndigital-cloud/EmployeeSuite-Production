@@ -6,6 +6,7 @@ Bypasses REST API restrictions on protected customer data
 import requests
 import logging
 from typing import Dict, List, Optional, Any
+from config import SHOPIFY_API_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ class ShopifyGraphQLClient:
         """
         self.shop_url = shop_url.replace('https://', '').replace('http://', '')
         self.access_token = access_token
-        self.api_version = '2025-10'
+        self.api_version = SHOPIFY_API_VERSION
         self.endpoint = f"https://{self.shop_url}/admin/api/{self.api_version}/graphql.json"
         
     def execute_query(self, query: str, variables: Optional[Dict] = None) -> Dict[str, Any]:

@@ -98,7 +98,6 @@ def init_shopify(app):
     from gdpr_compliance import gdpr_bp
     # Enhanced features
     from enhanced_features import enhanced_bp
-    from enhanced_billing import enhanced_billing_bp
     from features_pages import features_pages_bp
     from session_token_verification import verify_session_token
     from order_processing import process_orders

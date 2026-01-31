@@ -16,11 +16,11 @@ PLAN_BUSINESS = 'business' # $99/month - Automation, unlimited stores, priority 
 PLAN_MANUAL = PLAN_PRO
 PLAN_AUTOMATED = PLAN_BUSINESS
 
-# Plan Pricing
+# Plan Pricing (Updated for Production: $99 and $297)
 PLAN_PRICES = {
     PLAN_FREE: 0.00,
-    PLAN_PRO: 29.00,
-    PLAN_BUSINESS: 99.00,
+    PLAN_PRO: 99.00,
+    PLAN_BUSINESS: 297.00,
 }
 
 # Plan Features
@@ -39,8 +39,8 @@ PLAN_FEATURES = {
         'api_access': False,
     },
     PLAN_PRO: {
-        'name': 'Pro',
-        'price': 29,
+        'name': 'Growth',
+        'price': 99,
         'stores_limit': 3,
         'data_days': 90,
         'csv_exports': True,
@@ -52,8 +52,8 @@ PLAN_FEATURES = {
         'api_access': False,
     },
     PLAN_BUSINESS: {
-        'name': 'Business',
-        'price': 99,
+        'name': 'Scale',
+        'price': 297,
         'stores_limit': -1,  # Unlimited
         'data_days': -1,     # Unlimited
         'csv_exports': True,

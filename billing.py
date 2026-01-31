@@ -13,7 +13,7 @@ from logging_config import logger
 billing_bp = Blueprint('billing', __name__)
 
 # Shopify Billing API configuration
-SHOPIFY_API_VERSION = '2025-10'
+from config import SHOPIFY_API_VERSION
 APP_URL = os.getenv('SHOPIFY_APP_URL', 'https://employeesuite-production.onrender.com')
 
 def safe_redirect(url, shop=None, host=None):
@@ -49,7 +49,7 @@ def safe_redirect(url, shop=None, host=None):
     else:
         return redirect(url)
 
-# Plan configuration
+# Plan configuration (Production Prices: $99 and $297)
 PLANS = {
     'pro': {'name': 'Growth', 'price': 99.00, 'features': [
         'Inventory Intelligence Dashboard',
@@ -448,8 +448,8 @@ def create_recurring_charge(shop_url, access_token, return_url, plan_type='pro')
         test_mode = os.getenv('SHOPIFY_BILLING_TEST', 'false').lower() == 'true' or is_dev_store
         
         mutation = """
-        mutation AppSubscriptionCreate($name: String!, $lineItems: [AppSubscriptionLineItemInput!]!, $returnUrl: URL!, $test: Boolean) {
-            appSubscriptionCreate(name: $name, returnUrl: $returnUrl, lineItems: $lineItems, test: $test) {
+        mutation AppSubscriptionCreate($name: String!, $lineItems: [AppSubscriptionLineItemInput!]!, $returnUrl: URL!, $test: Boolean, $trialDays: Int) {
+            appSubscriptionCreate(name: $name, returnUrl: $returnUrl, lineItems: $lineItems, test: $test, trialDays: $trialDays) {
                 appSubscription {
                     id
                     status
@@ -467,6 +467,7 @@ def create_recurring_charge(shop_url, access_token, return_url, plan_type='pro')
             "name": f"Employee Suite {plan['name']}",
             "returnUrl": return_url,
             "test": test_mode,
+            "trialDays": 7,  # Standard 7-day free trial
             "lineItems": [{
                 "plan": {
                     "appRecurringPricingDetails": {
@@ -495,7 +496,6 @@ def create_recurring_charge(shop_url, access_token, return_url, plan_type='pro')
             logger.error(f"GraphQL Billing error: {error_msg}")
             return {'success': False, 'error': error_msg}
             
-        subscription = data.get('appSubscription', {})
         subscription = data.get('appSubscription', {})
         # Extract numeric ID from GID if possible for backward compatibility, 
         # but technically should store GID. The DB probably handles string.
@@ -574,11 +574,68 @@ def get_charge_status(shop_url, access_token, charge_id):
         return {'success': False, 'error': str(e)}
 
 
+def cancel_app_subscription(shop_url, access_token, charge_id):
+    """Cancel a recurring application charge using GraphQL"""
+    try:
+        from shopify_graphql import ShopifyGraphQLClient
+        client = ShopifyGraphQLClient(shop_url, access_token)
+        
+        from shopify_utils import format_gid, parse_gid
+        numeric_id = parse_gid(charge_id)
+        if not numeric_id:
+            return {'success': False, 'error': 'Invalid charge ID'}
+            
+        gid = format_gid(numeric_id, 'AppSubscription')
+        
+        mutation = """
+        mutation appSubscriptionCancel($id: ID!) {
+          appSubscriptionCancel(id: $id) {
+            appSubscription {
+              id
+              status
+            }
+            userErrors {
+              field
+              message
+            }
+          }
+        }
+        """
+        
+        variables = {"id": gid}
+        logger.info(f"Cancelling subscription {gid} for {shop_url}")
+        
+        result = client.execute_query(mutation, variables)
+        
+        if 'error' in result:
+            return {'success': False, 'error': result['error']}
+            
+        data = result.get('appSubscriptionCancel', {})
+        user_errors = data.get('userErrors', [])
+        
+        if user_errors:
+            error_msg = "; ".join([e['message'] for e in user_errors])
+            logger.error(f"GraphQL Cancel error: {error_msg}")
+            return {'success': False, 'error': error_msg}
+            
+        return {'success': True}
+        
+    except Exception as e:
+        logger.error(f"Failed to cancel Shopify subscription (GraphQL): {e}")
+        return {'success': False, 'error': str(e)}
+
+
 @billing_bp.route('/subscribe')
 def subscribe():
     """Subscribe page - uses Shopify Billing API"""
     shop = request.args.get('shop', '')
+    if shop:
+        shop = shop.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+        if not shop.endswith('.myshopify.com') and '.' not in shop:
+            shop = f"{shop}.myshopify.com"
+            
     host = request.args.get('host', '')
+
     plan_type = request.args.get('plan', 'pro')
 
     # Validate plan type
@@ -635,7 +692,13 @@ def subscribe():
 def create_charge():
     """Create a Shopify recurring charge"""
     shop = request.form.get('shop') or request.args.get('shop', '')
+    if shop:
+        shop = shop.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+        if not shop.endswith('.myshopify.com') and '.' not in shop:
+            shop = f"{shop}.myshopify.com"
+            
     host = request.form.get('host') or request.args.get('host', '')
+
     plan_type = request.form.get('plan') or request.args.get('plan', 'pro')
 
     # Find user
@@ -715,7 +778,13 @@ def confirm_charge():
     from enhanced_models import SubscriptionPlan, PLAN_PRICES
 
     shop = request.args.get('shop', '')
+    if shop:
+        shop = shop.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+        if not shop.endswith('.myshopify.com') and '.' not in shop:
+            shop = f"{shop}.myshopify.com"
+            
     host = request.args.get('host', '')
+
     charge_id = request.args.get('charge_id')
     plan_type = request.args.get('plan', 'pro')
 
@@ -895,265 +964,15 @@ def cancel_subscription():
         return safe_redirect(settings_url, shop=shop, host=host)
 
 
-@billing_bp.route('/pricing')
-def pricing_page():
-    """Pricing page showing all plans"""
-    shop = request.args.get('shop', '')
-    host = request.args.get('host', '')
-
-    return render_template_string(PRICING_HTML, shop=shop, host=host)
 
 
-PRICING_HTML = '''
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Pricing - Employee Suite</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f6f6f7;
-            color: #202223;
-            line-height: 1.5;
-        }
-        .header {
-            background: #ffffff;
-            border-bottom: 1px solid #e1e3e5;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
-            height: 64px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo { font-size: 16px; font-weight: 600; color: #202223; text-decoration: none; }
-        .nav-btn { padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none; color: #6d7175; }
-        .nav-btn:hover { background: #f6f6f7; color: #202223; }
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 48px 24px;
-        }
-        .page-header {
-            text-align: center;
-            margin-bottom: 48px;
-        }
-        .page-title {
-            font-size: 32px;
-            font-weight: 600;
-            color: #202223;
-            margin-bottom: 12px;
-        }
-        .page-subtitle {
-            font-size: 16px;
-            color: #6d7175;
-        }
-        .trial-badge {
-            display: inline-block;
-            background: #e3fcef;
-            color: #006e52;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 500;
-            margin-top: 16px;
-        }
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
-        }
-        @media (max-width: 900px) {
-            .pricing-grid {
-                grid-template-columns: 1fr;
-                max-width: 400px;
-                margin: 0 auto;
-            }
-        }
-        .pricing-card {
-            background: #ffffff;
-            border: 1px solid #e1e3e5;
-            border-radius: 8px;
-            padding: 32px 24px;
-            display: flex;
-            flex-direction: column;
-        }
-        .pricing-card.featured {
-            border: 2px solid #008060;
-            position: relative;
-        }
-        .popular-badge {
-            position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #008060;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .plan-name {
-            font-size: 20px;
-            font-weight: 600;
-            color: #202223;
-            margin-bottom: 8px;
-        }
-        .plan-desc {
-            font-size: 14px;
-            color: #6d7175;
-            margin-bottom: 16px;
-        }
-        .plan-price {
-            font-size: 42px;
-            font-weight: 700;
-            color: #202223;
-            margin-bottom: 8px;
-        }
-        .plan-price span {
-            font-size: 16px;
-            font-weight: 500;
-            color: #6d7175;
-        }
-        .plan-features {
-            list-style: none;
-            margin: 24px 0;
-            flex-grow: 1;
-        }
-        .plan-features li {
-            padding: 8px 0;
-            font-size: 14px;
-            color: #374151;
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-        }
-        .plan-features li::before {
-            content: "✓";
-            color: #008060;
-            font-weight: 600;
-            flex-shrink: 0;
-        }
-        .plan-features li.disabled {
-            color: #b5b5b5;
-        }
-        .plan-features li.disabled::before {
-            content: "—";
-            color: #b5b5b5;
-        }
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 12px 16px;
-            text-align: center;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 500;
-            font-size: 14px;
-            transition: all 0.15s;
-            border: none;
-            cursor: pointer;
-        }
-        .btn-primary {
-            background: #008060;
-            color: white;
-        }
-        .btn-primary:hover {
-            background: #006e52;
-        }
-        .btn-secondary {
-            background: #f6f6f7;
-            color: #202223;
-            border: 1px solid #e1e3e5;
-        }
-        .btn-secondary:hover {
-            background: #e1e3e5;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <div class="header-content">
-            <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="logo">Employee Suite</a>
-            <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="nav-btn">Back to Dashboard</a>
-        </div>
-    </div>
-
-    <div class="container">
-        <div class="page-header">
-            <h1 class="page-title">Simple, Transparent Pricing</h1>
-            <p class="page-subtitle">Choose the plan that's right for your business</p>
-            <span class="trial-badge">7-day free trial on all paid plans</span>
-        </div>
-
-        <div class="pricing-grid">
-            <!-- FREE Plan -->
-            <div class="pricing-card">
-                <div class="plan-name">Free</div>
-                <div class="plan-desc">Get started with basics</div>
-                <div class="plan-price">$0<span>/month</span></div>
-                <ul class="plan-features">
-                    <li>Dashboard with live data</li>
-                    <li>Orders report (view only)</li>
-                    <li>Inventory tracking</li>
-                    <li>Revenue overview</li>
-                    <li>1 store connection</li>
-                    <li>7 days data history</li>
-                    <li class="disabled">CSV exports</li>
-                    <li class="disabled">Scheduled reports</li>
-                </ul>
-                <a href="/register" class="btn btn-secondary">Get Started Free</a>
-            </div>
-
-            <!-- PRO Plan -->
-            <div class="pricing-card featured">
-                <span class="popular-badge">Most Popular</span>
-                <div class="plan-name">Pro</div>
-                <div class="plan-desc">For growing businesses</div>
-                <div class="plan-price">$29<span>/month</span></div>
-                <ul class="plan-features">
-                    <li>Everything in Free</li>
-                    <li>CSV exports (all reports)</li>
-                    <li>Date range filtering</li>
-                    <li>Auto-download reports</li>
-                    <li>Low-stock alerts</li>
-                    <li>Up to 3 store connections</li>
-                    <li>90 days data history</li>
-                    <li class="disabled">Scheduled email reports</li>
-                </ul>
-                <a href="/subscribe?plan=pro&shop={{ shop }}&host={{ host }}" class="btn btn-primary">Start Free Trial</a>
-            </div>
-
-            <!-- BUSINESS Plan -->
-            <div class="pricing-card">
-                <div class="plan-name">Business</div>
-                <div class="plan-desc">For power users</div>
-                <div class="plan-price">$99<span>/month</span></div>
-                <ul class="plan-features">
-                    <li>Everything in Pro</li>
-                    <li>Scheduled email reports</li>
-                    <li>Daily/weekly/monthly delivery</li>
-                    <li>SMS notifications</li>
-                    <li>Unlimited stores</li>
-                    <li>Unlimited data history</li>
-                    <li>API access</li>
-                    <li>Priority support</li>
-                </ul>
-                <a href="/subscribe?plan=business&shop={{ shop }}&host={{ host }}" class="btn btn-primary">Start Free Trial</a>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
-'''
+# Billing status formatting utilities
+def format_billing_error(error_msg):
+    """Format common Shopify billing errors into user-friendly messages"""
+    error_lower = error_msg.lower()
+    
+    if '422' in error_msg or 'unprocessable' in error_lower:
+        if 'owned by a shop' in error_lower or 'must be migrated' in error_lower:
+            return "App ownership migration required in Shopify Partners dashboard."
+        return f"Shopify could not process this subscription: {error_msg[:100]}"
+    return f"Billing error: {error_msg[:150]}"

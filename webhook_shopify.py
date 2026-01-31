@@ -49,7 +49,12 @@ def app_uninstall():
             return jsonify({'error': 'Invalid signature'}), 401
         
         data = request.get_json()
-        shop_domain = request.headers.get('X-Shopify-Shop-Domain')
+        shop_domain = request.headers.get('X-Shopify-Shop-Domain', '')
+        if shop_domain:
+            shop_domain = shop_domain.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+            if not shop_domain.endswith('.myshopify.com') and '.' not in shop_domain:
+                shop_domain = f"{shop_domain}.myshopify.com"
+
         
         if not shop_domain:
             logger.error("Missing shop domain in app/uninstall webhook")
@@ -90,7 +95,12 @@ def app_subscription_update():
             return jsonify({'error': 'Invalid signature'}), 401
         
         data = request.get_json()
-        shop_domain = request.headers.get('X-Shopify-Shop-Domain')
+        shop_domain = request.headers.get('X-Shopify-Shop-Domain', '')
+        if shop_domain:
+            shop_domain = shop_domain.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+            if not shop_domain.endswith('.myshopify.com') and '.' not in shop_domain:
+                shop_domain = f"{shop_domain}.myshopify.com"
+
         
         if not shop_domain:
             logger.error("Missing shop domain in app_subscriptions/update webhook")

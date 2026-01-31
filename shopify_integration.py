@@ -2,6 +2,7 @@ import requests
 import os
 import logging
 from performance import cache_result, CACHE_TTL_INVENTORY, CACHE_TTL_ORDERS
+from config import SHOPIFY_API_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ class ShopifyClient:
                 logger.warning(f"ShopifyClient: Failed to decrypt token: {e}")
         
         self.access_token = access_token
-        self.api_version = "2025-10"  # Match app.json API version
+        self.api_version = SHOPIFY_API_VERSION  # Match app.json API version
         
         # Debug logging: Verify token format
         if access_token:

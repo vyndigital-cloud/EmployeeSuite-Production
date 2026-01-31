@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template_string, request, redirect, url_for, flash, Response
+from config import SHOPIFY_API_VERSION
 from flask_login import login_required, current_user
 from models import db, ShopifyStore
 from access_control import require_access
@@ -436,7 +437,13 @@ def shopify_settings():
     """Shopify settings page - works in both embedded and standalone modes"""
 
     shop = request.args.get('shop', '')
+    if shop:
+        shop = shop.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+        if not shop.endswith('.myshopify.com') and '.' not in shop:
+            shop = f"{shop}.myshopify.com"
+            
     host = request.args.get('host', '')
+
     
     # Get authenticated user (works for both embedded and standalone)
     user = None
@@ -502,7 +509,13 @@ def connect_store():
     shop_url = request.form.get('shop_url', '').strip()
     access_token = request.form.get('access_token', '').strip()
     shop = request.form.get('shop') or request.args.get('shop', '')
+    if shop:
+        shop = shop.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+        if not shop.endswith('.myshopify.com') and '.' not in shop:
+            shop = f"{shop}.myshopify.com"
+            
     host = request.form.get('host') or request.args.get('host', '')
+
     
     # Get authenticated user (works for both embedded and standalone)
     user = None
@@ -527,9 +540,10 @@ def connect_store():
         return safe_redirect(settings_url, shop=shop, host=host)
     
     # Sanitize and validate shop URL
-    shop_url = sanitize_input(shop_url)
-    # Remove https:// or http:// if present
-    shop_url = shop_url.replace('https://', '').replace('http://', '').replace('www.', '')
+    shop_url = sanitize_input(shop_url).lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+    if not shop_url.endswith('.myshopify.com') and '.' not in shop_url:
+        shop_url = f"{shop_url}.myshopify.com"
+
     
     # Validate Shopify URL format
     if not validate_url(shop_url):
@@ -611,7 +625,13 @@ def connect_store():
 def disconnect_store():
     """Disconnect store - works in both embedded and standalone modes"""
     shop = request.form.get('shop') or request.args.get('shop', '')
+    if shop:
+        shop = shop.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+        if not shop.endswith('.myshopify.com') and '.' not in shop:
+            shop = f"{shop}.myshopify.com"
+            
     host = request.form.get('host') or request.args.get('host', '')
+
     
     # Get authenticated user (works for both embedded and standalone)
     user = None
@@ -657,7 +677,13 @@ def cancel_subscription():
     import os
     
     shop = request.form.get('shop') or request.args.get('shop', '')
+    if shop:
+        shop = shop.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+        if not shop.endswith('.myshopify.com') and '.' not in shop:
+            shop = f"{shop}.myshopify.com"
+            
     host = request.form.get('host') or request.args.get('host', '')
+
     
     # Get authenticated user (works for both embedded and standalone)
     user = None
@@ -694,18 +720,11 @@ def cancel_subscription():
         return safe_redirect(settings_url, shop=shop, host=host)
     
     try:
-        # Cancel via Shopify Billing API
-        api_version = '2025-10'
-        url = f"https://{store.shop_url}/admin/api/{api_version}/recurring_application_charges/{store.charge_id}.json"
-        headers = {
-            'X-Shopify-Access-Token': store.get_access_token() or '',
-            'Content-Type': 'application/json'
-        }
+        # Use the centralized billing logic (GraphQL)
+        from billing import cancel_app_subscription
+        result = cancel_app_subscription(store.shop_url, store.get_access_token() or '', store.charge_id)
         
-        response = requests.delete(url, headers=headers, timeout=10)
-        
-        # 200 = cancelled, 404 = already cancelled/doesn't exist
-        if response.status_code in [200, 404]:
+        if result.get('success'):
             user.is_subscribed = False
             store.charge_id = None
             db.session.commit()

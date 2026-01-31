@@ -1,4 +1,5 @@
 import os
+from config import SHOPIFY_API_VERSION
 import hmac
 import hashlib
 import requests
@@ -149,10 +150,13 @@ def install():
         </html>
         """), 400
     
-    # Normalize shop domain - add .myshopify.com if not present
-    shop = shop.replace('https://', '').replace('http://', '').replace('www.', '')
-    if not shop.endswith('.myshopify.com'):
+    # Normalize shop domain - professional consistent normalization
+    shop = shop.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+    if not shop.endswith('.myshopify.com') and '.' not in shop:
         shop = f"{shop}.myshopify.com"
+    
+    logger.info(f"Normalized install shop: {shop}")
+
     
     # Build authorization URL
     # For App Store installations, Shopify will include 'host' parameter in callback
@@ -383,7 +387,13 @@ def _handle_oauth_callback():
         logger.error(f"OAUTH DEBUG: API key is NOT SET or invalid! current_api_key={current_api_key}")
     logger.info(f"OAUTH DEBUG: Shop: {shop}")
     
+    # Normalize shop domain consistency
+    shop = shop.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+    if not shop.endswith('.myshopify.com') and '.' not in shop:
+        shop = f"{shop}.myshopify.com"
+
     access_token = exchange_code_for_token(shop, code)
+
     if not access_token:
         return "Failed to get access token", 500
     
@@ -668,7 +678,7 @@ def register_compliance_webhooks(shop, access_token):
     This ensures webhooks are registered even if shopify.app.toml isn't deployed via CLI
     """
     app_url = os.getenv('SHOPIFY_APP_URL', 'https://employeesuite-production.onrender.com')
-    api_version = "2025-10"
+    api_version = SHOPIFY_API_VERSION
     
     # Mandatory compliance webhooks
     webhooks = [
