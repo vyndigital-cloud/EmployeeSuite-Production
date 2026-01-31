@@ -3003,9 +3003,41 @@ def home():
     embedded = request.args.get('embedded')
     host = request.args.get('host')
     
+    
     # Check Referer header as Shopify sends requests from admin.shopify.com
     referer = request.headers.get('Referer', '')
     is_from_shopify_admin = 'admin.shopify.com' in referer or '.myshopify.com' in referer
+    
+    # CRITICAL FIX: Extract shop and host from Referer if missing from args
+    # This prevents "infinite connect loop" when params are dropped in iframe
+    if not shop and referer:
+        try:
+            from urllib.parse import urlparse, parse_qs
+            parsed = urlparse(referer)
+            
+            # Case 1: Direct link from admin (admin.shopify.com/store/my-shop/...)
+            if 'admin.shopify.com' in parsed.netloc and '/store/' in parsed.path:
+                shop_name = parsed.path.split('/store/')[1].split('/')[0]
+                shop = f"{shop_name}.myshopify.com"
+                logger.info(f"Extracted shop from Referer (admin.shopify.com): {shop}")
+            
+            # Case 2: Embedded iframe (iframe src often has params, but if referer is the frame parent...)
+            # Often the referer to the iframe content IS the admin URL
+            
+            # Case 3: Parsed from query params of referer (if referer was a redirect)
+            if not shop and parsed.query:
+                qs = parse_qs(parsed.query)
+                if 'shop' in qs:
+                    shop = qs['shop'][0]
+                    logger.info(f"Extracted shop from Referer query: {shop}")
+                if 'host' in qs and not host:
+                    host = qs['host'][0]
+        except Exception as e:
+            logger.warning(f"Failed to parse shop from Referer: {e}")
+            
+    # Normalize shop
+    if shop and not shop.endswith('.myshopify.com') and '.' not in shop:
+        shop = f"{shop}.myshopify.com"
     
     # CRITICAL: For embedded apps, ALWAYS render dashboard - NEVER redirect
     # Redirects break iframes. Just render the dashboard HTML.
