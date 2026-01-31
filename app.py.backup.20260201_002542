@@ -110,7 +110,7 @@ from reporting import generate_report
 from logging_config import logger
 from access_control import require_access
 from security_enhancements import (
-    add_security_headers,
+    add_security_headers, 
     MAX_REQUEST_SIZE,
     sanitize_input_enhanced,
     log_security_event,
@@ -125,7 +125,7 @@ if sentry_dsn:
     from sentry_sdk.integrations.flask import FlaskIntegration
     from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration
-
+    
     # CRITICAL: Disable profiling and traces to prevent segfaults after responses
     # These features can cause crashes when sending data to Sentry after response is sent
     sentry_sdk.init(
@@ -249,11 +249,11 @@ def handle_all_exceptions(e):
     """Catch and log EVERY exception with full details"""
     from flask import request, jsonify
     import traceback
-
+    
     error_type = type(e).__name__
     error_message = str(e)
     error_location = f"{request.endpoint or 'unknown'}:{request.method}"
-
+    
     # Get full request context (SANITIZED - no passwords/tokens)
     def sanitize_form_data(form_dict):
         """Remove sensitive fields from form data before logging"""
@@ -273,11 +273,11 @@ def handle_all_exceptions(e):
         'user_agent': request.headers.get('User-Agent'),
         'referer': request.headers.get('Referer'),
     }
-
+    
     # Log with full stack trace
     exc_info = sys.exc_info()
     log_comprehensive_error(error_type, error_message, error_location, error_data, exc_info)
-
+    
     # Return appropriate response
     if request.path.startswith('/api/'):
         return jsonify({
@@ -295,7 +295,7 @@ def handle_404(e):
     """Log 404 errors with full context - Enhanced per external feedback"""
     from flask import request
     import logging
-
+    
     # Sanitize sensitive form data
     def _sanitize(form_dict):
         if not form_dict:
@@ -318,18 +318,18 @@ def handle_404(e):
         'is_api_request': request.path.startswith('/api/'),
         'is_static': request.path.startswith('/static/'),
     }
-
+    
     # Log to both comprehensive error system and standard logging
     location = f"{request.endpoint or 'unknown'}:{request.method}"
     log_comprehensive_error('HTTP_404', str(e), location, error_data)
-
+    
     # Also log to standard logger with full details (per external feedback)
     logger.error(f"404 error occurred: {request.method} {request.path}")
     logger.error(f"Full URL: {request.url}")
     logger.error(f"Referer: {request.headers.get('Referer', 'None')}")
     logger.error(f"User-Agent: {request.headers.get('User-Agent', 'None')}")
     logger.error(f"Requested endpoint: {request.endpoint or 'unknown'}")
-
+    
     # Return appropriate response based on request type
     if request.path.startswith('/api/'):
         return jsonify({'error': 'Not found', 'path': request.path, 'method': request.method}), 404
@@ -366,7 +366,7 @@ def handle_500(e):
     from flask import request
     import traceback
     import logging
-
+    
     error_data = {
         'url': request.url,
         'method': request.method,
@@ -376,19 +376,19 @@ def handle_500(e):
         'referer': request.headers.get('Referer'),
         'user_agent': request.headers.get('User-Agent'),
     }
-
+    
     # Get full stack trace
     exc_info = sys.exc_info()
     stack_trace = ''.join(traceback.format_exception(*exc_info)) if exc_info[0] else traceback.format_exc()
-
+    
     # Log to comprehensive error system
     log_comprehensive_error('500', str(e), f"{request.endpoint or 'unknown'}:{request.method}", error_data, exc_info)
-
+    
     # Also log to standard logger with full details (per external feedback)
     logger.error(f"500 Error: {e}, Path: {request.path}")
     logger.error(f"Full URL: {request.url}")
     logger.error(f"Stack trace:\n{stack_trace}")
-
+    
     # Return user-friendly error message
     if request.path.startswith('/api/'):
         return jsonify({
@@ -396,7 +396,7 @@ def handle_500(e):
             'error': 'An internal server error occurred. Please try again later.',
             'error_type': 'InternalServerError'
         }), 500
-
+    
     return str(e), 500
 
 @app.errorhandler(400)
@@ -550,7 +550,7 @@ def optimize_response(response):
         except Exception as e:
             # If compression fails, return uncompressed response
             logger.debug(f"Compression failed (non-critical): {e}")
-
+        
         # CRITICAL: Force session cookie to be set for Safari compatibility
         # Safari requires explicit cookie setting in response headers
         # Only access session if we're in a request context
@@ -563,7 +563,7 @@ def optimize_response(response):
             except (RuntimeError, AttributeError):
                 # Session not available in this context (webhook requests, etc.)
                 pass
-
+        
         # Enable Keep-Alive for webhook endpoints (Shopify requirement)
         # This allows Shopify to reuse connections, reducing latency
         if has_request_context():
@@ -571,7 +571,7 @@ def optimize_response(response):
                 if request.path.startswith('/webhooks/'):
                     response.headers['Connection'] = 'keep-alive'
                     response.headers['Keep-Alive'] = 'timeout=5, max=1000'
-
+                
                 # Add cache headers for static assets
                 if request.endpoint == 'static':
                     response.cache_control.max_age = 31536000  # 1 year
@@ -582,7 +582,7 @@ def optimize_response(response):
     except Exception as e:
         # CRITICAL: Never let after_request crash - response already sent
         logger.error(f"Error in after_request handler (non-critical): {e}", exc_info=True)
-
+    
     return response
 
 # CRITICAL: Proper database session cleanup after each request
@@ -605,7 +605,7 @@ def close_db(error):
             # Non-critical - session might already be removed or connection is corrupted
             # Silently ignore to prevent segfaults
             pass
-
+        
         # CRITICAL: Disable garbage collection in teardown - it can cause segfaults
         # Let Python's automatic GC handle it instead
         # if error:
@@ -626,38 +626,38 @@ def validate_request_security():
     """Validate incoming requests for security - minimal checks only"""
     # Global request logging (per external feedback)
     logger.info(f'Making request to: {request.path}, Method: {request.method}')
-
+    
     # Skip database initialization for health checks (used by Render for deployment verification)
     # Skip validation for static files, health checks
     if request.endpoint in ('static', 'health') or request.endpoint is None:
         return
-
+    
     # Ensure database is initialized (lazy initialization - non-blocking)
     # Only initialize on actual requests, not health checks
     ensure_db_initialized()
-
-
+    
+    
     # Skip for webhook endpoints (they have HMAC verification)
     # Note: Both /webhook/ (singular) and /webhooks/ (plural) are used
     if request.path.startswith('/webhook/') or request.path.startswith('/webhooks/'):
         return
-
+    
     # Skip for billing endpoints (Stripe handles security)
     if request.path.startswith('/billing/') or request.path in ('/subscribe', '/create-checkout-session'):
         return
-
+    
     # Skip for OAuth callbacks (Shopify handles security)
     if request.path.startswith('/auth/callback') or request.path.startswith('/install'):
         return
-
+    
     # Skip for API endpoints (they have their own auth)
     if request.path.startswith('/api/'):
         return
-
+    
     # Skip for export endpoints (they have their own auth)
     if request.path.startswith('/api/export/'):
         return
-
+    
     # Only check request size for POST/PUT requests (not GET)
     if request.method in ('POST', 'PUT') and request.content_length and request.content_length > MAX_REQUEST_SIZE:
         log_security_event('request_too_large', f"IP: {request.remote_addr}, Size: {request.content_length}", 'WARNING')
@@ -689,7 +689,7 @@ DASHBOARD_HTML = """
             padding: 0;
             box-sizing: border-box;
         }
-
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: #f6f6f7;
@@ -701,13 +701,13 @@ DASHBOARD_HTML = """
             margin: 0;
             padding: 0;
         }
-
+        
         html {
             margin: 0;
             padding: 0;
             height: 100%;
         }
-
+        
         /* Header - Hide in embedded mode (Shopify provides navigation) */
         .header {
             background: #ffffff;
@@ -716,7 +716,7 @@ DASHBOARD_HTML = """
             top: 0;
             z-index: 100;
         }
-
+        
         /* Hide header when embedded - Shopify admin has its own nav */
         body.embedded .header {
             display: none !important;
@@ -832,29 +832,29 @@ DASHBOARD_HTML = """
             font-size: 12px;
             font-family: 'SF Mono', 'Monaco', monospace;
         }
-
+        
         /* Container - Shopify Spacing */
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 32px 24px;
         }
-
+        
         /* Adjust container padding for embedded mode */
         body.embedded .container {
             padding: 20px 24px;
         }
-
+        
         /* Remove footer in embedded mode */
         body.embedded footer {
             display: none !important;
         }
-
+        
         /* Clean up body background for embedded */
         body.embedded {
             background: #ffffff;
         }
-
+        
         .page-title {
             font-size: 32px;
             font-weight: 600;
@@ -870,7 +870,7 @@ DASHBOARD_HTML = """
             line-height: 1.5;
             max-width: 600px;
         }
-
+        
         /* Banner - Shopify Style */
         .banner {
             background: #ffffff;
@@ -915,7 +915,7 @@ DASHBOARD_HTML = """
         .banner-action:hover {
             background: #006e52;
         }
-
+        
         /* Cards Grid - Shopify Style */
         .cards-grid {
             display: grid;
@@ -930,18 +930,18 @@ DASHBOARD_HTML = """
             padding: 24px;
             transition: box-shadow 0.15s;
         }
-
+        
         .card:hover {
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
-
+        
         .card-icon {
             font-size: 32px;
             margin-bottom: 16px;
             line-height: 1;
             display: inline-block;
         }
-
+        
         .card-title {
             font-size: 17px;
             font-weight: 600;
@@ -972,17 +972,17 @@ DASHBOARD_HTML = """
             justify-content: center;
             gap: 8px;
         }
-
+        
         .card-btn:hover {
             background: #006e52;
         }
-
+        
         .card-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
             background: #6d7175;
         }
-
+        
         /* Output - Shopify Style */
         .output-container {
             background: #ffffff;
@@ -1020,7 +1020,7 @@ DASHBOARD_HTML = """
             justify-content: center;
             background: #fafafa;
         }
-
+        
         /* Loading - Shopify Style */
         .loading {
             text-align: center;
@@ -1060,18 +1060,18 @@ DASHBOARD_HTML = """
             font-weight: 400;
             color: #6d7175;
         }
-
+        
         /* Status */
         .success { color: #008060; font-weight: 500; }
         .error { color: #d72c0d; font-weight: 500; }
-
+        
         /* Focus states */
         button:focus-visible,
         a:focus-visible {
             outline: 2px solid #008060;
             outline-offset: 2px;
         }
-
+        
         /* Responsive */
         @media (max-width: 768px) {
             .container { padding: 24px 16px; }
@@ -1187,7 +1187,9 @@ DASHBOARD_HTML = """
                                         return;
                                     }
                                 }
-                            } catch (v3Err) {                            }
+                            } catch (v3Err) {
+                                console.warn('App Bridge v3 fallback failed:', v3Err.message);
+                            }
                         }
 
                         // Neither v4 nor v3 found yet - retry
@@ -1239,7 +1241,7 @@ DASHBOARD_HTML = """
             }
         })();
     </script>
-
+    
     <!-- Google Analytics - Load after page renders -->
     <script>
         // Defer analytics loading
@@ -1248,7 +1250,7 @@ DASHBOARD_HTML = """
             script.async = true;
             script.src = 'https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3';
             document.head.appendChild(script);
-
+            
             script.onload = function() {
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
@@ -1257,7 +1259,7 @@ DASHBOARD_HTML = """
             };
         });
     </script>
-
+    
     <!-- Meta tags for better SEO and sharing -->
     <meta name="description" content="Monitor your Shopify store operations with order tracking, inventory management, and revenue analytics.">
     <meta name="keywords" content="shopify, automation, inventory, orders, analytics, ecommerce">
@@ -1313,7 +1315,7 @@ DASHBOARD_HTML = """
             </div>
         </div>
     </div>
-
+    
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
             <div>
@@ -1338,7 +1340,7 @@ DASHBOARD_HTML = """
             </div>
             {% endif %}
         </div>
-
+        
         {% if not has_access %}
         <div class="banner banner-warning" style="justify-content: space-between; align-items: center;">
             <div class="banner-content">
@@ -1356,8 +1358,8 @@ DASHBOARD_HTML = """
             <a href="{{ url_for('billing.subscribe') }}" class="banner-action">Subscribe Now →</a>
         </div>
         {% endif %}
-
-
+        
+        
         {% if has_shopify and quick_stats.has_data and is_subscribed %}
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; animation: fadeIn 0.5s ease-in;">
             <div style="background: linear-gradient(135deg, #fff 0%, #fafafa 100%); border: 1px solid #e5e5e5; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); transition: all 0.3s ease;">
@@ -1386,7 +1388,7 @@ DASHBOARD_HTML = """
             </div>
         </div>
         {% endif %}
-
+        
         {% if not has_shopify %}
         <div class="banner banner-info" style="background: #ffffff; border: 1px solid #e1e3e5; border-left: 3px solid #008060;">
             <div class="banner-content" style="flex: 1;">
@@ -1396,7 +1398,7 @@ DASHBOARD_HTML = """
             <a href="/settings/shopify" class="banner-action">Connect Store →</a>
         </div>
         {% endif %}
-
+        
         <div class="cards-grid">
             <div class="card">
                 <div class="card-icon">📦</div>
@@ -1414,7 +1416,7 @@ DASHBOARD_HTML = """
                 </button>
                 {% endif %}
             </div>
-
+            
             <div class="card">
                 <div class="card-icon">📊</div>
                 <div class="card-title">Inventory Management</div>
@@ -1431,7 +1433,7 @@ DASHBOARD_HTML = """
                 </button>
                 {% endif %}
             </div>
-
+            
             <div class="card">
                 <div class="card-icon">💰</div>
                 <div class="card-title">Revenue Analytics</div>
@@ -1448,7 +1450,7 @@ DASHBOARD_HTML = """
                 </button>
                 {% endif %}
             </div>
-
+            
             <div class="card" style="border: 2px solid #008060; background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);">
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <div class="card-icon">📥</div>
@@ -1468,7 +1470,7 @@ DASHBOARD_HTML = """
                 </a>
                 {% endif %}
             </div>
-
+            
             <div class="card" style="border: 2px solid #008060; background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);">
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <div class="card-icon">📅</div>
@@ -1488,7 +1490,7 @@ DASHBOARD_HTML = """
                 </a>
                 {% endif %}
             </div>
-
+            
             <div class="card" style="border: 2px solid #008060; background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);">
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <div class="card-icon">📊</div>
@@ -1509,26 +1511,26 @@ DASHBOARD_HTML = """
                 {% endif %}
             </div>
         </div>
-
+        
         <div id="connection-status" style="display: none; margin-bottom: 16px;"></div>
         <div class="output-container">
             <div class="output-header">Results</div>
             <div id="output"></div>
         </div>
     </div>
-
+    
     <script>
         // ============================================================================
         // COMPREHENSIVE JAVASCRIPT ERROR LOGGING - Capture EVERY error crumb
         // ============================================================================
-
+        
         // CRITICAL: Store original console.error BEFORE intercepting it
         // This prevents infinite recursion when logJavaScriptError uses console.error
         var originalConsoleError = console.error;
-
+        
         // Guard flag to prevent recursive logging
         var isLoggingError = false;
-
+        
         // Function to log JavaScript errors to backend
         function logJavaScriptError(errorType, errorMessage, errorLocation, errorData, stackTrace) {
             // Prevent infinite recursion
@@ -1537,7 +1539,7 @@ DASHBOARD_HTML = """
                 originalConsoleError.call(console, '[ERROR LOGGED]', errorType, ':', errorMessage);
                 return;
             }
-
+            
             isLoggingError = true;
             try {
                 var errorLog = {
@@ -1556,7 +1558,7 @@ DASHBOARD_HTML = """
                     },
                     session_id: 'js-session-' + Date.now()
                 };
-
+                
                 // Send to backend error logging endpoint
                 fetch('/api/log_error', {
                     method: 'POST',
@@ -1568,7 +1570,7 @@ DASHBOARD_HTML = """
                     originalConsoleError.call(console, 'Failed to log error to backend:', err);
                     originalConsoleError.call(console, 'Original error:', errorLog);
                 });
-
+                
                 // Also log to console for immediate visibility - use originalConsoleError to prevent recursion
                 originalConsoleError.call(console, '[ERROR LOGGED]', errorType, ':', errorMessage);
                 originalConsoleError.call(console, 'Location:', errorLocation);
@@ -1583,7 +1585,7 @@ DASHBOARD_HTML = """
                 isLoggingError = false;
             }
         }
-
+        
         // Global error handler - catches ALL unhandled errors
         window.addEventListener('error', function(event) {
             logJavaScriptError(
@@ -1598,17 +1600,17 @@ DASHBOARD_HTML = """
                 event.error ? (event.error.stack || 'No stack trace') : 'No stack trace'
             );
         }, true); // Use capture phase to catch all errors
-
+        
         // Unhandled promise rejection handler - Enhanced to prevent freezing
         window.addEventListener('unhandledrejection', function(event) {
             var error = event.reason;
             var errorMessage = error ? (error.message || error.toString() || 'Unhandled promise rejection') : 'Unknown promise rejection';
             var stackTrace = error && error.stack ? error.stack : 'No stack trace';
-
+            
             // Use originalConsoleError to prevent recursion
             originalConsoleError.call(console, '❌ Unhandled promise rejection:', error);
             originalConsoleError.call(console, 'This may cause the application to freeze. Error:', errorMessage);
-
+            
             logJavaScriptError(
                 'UnhandledPromiseRejection',
                 errorMessage,
@@ -1619,10 +1621,10 @@ DASHBOARD_HTML = """
                 },
                 stackTrace
             );
-
+            
             // Prevent default browser error handling and application freeze
             event.preventDefault();
-
+            
             // Show user-friendly error message if possible
             try {
                 var outputEl = document.getElementById('output');
@@ -1634,19 +1636,19 @@ DASHBOARD_HTML = """
                 originalConsoleError.call(console, 'Failed to show error message:', e);
             }
         });
-
+        
         // Console error interceptor (catches console.error calls)
         // CRITICAL: originalConsoleError is already defined above to prevent recursion
         console.error = function() {
             var args = Array.prototype.slice.call(arguments);
-
+            
             // Skip logging if we're already in the middle of logging (prevents recursion)
             if (isLoggingError) {
                 // Just call original and return immediately
                 originalConsoleError.apply(console, args);
                 return;
             }
-
+            
             var errorMessage = args.map(function(arg) {
                 if (typeof arg === 'object') {
                     try {
@@ -1657,16 +1659,16 @@ DASHBOARD_HTML = """
                 }
                 return String(arg);
             }).join(' ');
-
+            
             // Check if this is a log from our own error logging system (prevent recursion)
-            if (errorMessage.includes('[ERROR LOGGED]') ||
+            if (errorMessage.includes('[ERROR LOGGED]') || 
                 errorMessage.includes('Failed to log error to backend') ||
                 errorMessage.includes('Error logging system failed')) {
                 // This is our own logging, just call original and return
                 originalConsoleError.apply(console, args);
                 return;
             }
-
+            
             logJavaScriptError(
                 'ConsoleError',
                 errorMessage,
@@ -1674,37 +1676,41 @@ DASHBOARD_HTML = """
                 {arguments: args},
                 new Error().stack || 'No stack trace'
             );
-
+            
             // Call original console.error
             originalConsoleError.apply(console, args);
         };
-
+        
         // Try-catch wrapper for async functions
         window.addEventListener('unhandledrejection', function(event) {
             // Already handled above, but ensure we catch everything
         });
-
+        
         // ============================================================================
         // END COMPREHENSIVE JAVASCRIPT ERROR LOGGING
         // ============================================================================
-
-
+        
+        
         // Early function check - verify functions will be available (before definitions)
-        // Function availability check removed for production
+        console.log('🔍 Early function check (before definitions):', {
+            processOrders: typeof window.processOrders,
+            updateInventory: typeof window.updateInventory,
+            generateReport: typeof window.generateReport
+        });
         // Professional request management - prevent duplicate requests and cancel previous ones
         var activeRequests = {
             processOrders: null,
             updateInventory: null,
             generateReport: null
         };
-
+        
         // Debounce timers to prevent rapid clicks
         var debounceTimers = {
             processOrders: null,
             updateInventory: null,
             generateReport: null
         };
-
+        
         // Get APP_URL from template or use current origin (FIXED: was using template literal incorrectly)
         var APP_URL = '{{ APP_URL|default("") }}' || window.location.origin;
 
@@ -1719,7 +1725,9 @@ DASHBOARD_HTML = """
         window.HOST_PARAM = HOST_PARAM;
         window.ID_TOKEN = ID_TOKEN;
 
-                // Network status detection with visual indicator
+        console.log('Shop params loaded:', {shop: SHOP_PARAM, hasIdToken: !!ID_TOKEN});
+
+        // Network status detection with visual indicator
         var isOnline = navigator.onLine;
         function updateConnectionStatus() {
             var statusEl = document.getElementById('connection-status');
@@ -1732,7 +1740,7 @@ DASHBOARD_HTML = """
                 }
             }
         }
-
+        
         window.addEventListener('online', function() {
             isOnline = true;
             // Connection restored
@@ -1752,7 +1760,7 @@ DASHBOARD_HTML = """
             // Connection lost
             updateConnectionStatus();
         });
-
+        
         // Cancel previous request if user clicks another button
         function cancelPreviousRequest(requestType) {
             if (activeRequests[requestType] && activeRequests[requestType].abort) {
@@ -1760,18 +1768,18 @@ DASHBOARD_HTML = """
                 activeRequests[requestType] = null;
             }
         }
-
+        
         // Debounce function to prevent rapid clicks (professional standard)
         function debounce(func, requestType, delay) {
             return function() {
                 var context = this;
                 var args = arguments;
-
+                
                 // Cancel previous timer
                 if (debounceTimers[requestType]) {
                     clearTimeout(debounceTimers[requestType]);
                 }
-
+                
                 // Set new timer
                 debounceTimers[requestType] = setTimeout(function() {
                     func.apply(context, args);
@@ -1779,7 +1787,7 @@ DASHBOARD_HTML = """
                 }, delay);
             };
         }
-
+        
         function showSubscribePrompt() {
             document.getElementById('output').innerHTML = `
                 <div style="padding: 32px; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-radius: 16px; border: 2px solid #dc2626; text-align: center; animation: fadeIn 0.3s ease-in;">
@@ -1792,7 +1800,7 @@ DASHBOARD_HTML = """
                 </div>
             `;
         }
-
+        
         function showLoading(message = 'Processing...') {
             // Professional skeleton loading state (like top Shopify apps)
             document.getElementById('output').innerHTML = `
@@ -1803,7 +1811,7 @@ DASHBOARD_HTML = """
                 </div>
             `;
         }
-
+        
         function showSkeletonLoading() {
             // Skeleton screen for better perceived performance
             var skeleton = '<div style="animation: fadeIn 0.3s ease-in;">';
@@ -1818,7 +1826,7 @@ DASHBOARD_HTML = """
             skeleton += '<style>@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }</style>';
             document.getElementById('output').innerHTML = skeleton;
         }
-
+        
         function setButtonLoading(button, isLoading) {
             if (isLoading) {
                 button.disabled = true;
@@ -1837,17 +1845,17 @@ DASHBOARD_HTML = """
                 }
             }
         }
-
+        
         function processOrders(button) {
             // Debug logging removed for performance - only log errors if needed
             // Prevent rapid clicks (debounce)
             if (debounceTimers.processOrders) {
                 return; // Already processing
             }
-
+            
             // Cancel previous request if exists
             cancelPreviousRequest('processOrders');
-
+            
             // Check network status
             if (!isOnline) {
                 document.getElementById('output').innerHTML = `
@@ -1859,21 +1867,21 @@ DASHBOARD_HTML = """
                 `;
                 return;
             }
-
+            
             setButtonLoading(button, true);
             showSkeletonLoading(); // Show skeleton immediately for better UX
             setTimeout(function() {
                 showLoading('Loading orders...');
             }, 100);
-
+            
             // Create AbortController for request cancellation
             var controller = new AbortController();
             activeRequests.processOrders = controller;
-
+            
             // Get session token if in embedded mode - seamless integration
             var fetchPromise;
             var isEmbedded = window.isEmbedded; // Use global flag
-
+            
             // PERFECTED: Wait for App Bridge (uses Promise if available, sync check as fallback)
             if (isEmbedded) {
                 // Try Promise-based wait first
@@ -1886,7 +1894,9 @@ DASHBOARD_HTML = """
                         }
                         // Always proceed with API call - will use session token if available, cookie auth as fallback
                         proceedWithApiCall();
-                    }).catch(function(error) {                        // Fall back to cookie auth instead of showing error
+                    }).catch(function(error) {
+                        console.warn('App Bridge not available, using cookie auth fallback:', error.message);
+                        // Fall back to cookie auth instead of showing error
                         proceedWithApiCall();
                     });
                     return;
@@ -1894,7 +1904,7 @@ DASHBOARD_HTML = """
             }
             // App Bridge ready or not embedded - proceed with API call
             proceedWithApiCall(); // Close if (isEmbedded)
-
+            
             // Extract API call logic into function (called when Promise resolves or App Bridge ready)
             function proceedWithApiCall() {
                 // Debug logging removed for performance
@@ -1902,7 +1912,7 @@ DASHBOARD_HTML = """
                 // In embedded mode, we MUST have session token - retry up to 3 times
                 var retryCount = 0;
                 var maxRetries = 2; // Optimized: reduced from 3
-
+                
                 function getTokenWithRetry() {
                     // Debug logging removed for performance
                     return window.shopifyApp.getSessionToken().then(function(token) {
@@ -1926,7 +1936,7 @@ DASHBOARD_HTML = """
                         throw err;
                     });
                 }
-
+                
                 // Build API URL with shop param
                 var apiUrl = '/api/process_orders';
                 if (window.SHOP_PARAM) {
@@ -1981,10 +1991,29 @@ DASHBOARD_HTML = """
                         return null;
                     }
                     // Enhanced API response verification per external feedback
-                                        });
-
+                    console.log('📡 API Response received:', {
+                        status: r.status,
+                        statusText: r.statusText,
+                        url: r.url,
+                        ok: r.ok,
+                        contentType: r.headers.get('content-type')
+                    });
+                    
                     if (!r.ok) {
-                        // Enhanced error logging per external feedback                        if (r.status === 404) {                        } else if (r.status === 500) {                        }
+                        // Enhanced error logging per external feedback
+                        console.error('❌ API request failed:', {
+                            status: r.status,
+                            statusText: r.statusText,
+                            url: r.url,
+                            ok: r.ok
+                        });
+                        if (r.status === 404) {
+                            console.error('❌ 404 Not Found - Endpoint does not exist:', r.url);
+                            console.error('This may indicate a missing API route or incorrect URL');
+                        } else if (r.status === 500) {
+                            console.error('❌ 500 Internal Server Error - Server-side error occurred');
+                            console.error('Check server logs for detailed error information');
+                        }
                         // Try to parse JSON, but handle non-JSON responses
                         return r.text().then(function(text) {
                             var err = {};
@@ -2004,14 +2033,14 @@ DASHBOARD_HTML = """
                 .then(d => {
                     // Check if request was cancelled
                     if (!d) return;
-
+                    
                     setButtonLoading(button, false);
                     activeRequests.processOrders = null;
                     if (debounceTimers.processOrders) {
                         clearTimeout(debounceTimers.processOrders);
                         debounceTimers.processOrders = null;
                     }
-
+                    
                     if (d.success) {
                         const icon = '✅';
                         document.getElementById('output').innerHTML = `
@@ -2044,20 +2073,24 @@ DASHBOARD_HTML = """
                     }
                 })
                 .catch(err => {
-                    // Enhanced error handling per external feedback - prevent application freezing                    console.error('Error details:', {
+                    // Enhanced error handling per external feedback - prevent application freezing
+                    console.error('❌ Failed to process orders:', err);
+                    console.error('Error details:', {
                         message: err.message,
                         name: err.name,
                         stack: err.stack ? err.stack.substring(0, 300) : 'no stack'
                     });
-
-
+                    
+                    
                     // Always re-enable button and clear timers to prevent freezing
                     setButtonLoading(button, false);
                     activeRequests.processOrders = null;
                     if (debounceTimers.processOrders) {
                         clearTimeout(debounceTimers.processOrders);
                         debounceTimers.processOrders = null;
-                    }                    var errorDetails = '';
+                    }
+                    console.error('❌ API request error:', err);
+                    var errorDetails = '';
                     if (err.message) {
                         errorDetails = '<div style="font-size: 12px; color: #8c9196; margin-top: 8px; padding: 8px; background: #f6f6f7; border-radius: 4px;">' + err.message + '</div>';
                     }
@@ -2073,20 +2106,20 @@ DASHBOARD_HTML = """
                 });
             } // Close proceedWithApiCall function
         } // Close processOrders function
-
+        
         // Ensure function is in global scope
         window.processOrders = processOrders;
-
+        
         function updateInventory(button) {
             // Debug logging removed for performance - only log errors if needed
             // Prevent rapid clicks (debounce)
             if (debounceTimers.updateInventory) {
                 return; // Already processing
             }
-
+            
             // Cancel previous request if exists
             cancelPreviousRequest('updateInventory');
-
+            
             // Check network status
             if (!isOnline) {
                 document.getElementById('output').innerHTML = `
@@ -2098,21 +2131,21 @@ DASHBOARD_HTML = """
                 `;
                 return;
             }
-
+            
             setButtonLoading(button, true);
             showSkeletonLoading(); // Show skeleton immediately for better UX
             setTimeout(function() {
                 showLoading('Loading inventory...');
             }, 100);
-
+            
             // Create AbortController for request cancellation
             var controller = new AbortController();
             activeRequests.updateInventory = controller;
-
+            
             // Get session token if in embedded mode - seamless integration
             var fetchPromise;
             var isEmbedded = window.isEmbedded; // Use global flag
-
+            
             // Wait for App Bridge if available, but fall back to cookie auth if not
             if (isEmbedded && window.waitForAppBridge && typeof window.waitForAppBridge === 'function' && !window.appBridgeReady) {
                 window.waitForAppBridge().then(function(bridgeState) {
@@ -2121,7 +2154,9 @@ DASHBOARD_HTML = """
                         window.appBridgeReady = true;
                     }
                     proceedWithApiCall();
-                }).catch(function(error) {                    proceedWithApiCall();
+                }).catch(function(error) {
+                    console.warn('App Bridge not available, using cookie auth fallback:', error.message);
+                    proceedWithApiCall();
                 });
                 return;
             }
@@ -2292,17 +2327,17 @@ DASHBOARD_HTML = """
 
         // Ensure function is in global scope
         window.updateInventory = updateInventory;
-
+        
         function generateReport(button) {
             // Debug logging removed for performance - only log errors if needed
             // Prevent rapid clicks (debounce)
             if (debounceTimers.generateReport) {
                 return; // Already processing
             }
-
+            
             // Cancel previous request if exists
             cancelPreviousRequest('generateReport');
-
+            
             // Check network status
             if (!isOnline) {
                 document.getElementById('output').innerHTML = `
@@ -2314,21 +2349,21 @@ DASHBOARD_HTML = """
                 `;
                 return;
             }
-
+            
             setButtonLoading(button, true);
             showSkeletonLoading(); // Show skeleton immediately for better UX
             setTimeout(function() {
                 showLoading('Generating report...');
             }, 100);
-
+            
             // Create AbortController for request cancellation
             var controller = new AbortController();
             activeRequests.generateReport = controller;
-
+            
             // Get session token if in embedded mode - seamless integration
             var fetchPromise;
             var isEmbedded = window.isEmbedded; // Use global flag
-
+            
             // Wait for App Bridge if available, but fall back to cookie auth if not
             if (isEmbedded && window.waitForAppBridge && typeof window.waitForAppBridge === 'function' && !window.appBridgeReady) {
                 window.waitForAppBridge().then(function(bridgeState) {
@@ -2337,7 +2372,9 @@ DASHBOARD_HTML = """
                         window.appBridgeReady = true;
                     }
                     proceedWithApiCall();
-                }).catch(function(error) {                    proceedWithApiCall();
+                }).catch(function(error) {
+                    console.warn('App Bridge not available, using cookie auth fallback:', error.message);
+                    proceedWithApiCall();
                 });
                 return;
             }
@@ -2467,22 +2504,40 @@ DASHBOARD_HTML = """
 
         // Ensure function is in global scope
         window.generateReport = generateReport;
-
+        
         // ============================================================================
         // FUNCTION AVAILABILITY VERIFICATION (Per External Feedback)
         // ============================================================================
         // Log function availability immediately after all assignments
-                // Immediate function check after all assignments
-        // Function check removed for production
-
+        console.log('Function check:', {
+            processOrders: typeof window.processOrders,
+            updateInventory: typeof window.updateInventory,
+            generateReport: typeof window.generateReport
+        });
+        
+        // Immediate function check after all assignments
+        console.log('✅ Function check (after all assignments):', {
+            processOrders: typeof window.processOrders,
+            updateInventory: typeof window.updateInventory,
+            generateReport: typeof window.generateReport
+        });
+        
         // Verify all functions are properly assigned
         if (typeof window.processOrders !== 'function' ||
             typeof window.updateInventory !== 'function' ||
-            typeof window.generateReport !== 'function') {        } else {
-                    }
-
-
-
+            typeof window.generateReport !== 'function') {
+            console.error('❌ CRITICAL: Functions not properly assigned to window!');
+            console.error('Missing functions:', {
+                processOrders: typeof window.processOrders !== 'function',
+                updateInventory: typeof window.updateInventory !== 'function',
+                generateReport: typeof window.generateReport !== 'function'
+            });
+        } else {
+            console.log('✅ All functions successfully assigned to window object');
+        }
+        
+        
+        
         // ============================================================================
         // NETWORK REQUEST LOGGING - Capture all API requests (OPTIMIZED)
         // ============================================================================
@@ -2495,33 +2550,45 @@ DASHBOARD_HTML = """
                 var url = args[0];
                 var options = args[1] || {};
                 var method = options.method || 'GET';
-
+                
                 var startTime = Date.now();
-
+                
                 // Only log API requests, not all requests (reduces noise)
                 if (typeof url === 'string' && (url.includes('/api/') || url.startsWith('http'))) {
-                    // Network request logging removed for production
+                    console.log('🌐 Network Request:', {
+                        url: url,
+                        method: method,
+                        timestamp: new Date().toISOString()
+                    });
                 }
-
+                
                 // Call original fetch
                 return originalFetch.apply(this, args)
                     .then(function(response) {
                         var endTime = Date.now();
                         var duration = endTime - startTime;
-
+                        
                         // Only log API responses, and only if there's an error or slow response
                         if (typeof url === 'string' && (url.includes('/api/') || url.startsWith('http'))) {
                             if (!response.ok || duration > 1000) {
-                                // Network response logging removed for production
+                                console.log('🌐 Network Response:', {
+                                    url: url,
+                                    method: method,
+                                    status: response.status,
+                                    statusText: response.statusText,
+                                    ok: response.ok,
+                                    duration: duration + 'ms',
+                                    timestamp: new Date().toISOString()
+                                });
                             }
                         }
-
+                        
                         return response;
                     })
                     .catch(function(error) {
                         var endTime = Date.now();
                         var duration = endTime - startTime;
-
+                        
                         // Only log errors for API requests
                         if (typeof url === 'string' && (url.includes('/api/') || url.startsWith('http'))) {
                             console.error('🌐 Network Error:', {
@@ -2533,12 +2600,12 @@ DASHBOARD_HTML = """
                                 timestamp: new Date().toISOString()
                             });
                         }
-
+                        
                         throw error;
                     });
             };
         })();
-
+        
         // ============================================================================
         // ROBUST BUTTON EVENT HANDLING - Event Delegation Pattern (Most Reliable)
         // ============================================================================
@@ -2547,26 +2614,44 @@ DASHBOARD_HTML = """
         // FIXED: Always wait for DOMContentLoaded to ensure DOM and dependencies are ready
         // FIXED: Verify functions exist before setting up listener (per external feedback)
         document.addEventListener('DOMContentLoaded', function setupEventDelegation() {
-                        // Verify functions are assigned to window before setting up listener
+            console.log('✅ DOMContentLoaded fired');
+            
+            // Verify functions are assigned to window before setting up listener
             var functionsReady = typeof window.processOrders === 'function' &&
                                  typeof window.updateInventory === 'function' &&
                                  typeof window.generateReport === 'function';
-
-            if (!functionsReady) {                                // Retry after short delay
+            
+            if (!functionsReady) {
+                console.error('❌ Functions not ready yet. Retrying in 100ms...');
+                console.log('Function status:', {
+                    processOrders: typeof window.processOrders,
+                    updateInventory: typeof window.updateInventory,
+                    generateReport: typeof window.generateReport
+                });
+                // Retry after short delay
                 setTimeout(setupEventDelegation, 100);
                 return;
             }
-
-                        var buttonsFound = document.querySelectorAll('.card-btn[data-action]').length;
-                        // CRITICAL: Add EARLY click listener to catch ALL clicks before anything else
+            
+            console.log('✅ All functions ready:', {
+                processOrders: typeof window.processOrders,
+                updateInventory: typeof window.updateInventory,
+                generateReport: typeof window.generateReport
+            });
+            
+            var buttonsFound = document.querySelectorAll('.card-btn[data-action]').length;
+            console.log('✅ Buttons found:', buttonsFound);
+            
+            
+            // CRITICAL: Add EARLY click listener to catch ALL clicks before anything else
             // OPTIMIZED: Only log button clicks to reduce performance impact
             document.addEventListener('click', function(e) {
                 // Only log if it's actually a button click (reduces noise)
                 var closestBtn = e.target.closest('.card-btn[data-action]');
                 if (!closestBtn) return; // Skip non-button clicks
-
+                
             }, true); // Capture phase - fires FIRST
-
+            
             // Attach click listener to document for event delegation (per external feedback)
             document.addEventListener('click', function(e) {
                 // Find the closest button with data-action attribute
@@ -2574,35 +2659,50 @@ DASHBOARD_HTML = """
                 if (!btn) {
                     return; // Exit if clicked element is not a button (no logging to reduce noise)
                 }
-
+                
                 // ENHANCED LOGGING: Capture state before action (OPTIMIZED - minimal logging)
                 var action = btn.getAttribute('data-action');
-                                // Check CSS/pointer-events issues (only log if there's a problem)
+                console.log('✅ Button clicked:', action);
+                
+                // Check CSS/pointer-events issues (only log if there's a problem)
                 var computedStyle = window.getComputedStyle(btn);
                 var pointerEvents = computedStyle.pointerEvents;
                 var display = computedStyle.display;
                 var visibility = computedStyle.visibility;
-
-                if (pointerEvents === 'none' || display === 'none' || visibility === 'hidden') {                }
-
-
+                
+                if (pointerEvents === 'none' || display === 'none' || visibility === 'hidden') {
+                    console.warn('⚠️ Button CSS issue:', {
+                        pointerEvents: pointerEvents,
+                        display: display,
+                        visibility: visibility
+                    });
+                }
+                
+                
                 e.preventDefault(); // Prevent any default behavior
                 e.stopPropagation();
-
-                if (!action) {                    return; // No action specified
+                
+                if (!action) {
+                    console.warn('⚠️ Button has no data-action attribute');
+                    return; // No action specified
                 }
-
+                
                 // Check if button is disabled
-                if (btn.disabled) {                    return;
+                if (btn.disabled) {
+                    console.warn('⚠️ Button is disabled, ignoring click');
+                    return;
                 }
-
+                
                 // Route to appropriate function based on data-action (per external feedback)
                 // Enhanced error handling to prevent application freezing
                 if (window[action] && typeof window[action] === 'function') {
                     try {
-                                                window[action](btn); // Call the corresponding function
+                        console.log('✅ Calling function:', action);
+                        window[action](btn); // Call the corresponding function
                     } catch(err) {
-                        // Catch synchronous errors to prevent freezing                        console.error('Error details:', {
+                        // Catch synchronous errors to prevent freezing
+                        console.error('❌ Error executing function:', action, err);
+                        console.error('Error details:', {
                             message: err.message,
                             name: err.name,
                             stack: err.stack ? err.stack.substring(0, 300) : 'no stack',
@@ -2623,24 +2723,47 @@ DASHBOARD_HTML = """
                         }
                     }
                 } else {
-                    console.error('❌ Function not found for action:', action); // Log error for missing function (per external feedback)                }
+                    console.error('❌ Function not found for action:', action); // Log error for missing function (per external feedback)
+                    console.error('Available functions:', {
+                        processOrders: typeof window.processOrders,
+                        updateInventory: typeof window.updateInventory,
+                        generateReport: typeof window.generateReport,
+                        requestedAction: typeof window[action]
+                    });
+                }
             }, true); // Use capture phase to catch early
-
-                        // CRITICAL: Add direct button test listeners as backup
+            
+            console.log('✅ Event delegation listener attached successfully');
+            
+            // CRITICAL: Add direct button test listeners as backup
             // This will help us verify if buttons are clickable at all
             var testButtons = document.querySelectorAll('.card-btn[data-action]');
-                        testButtons.forEach(function(btn, index) {
+            console.log('🔍 Found buttons for direct testing:', testButtons.length);
+            testButtons.forEach(function(btn, index) {
                 var action = btn.getAttribute('data-action');
-                                // Add direct click listener as backup test
+                console.log('🔍 Button ' + index + ':', {
+                    action: action,
+                    disabled: btn.disabled,
+                    className: btn.className
+                });
+                
+                // Add direct click listener as backup test
                 btn.addEventListener('click', function(e) {
-                                                        }, true); // Capture phase
+                    console.log('🔍 DIRECT BUTTON LISTENER FIRED for:', action);
+                    console.log('🔍 Direct listener details:', {
+                        action: action,
+                        disabled: btn.disabled,
+                        defaultPrevented: e.defaultPrevented,
+                        propagationStopped: false
+                    });
+                }, true); // Capture phase
             });
-
+            
         });
         // ============================================================================
         // END ROBUST BUTTON EVENT HANDLING
         // ============================================================================
-
+        
 // Quick Menu Toggle
         function toggleQuickMenu(event) {
             event.stopPropagation();
@@ -2657,14 +2780,14 @@ DASHBOARD_HTML = """
                 menu.classList.remove('show');
             }
         });
-
+        
 // Keyboard shortcuts for power users
         document.addEventListener('keydown', function(e) {
             // Don't trigger shortcuts when typing in inputs
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
                 return;
             }
-
+            
             // Ctrl/Cmd + 1 = Process Orders
             if ((e.ctrlKey || e.metaKey) && e.key === '1') {
                 e.preventDefault();
@@ -2721,7 +2844,7 @@ DASHBOARD_HTML = """
                 if (menu) menu.classList.remove('show');
             }
         });
-
+        
         // Track page views (if analytics is set up)
         if (typeof gtag !== 'undefined') {
             gtag('event', 'page_view', {
@@ -2729,7 +2852,7 @@ DASHBOARD_HTML = """
                 'page_location': window.location.href
             });
         }
-
+        
         // CRITICAL: Preserve shop and host parameters when clicking links in embedded mode
         // This ensures navigation doesn't lose the embedded context
         (function() {
@@ -2737,7 +2860,7 @@ DASHBOARD_HTML = """
                 var urlParams = new URLSearchParams(window.location.search);
                 var shop = urlParams.get('shop');
                 var host = urlParams.get('host');
-
+                
                 // Intercept all link clicks and preserve shop/host parameters
                 document.addEventListener('click', function(e) {
                     var target = e.target;
@@ -2745,7 +2868,7 @@ DASHBOARD_HTML = """
                     while (target && target.tagName !== 'A') {
                         target = target.parentElement;
                     }
-
+                    
                     if (target && target.tagName === 'A' && target.href) {
                         var href = target.href;
                         // CRITICAL: For embedded mode, convert relative URLs to absolute URLs
@@ -2832,22 +2955,22 @@ def home():
     shop = request.args.get('shop')
     embedded = request.args.get('embedded')
     host = request.args.get('host')
-
+    
     # Check Referer header as Shopify sends requests from admin.shopify.com
     referer = request.headers.get('Referer', '')
     is_from_shopify_admin = 'admin.shopify.com' in referer or '.myshopify.com' in referer
-
+    
     # CRITICAL: For embedded apps, ALWAYS render dashboard - NEVER redirect
     # Redirects break iframes. Just render the dashboard HTML.
     # IMPORTANT: When Shopify first loads the app, it might not have shop/host params yet
     # But the referer will be from admin.shopify.com, so we detect that
     is_embedded = embedded == '1' or shop or host or is_from_shopify_admin
-
+    
     # CRITICAL: If we're being loaded in an iframe from Shopify admin, ALWAYS treat as embedded
     # Even without params, Shopify will add them via App Bridge
     if not is_embedded and is_from_shopify_admin:
         is_embedded = True
-
+    
     if is_embedded:
         # For embedded apps, check if store is connected
         from models import ShopifyStore
@@ -2868,17 +2991,17 @@ def home():
                 store = None
             if store and hasattr(store, 'user') and store.user:
                 user = store.user
-
+        
         # CRITICAL: For embedded apps, DON'T use cookies (Safari blocks them)
         # Session tokens handle all authentication - cookies are unreliable in iframes
         # We'll get user info from session tokens in API calls, not from Flask-Login cookies
-
+        
         # For embedded apps, ALWAYS render dashboard - don't check Flask-Login
         # Flask-Login sessions don't work in iframes, but session tokens do
         # CRITICAL: Always render HTML for embedded apps, never redirect
         if True:  # Always render for embedded apps
             # render_template_string is already imported at top of file
-
+            
             # For embedded apps, get user info from store (if connected)
             # Session tokens will verify this in API calls
             if user:
@@ -2896,7 +3019,7 @@ def home():
                 days_left = 0
                 is_subscribed = False
                 user_id = None
-
+            
             from models import ShopifyStore
             has_shopify = False
             if user_id:
@@ -2932,13 +3055,13 @@ def home():
                         # Removed db.session.remove() - causes segfaults
                         pass
                     has_shopify = False
-
+            
             # Skip slow API calls for embedded apps - just show empty stats
             # This prevents the page from hanging while waiting for Shopify API
             quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
             # Don't fetch quick stats on initial load - let the user click buttons to load data
             # This makes the page load instantly
-
+            
             shop_domain = shop or ''
             if has_shopify and user_id:
                 # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
@@ -2970,17 +3093,17 @@ def home():
                     store = None
                 if store and hasattr(store, 'shop_url') and store.shop_url:
                     shop_domain = store.shop_url
-
+            
             # CRITICAL: Pass host parameter to template for App Bridge initialization
             host_param = request.args.get('host', '')
             shop_param = shop_domain or shop or request.args.get('shop', '')
-
+            
             APP_URL = os.getenv('APP_URL', request.url_root.rstrip('/'))
-            return render_template_string(DASHBOARD_HTML,
-                                         trial_active=trial_active,
-                                         days_left=days_left,
-                                         is_subscribed=is_subscribed,
-                                         has_shopify=has_shopify,
+            return render_template_string(DASHBOARD_HTML, 
+                                         trial_active=trial_active, 
+                                         days_left=days_left, 
+                                         is_subscribed=is_subscribed, 
+                                         has_shopify=has_shopify, 
                                          has_access=has_access,
                                          quick_stats=quick_stats,
                                          shop=shop_param,
@@ -2993,7 +3116,7 @@ def home():
             # DON'T redirect - just show the dashboard with a connect button
             # This prevents iframe breaking
             logger.info(f"Store not connected for embedded app: {shop}, showing dashboard with connect prompt")
-
+            
             # Render dashboard with safe defaults (no auth required)
             # render_template_string is already imported at top of file
             has_access = False
@@ -3003,16 +3126,16 @@ def home():
             has_shopify = False
             quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
             shop_domain = shop or ''
-
+            
             # CRITICAL: Pass host parameter to template for App Bridge initialization
             host_param = request.args.get('host', '')
-
+            
             APP_URL = os.getenv('APP_URL', request.url_root.rstrip('/'))
-            return render_template_string(DASHBOARD_HTML,
-                                         trial_active=trial_active,
-                                         days_left=days_left,
-                                         is_subscribed=is_subscribed,
-                                         has_shopify=has_shopify,
+            return render_template_string(DASHBOARD_HTML, 
+                                         trial_active=trial_active, 
+                                         days_left=days_left, 
+                                         is_subscribed=is_subscribed, 
+                                         has_shopify=has_shopify, 
                                          has_access=has_access,
                                          quick_stats=quick_stats,
                                          shop=shop_param,
@@ -3020,7 +3143,7 @@ def home():
                                          SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
                                          APP_URL=APP_URL,
                                          host=host_param)
-
+    
     # Regular (non-embedded) request handling
     if current_user.is_authenticated:
         # If user is authenticated, always go to dashboard (even if embedded params missing)
@@ -3033,7 +3156,7 @@ def home():
             if host_param:
                 dashboard_url += f'&host={host_param}&embedded=1'
         return safe_redirect(dashboard_url, shop=shop_param, host=host_param)
-
+    
     # Check if this might be an embedded request that lost its params
     # If referer is from Shopify admin, treat as embedded
     if is_from_shopify_admin:
@@ -3043,12 +3166,12 @@ def home():
         host_param = request.args.get('host', '')
         shop_param = shop or request.args.get('shop', '')
         APP_URL = os.getenv('APP_URL', request.url_root.rstrip('/'))
-
-        return render_template_string(DASHBOARD_HTML,
-                                     trial_active=False,
-                                     days_left=0,
-                                     is_subscribed=False,
-                                     has_shopify=False,
+        
+        return render_template_string(DASHBOARD_HTML, 
+                                     trial_active=False, 
+                                     days_left=0, 
+                                     is_subscribed=False, 
+                                     has_shopify=False, 
                                      has_access=False,
                                      quick_stats={'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0},
                                      shop=shop_param,
@@ -3056,7 +3179,7 @@ def home():
                                      SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
                                      APP_URL=APP_URL,
                                      host=host_param)
-
+    
     # For standalone access, redirect to Shopify OAuth install instead of login
     # OAuth users don't have passwords, so login page won't work for them
     # Show a page that explains they need to install via Shopify
@@ -3135,7 +3258,7 @@ def dashboard():
     shop = request.args.get('shop')
     host = request.args.get('host')
     is_embedded = request.args.get('embedded') == '1' or shop or host or is_from_shopify_admin
-
+    
     # CRITICAL: If embedded but no shop param, try to extract from Referer
     if is_embedded and not shop and is_from_shopify_admin:
         try:
@@ -3159,8 +3282,8 @@ def dashboard():
         except Exception as e:
             logger.warning(f"Failed to extract shop from Referer: {e}")
             pass
-
-
+    
+    
     # CRITICAL: For embedded apps without shop, show install message
     # But don't redirect - just show a helpful message
     if is_embedded and not shop:
@@ -3188,13 +3311,13 @@ def dashboard():
         </body>
         </html>
         """), 400
-
+    
     # For embedded apps, allow access without strict auth (App Bridge handles it)
     # For regular requests without auth, redirect to home (which handles auth properly)
     if not is_embedded and not current_user.is_authenticated:
         # Redirect to home instead of login - home route handles both embedded and standalone properly
         return redirect(url_for('home'))
-
+    
     # If embedded but no session/store found, redirect to OAuth (Shopify's embedded auth flow)
     if is_embedded and shop and not current_user.is_authenticated:
         from models import ShopifyStore, db
@@ -3207,7 +3330,7 @@ def dashboard():
                 db.session.rollback()
             except Exception:
                 pass
-
+        
         # If no active store found or store is not connected, redirect to OAuth install flow
         # CRITICAL: Use App Bridge redirect to avoid "accounts.shopify.com refused to connect" error
         if not store or not store.is_connected():
@@ -3229,7 +3352,7 @@ def dashboard():
             var installUrl = '{install_url}';
             var attempts = 0;
             var maxAttempts = 100;
-
+            
             function redirectToOAuth() {{
                 attempts++;
 
@@ -3248,13 +3371,17 @@ def dashboard():
                         var redirect = Redirect.create(app);
                         redirect.dispatch(Redirect.Action.REMOTE, installUrl);
                         return;
-                    }} catch (e) {{                    }}
+                    }} catch (e) {{
+                        console.error('App Bridge redirect error:', e);
+                    }}
                 }}
 
                 // Retry or show fallback button
                 if (attempts < maxAttempts) {{
                     setTimeout(redirectToOAuth, 100);
-                }} else {{                    // CRITICAL: Never use programmatic redirects - show button with target="_top" instead
+                }} else {{
+                    console.warn('⚠️ App Bridge not available, showing button with target="_top"');
+                    // CRITICAL: Never use programmatic redirects - show button with target="_top" instead
                     // This prevents "accounts.shopify.com refused to connect" error
                     // Use string concatenation to build HTML (not template literals to avoid f-string conflicts)
                     var html = '<div style="padding: 40px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, \\'Segoe UI\\', Roboto, sans-serif; background: #fff; border-radius: 8px; max-width: 500px; margin: 40px auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">';
@@ -3265,7 +3392,7 @@ def dashboard():
                     document.body.innerHTML = html;
                 }}
             }}
-
+            
             // Start redirect attempt
             redirectToOAuth();
         }})();
@@ -3316,20 +3443,20 @@ def dashboard():
     </div>
 </body>
 </html>""")
-
+    
     # render_template_string is already imported at top of file - DO NOT import locally
-
+    
     # For embedded requests, always render - never redirect
     # This prevents iframe breaking
     """Dashboard - accessible to all authenticated users, shows subscribe prompt if no access"""
-
+    
     # Handle case where user might not be authenticated (for embedded apps)
     # CRITICAL: Check authentication safely - current_user might not be loaded yet
     try:
         user_authenticated = current_user.is_authenticated if hasattr(current_user, 'is_authenticated') else False
     except Exception:
         user_authenticated = False
-
+    
     if user_authenticated:
         try:
             has_access = current_user.has_access()
@@ -3348,13 +3475,13 @@ def dashboard():
         trial_active = False
         days_left = 0
         is_subscribed = False
-
+    
     # Check if user has connected Shopify - OPTIMIZED: Single query instead of multiple
     from models import ShopifyStore
     store = None
     has_shopify = False
     shop_domain = shop or ''
-
+    
     # OPTIMIZED: Single database query to get store (reduces from 3-4 queries to 1)
     try:
         if user_authenticated:
@@ -3363,7 +3490,7 @@ def dashboard():
         elif shop:
             # Fallback: query by shop_url for embedded apps
             store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
-
+        
         if store:
             has_shopify = True
             shop_domain = store.shop_url if hasattr(store, 'shop_url') and store.shop_url else shop_domain
@@ -3376,30 +3503,30 @@ def dashboard():
         # DO NOT call db.session.remove() here - it corrupts connection state and causes segfaults
         store = None
         has_shopify = False
-
+    
     # Skip slow API calls on dashboard load - just show empty stats
     # This prevents the page from hanging while waiting for Shopify API
     # Users can click buttons to load data when they need it
     quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
-
+    
     # Store shop in session for API calls (if shop parameter is present)
     if shop_domain:
         from flask import session
         session['current_shop'] = shop_domain
         session.permanent = True
         logger.info(f"Stored shop in session: {shop_domain} for user {current_user.id if user_authenticated else 'anonymous'}")
-
+    
     # CRITICAL: Pass host parameter to template for App Bridge initialization
     host_param = request.args.get('host', '')
     shop_param = shop_domain or shop or request.args.get('shop', '')
-
-
+    
+    
     APP_URL = os.getenv('APP_URL', request.url_root.rstrip('/'))
-    return render_template_string(DASHBOARD_HTML,
-                                 trial_active=trial_active,
-                                 days_left=days_left,
-                                 is_subscribed=is_subscribed,
-                                 has_shopify=has_shopify,
+    return render_template_string(DASHBOARD_HTML, 
+                                 trial_active=trial_active, 
+                                 days_left=days_left, 
+                                 is_subscribed=is_subscribed, 
+                                 has_shopify=has_shopify, 
                                  has_access=has_access,
                                  quick_stats=quick_stats,
                                  shop=shop_param,
@@ -3414,10 +3541,10 @@ def cron_trial_warnings():
     """Endpoint for external cron service"""
     import os
     secret = request.args.get('secret') or request.form.get('secret')
-
+    
     if secret != os.getenv('CRON_SECRET'):
         return jsonify({"error": "Unauthorized"}), 401
-
+    
     from cron_jobs import send_trial_warnings
     try:
         send_trial_warnings()
@@ -3429,14 +3556,14 @@ def cron_trial_warnings():
 def cron_database_backup():
     """Endpoint for automated database backups via external cron service"""
     secret = request.args.get('secret') or request.form.get('secret')
-
+    
     if secret != os.getenv('CRON_SECRET'):
         return jsonify({"error": "Unauthorized"}), 401
-
+    
     try:
         from database_backup import run_backup
         result = run_backup()
-
+        
         if result['success']:
             logger.info(f"Automated backup completed: {result['backup_file']}")
             return jsonify({
@@ -3453,7 +3580,7 @@ def cron_database_backup():
                 "error": result.get('error', 'Unknown error'),
                 "timestamp": result.get('timestamp')
             }), 500
-
+            
     except Exception as e:
         logger.error(f"Backup cron endpoint error: {e}", exc_info=True)
         return jsonify({"error": str(e), "success": False}), 500
@@ -3469,10 +3596,10 @@ def api_key_info():
     """Debug endpoint - ONLY works in development"""
     if not is_debug_enabled():
         return jsonify({"error": "Not available in production"}), 403
-
+    
     api_key = os.getenv('SHOPIFY_API_KEY', 'NOT_SET')
     api_secret = os.getenv('SHOPIFY_API_SECRET', 'NOT_SET')
-
+    
     response = {
         'api_key': {
             'status': 'SET' if api_key != 'NOT_SET' and api_key else 'NOT_SET',
@@ -3498,7 +3625,7 @@ def debug_routes():
     """Debug endpoint - ONLY works in development"""
     if not is_debug_enabled():
         return jsonify({"error": "Not available in production"}), 403
-
+    
     all_routes = [{"rule": str(rule.rule), "endpoint": rule.endpoint, "methods": list(rule.methods)} for rule in app.url_map.iter_rules()]
     shopify_routes = [r for r in all_routes if 'shopify' in r['rule'].lower()]
     return jsonify({
@@ -3514,10 +3641,10 @@ def health():
     from datetime import datetime
     from performance import get_cache_stats
     import sys
-
+    
     checks = {}
     overall_status = "healthy"
-
+    
     # Cache check
     try:
         cache_stats = get_cache_stats()
@@ -3530,7 +3657,7 @@ def health():
     except Exception as e:
         checks['cache'] = {"error": str(e), "status": "error"}
         overall_status = "unhealthy"
-
+    
     # Database check
     try:
         db.session.execute(db.text('SELECT 1'))
@@ -3538,7 +3665,7 @@ def health():
     except Exception as e:
         checks['database'] = {"error": str(e), "status": "disconnected"}
         overall_status = "unhealthy"
-
+    
     # Environment check
     try:
         import flask
@@ -3549,7 +3676,7 @@ def health():
         }
     except Exception as e:
         checks['environment'] = {"error": str(e), "status": "error"}
-
+    
     # Memory check (optional - psutil might not be available)
     try:
         import psutil
@@ -3567,10 +3694,10 @@ def health():
         }
     except Exception as e:
         checks['memory'] = {"error": str(e), "status": "error"}
-
+    
     # Determine overall database status for backward compatibility
     database_status = "connected" if checks.get('database', {}).get('status') == 'connected' else "disconnected"
-
+    
     return jsonify({
         "status": overall_status,
         "service": "Employee Suite",
@@ -3586,16 +3713,16 @@ def log_error():
     try:
         from flask import request, jsonify
         error_data = request.get_json()
-
+        
         if not error_data:
             return jsonify({'success': False, 'error': 'No error data provided'}), 400
-
+        
         # Log the JavaScript error with comprehensive details
         error_type = error_data.get('error_type', 'UnknownError')
         error_message = error_data.get('error_message', 'Unknown error')
         error_location = error_data.get('error_location', 'unknown')
         stack_trace = error_data.get('stack_trace', 'No stack trace')
-
+        
         # Add request context
         full_error_data = {
             **error_data,
@@ -3604,7 +3731,7 @@ def log_error():
             'remote_addr': request.remote_addr,
             'referer': request.headers.get('Referer'),
         }
-
+        
         log_comprehensive_error(
             f'JS_{error_type}',
             error_message,
@@ -3612,9 +3739,9 @@ def log_error():
             full_error_data,
             None  # No Python exc_info for JS errors
         )
-
+        
         return jsonify({'success': True, 'message': 'Error logged'}), 200
-
+        
     except Exception as e:
         # Even error logging can fail - log it
         log_comprehensive_error(
@@ -3640,7 +3767,7 @@ def get_authenticated_user():
     if current_user.is_authenticated:
         logger.debug(f"User authenticated via Flask-Login: {current_user.id}")
         return current_user, None
-
+    
     # Try session token (for embedded apps)
     auth_header = request.headers.get('Authorization', '')
     logger.debug(f"Auth header present: {bool(auth_header)}, starts with Bearer: {auth_header.startswith('Bearer ')}")
@@ -3649,22 +3776,22 @@ def get_authenticated_user():
             token = auth_header.split(' ')[1] if ' ' in auth_header else None
             if not token:
                 return None, (jsonify({'error': 'Invalid token format', 'success': False}), 401)
-
+            
             # Properly verify JWT token with full validation
             import jwt
-
+            
             # CRITICAL: Check environment variables exist
             api_secret = os.getenv('SHOPIFY_API_SECRET')
             api_key = os.getenv('SHOPIFY_API_KEY')
-
+            
             if not api_secret:
                 logger.warning("SHOPIFY_API_SECRET not set - cannot verify session token")
                 return None, (jsonify({'error': 'Server configuration error', 'success': False}), 500)
-
+            
             if not api_key:
                 logger.warning("SHOPIFY_API_KEY not set - cannot verify session token")
                 return None, (jsonify({'error': 'Server configuration error', 'success': False}), 500)
-
+            
             payload = jwt.decode(
                 token,
                 api_secret,
@@ -3676,18 +3803,18 @@ def get_authenticated_user():
                     "require": ["iss", "dest", "aud", "sub", "exp", "nbf", "iat"]
                 }
             )
-
+            
             # Verify audience matches API key
             if payload.get('aud') != api_key:
                 logger.warning(f"Invalid audience in session token: {payload.get('aud')}")
                 return None, (jsonify({'error': 'Invalid token', 'success': False}), 401)
-
+            
             # Extract shop domain
             dest = payload.get('dest', '')
             if not dest or not dest.endswith('.myshopify.com'):
                 logger.warning(f"Invalid destination in session token: {dest}")
                 return None, (jsonify({'error': 'Invalid token', 'success': False}), 401)
-
+            
             # CRITICAL: Safe string splitting - handle edge cases
             try:
                 cleaned_dest = dest.replace('https://', '').replace('http://', '')
@@ -3697,7 +3824,7 @@ def get_authenticated_user():
             except (IndexError, AttributeError, ValueError) as e:
                 logger.warning(f"Error parsing shop domain from dest '{dest}': {e}")
                 return None, (jsonify({'error': 'Invalid token format', 'success': False}), 401)
-
+            
             # Find user from shop - CRITICAL: Protect against segfaults
             # DO NOT call db.session.remove() - let pool_pre_ping validate connections
             from models import ShopifyStore, db
@@ -3716,7 +3843,7 @@ def get_authenticated_user():
                     except Exception:
                         pass
                 return None, (jsonify({'error': 'Database connection error', 'success': False, 'action': 'retry'}), 500)
-
+            
             if store and store.user:
                 logger.info(f"✅ Session token verified - user {store.user.id} from shop {shop_domain}")
                 return store.user, None
@@ -3728,7 +3855,7 @@ def get_authenticated_user():
                     'action': 'install',
                     'message': 'To get started, install Employee Suite from your Shopify admin panel.'
                 }), 404)
-
+                
         except jwt.ExpiredSignatureError:
             logger.warning("Expired session token")
             return None, (jsonify({
@@ -3753,7 +3880,7 @@ def get_authenticated_user():
                 'action': 'retry',
                 'message': 'If this continues, please refresh the page or contact support.'
             }), 401)
-
+    
     # Try shop parameter authentication (for Shopify embedded apps after OAuth redirect)
     # This is the common case - OAuth redirects to dashboard?shop=xxx without a token
     shop_param = request.args.get('shop')
@@ -3794,8 +3921,8 @@ def api_process_orders():
     logger.info(f'Request args: {dict(request.args)}')
     logger.info(f'Has Authorization header: {bool(request.headers.get("Authorization"))}')
     logger.info(f'Has shop parameter: {bool(request.args.get("shop"))}')
-
-
+    
+    
     try:
         # Get authenticated user (supports both Flask-Login and session tokens)
         logger.info('Step 1: Getting authenticated user...')
@@ -3834,8 +3961,8 @@ def api_process_orders():
         from flask_login import login_user
         login_user(user, remember=False)
         logger.info('Step 4 SUCCESS: User logged in')
-
-
+        
+        
         logger.info(f'Step 5: Calling process_orders for user {user_id}...')
         # Pass user_id directly to prevent recursion from accessing current_user
         result = process_orders(user_id=user_id)
@@ -3846,14 +3973,14 @@ def api_process_orders():
             logger.info(f'Result success: {result.get("success", "N/A")}')
             if 'error' in result:
                 logger.warning(f'Result contains error: {result.get("error")}')
-
-
+        
+        
         logger.info('=== PROCESS ORDERS REQUEST SUCCESS ===')
         if isinstance(result, dict):
             return jsonify(result)
         else:
             return jsonify({"message": str(result), "success": True})
-
+            
     except MemoryError as e:
         logger.error(f"Memory error processing orders for user {user_id}: {str(e)}", exc_info=True)
         logger.error("Clearing cache...")
@@ -3890,8 +4017,8 @@ def api_update_inventory():
     logger.info(f'Request args: {dict(request.args)}')
     logger.info(f'Has Authorization header: {bool(request.headers.get("Authorization"))}')
     logger.info(f'Has shop parameter: {bool(request.args.get("shop"))}')
-
-
+    
+    
     try:
         # Get authenticated user (supports both Flask-Login and session tokens)
         logger.info('Step 1: Getting authenticated user...')
@@ -3928,14 +4055,14 @@ def api_update_inventory():
         from flask_login import login_user
         login_user(user, remember=False)
         logger.info('Step 4 SUCCESS: User logged in')
-
+    
         # Import at function level to avoid UnboundLocalError
         logger.info('Step 5: Clearing cache...')
         from performance import clear_cache as clear_perf_cache
         clear_perf_cache('get_products')
         logger.info('Step 5 SUCCESS: Cache cleared')
-
-
+        
+        
         logger.info(f'Step 6: Calling update_inventory for user {user_id}...')
         # Pass user_id directly to prevent recursion from accessing current_user
         result = update_inventory(user_id=user_id)
@@ -3946,8 +4073,8 @@ def api_update_inventory():
             logger.info(f'Result success: {result.get("success", "N/A")}')
             if 'error' in result:
                 logger.warning(f'Result contains error: {result.get("error")}')
-
-
+        
+        
         logger.info('=== UPDATE INVENTORY REQUEST SUCCESS ===')
         if isinstance(result, dict):
             # Store inventory data in session for CSV export
@@ -3958,7 +4085,7 @@ def api_update_inventory():
             return jsonify(result)
         else:
             return jsonify({"success": False, "error": str(result)})
-
+            
     except MemoryError as e:
         logger.error(f"Memory error updating inventory for user {user_id}: {str(e)}", exc_info=True)
         logger.error("Clearing cache...")
@@ -3995,28 +4122,28 @@ def api_generate_report():
     logger.info(f'Request args: {dict(request.args)}')
     logger.info(f'Has Authorization header: {bool(request.headers.get("Authorization"))}')
     logger.info(f'Has shop parameter: {bool(request.args.get("shop"))}')
-
-
+    
+    
     user_id = None
     try:
         # Get authenticated user (supports both Flask-Login and session tokens)
         logger.info('Step 1: Getting authenticated user...')
         user, error_response = get_authenticated_user()
-
+        
         if error_response:
             logger.warning('Step 1 FAILED: Authentication error')
             logger.warning(f'Error response status: {error_response.status_code if hasattr(error_response, "status_code") else "N/A"}')
             return error_response
-
+        
         logger.info(f'Step 1 SUCCESS: User authenticated: {user.email if hasattr(user, "email") else "N/A"}')
-
+        
         # Store user ID before login_user to avoid recursion issues
         user_id = user.id if hasattr(user, 'id') else getattr(user, 'id', None)
         logger.info(f'Step 2: User ID extracted: {user_id}')
-
+        
         logger.info('Step 3: Checking user access...')
         has_access = user.has_access() if user else False
-
+        
         if not has_access:
             logger.warning(f'Step 3 FAILED: User {user_id} does not have access')
             return jsonify({
@@ -4026,17 +4153,17 @@ def api_generate_report():
                 'message': 'Your trial has ended. Subscribe to continue using Employee Suite.',
                 'subscribe_url': url_for('billing.subscribe')
             }), 403
-
+        
         logger.info(f'Step 3 SUCCESS: User {user_id} has access')
-
+        
         # Set current_user for generate_report() function
         logger.info('Step 4: Logging in user...')
         from flask_login import login_user
         login_user(user, remember=False)
         logger.info('Step 4 SUCCESS: User logged in')
-
+        
         logger.info(f'Step 5: Preparing to generate report for user {user_id}...')
-
+        
         # Get shop_url from request args, session, or None (will use first active store)
         from flask import session
         shop_url = request.args.get('shop') or session.get('current_shop') or None
@@ -4044,14 +4171,14 @@ def api_generate_report():
             logger.info(f'Step 5a: Using shop_url from request/session: {shop_url}')
         else:
             logger.info(f'Step 5a: No shop_url in request/session, will use first active store for user')
-
+        
         # CRITICAL: DO NOT call db.session.remove() here - let SQLAlchemy manage connections
         # Removing sessions before queries can cause segfaults by corrupting connection state
         logger.info('Step 5b: Importing generate_report function...')
         from reporting import generate_report
         logger.info('Step 5b SUCCESS: generate_report function imported')
-
-
+        
+        
         logger.info(f'Step 5c: Calling generate_report(user_id={user_id}, shop_url={shop_url})...')
         data = generate_report(user_id=user_id, shop_url=shop_url)
         logger.info(f'Step 5c SUCCESS: generate_report() returned')
@@ -4062,7 +4189,7 @@ def api_generate_report():
                 logger.warning(f'Result contains error: {data.get("error")}')
             if 'message' in data:
                 logger.info(f'Result message: {data.get("message")[:100]}...' if len(str(data.get("message", ""))) > 100 else f'Result message: {data.get("message")}')
-
+        
         if data.get('error') and data['error'] is not None:
             error_msg = data['error']
             logger.warning(f'Step 5d ERROR: Report generation returned error: {error_msg[:200]}')
@@ -4072,24 +4199,24 @@ def api_generate_report():
                 logger.error(f'Generate report error for user {user_id}: {error_msg}')
             logger.error('=== GENERATE REPORT REQUEST FAILED: Report Error ===')
             return error_msg, 500
-
+        
         if not data.get('message'):
             logger.warning(f'Step 5d WARNING: No message in report data')
             logger.warning(f'Generate report returned no message for user {user_id}')
             logger.error('=== GENERATE REPORT REQUEST FAILED: No Data ===')
             return '<h3 class="error">❌ No report data available</h3>', 500
-
+        
         html = data.get('message', '<h3 class="error">❌ No report data available</h3>')
         logger.info(f'Step 5d: Report HTML generated, length: {len(html)} characters')
-
+        
         from flask import session
         if 'report_data' in data:
             session['report_data'] = data['report_data']
             logger.info('Step 5e: Report data stored in session for CSV export')
-
+        
         logger.info('=== GENERATE REPORT REQUEST SUCCESS ===')
         return html, 200
-
+        
     except MemoryError as e:
         logger.error('=== GENERATE REPORT REQUEST FAILED: Memory Error ===')
         logger.error(f'Error type: {type(e).__name__}')
@@ -4138,7 +4265,7 @@ def not_found(error):
     """404 error handler - professional error page (duplicate, routes to main handler)"""
     # Route to main 404 handler which has enhanced logging
     return handle_404(error)
-
+    
     error_html = """
     <!DOCTYPE html>
     <html>
@@ -4237,11 +4364,11 @@ def internal_error(error):
     """500 error handler - professional error page"""
     db.session.rollback()
     log_security_event('500_error', f"Path: {request.path}, Error: {str(error)}", 'ERROR')
-
+    
     # Return JSON for API requests, HTML for browser requests
     if request.path.startswith('/api/'):
         return jsonify({'error': 'An internal error occurred. Please try again later.'}), 500
-
+    
     error_html = """
     <!DOCTYPE html>
     <html>
@@ -4360,25 +4487,25 @@ def export_inventory_csv():
         from inventory import check_inventory
         import csv
         import io
-
+        
         # Get inventory data from session or regenerate
         inventory_data = session.get('inventory_data', [])
-
+        
         if not inventory_data:
             # Regenerate if not in session
             result = check_inventory()
             if result.get('success') and 'inventory_data' in result:
                 inventory_data = result['inventory_data']
                 session['inventory_data'] = inventory_data
-
+        
         if not inventory_data:
             return "No inventory data available. Please check inventory first.", 404
-
+        
         # Create CSV
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(['Product', 'SKU', 'Stock', 'Price'])
-
+        
         for item in inventory_data:
             writer.writerow([
                 item.get('product', 'N/A'),
@@ -4386,7 +4513,7 @@ def export_inventory_csv():
                 item.get('stock', 0),
                 item.get('price', 'N/A')
             ])
-
+        
         # Return CSV file
         response = Response(
             output.getvalue(),
@@ -4394,7 +4521,7 @@ def export_inventory_csv():
             headers={'Content-Disposition': f'attachment; filename=inventory_{datetime.utcnow().strftime("%Y%m%d")}.csv'}
         )
         return response
-
+        
     except Exception as e:
         logger.error(f"Error exporting inventory CSV: {str(e)}", exc_info=True)
         return jsonify({"error": f"Failed to export inventory: {str(e)}"}), 500
@@ -4409,27 +4536,27 @@ def export_report_csv():
         from reporting import generate_report
         import csv
         import io
-
+        
         # Get report data from session or regenerate
         report_data = session.get('report_data', {})
-
+        
         if not report_data:
             # Regenerate if not in session
             data = generate_report()
             if data.get('success') and 'report_data' in data:
                 report_data = data['report_data']
-
+        
         if not report_data or 'products' not in report_data:
             return "No report data available. Please generate report first.", 404
-
+        
         # Create CSV
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(['Product', 'Revenue', 'Percentage', 'Total Revenue', 'Total Orders'])
-
+        
         total_revenue = report_data.get('total_revenue', 0)
         total_orders = report_data.get('total_orders', 0)
-
+        
         for product, revenue in report_data.get('products', [])[:10]:
             percentage = (revenue / total_revenue * 100) if total_revenue > 0 else 0
             writer.writerow([
@@ -4439,7 +4566,7 @@ def export_report_csv():
                 f"${total_revenue:,.2f}",
                 total_orders
             ])
-
+        
         # Return CSV file
         response = Response(
             output.getvalue(),
@@ -4447,7 +4574,7 @@ def export_report_csv():
             headers={'Content-Disposition': f'attachment; filename=revenue_report_{datetime.utcnow().strftime("%Y%m%d")}.csv'}
         )
         return response
-
+        
     except Exception as e:
         logger.error(f"Error exporting report CSV for user {current_user.id}: {str(e)}", exc_info=True)
         return f"Error exporting CSV: {str(e)}", 500
@@ -4463,7 +4590,7 @@ def init_db():
                 logger.info("Enhanced models imported successfully")
             except Exception as e:
                 logger.warning(f"Could not import enhanced models: {e}")
-
+            
             db.create_all()
             # Add reset_token columns if they don't exist (migration)
             # SQLite-compatible: just try to add and catch errors
@@ -4471,11 +4598,11 @@ def init_db():
                 logger.info("Checking for reset_token columns...")
                 try:
                     db.session.execute(db.text("""
-                        ALTER TABLE users
+                        ALTER TABLE users 
                         ADD COLUMN reset_token VARCHAR(100)
                     """))
                     db.session.execute(db.text("""
-                        ALTER TABLE users
+                        ALTER TABLE users 
                         ADD COLUMN reset_token_expires TIMESTAMP
                     """))
                     db.session.commit()
@@ -4491,7 +4618,7 @@ def init_db():
             except Exception as e:
                 # If check fails, try to add columns anyway (might work)
                 logger.warning(f"Could not check for reset_token columns: {e}")
-
+            
             # Migrate shopify_stores table - add new columns
             # CRITICAL: Handle each column separately with proper transaction management
             try:
@@ -4512,8 +4639,8 @@ def init_db():
                         # Check if column exists first (PostgreSQL-safe)
                         try:
                             result = db.session.execute(db.text(f"""
-                                SELECT column_name
-                                FROM information_schema.columns
+                                SELECT column_name 
+                                FROM information_schema.columns 
                                 WHERE table_name='shopify_stores' AND column_name='{col_name}'
                             """))
                             if result.fetchone():
@@ -4522,10 +4649,10 @@ def init_db():
                         except Exception as check_error:
                             # If check fails, try to add anyway
                             logger.debug(f"Could not check for {col_name}: {check_error}")
-
+                        
                         # Add column in separate transaction
                         db.session.execute(db.text(f"""
-                            ALTER TABLE shopify_stores
+                            ALTER TABLE shopify_stores 
                             ADD COLUMN {col_name} {col_type}
                         """))
                         db.session.commit()
@@ -4536,7 +4663,7 @@ def init_db():
                             db.session.rollback()
                         except Exception:
                             pass
-
+                        
                         error_str = str(col_error).lower()
                         if "duplicate column" in error_str or "already exists" in error_str or "current transaction is aborted" in error_str:
                             logger.info(f"✅ {col_name} column already exists or transaction aborted (safe to ignore)")
@@ -4552,7 +4679,7 @@ def init_db():
                                 db.session.rollback()
                             except Exception:
                                 pass
-
+            
             logger.info("Database tables initialized/verified")
         except Exception as e:
             logger.error(f"Database initialization error: {e}")

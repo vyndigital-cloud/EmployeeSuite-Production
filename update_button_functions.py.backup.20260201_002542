@@ -12,7 +12,11 @@ def update_button_functions():
     # Replace synchronous check with Promise-based wait for processOrders
     old_check = '''            // CRITICAL: Wait for App Bridge to be ready before making requests
             if (isEmbedded && !window.appBridgeReady) {
-                // 
+                // #region agent log
+                try {
+                    fetch('http://127.0.0.1:7242/ingest/98f7b8ce-f573-4ca3-b4d4-0fb2bf283c8d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.py:processOrders','message':'App Bridge not ready','data':{'isEmbedded':isEmbedded,'appBridgeReady':window.appBridgeReady,'hasShopifyApp':!!window.shopifyApp},"timestamp":Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion
                 setButtonLoading(button, false);
                 document.getElementById('output').innerHTML = `
                     <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">

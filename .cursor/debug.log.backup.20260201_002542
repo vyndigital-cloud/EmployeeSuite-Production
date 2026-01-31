@@ -1,0 +1,4 @@
+{"sessionId": "debug-session", "runId": "run1", "hypothesisId": "AUTH", "location": "auth.py:308", "message": "Login route accessed", "data": {"method": "GET", "has_shop": false, "has_host": false}, "timestamp": 1768417802303}
+{"sessionId": "debug-session", "runId": "run1", "hypothesisId": "SHOPIFY_SETTINGS", "location": "shopify_routes.py:421", "message": "Shopify settings route accessed", "data": {"has_shop": false, "has_host": false, "has_success": false, "has_error": false}, "timestamp": 1768417802312}
+{"sessionId": "debug-session", "runId": "run1", "hypothesisId": "K", "location": "shopify_routes.py:384", "message": "Shopify settings route called", "data": {"shop": "", "host": ""}, "timestamp": 1768417802312}
+{"sessionId": "debug-session", "runId": "run1", "hypothesisId": "AUTH", "location": "auth.py:308", "message": "Login route accessed", "data": {"method": "GET", "has_shop": false, "has_host": false}, "timestamp": 1768418418776}
