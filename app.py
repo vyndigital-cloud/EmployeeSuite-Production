@@ -3072,11 +3072,13 @@ def home():
     if not is_embedded and is_from_shopify_admin:
         is_embedded = True
     
-    if is_embedded:
+    # Unified Case: Embedded, Authenticated, or Shopify Context
+    if is_embedded or current_user.is_authenticated or is_from_shopify_admin:
+        # Check if store is connected
         # For embedded apps, check if store is connected
         from models import ShopifyStore
         store = None
-        user = None
+        user = current_user if current_user.is_authenticated else None
         if shop:
             # Robust store lookup: pick most recent active or even inactive if needed (diagnostic)
             try:
@@ -3178,41 +3180,6 @@ def home():
                                      APP_URL=APP_URL,
                                      host=host_param)
     
-    # Regular (non-embedded) request handling
-    if current_user.is_authenticated:
-        # If user is authenticated, always go to dashboard (even if embedded params missing)
-        # Check if we have embedded params to preserve them
-        shop_param = request.args.get('shop')
-        host_param = request.args.get('host')
-        dashboard_url = url_for('dashboard')
-        if shop_param:
-            dashboard_url += f'?shop={shop_param}'
-            if host_param:
-                dashboard_url += f'&host={host_param}&embedded=1'
-        return safe_redirect(dashboard_url, shop=shop_param, host=host_param)
-    
-    # Check if this might be an embedded request that lost its params
-    # If referer is from Shopify admin, treat as embedded
-    if is_from_shopify_admin:
-        # Render dashboard for embedded apps even without explicit params
-        # render_template_string is already imported at top of file
-        # CRITICAL: Pass host parameter to template for App Bridge initialization
-        host_param = request.args.get('host', '')
-        shop_param = shop or request.args.get('shop', '')
-        APP_URL = os.getenv('APP_URL', request.url_root.rstrip('/'))
-        
-        return render_template_string(DASHBOARD_HTML, 
-                                     trial_active=False, 
-                                     days_left=0, 
-                                     is_subscribed=False, 
-                                     has_shopify=False, 
-                                     has_access=False,
-                                     quick_stats={'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0},
-                                     shop=shop_param,
-                                     shop_domain=shop_param,
-                                     SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
-                                     APP_URL=APP_URL,
-                                     host=host_param)
     
     # For standalone access, redirect to Shopify OAuth install instead of login
     # OAuth users don't have passwords, so login page won't work for them
@@ -3451,7 +3418,7 @@ def health():
     return jsonify({
         "status": overall_status,
         "service": "Employee Suite",
-        "version": "2.5",
+        "version": "2.6",
         "database": database_status,
         "checks": checks,
         "timestamp": datetime.utcnow().isoformat()
