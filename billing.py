@@ -74,365 +74,271 @@ PLANS = {
 
 SUBSCRIBE_HTML = '''
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Upgrade to {{ plan_name }}</title>
-    <!-- Shopify App Bridge -->
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-    <script>
-        var apiKey = '{{ config_api_key }}';
-        var shopOrigin = '{{ shop }}';
-        if (apiKey && shopOrigin) {
-            var AppBridge = window['app-bridge'];
-            var createApp = AppBridge.default;
-            var app = createApp({
-                apiKey: apiKey,
-                shopOrigin: shopOrigin,
-                forceRedirect: true
-            });
-        }
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <title>Pricing - Employee Suite</title>
     <style>
-        :root {
-            --primary: #2C6ECB; /* Trust Blue */
-            --accent: #F59E0B; /* Urgency Orange/Yellow */
-            --text-main: #111827;
-            --text-sub: #4B5563;
-            --surface: #ffffff;
-            --background: #F3F4F6;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--background);
-            color: var(--text-main);
-            margin: 0;
-            padding: 20px;
-            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f6f6f7;
+            color: #202223;
+            line-height: 1.5;
         }
-
-        .container {
-            max-width: 900px;
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid #e1e3e5;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-content {
+            max-width: 1200px;
             margin: 0 auto;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            overflow: hidden;
+            padding: 0 24px;
+            height: 64px;
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
         }
-
-        @media (min-width: 768px) {
-            .container {
-                flex-direction: row;
+        .logo { font-size: 16px; font-weight: 600; color: #202223; text-decoration: none; }
+        .nav-btn { padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none; color: #6d7175; }
+        .nav-btn:hover { background: #f6f6f7; color: #202223; }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 48px 24px;
+        }
+        .page-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        .page-title {
+            font-size: 32px;
+            font-weight: 600;
+            color: #202223;
+            margin-bottom: 12px;
+        }
+        .page-subtitle {
+            font-size: 16px;
+            color: #6d7175;
+        }
+        .trial-badge {
+            display: inline-block;
+            background: #e3fcef;
+            color: #006e52;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 16px;
+        }
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+        @media (max-width: 900px) {
+            .pricing-grid {
+                grid-template-columns: 1fr;
+                max-width: 400px;
+                margin: 0 auto;
             }
         }
-
-        /* LEFT SIDE - THE STACK */
-        .stack-column {
-            flex: 1.2;
-            padding: 40px;
-            background: #fdfdfd;
-            border-right: 1px solid #eee;
-        }
-
-        h1 {
-            font-size: 28px;
-            font-weight: 900;
-            margin-bottom: 5px;
-            color: #111;
-            line-height: 1.2;
-        }
-        
-        .sub-headline {
-            font-size: 16px;
-            color: #666;
-            margin-bottom: 30px;
-            font-weight: 500;
-        }
-
-        .stack-list {
-            margin-bottom: 30px;
-        }
-
-        .stack-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px dashed #e5e7eb;
-        }
-
-        .stack-item:last-child {
-            border-bottom: none;
-        }
-
-        .stack-name {
-            font-weight: 600;
-            font-size: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .stack-value {
-            font-weight: 700;
-            color: #DC2626; /* Red for value */
-        }
-
-        .check-icon {
-            color: #059669; /* Green check */
-            min-width: 20px;
-        }
-
-        .total-value-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 20px;
-            border-top: 2px solid #000;
-            margin-top: 20px;
-            font-size: 18px;
-        }
-
-        .total-value-label {
-            font-weight: 800;
-            text-transform: uppercase;
-        }
-
-        .total-value-amount {
-            font-weight: 900;
-            text-decoration: line-through;
-            color: #6B7280;
-        }
-
-
-        /* RIGHT SIDE - THE OFFER */
-        .offer-column {
-            flex: 0.8;
-            padding: 40px;
-            background: #fff;
+        .pricing-card {
+            background: #ffffff;
+            border: 1px solid #e1e3e5;
+            border-radius: 8px;
+            padding: 32px 24px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            text-align: center;
+        }
+        .pricing-card.featured {
+            border: 2px solid #008060;
             position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
-        
-        .limited-time-badge {
-            background: #FEE2E2;
-            color: #991B1B;
-            font-weight: 700;
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #008060;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
             font-size: 12px;
-            text-transform: uppercase;
-            padding: 4px 10px;
-            border-radius: 99px;
-            display: inline-block;
-            margin: 0 auto 15px;
-            letter-spacing: 0.5px;
-        }
-
-        .price-area {
-            margin-bottom: 25px;
-        }
-
-        .price-label {
-            font-size: 14px;
-            color: #6B7280;
-            margin-bottom: 5px;
             font-weight: 600;
-        }
-
-        .price-main {
-            font-size: 60px;
-            font-weight: 900;
-            color: #111;
-            line-height: 1;
-            letter-spacing: -2px;
-        }
-        
-        .price-period {
-            font-size: 16px;
-            color: #6B7280;
-            font-weight: 500;
-        }
-
-        .cta-button {
-            background: #F59E0B; /* Orange */
-            background: linear-gradient(to bottom, #FBBF24, #D97706);
-            color: #fff;
-            font-size: 20px;
-            font-weight: 800;
             text-transform: uppercase;
-            padding: 20px 15px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            width: 100%;
-            box-shadow: 0 4px 0 #92400E;
-            transition: transform 0.1s, box-shadow 0.1s;
-            margin-bottom: 15px;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            line-height: 1.2;
         }
-
-        .cta-button:hover {
-            transform: translateY(2px);
-            box-shadow: 0 2px 0 #92400E;
-            filter: brightness(1.1);
+        .plan-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: #202223;
+            margin-bottom: 8px;
         }
-
-        .cta-button:active {
-            transform: translateY(4px);
-            box-shadow: none;
+        .plan-desc {
+            font-size: 14px;
+            color: #6d7175;
+            margin-bottom: 16px;
         }
-        
-        .cta-subtext {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
+        .plan-price {
+            font-size: 42px;
+            font-weight: 700;
+            color: #202223;
+            margin-bottom: 8px;
+        }
+        .plan-price span {
+            font-size: 16px;
             font-weight: 500;
+            color: #6d7175;
         }
-
-        .guarantee {
+        .plan-features {
+            list-style: none;
+            margin: 24px 0;
+            flex-grow: 1;
+        }
+        .plan-features li {
+            padding: 8px 0;
+            font-size: 14px;
+            color: #374151;
             display: flex;
-            align-items: center;
-            justify-content: center;
+            align-items: flex-start;
             gap: 10px;
-            margin-top: 25px;
-            font-size: 13px;
-            color: #4B5563;
-            font-weight: 500;
         }
-        
-        .guarantee img {
-            width: 24px;
-            height: 24px;
+        .plan-features li::before {
+            content: "✓";
+            color: #008060;
+            font-weight: 600;
+            flex-shrink: 0;
         }
-        
-        .error-message {
-            background: #FEF2F2;
-            border: 1px solid #FECACA;
-            color: #991B1B;
-            padding: 10px;
+        .plan-features li.disabled {
+            color: #b5b5b5;
+        }
+        .plan-features li.disabled::before {
+            content: "—";
+            color: #b5b5b5;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px 16px;
+            text-align: center;
+            text-decoration: none;
             border-radius: 6px;
-            font-size: 13px;
-            margin-bottom: 20px;
-            text-align: left;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.15s;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
         }
-
+        .btn-primary {
+            background: #008060;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #006e52;
+        }
+        .btn-secondary {
+            background: #f6f6f7;
+            color: #202223;
+            border: 1px solid #e1e3e5;
+        }
+        .btn-secondary:hover {
+            background: #e1e3e5;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- THE STACK -->
-        <div class="stack-column">
-            <h1>Get The "Inventory Intelligence" System</h1>
-            <p class="sub-headline">Maximize profit by predicting demand & eliminating dead stock.</p>
-
-            <div class="stack-list">
-                <div class="stack-item">
-                    <div class="stack-name">
-                        <span class="check-icon">✓</span>
-                        Inventory Intelligence Dashboard
-                    </div>
-                    <div class="stack-value">$497/yr value</div>
-                </div>
-                <div class="stack-item">
-                    <div class="stack-name">
-                        <span class="check-icon">✓</span>
-                        Smart Reorder Recommendations
-                    </div>
-                    <div class="stack-value">$297/yr value</div>
-                </div>
-                <div class="stack-item">
-                    <div class="stack-name">
-                        <span class="check-icon">✓</span>
-                        Dead Stock Alerts (Stop Bleeding Cash)
-                    </div>
-                    <div class="stack-value">$197/yr value</div>
-                </div>
-                <div class="stack-item">
-                    <div class="stack-name">
-                        <span class="check-icon">✓</span>
-                        30-Day Sales AI Forecasting
-                    </div>
-                    <div class="stack-value">$997/yr value</div>
-                </div>
-                <div class="stack-item">
-                    <div class="stack-name">
-                        <span class="check-icon">✓</span>
-                        <strong>BONUS:</strong> Priority Email Support
-                    </div>
-                    <div class="stack-value">$197/yr value</div>
-                </div>
-            </div>
-
-            <div class="total-value-row">
-                <span class="total-value-label">Total Value:</span>
-                <span class="total-value-amount">$2,185/year</span>
-            </div>
-        </div>
-
-        <!-- THE OFFER -->
-        <div class="offer-column">
-            <div class="limited-time-badge">Limited Time Offer</div>
-            
-            <div class="price-area">
-                <div class="price-label">Get Full Access Today For Just</div>
-                <div class="price-main">$99</div>
-                <div class="price-period">per month</div>
-            </div>
-
-            {% if error %}
-            <div class="error-message">
-                <strong>Wait!</strong> {{ error }}
-            </div>
-            {% endif %}
-
-            <form id="subscribe-form" method="POST" action="/billing/create-charge">
-                <input type="hidden" name="shop" value="{{ shop }}">
-                <input type="hidden" name="host" value="{{ host }}">
-                <input type="hidden" name="plan" value="{{ plan }}">
-                
-                <button type="submit" class="cta-button" id="subscribe-btn" {% if not has_store %}disabled{% endif %}>
-                    {% if not has_store %}
-                        Connect Store First
-                    {% else %}
-                        Start My 7-Day Free Trial >>
-                    {% endif %}
-                </button>
-                <div class="cta-subtext">No risk. Cancel anytime within 7 days.</div>
-                
-                {% if not has_store %}
-                <div style="margin-top: 15px;">
-                    <a href="/settings/shopify?shop={{ shop }}&host={{ host }}" style="color: #2C6ECB; font-weight: 600; text-decoration: none;">Connect Shopify Store First -></a>
-                </div>
-                {% endif %}
-            </form>
-
-            <div class="guarantee">
-                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>30-Day Money Back Guarantee</span>
-            </div>
+    <div class="header">
+        <div class="header-content">
+            <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="logo">Employee Suite</a>
+            <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="nav-btn">Back to Dashboard</a>
         </div>
     </div>
 
-    <script>
-        document.getElementById('subscribe-form').addEventListener('submit', function(e) {
-            var btn = document.getElementById('subscribe-btn');
-            btn.disabled = true;
-            btn.style.opacity = '0.8';
-            btn.innerHTML = 'Creating Account...';
-            btn.style.transform = 'translateY(0)';
-            btn.style.boxShadow = 'none';
-        });
-    </script>
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Simple, Transparent Pricing</h1>
+            <p class="page-subtitle">Choose the plan that's right for your business</p>
+            <span class="trial-badge">7-day free trial on all paid plans</span>
+        </div>
+
+        <div class="pricing-grid">
+            <!-- FREE Plan -->
+            <div class="pricing-card">
+                <div class="plan-name">Free</div>
+                <div class="plan-desc">Get started with basics</div>
+                <div class="plan-price">$0<span>/month</span></div>
+                <ul class="plan-features">
+                    <li>Dashboard with live data</li>
+                    <li>Orders report (view only)</li>
+                    <li>Inventory tracking</li>
+                    <li>Revenue overview</li>
+                    <li>1 store connection</li>
+                    <li>7 days data history</li>
+                    <li class="disabled">CSV exports</li>
+                    <li class="disabled">Scheduled reports</li>
+                </ul>
+                <a href="/register" class="btn btn-secondary">Get Started Free</a>
+            </div>
+
+            <!-- GROWTH Plan ($99) -->
+            <div class="pricing-card featured">
+                <span class="popular-badge">Most Popular</span>
+                <div class="plan-name">Growth</div>
+                <div class="plan-desc">Inventory Intelligence</div>
+                <div class="plan-price">$99<span>/month</span></div>
+                <ul class="plan-features">
+                    <li>Inventory Intelligence Dashboard</li>
+                    <li>Smart Reorder Recommendations</li>
+                    <li>Dead Stock Alerts ($)</li>
+                    <li>30-Day Sales Forecasting</li>
+                    <li>CSV Exports</li>
+                    <li>Up to 3 Store Connections</li>
+                    <li>90 days data history</li>
+                    <li>Email Support</li>
+                </ul>
+                <form method="POST" action="/billing/create-charge" style="margin:0;">
+                    <input type="hidden" name="shop" value="{{ shop }}">
+                    <input type="hidden" name="host" value="{{ host }}">
+                    <input type="hidden" name="plan" value="pro">
+                    <button type="submit" class="btn btn-primary">Start Free Trial</button>
+                    <div style="text-align: center; margin-top: 8px; font-size: 12px; color: #6d7175;">No risk. Cancel anytime.</div>
+                </form>
+            </div>
+
+            <!-- SCALE Plan ($297) -->
+            <div class="pricing-card">
+                <div class="plan-name">Scale</div>
+                <div class="plan-desc">For high-volume merchants</div>
+                <div class="plan-price">$297<span>/month</span></div>
+                <ul class="plan-features">
+                    <li>Everything in Growth</li>
+                    <li>Advanced Multi-Location Sync</li>
+                    <li>Automated Supplier Emails</li>
+                    <li>Custom Reporting Engine</li>
+                    <li>Unlimited Data History</li>
+                    <li>Unlimited Stores</li>
+                    <li>Priority 24/7 Support</li>
+                    <li>Dedicated Success Manager</li>
+                </ul>
+                <form method="POST" action="/billing/create-charge" style="margin:0;">
+                    <input type="hidden" name="shop" value="{{ shop }}">
+                    <input type="hidden" name="host" value="{{ host }}">
+                    <input type="hidden" name="plan" value="business">
+                    <button type="submit" class="btn btn-primary">Start Free Trial</button>
+                </form>
+            </div>
+        </div>
+        
+        {% if error %}
+        <div style="max-width: 600px; margin: 32px auto 0; padding: 16px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px; color: #d72c0d; text-align: center;">
+            <strong>Note:</strong> {{ error }}
+        </div>
+        {% endif %}
+    </div>
 </body>
 </html>
 '''
