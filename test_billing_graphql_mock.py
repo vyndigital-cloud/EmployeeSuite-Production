@@ -33,7 +33,7 @@ class TestBillingGraphQL(unittest.TestCase):
         
         # Assertions
         self.assertTrue(result['success'])
-        self.assertEqual(result['charge_id'], '123456789')
+        self.assertEqual(result['charge_id'], 123456789)
         self.assertEqual(result['status'], 'PENDING')
         self.assertEqual(result['confirmation_url'], 'https://admin.shopify.com/store/test-store/charges/123456/confirm')
         

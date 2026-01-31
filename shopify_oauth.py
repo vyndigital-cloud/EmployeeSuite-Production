@@ -392,20 +392,14 @@ def _handle_oauth_callback():
     
     # Get shop information to extract shop_id
     shop_info = get_shop_info(shop, access_token)
-    shop_gid = shop_info.get('id') if shop_info else None
     
-    # Extract numeric ID from GID (gid://shopify/Shop/123456789)
-    shop_id = None
-    if shop_gid:
-        if isinstance(shop_gid, str) and '/' in shop_gid:
-            try:
-                shop_id = int(shop_gid.split('/')[-1])
-            except ValueError:
-                logger.error(f"Could not parse shop_id from GID: {shop_gid}")
-                shop_id = None # Fallback or keep as None
-        else:
-             # Already numeric or unknown format
-             shop_id = shop_gid
+    # Use centralized utility for safe parsing
+    from shopify_utils import parse_gid
+    shop_gid = shop_info.get('id') if shop_info else None
+    shop_id = parse_gid(shop_gid)
+    
+    if shop_gid and not shop_id:
+        logger.warning(f"Failed to parse shop_id from GID: {shop_gid}")
     
     # Check if user is already logged in (e.g., manually connecting from settings page)
     # If logged in, use their account; otherwise create/find shop-based user for App Store installs

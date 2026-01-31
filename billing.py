@@ -496,11 +496,14 @@ def create_recurring_charge(shop_url, access_token, return_url, plan_type='pro')
             return {'success': False, 'error': error_msg}
             
         subscription = data.get('appSubscription', {})
+        subscription = data.get('appSubscription', {})
         # Extract numeric ID from GID if possible for backward compatibility, 
         # but technically should store GID. The DB probably handles string.
         # GID format: gid://shopify/AppSubscription/123456
+        
+        from shopify_utils import parse_gid
         gid = subscription.get('id')
-        charge_id = gid.split('/')[-1] if gid else None
+        charge_id = parse_gid(gid)
         
         return {
             'success': True,
@@ -529,11 +532,16 @@ def get_charge_status(shop_url, access_token, charge_id):
         from shopify_graphql import ShopifyGraphQLClient
         client = ShopifyGraphQLClient(shop_url, access_token)
         
-        # Format ID as GID if it's just a number
-        # If it's already a GID, use it as is
-        gid = charge_id
-        if charge_id and str(charge_id).isdigit():
-             gid = f"gid://shopify/AppSubscription/{charge_id}"
+        # Format ID as GID
+        from shopify_utils import format_gid, parse_gid
+        
+        # Ensure we have a clean numeric ID first, then format as GID
+        numeric_id = parse_gid(charge_id)
+        if numeric_id:
+             gid = format_gid(numeric_id, 'AppSubscription')
+        else:
+             # Fallback to original if parsing failed (maybe it's a malformed string but we want to try)
+             gid = charge_id
              
         query = """
         query GetSubscription($id: ID!) {
