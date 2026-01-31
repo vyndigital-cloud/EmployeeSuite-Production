@@ -53,9 +53,10 @@ def log_comprehensive_error(error_type, error_message, error_location, error_dat
 def setup_logging():
     """Configure application logging with comprehensive error capture"""
     # Set up console logging with maximum detail
+    # Set up console logging with clear format
     logging.basicConfig(
-        level=logging.DEBUG,  # Capture everything
-        format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
+        level=logging.INFO,  # Reduced from DEBUG to reduce noise as requested
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
             logging.StreamHandler(sys.stdout)
         ],
@@ -64,7 +65,7 @@ def setup_logging():
     
     # Create logger
     logger = logging.getLogger('employeesuite')
-    logger.setLevel(logging.DEBUG)  # Capture all levels
+    logger.setLevel(logging.INFO)  # Reduced from DEBUG
     
     # Also capture warnings
     logging.captureWarnings(True)
