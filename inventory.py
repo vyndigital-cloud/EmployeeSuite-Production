@@ -96,12 +96,23 @@ def check_inventory(user_id=None):
         
         # Unified minimalistic style
         message = f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'>"
-        message += f"<div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Inventory ({len(products)} products)</div>"
         
+        # Title row - Match Gen Report structure (Flex container)
+        message += f"<div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; width: 100%;'>"
+        message += f"<div style='font-size: 13px; font-weight: 600; color: #171717; flex: 1;'>Inventory ({len(products)} products)</div>"
+        message += f"</div>"
+        
+        # Summary box - Match Gen Report structure (Nested divs, 2 lines)
         if low_stock_count > 0:
-            message += f"<div style='padding: 8px 12px; background: #fef2f2; border-left: 2px solid #dc2626; border-radius: 4px; margin-bottom: 12px; font-size: 11px; color: #991b1b;'>{low_stock_count} below {threshold} units</div>"
+            message += f"<div style='padding: 8px 12px; background: #fef2f2; border-left: 2px solid #dc2626; border-radius: 4px; margin-bottom: 12px;'>"
+            message += f"<div style='font-weight: 600; color: #991b1b; font-size: 12px;'>Low Stock Alert</div>"
+            message += f"<div style='color: #991b1b; font-size: 11px; margin-top: 2px;'>{low_stock_count} products below {threshold} units</div>"
+            message += f"</div>"
         else:
-            message += f"<div style='padding: 8px 12px; background: #f0fdf4; border-left: 2px solid #16a34a; border-radius: 4px; margin-bottom: 12px; font-size: 11px; color: #166534;'>All products in stock</div>"
+            message += f"<div style='padding: 8px 12px; background: #f0fdf4; border-left: 2px solid #16a34a; border-radius: 4px; margin-bottom: 12px;'>"
+            message += f"<div style='font-weight: 600; color: #166534; font-size: 12px;'>All products in stock</div>"
+            message += f"<div style='color: #166534; font-size: 11px; margin-top: 2px;'>Inventory levels are healthy</div>"
+            message += f"</div>"
         
         # Show all products - lowest stock first (highest priority)
         for product in sorted_products:

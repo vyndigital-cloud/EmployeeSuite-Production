@@ -106,13 +106,23 @@ def process_orders(creds_path='creds.json', user_id=None):
 
         # Unified minimalistic style
         html = f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'>"
-        html += f"<div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Pending Orders ({len(all_orders)})</div>"
+        
+        # Title row - Match Gen Report structure (Flex container)
+        html += f"<div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; width: 100%;'>"
+        html += f"<div style='font-size: 13px; font-weight: 600; color: #171717; flex: 1;'>Pending Orders ({len(all_orders)})</div>"
+        html += f"</div>"
 
-        # Summary box - minimalistic
+        # Summary box - Match Gen Report structure (Nested divs, 2 lines)
         if len(all_orders) == 0:
-             html += f"<div style='padding: 8px 12px; background: #f0fdf4; border-left: 2px solid #16a34a; border-radius: 4px; margin-bottom: 12px; font-size: 11px; color: #166534;'>✅ All orders processed</div>"
+             html += f"<div style='padding: 8px 12px; background: #f0fdf4; border-left: 2px solid #16a34a; border-radius: 4px; margin-bottom: 12px;'>"
+             html += f"<div style='font-weight: 600; color: #166534; font-size: 12px;'>All orders processed</div>"
+             html += f"<div style='color: #166534; font-size: 11px; margin-top: 2px;'>You're all caught up!</div>"
+             html += f"</div>"
         else:
-             html += f"<div style='padding: 8px 12px; background: #fffbeb; border-left: 2px solid #f59e0b; border-radius: 4px; margin-bottom: 12px; font-size: 11px; color: #92400e;'>Requires action</div>"
+             html += f"<div style='padding: 8px 12px; background: #fffbeb; border-left: 2px solid #f59e0b; border-radius: 4px; margin-bottom: 12px;'>"
+             html += f"<div style='font-weight: 600; color: #92400e; font-size: 12px;'>Action Required</div>"
+             html += f"<div style='color: #92400e; font-size: 11px; margin-top: 2px;'>{len(all_orders)} orders need attention</div>"
+             html += f"</div>"
 
         # Show orders - minimalistic, same style as inventory/reports
         for order in all_orders[:50]:  # Show up to 50 orders
