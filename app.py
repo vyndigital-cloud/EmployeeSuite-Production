@@ -2478,12 +2478,34 @@ DASHBOARD_HTML = """
                         debounceTimers.generateReport = null;
                     }
 
-                    // Check if error message is HTML (from backend) or plain text (network error)
-                    if (err.message && err.message.includes('Error Loading revenue')) {
-                        // Backend error HTML
+                    // Try to parse JSON error message if it looks like one
+                    let errorDisplayMessage = err.message;
+                    let isJsonError = false;
+                    try {
+                        const jsonError = JSON.parse(err.message);
+                        if (jsonError.error) {
+                            errorDisplayMessage = jsonError.error;
+                            isJsonError = true;
+                        }
+                    } catch (e) {
+                        // Not JSON
+                    }
+
+                    // Check if error message is HTML (from backend)
+                    if (err.message && (err.message.includes('Error Loading revenue') || err.message.includes('<div'))) {
+                        // Backend error HTML - display as is
                         document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${err.message}</div>`;
+                    } else if (isJsonError || (errorDisplayMessage && errorDisplayMessage.length < 200 && !errorDisplayMessage.includes('Unable to generate'))) {
+                        // JSON error or short text error (likely from backend middleware)
+                         document.getElementById('output').innerHTML = `
+                            <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                                <div style="font-size: 15px; font-weight: 600; color: #b45309; margin-bottom: 8px;">Request Failed</div>
+                                <div style="font-size: 14px; color: #92400e; margin-bottom: 16px; line-height: 1.5;">${errorDisplayMessage}</div>
+                                <button onclick="generateReport(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
+                            </div>
+                        `;
                     } else {
-                        // Network error
+                        // Network error or unknown long error
                         var errorMessage = 'Unable to generate report. Please check your internet connection and try again.';
                         if (!isOnline) {
                             errorMessage = 'No internet connection. Please check your network and try again.';
@@ -2493,6 +2515,7 @@ DASHBOARD_HTML = """
                             <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
                                 <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Connection Error</div>
                                 <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${errorMessage}</div>
+                                <div style="font-size: 12px; color: #9ca3af; margin-bottom: 12px; font-family: monospace;">Details: ${err.message.substring(0, 100)}</div>
                                 <button onclick="generateReport(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; margin-right: 8px;">Try Again</button>
                                 <a href="/settings/shopify" style="display: inline-block; padding: 8px 16px; background: #f6f6f7; color: #202223; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Check Settings</a>
                             </div>
