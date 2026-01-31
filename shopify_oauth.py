@@ -622,18 +622,34 @@ def exchange_code_for_token(shop, code):
         return None
 
 def get_shop_info(shop, access_token):
-    """Get shop information including shop_id"""
-    url = f"https://{shop}/admin/api/2025-10/shop.json"
-    headers = {
-        'X-Shopify-Access-Token': access_token,
-        'Content-Type': 'application/json'
-    }
-    
+    """Get shop information including shop_id using GraphQL"""
     try:
-        response = requests.get(url, headers=headers, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            return data.get('shop', {})
+        from shopify_graphql import ShopifyGraphQLClient
+        client = ShopifyGraphQLClient(shop, access_token)
+        
+        query = """
+        query {
+            shop {
+                id
+                name
+                email
+                myshopifyDomain
+                plan {
+                    displayName
+                    partnerDevelopment
+                    shopifyPlus
+                }
+            }
+        }
+        """
+        
+        result = client.execute_query(query)
+        if 'error' in result:
+            logger.error(f"Failed to get shop info via GraphQL: {result['error']}")
+            return None
+            
+        return result.get('shop', {})
+        
     except Exception as e:
         logger.error(f"Failed to get shop info: {e}")
     

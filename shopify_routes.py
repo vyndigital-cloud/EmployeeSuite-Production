@@ -551,27 +551,34 @@ def connect_store():
         return safe_redirect(settings_url, shop=shop, host=host)
     
     # Validate the access_token works with current API key by testing a simple API call
+    # Validate the access_token works with current API key by testing a simple API call
     try:
-        import requests
-        api_version = '2025-10'
-        test_url = f"https://{shop_url}/admin/api/{api_version}/shop.json"
-        headers = {
-            'X-Shopify-Access-Token': access_token,
-            'Content-Type': 'application/json'
-        }
-        test_response = requests.get(test_url, headers=headers, timeout=5)
+        from shopify_graphql import ShopifyGraphQLClient
         
-        if test_response.status_code == 401:
-            # Invalid token - might be from old app
-            logger.warning(f"Access token test failed (401) for {shop_url} - likely from old app")
+        # Use GraphQL to validate token (modern approach)
+        graphql_client = ShopifyGraphQLClient(shop_url, access_token)
+        query = """
+        query {
+            shop {
+                name
+                id
+                myshopifyDomain
+            }
+        }
+        """
+        result = graphql_client.execute_query(query)
+        
+        if 'error' in result:
+             # Invalid token - might be from old app
+            logger.warning(f"Access token test failed for {shop_url}: {result['error']}")
             settings_url = url_for('shopify.shopify_settings', 
-                                  error='This access token appears to be invalid or from an old app. Please use the "Quick Connect" OAuth method above instead.', shop=shop, host=host)
+                                  error=f'Access token validation failed: {result["error"]}. Please use the "Quick Connect" OAuth method instead.', shop=shop, host=host)
             return safe_redirect(settings_url, shop=shop, host=host)
-        elif test_response.status_code != 200:
-            logger.warning(f"Access token test failed ({test_response.status_code}) for {shop_url}")
-            settings_url = url_for('shopify.shopify_settings', 
-                                  error=f'Access token validation failed (HTTP {test_response.status_code}). Please use the "Quick Connect" OAuth method instead.', shop=shop, host=host)
-            return safe_redirect(settings_url, shop=shop, host=host)
+            
+    except Exception as e:
+        logger.error(f"Error validating access token: {e}", exc_info=True)
+        # Continue anyway - validation is optional
+        pass
     except Exception as e:
         logger.error(f"Error validating access token: {e}", exc_info=True)
         # Continue anyway - validation is optional

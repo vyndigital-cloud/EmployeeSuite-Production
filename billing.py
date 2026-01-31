@@ -437,112 +437,132 @@ To fix this:
 
 
 def create_recurring_charge(shop_url, access_token, return_url, plan_type='pro'):
-    """Create a recurring application charge using Shopify Billing API"""
-    import requests
-
-    plan = PLANS.get(plan_type, PLANS['pro'])
-
-    url = f"https://{shop_url}/admin/api/{SHOPIFY_API_VERSION}/recurring_application_charges.json"
-    headers = {
-        'X-Shopify-Access-Token': access_token,
-        'Content-Type': 'application/json'
-    }
-
-    is_dev_store = '-dev' in shop_url.lower() or 'dev' in shop_url.lower()
-    test_mode = os.getenv('SHOPIFY_BILLING_TEST', 'false').lower() == 'true' or is_dev_store
-
-    payload = {
-        'recurring_application_charge': {
-            'name': f"Employee Suite {plan['name']}",
-            'price': plan['price'],
-            'return_url': return_url,
-            'trial_days': 7,
-            'test': test_mode
-        }
-    }
-
-    logger.info(f"Creating {plan_type} plan charge: ${plan['price']}/mo for {shop_url}")
-
+    """Create a recurring application charge using Shopify GraphQL Admin API"""
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=15)
-
-        if not response.ok:
-            try:
-                error_data = response.json()
-                if isinstance(error_data, dict):
-                    error_message = error_data.get('errors', {})
-                    if isinstance(error_message, dict):
-                        error_message = error_message.get('base', [])
-                    error_text = str(error_message) if error_message else response.text
-                else:
-                    error_text = str(error_data)
-                logger.error(f"Shopify API error: {response.status_code} - {error_text}")
-                return {'success': False, 'error': f"Shopify API error: {error_text}"}
-            except (ValueError, KeyError, TypeError):
-                return {'success': False, 'error': f"Shopify API error ({response.status_code})"}
-
-        response.raise_for_status()
-        data = response.json()
-        charge = data.get('recurring_application_charge', {})
-
+        from shopify_graphql import ShopifyGraphQLClient
+        
+        plan = PLANS.get(plan_type, PLANS['pro'])
+        client = ShopifyGraphQLClient(shop_url, access_token)
+        
+        is_dev_store = '-dev' in shop_url.lower() or 'dev' in shop_url.lower()
+        test_mode = os.getenv('SHOPIFY_BILLING_TEST', 'false').lower() == 'true' or is_dev_store
+        
+        mutation = """
+        mutation AppSubscriptionCreate($name: String!, $lineItems: [AppSubscriptionLineItemInput!]!, $returnUrl: URL!, $test: Boolean) {
+            appSubscriptionCreate(name: $name, returnUrl: $returnUrl, lineItems: $lineItems, test: $test) {
+                appSubscription {
+                    id
+                    status
+                }
+                confirmationUrl
+                userErrors {
+                    field
+                    message
+                }
+            }
+        }
+        """
+        
+        variables = {
+            "name": f"Employee Suite {plan['name']}",
+            "returnUrl": return_url,
+            "test": test_mode,
+            "lineItems": [{
+                "plan": {
+                    "appRecurringPricingDetails": {
+                        "price": {
+                            "amount": plan['price'],
+                            "currencyCode": "USD"
+                        },
+                        "interval": "EVERY_30_DAYS"
+                    }
+                }
+            }]
+        }
+        
+        logger.info(f"Creating {plan_type} plan charge (GraphQL) for {shop_url}")
+        
+        result = client.execute_query(mutation, variables)
+        
+        if 'error' in result:
+             return {'success': False, 'error': result['error']}
+             
+        data = result.get('appSubscriptionCreate', {})
+        user_errors = data.get('userErrors', [])
+        
+        if user_errors:
+            error_msg = "; ".join([e['message'] for e in user_errors])
+            logger.error(f"GraphQL Billing error: {error_msg}")
+            return {'success': False, 'error': error_msg}
+            
+        subscription = data.get('appSubscription', {})
+        # Extract numeric ID from GID if possible for backward compatibility, 
+        # but technically should store GID. The DB probably handles string.
+        # GID format: gid://shopify/AppSubscription/123456
+        gid = subscription.get('id')
+        charge_id = gid.split('/')[-1] if gid else None
+        
         return {
             'success': True,
-            'charge_id': charge.get('id'),
-            'confirmation_url': charge.get('confirmation_url'),
-            'status': charge.get('status')
+            'charge_id': charge_id, 
+            'confirmation_url': data.get('confirmationUrl'),
+            'status': subscription.get('status')
         }
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to create Shopify charge: {e}")
+        
+    except Exception as e:
+        logger.error(f"Failed to create Shopify charge (GraphQL): {e}", exc_info=True)
         return {'success': False, 'error': str(e)}
 
 
 def activate_recurring_charge(shop_url, access_token, charge_id):
-    """Activate a recurring charge after merchant approves"""
-    import requests
-
-    url = f"https://{shop_url}/admin/api/{SHOPIFY_API_VERSION}/recurring_application_charges/{charge_id}/activate.json"
-    headers = {
-        'X-Shopify-Access-Token': access_token,
-        'Content-Type': 'application/json'
-    }
-
-    try:
-        response = requests.post(url, headers=headers, timeout=15)
-        response.raise_for_status()
-        data = response.json()
-        charge = data.get('recurring_application_charge', {})
-        return {
-            'success': True,
-            'status': charge.get('status'),
-            'activated_on': charge.get('activated_on')
-        }
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to activate Shopify charge: {e}")
-        return {'success': False, 'error': str(e)}
+    """
+    Check if a charge is active (GraphQL).
+    With appSubscriptionCreate, we don't need to manually 'activate' like in REST.
+    We just verify the status is ACTIVE.
+    """
+    return get_charge_status(shop_url, access_token, charge_id)
 
 
 def get_charge_status(shop_url, access_token, charge_id):
-    """Get the status of a recurring charge"""
-    import requests
-
-    url = f"https://{shop_url}/admin/api/{SHOPIFY_API_VERSION}/recurring_application_charges/{charge_id}.json"
-    headers = {
-        'X-Shopify-Access-Token': access_token,
-        'Content-Type': 'application/json'
-    }
-
+    """Get the status of a recurring charge using GraphQL"""
     try:
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        charge = data.get('recurring_application_charge', {})
+        from shopify_graphql import ShopifyGraphQLClient
+        client = ShopifyGraphQLClient(shop_url, access_token)
+        
+        # Format ID as GID if it's just a number
+        # If it's already a GID, use it as is
+        gid = charge_id
+        if charge_id and str(charge_id).isdigit():
+             gid = f"gid://shopify/AppSubscription/{charge_id}"
+             
+        query = """
+        query GetSubscription($id: ID!) {
+            node(id: $id) {
+                ... on AppSubscription {
+                    id
+                    status
+                }
+            }
+        }
+        """
+        
+        variables = {"id": gid}
+        result = client.execute_query(query, variables)
+        
+        if 'error' in result:
+            return {'success': False, 'error': result['error']}
+            
+        node = result.get('node', {})
+        if not node:
+             return {'success': False, 'error': 'Subscription not found'}
+             
         return {
             'success': True,
-            'status': charge.get('status'),
-            'charge_id': charge.get('id')
+            'status': node.get('status', 'UNKNOWN').lower(), # REST used lowercase, GraphQL uses UPPERCASE usually
+            'charge_id': charge_id
         }
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to get Shopify charge status: {e}")
+    except Exception as e:
+        logger.error(f"Failed to get Shopify charge status (GraphQL): {e}")
         return {'success': False, 'error': str(e)}
 
 
