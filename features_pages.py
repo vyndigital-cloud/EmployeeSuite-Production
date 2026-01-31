@@ -122,17 +122,36 @@ WELCOME_HTML = '''
             margin-left: 8px;
         }
     </style>
+    <script>
+        // CRITICAL: Robust navigation helper to preserve embedded context
+        window.openPage = function(path) {
+            var params = new URLSearchParams(window.location.search);
+            var shop = params.get('shop');
+            var host = params.get('host');
+            var embedded = params.get('embedded') || (host ? '1' : '');
+            
+            var sep = path.indexOf('?') > -1 ? '&' : '?';
+            var dest = path;
+            
+            if (shop) dest += sep + 'shop=' + shop;
+            if (host) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'host=' + host;
+            if (embedded) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'embedded=' + embedded;
+            
+            window.location.href = dest;
+            return false;
+        };
+    </script>
 </head>
 <body>
         <div class="header">
             <div class="header-content">
-                <a href="/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="text-decoration: none; color: inherit; font-weight: 600; font-size: 18px;">← Employee Suite</a>
+                <a href="#" onclick="openPage('/dashboard'); return false;" style="text-decoration: none; color: inherit; font-weight: 600; font-size: 18px;">← Employee Suite</a>
             <div style="display: flex; gap: 12px; align-items: center;">
-                <a href="/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="color: #6d7175; text-decoration: none; padding: 6px 12px; border-radius: 6px; transition: background 0.15s;">Dashboard</a>
-                <a href="/features/csv-exports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="color: #6d7175; text-decoration: none; padding: 6px 12px; border-radius: 6px; transition: background 0.15s;">CSV Exports</a>
-                <a href="/features/scheduled-reports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="color: #6d7175; text-decoration: none; padding: 6px 12px; border-radius: 6px; transition: background 0.15s;">Scheduled</a>
-                <a href="/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="color: #6d7175; text-decoration: none; padding: 6px 12px; border-radius: 6px; transition: background 0.15s;">Full Dashboard</a>
-                <a href="/subscribe{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="color: #008060; text-decoration: none; font-weight: 500; padding: 6px 12px;">Subscribe</a>
+                <a href="#" onclick="openPage('/dashboard'); return false;" style="color: #6d7175; text-decoration: none; padding: 6px 12px; border-radius: 6px; transition: background 0.15s;">Dashboard</a>
+                <a href="#" onclick="openPage('/features/csv-exports'); return false;" style="color: #6d7175; text-decoration: none; padding: 6px 12px; border-radius: 6px; transition: background 0.15s;">CSV Exports</a>
+                <a href="#" onclick="openPage('/features/scheduled-reports'); return false;" style="color: #6d7175; text-decoration: none; padding: 6px 12px; border-radius: 6px; transition: background 0.15s;">Scheduled</a>
+                <a href="#" onclick="openPage('/features/dashboard'); return false;" style="color: #6d7175; text-decoration: none; padding: 6px 12px; border-radius: 6px; transition: background 0.15s;">Full Dashboard</a>
+                <a href="#" onclick="openPage('/subscribe'); return false;" style="color: #008060; text-decoration: none; font-weight: 500; padding: 6px 12px;">Subscribe</a>
             </div>
         </div>
     </div>

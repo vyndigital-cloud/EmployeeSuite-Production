@@ -1168,50 +1168,70 @@ DASHBOARD_HTML = """
     <meta property="og:title" content="Employee Suite - Shopify Automation Platform">
     <meta property="og:description" content="Automate order processing, inventory management, and revenue reporting for your Shopify store.">
     <meta property="og:type" content="website">
+    <script>
+        // CRITICAL: Robust navigation helper to preserve embedded context
+        window.openPage = function(path) {
+            var params = new URLSearchParams(window.location.search);
+            var shop = params.get('shop');
+            var host = params.get('host');
+            var embedded = params.get('embedded') || (host ? '1' : '');
+            
+            var sep = path.indexOf('?') > -1 ? '&' : '?';
+            var dest = path;
+            
+            if (shop) dest += sep + 'shop=' + shop;
+            if (host) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'host=' + host;
+            if (embedded) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'embedded=' + embedded;
+            
+            // Navigate properly
+            window.location.href = dest;
+            return false;
+        };
+    </script>
     </head>
 <body>
     <div class="header">
         <div class="header-content">
-            <a href="/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 10px; font-weight: 600;" class="logo">
+            <a href="#" onclick="openPage('/dashboard'); return false;" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 10px; font-weight: 600;" class="logo">
                 <span>Employee Suite</span>
             </a>
             <div class="header-nav">
                 <div class="quick-menu">
                     <button class="quick-menu-btn" onclick="toggleQuickMenu(event)">⚡ Quick Access</button>
                     <div class="quick-menu-dropdown" id="quickMenu">
-                        <a href="/features/csv-exports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="quick-menu-item">
+                        <a href="#" onclick="openPage('/features/csv-exports'); return false;" class="quick-menu-item">
                             <span class="quick-menu-item-icon">📥</span>
                             CSV Exports
                             <span class="quick-menu-shortcut">⌘E</span>
                         </a>
-                        <a href="/features/scheduled-reports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="quick-menu-item">
+                        <a href="#" onclick="openPage('/features/scheduled-reports'); return false;" class="quick-menu-item">
                             <span class="quick-menu-item-icon">📅</span>
                             Scheduled Reports
                             <span class="quick-menu-shortcut">⌘S</span>
                         </a>
-                        <a href="/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="quick-menu-item">
+                        <a href="#" onclick="openPage('/features/dashboard'); return false;" class="quick-menu-item">
                             <span class="quick-menu-item-icon">📊</span>
                             Comprehensive Dashboard
                             <span class="quick-menu-shortcut">⌘D</span>
                         </a>
-                        <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="quick-menu-item">
+                        <a href="#" onclick="openPage('/features/welcome'); return false;" class="quick-menu-item">
                             <span class="quick-menu-item-icon">🎉</span>
                             New Features
                         </a>
                         <div style="border-top: 1px solid #e1e3e5; margin: 8px 0;"></div>
-                        <a href="/settings/shopify{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="quick-menu-item">
+                        <a href="#" onclick="openPage('/settings/shopify'); return false;" class="quick-menu-item">
                             <span class="quick-menu-item-icon">⚙️</span>
                             Settings
                             <span class="quick-menu-shortcut">⌘,</span>
                         </a>
-                        <a href="/subscribe?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}" class="quick-menu-item">
+                        <a href="#" onclick="openPage('/subscribe'); return false;" class="quick-menu-item">
                             <span class="quick-menu-item-icon">💳</span>
                             Subscribe
                         </a>
                     </div>
                 </div>
-                <a href="/settings/shopify{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" class="nav-btn">Settings</a>
-                <a href="/subscribe?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}" class="nav-btn nav-btn-primary">Subscribe</a>
+                <a href="#" onclick="openPage('/settings/shopify'); return false;" class="nav-btn">Settings</a>
+                <a href="#" onclick="openPage('/subscribe'); return false;" class="nav-btn nav-btn-primary">Subscribe</a>
                 <a href="/logout" class="nav-btn">Logout</a>
             </div>
         </div>
@@ -1223,13 +1243,13 @@ DASHBOARD_HTML = """
                 <div class="page-title">Dashboard</div>
                 <div class="page-subtitle">Monitor your Shopify store operations with inventory tracking, order monitoring, and comprehensive revenue analytics. 7-day free trial, no setup fees.</div>
                 <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
-                    <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #008060 0%, #006e52 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; box-shadow: 0 2px 8px rgba(0, 128, 96, 0.2); transition: all 0.2s;">
+                    <a href="#" onclick="openPage('/features/welcome'); return false;" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #008060 0%, #006e52 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; box-shadow: 0 2px 8px rgba(0, 128, 96, 0.2); transition: all 0.2s;">
                         🎉 Explore New Features →
                     </a>
-                    <a href="/features/csv-exports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="display: inline-block; padding: 12px 20px; background: #ffffff; color: #008060; border: 1px solid #008060; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px; transition: all 0.2s;">
+                    <a href="#" onclick="openPage('/features/csv-exports'); return false;" style="display: inline-block; padding: 12px 20px; background: #ffffff; color: #008060; border: 1px solid #008060; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px; transition: all 0.2s;">
                         📥 Export Data
                     </a>
-                    <a href="/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="display: inline-block; padding: 12px 20px; background: #ffffff; color: #008060; border: 1px solid #008060; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px; transition: all 0.2s;">
+                    <a href="#" onclick="openPage('/features/dashboard'); return false;" style="display: inline-block; padding: 12px 20px; background: #ffffff; color: #008060; border: 1px solid #008060; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px; transition: all 0.2s;">
                         📊 Full Dashboard
                     </a>
                 </div>
@@ -1248,7 +1268,7 @@ DASHBOARD_HTML = """
                 <h3>Subscription Required</h3>
                 <p>Your trial has ended. Subscribe now to continue using Employee Suite.</p>
             </div>
-            <a href="/subscribe?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}" class="banner-action">Subscribe Now</a>
+            <a href="#" onclick="openPage('/subscribe'); return false;" class="banner-action">Subscribe Now</a>
         </div>
         {% elif trial_active and not is_subscribed %}
         <div class="banner banner-warning" style="justify-content: space-between; align-items: center;">
@@ -1389,7 +1409,7 @@ DASHBOARD_HTML = """
                 <h3 style="margin-bottom: 8px; font-size: 16px; font-weight: 600; color: #202223;">Connect your Shopify store</h3>
                 <p style="margin-bottom: 0; font-size: 14px; color: #6d7175;">Get started in 30 seconds. Connect your store to unlock order monitoring, inventory management, and revenue analytics.</p>
             </div>
-            <a href="/settings/shopify" class="banner-action">Connect Store →</a>
+            <a href="#" onclick="openPage('/settings/shopify'); return false;" class="banner-action">Connect Store →</a>
         </div>
         {% endif %}
         
