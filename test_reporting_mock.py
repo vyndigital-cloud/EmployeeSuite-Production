@@ -42,6 +42,29 @@ class TestReportingMock(unittest.TestCase):
     @patch('reporting.ShopifyStore')
     @patch('reporting.current_user')
     @patch('shopify_graphql.ShopifyGraphQLClient')
+    def test_generate_report_generic_error(self, mock_client_class, mock_current_user, mock_store_cls):
+        # Setup mocks
+        mock_current_user.is_authenticated = True
+        mock_current_user.id = 1
+        
+        mock_store_cls.query.filter_by.return_value.first.return_value = self.mock_store
+        
+        # Mock GraphQL client to return Generic Error
+        mock_client = mock_client_class.return_value
+        mock_client.get_orders.return_value = {'error': 'Internal Server Error'}
+        
+        # Run function
+        result = generate_report(user_id=1)
+        
+        # Assertions
+        self.assertFalse(result['success'])
+        # Verify it contains the standard error header which prevents "Connection Error" on frontend
+        self.assertIn("Error Loading revenue", result['error'])
+        self.assertIn("Internal Server Error", result['error'])
+
+    @patch('reporting.ShopifyStore')
+    @patch('reporting.current_user')
+    @patch('shopify_graphql.ShopifyGraphQLClient')
     def test_generate_report_success(self, mock_client_class, mock_current_user, mock_store_cls):
         # Setup mocks
         mock_current_user.is_authenticated = True
