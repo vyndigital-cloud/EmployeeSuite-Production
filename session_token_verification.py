@@ -48,11 +48,19 @@ def verify_session_token(f):
                 
                 # Verify audience (should be API key)
                 aud = payload.get('aud')
-                if aud != SHOPIFY_API_KEY:
-                    logger.warning(f"Invalid audience in session token. Received: {aud}, Expected: {SHOPIFY_API_KEY[:4] + '****' if SHOPIFY_API_KEY else 'None'}")
-                    # CRITICAL DEBUG: If expected is None, we have a configuration error
-                    if not SHOPIFY_API_KEY:
-                        logger.error("SHOPIFY_API_KEY environment variable is NOT SET")
+                
+                # LAZY LOAD: Get API key at runtime to ensure it's loaded and strip whitespace
+                current_api_key = os.getenv('SHOPIFY_API_KEY', '').strip()
+                if current_api_key and (current_api_key.startswith('"') and current_api_key.endswith('"')) or (current_api_key.startswith("'") and current_api_key.endswith("'")):
+                    current_api_key = current_api_key[1:-1]
+                
+                if not current_api_key:
+                    logger.error("SHOPIFY_API_KEY environment variable is NOT SET")
+                    return jsonify({'error': 'Server configuration error'}), 500
+                
+                if aud != current_api_key:
+                    logger.warning(f"Invalid audience in session token. Received: {aud}, Expected: {current_api_key[:4] + '****'}")
+                    logger.warning(f"Length mismatch? Aud: {len(aud) if aud else 0}, Key: {len(current_api_key)}")
                     return jsonify({'error': 'Invalid token audience (API Key mismatch)'}), 401
                 
                 # Verify destination (should match shop domain)
