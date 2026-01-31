@@ -278,64 +278,30 @@ def install():
         <html>
         <head>
             <meta charset="utf-8">
-            <title>Connect Shopify Store - Employee Suite</title>
+            <title>Redirecting to Shopify - Employee Suite</title>
             <meta name="viewport" content="width=device-width, initial-scale=1">
-            <style>
-                * {{
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
+            <script>
+                // AUTOMATIC REDIRECT: Avoid the 'Connect' screen loop
+                // If we're embedded, we must break the iframe to do OAuth
+                // This script handles it automatically
+                try {{
+                    // Try App Bridge redirect first (modern)
+                    if (window.shopify && window.shopify.unstable_redirect) {{
+                        window.shopify.unstable_redirect("{full_auth_url}");
+                    }} else {{
+                        // Standard top-level redirect fallback
+                        window.top.location.href = "{full_auth_url}";
+                    }}
+                }} catch (e) {{
+                    // Last resort fallback
+                    window.top.location.href = "{full_auth_url}";
                 }}
-                body {{
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 100vh;
-                    margin: 0;
-                    background: #f6f6f7;
-                }}
-                .container {{
-                    text-align: center;
-                    padding: 40px 24px;
-                    max-width: 500px;
-                    background: #fff;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                }}
-                h1 {{
-                    font-size: 20px;
-                    font-weight: 600;
-                    color: #202223;
-                    margin-bottom: 16px;
-                }}
-                p {{
-                    font-size: 14px;
-                    color: #6d7175;
-                    line-height: 1.5;
-                    margin-bottom: 24px;
-                }}
-                .btn {{
-                    display: inline-block;
-                    background: #008060;
-                    color: white;
-                    padding: 12px 24px;
-                    border-radius: 6px;
-                    text-decoration: none;
-                    font-weight: 500;
-                    font-size: 14px;
-                    transition: background 0.2s;
-                }}
-                .btn:hover {{
-                    background: #006e52;
-                }}
-            </style>
+            </script>
         </head>
-        <body>
-            <div class="container">
-                <h1>Connect Your Shopify Store</h1>
-                <p>Click the button below to authorize the connection. This will open in a new window.</p>
-                <a href="{full_auth_url}" target="_blank" class="btn">Continue to Shopify Authorization →</a>
+        <body style="font-family: -apple-system, system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f6f6f7;">
+            <div style="text-align: center; padding: 20px;">
+                <div style="margin-bottom: 20px;">Connecting to Shopify...</div>
+                <a href="{full_auth_url}" target="_top" style="color: #008060; text-decoration: none; font-size: 14px;">Click here if you are not redirected automatically</a>
             </div>
         </body>
         </html>
@@ -550,9 +516,9 @@ def _handle_oauth_callback():
     # After OAuth completes, redirect appropriately
     if host:
         # Embedded: redirect back into Shopify admin so app loads in iframe
-        # The top-level window is at the OAuth callback URL, so we redirect
-        # it back to the Shopify admin which will reload the embedded app
-        admin_url = f"https://{shop}/admin/apps/{SHOPIFY_API_KEY}"
+        # Use modern Shopify admin URL format for better compatibility
+        shop_subdomain = shop.replace('.myshopify.com', '')
+        admin_url = f"https://admin.shopify.com/store/{shop_subdomain}/apps/employee-suite-3"
         logger.info(f"OAuth complete (embedded), redirecting to Shopify admin: {admin_url}")
         return redirect(admin_url)
     else:

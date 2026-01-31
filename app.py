@@ -3014,8 +3014,9 @@ def apple_touch_icon():
     return Response(status=204)
 
 @app.route('/')
+@app.route('/dashboard')
 def home():
-    """Home page - CRITICAL: Must render HTML, never redirect for embedded apps"""
+    """Home page/Dashboard - Shared entry point for embedded and standalone"""
     # Check if this is an embedded app request from Shopify
     shop = request.args.get('shop')
     embedded = request.args.get('embedded')
@@ -3077,18 +3078,19 @@ def home():
         store = None
         user = None
         if shop:
-            # DO NOT call db.session.remove() before query - let pool_pre_ping handle validation
+            # Robust store lookup: pick most recent active or even inactive if needed (diagnostic)
             try:
-                store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
-            except BaseException:
-                try:
-                    db.session.rollback()
-                except Exception:
-                    pass
-                finally:
-                    # Removed db.session.remove() - causes segfaults
-                    pass
+                # Better query: handles NULLs in is_active and picks latest
+                store = ShopifyStore.query.filter_by(shop_url=shop).order_by(ShopifyStore.is_active.desc(), ShopifyStore.created_at.desc()).first()
+                if store and store.is_active:
+                    pass # Keep it
+                elif store:
+                    logger.warning(f"Store found for {shop} but is_active={store.is_active}")
+            except Exception as e:
+                logger.error(f"Failed to query store for {shop}: {e}")
+                db.session.rollback()
                 store = None
+                
             if store and hasattr(store, 'user') and store.user:
                 user = store.user
         
@@ -3351,142 +3353,8 @@ def home():
 # Icon is served via Flask static file serving automatically
 
 @app.route('/dashboard')
-def dashboard():
-    # Check if this is an embedded request (from Referer or params)
-    referer = request.headers.get('Referer', '')
-    is_from_shopify_admin = 'admin.shopify.com' in referer or 'myshopify.com' in referer
-    shop = request.args.get('shop')
-    host = request.args.get('host')
-    is_embedded = request.args.get('embedded') == '1' or shop or host or is_from_shopify_admin
-    
-    # CRITICAL: Extract shop and host from Referer if missing (matches home logic)
-    if not shop and referer:
-        try:
-            from urllib.parse import urlparse, parse_qs
-            parsed = urlparse(referer)
-            
-            # Case 1: Direct link from admin
-            if 'admin.shopify.com' in parsed.netloc and '/store/' in parsed.path:
-                shop_name = parsed.path.split('/store/')[1].split('/')[0]
-                shop = f"{shop_name}.myshopify.com"
-                logger.info(f"Extracted shop from Referer netloc: {shop}")
-            # Case 2: Query params in Referer
-            elif parsed.query:
-                qs = parse_qs(parsed.query)
-                if 'shop' in qs:
-                    shop = qs['shop'][0]
-                    logger.info(f"Extracted shop from Referer query: {shop}")
-                if 'host' in qs and not host:
-                    host = qs['host'][0]
-        except Exception as e:
-            logger.warning(f"Failed to extract shop from Referer: {e}")
-            pass
-            
-    # Normalize shop domain - professional consistent normalization
-    if shop:
-        shop = shop.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
-        if not shop.endswith('.myshopify.com') and '.' not in shop:
-            shop = f"{shop}.myshopify.com"
-
-    
-    # For embedded apps, allow access without strict auth (App Bridge handles it)
-    if not is_embedded and not current_user.is_authenticated:
-        return redirect(url_for('home'))
-        
-    # Check if user has connected Shopify
-    from models import ShopifyStore
-    store = None
-    has_shopify = False
-    user_authenticated = False
-    
-    # Try to authenticate via cookie
-    try:
-        user_authenticated = current_user.is_authenticated if hasattr(current_user, 'is_authenticated') else False
-    except Exception:
-        pass
-        
-    # Find store
-    try:
-        if user_authenticated:
-            store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
-        elif shop:
-            # Fallback for embedded: query by shop_url
-            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
-            
-        if store:
-            has_shopify = True
-    except Exception:
-        try:
-            db.session.rollback()
-        except:
-            pass
-        store = None
-        
-    # If embedded but no store found, show install message (or redirect to OAuth if we have shop)
-    if is_embedded and not has_shopify:
-        logger.warning(f"Dashboard: Embedded app but check failed - shop: {shop}, has_shopify: {has_shopify}, user_auth: {user_authenticated}") 
-        if shop:
-             # Redirect to OAuth
-             logger.info(f"Embedded app - no active store found for {shop}, redirecting to OAuth")
-             from urllib.parse import quote
-             install_url = f"/install?shop={quote(shop)}" + (f"&host={quote(host)}" if host else "")
-             return render_template_string(f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Connecting Store - Employee Suite</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-        // Use top-level redirect for OAuth
-        window.top.location.href = "{install_url}";
-    </script>
-</head>
-<body>
-    <div style="padding: 20px; text-align: center;">Redirecting to installation...</div>
-</body>
-</html>""")
-        else:
-            return render_template_string("""
-            <!DOCTYPE html>
-            <html>
-            <head><title>Install Required</title></head>
-            <body>
-                <div style="text-align: center; padding: 40px;">
-                    <h1>Installation Required</h1>
-                    <p>Please install Employee Suite from your Shopify admin panel.</p>
-                </div>
-            </body>
-            </html>"""), 400
-
-    # User Properties
-    has_access = False
-    trial_active = False
-    days_left = 0
-    is_subscribed = False
-    
-    # If authenticated, use user object
-    if user_authenticated:
-        try:
-            has_access = current_user.has_access()
-            trial_active = current_user.is_trial_active()
-            days_left = (current_user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
-            is_subscribed = current_user.is_subscribed
-        except:
-            pass
-    # If embedded + connected store, assume access for shell (App Bridge will verify via session token APIs)
-    elif is_embedded and has_shopify and store:
-        # We trust the shop param + store existence for the SHELL
-        # The data is protected by tokens
-        # We need to find the user associated with this store to get subscription status
-        if store.user:
-            try:
-                u = store.user
-                has_access = u.has_access()
-                trial_active = u.is_trial_active()
-                days_left = (u.trial_ends_at - datetime.utcnow()).days if trial_active else 0
-                is_subscribed = u.is_subscribed
-            except:
-                pass
+    # DEPRECATED: Standardizing on merged home/dashboard route above
+    return home()
     
     # View Data
     quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
