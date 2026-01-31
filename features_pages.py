@@ -354,11 +354,30 @@ def csv_exports_page():
                 background: #525252;
             }
         </style>
+    <script>
+        // CRITICAL: Robust navigation helper
+        window.openPage = function(path) {
+            var params = new URLSearchParams(window.location.search);
+            var shop = params.get('shop');
+            var host = params.get('host');
+            var embedded = params.get('embedded') || (host ? '1' : '');
+            
+            var sep = path.indexOf('?') > -1 ? '&' : '?';
+            var dest = path;
+            
+            if (shop) dest += sep + 'shop=' + shop;
+            if (host) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'host=' + host;
+            if (embedded) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'embedded=' + embedded;
+            
+            window.location.href = dest;
+            return false;
+        };
+    </script>
     </head>
     <body>
         <div class="header">
             <div class="header-content">
-                <a href="/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="text-decoration: none; color: inherit; font-weight: 600; font-size: 18px;">← Back to Dashboard</a>
+                <a href="#" onclick="openPage('/dashboard'); return false;" style="text-decoration: none; color: inherit; font-weight: 600; font-size: 18px;">← Back to Dashboard</a>
             </div>
         </div>
         
@@ -751,11 +770,26 @@ def scheduled_reports_page():
                 pointer-events: none;
             }
         </style>
+    <script>
+        window.openPage = function(path) {
+            var params = new URLSearchParams(window.location.search);
+            var shop = params.get('shop');
+            var host = params.get('host');
+            var embedded = params.get('embedded') || (host ? '1' : '');
+            var sep = path.indexOf('?') > -1 ? '&' : '?';
+            var dest = path;
+            if (shop) dest += sep + 'shop=' + shop;
+            if (host) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'host=' + host;
+            if (embedded) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'embedded=' + embedded;
+            window.location.href = dest;
+            return false;
+        };
+    </script>
     </head>
     <body>
         <div class="header">
             <div class="header-content">
-                <a href="/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="text-decoration: none; color: inherit; font-weight: 600; font-size: 18px;">← Back to Dashboard</a>
+                <a href="#" onclick="openPage('/dashboard'); return false;" style="text-decoration: none; color: inherit; font-weight: 600; font-size: 18px;">← Back to Dashboard</a>
             </div>
         </div>
         
@@ -991,11 +1025,26 @@ def comprehensive_dashboard_page():
                 min-height: 400px;
             }
         </style>
+    <script>
+        window.openPage = function(path) {
+            var params = new URLSearchParams(window.location.search);
+            var shop = params.get('shop');
+            var host = params.get('host');
+            var embedded = params.get('embedded') || (host ? '1' : '');
+            var sep = path.indexOf('?') > -1 ? '&' : '?';
+            var dest = path;
+            if (shop) dest += sep + 'shop=' + shop;
+            if (host) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'host=' + host;
+            if (embedded) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'embedded=' + embedded;
+            window.location.href = dest;
+            return false;
+        };
+    </script>
     </head>
     <body>
         <div class="header">
             <div class="header-content">
-                <a href="/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}" style="text-decoration: none; color: inherit; font-weight: 600;">← Back to Dashboard</a>
+                <a href="#" onclick="openPage('/dashboard'); return false;" style="text-decoration: none; color: inherit; font-weight: 600;">← Back to Dashboard</a>
             </div>
         </div>
         
