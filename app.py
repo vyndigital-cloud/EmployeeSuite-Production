@@ -1839,9 +1839,13 @@ DASHBOARD_HTML = """
         }
 
         function processOrders(button) {
-            // Debug logging removed for performance - only log errors if needed
+            console.log('🚀 processOrders CALLED with button:', button);
+            console.log('🚀 processOrders function type:', typeof processOrders);
+            console.log('🚀 Current debounceTimers.processOrders:', debounceTimers.processOrders);
+
             // Prevent rapid clicks (debounce)
             if (debounceTimers.processOrders) {
+                console.log('❌ processOrders blocked - already processing');
                 return; // Already processing
             }
 
@@ -2078,9 +2082,13 @@ DASHBOARD_HTML = """
         window.processOrders = processOrders;
 
         function updateInventory(button) {
-            // Debug logging removed for performance - only log errors if needed
+            console.log('📦 updateInventory CALLED with button:', button);
+            console.log('📦 updateInventory function type:', typeof updateInventory);
+            console.log('📦 Current debounceTimers.updateInventory:', debounceTimers.updateInventory);
+
             // Prevent rapid clicks (debounce)
             if (debounceTimers.updateInventory) {
+                console.log('❌ updateInventory blocked - already processing');
                 return; // Already processing
             }
 
@@ -2294,9 +2302,13 @@ DASHBOARD_HTML = """
         window.updateInventory = updateInventory;
 
         function generateReport(button) {
-            // Debug logging removed for performance - only log errors if needed
+            console.log('📊 generateReport CALLED with button:', button);
+            console.log('📊 generateReport function type:', typeof generateReport);
+            console.log('📊 Current debounceTimers.generateReport:', debounceTimers.generateReport);
+
             // Prevent rapid clicks (debounce)
             if (debounceTimers.generateReport) {
+                console.log('❌ generateReport blocked - already processing');
                 return; // Already processing
             }
 
@@ -2583,9 +2595,23 @@ DASHBOARD_HTML = """
                         // CRITICAL: Add EARLY click listener to catch ALL clicks before anything else
             // OPTIMIZED: Only log button clicks to reduce performance impact
             document.addEventListener('click', function(e) {
+                // Log ALL clicks to debug button issues
+                console.log('🔍 CLICK EVENT CAPTURED:', {
+                    target: e.target,
+                    tagName: e.target.tagName,
+                    className: e.target.className,
+                    hasDataAction: e.target.hasAttribute('data-action')
+                });
+
                 // Only log if it's actually a button click (reduces noise)
                 var closestBtn = e.target.closest('.card-btn[data-action]');
-                if (!closestBtn) return; // Skip non-button clicks
+                if (closestBtn) {
+                    console.log('🎯 BUTTON CLICK DETECTED:', {
+                        action: closestBtn.getAttribute('data-action'),
+                        disabled: closestBtn.disabled,
+                        pointerEvents: window.getComputedStyle(closestBtn).pointerEvents
+                    });
+                }
 
             }, true); // Capture phase - fires FIRST
 
@@ -2597,11 +2623,17 @@ DASHBOARD_HTML = """
                     return; // Exit if clicked element is not a button (no logging to reduce noise)
                 }
 
-                // ENHANCED LOGGING: Capture state before action (OPTIMIZED - minimal logging)
+                // ENHANCED LOGGING: Capture state before action (COMPREHENSIVE)
                 var action = btn.getAttribute('data-action');
-                console.log('✅ Button clicked:', action);
+                console.log('🎯 BUTTON CLICK HANDLER:', {
+                    action: action,
+                    buttonElement: btn,
+                    disabled: btn.disabled,
+                    innerHTML: btn.innerHTML.substring(0, 100),
+                    computedStyle: window.getComputedStyle(btn)
+                });
 
-                // Check CSS/pointer-events issues (only log if there's a problem)
+                // Check CSS/pointer-events issues (always log for debugging)
                 var computedStyle = window.getComputedStyle(btn);
                 var pointerEvents = computedStyle.pointerEvents;
                 var display = computedStyle.display;
@@ -2622,11 +2654,26 @@ DASHBOARD_HTML = """
 
                 // Route to appropriate function based on data-action (per external feedback)
                 // Enhanced error handling to prevent application freezing
+                console.log('🔍 FUNCTION CHECK:', {
+                    action: action,
+                    functionExists: window[action] !== undefined,
+                    functionType: typeof window[action],
+                    isFunction: typeof window[action] === 'function'
+                });
+
                 if (window[action] && typeof window[action] === 'function') {
                     try {
-                        console.log('✅ Calling function:', action);
+                        console.log('✅ CALLING FUNCTION:', action);
+                        console.log('✅ Function about to execute with button:', btn);
                         window[action](btn); // Call the corresponding function
+                        console.log('✅ Function call completed for:', action);
                     } catch(err) {
+                        console.error('❌ FUNCTION EXECUTION ERROR:', {
+                            action: action,
+                            error: err,
+                            message: err.message,
+                            stack: err.stack
+                        });
                         // Catch synchronous errors to prevent freezing                        console.error('Error details:', {
                             message: err.message,
                             name: err.name,
@@ -2677,6 +2724,134 @@ DASHBOARD_HTML = """
                         });
 
 console.log('✅ Event delegation listener attached successfully');
+
+            // CRITICAL: Add button state inspection function
+            window.inspectButtons = function() {
+                var buttons = document.querySelectorAll('.card-btn[data-action]');
+                console.log('🔍 BUTTON STATE INSPECTION:');
+                buttons.forEach(function(btn, index) {
+                    var action = btn.getAttribute('data-action');
+                    var computedStyle = window.getComputedStyle(btn);
+                    console.log(`Button ${index} (${action}):`, {
+                        disabled: btn.disabled,
+                        pointerEvents: computedStyle.pointerEvents,
+                        display: computedStyle.display,
+                        visibility: computedStyle.visibility,
+                        opacity: computedStyle.opacity,
+                        cursor: computedStyle.cursor,
+                        zIndex: computedStyle.zIndex,
+                        position: computedStyle.position,
+                        innerHTML: btn.innerHTML.substring(0, 50),
+                        hasEventListeners: btn._events || 'unknown',
+                        boundingRect: btn.getBoundingClientRect()
+                    });
+                });
+
+                // Test function availability
+                console.log('🔍 FUNCTION AVAILABILITY:');
+                console.log('processOrders:', typeof window.processOrders);
+                console.log('updateInventory:', typeof window.updateInventory);
+                console.log('generateReport:', typeof window.generateReport);
+
+                return buttons.length;
+            };
+
+            // CRITICAL: Add manual click test function
+            window.testButtonClick = function(buttonIndex) {
+                var buttons = document.querySelectorAll('.card-btn[data-action]');
+                if (buttonIndex >= buttons.length) {
+                    console.error('❌ Button index out of range');
+                    return;
+                }
+
+                var btn = buttons[buttonIndex];
+                var action = btn.getAttribute('data-action');
+                console.log('🧪 MANUAL BUTTON TEST:', action);
+
+                // Try direct function call
+                if (window[action] && typeof window[action] === 'function') {
+                    console.log('✅ Calling function directly:', action);
+                    try {
+                        window[action](btn);
+                    } catch (err) {
+                        console.error('❌ Direct function call failed:', err);
+                    }
+                } else {
+                    console.error('❌ Function not available:', action);
+                }
+            };
+
+            // CRITICAL: Add debounce timer inspection
+            window.checkDebounceTimers = function() {
+                console.log('🔍 DEBOUNCE TIMERS STATE:');
+                console.log('processOrders:', debounceTimers.processOrders);
+                console.log('updateInventory:', debounceTimers.updateInventory);
+                console.log('generateReport:', debounceTimers.generateReport);
+            };
+
+            // CRITICAL: Add active requests inspection
+            window.checkActiveRequests = function() {
+                console.log('🔍 ACTIVE REQUESTS STATE:');
+                console.log('processOrders:', activeRequests.processOrders);
+                console.log('updateInventory:', activeRequests.updateInventory);
+                console.log('generateReport:', activeRequests.generateReport);
+            };
+
+            // Auto-run inspection on page load
+            setTimeout(function() {
+                console.log('🚀 AUTO-RUNNING BUTTON INSPECTION...');
+                window.inspectButtons();
+                window.checkDebounceTimers();
+                window.checkActiveRequests();
+            }, 1000);
+
+            // CRITICAL: Force button activation function
+            window.forceButtonActivation = function() {
+                console.log('🚨 FORCING BUTTON ACTIVATION...');
+
+                // Clear all debounce timers
+                for (var key in debounceTimers) {
+                    if (debounceTimers[key]) {
+                        clearTimeout(debounceTimers[key]);
+                        debounceTimers[key] = null;
+                    }
+                }
+
+                // Clear all active requests
+                for (var key in activeRequests) {
+                    if (activeRequests[key] && activeRequests[key].abort) {
+                        activeRequests[key].abort();
+                    }
+                    activeRequests[key] = null;
+                }
+
+                // Force enable all buttons
+                var buttons = document.querySelectorAll('.card-btn[data-action]');
+                buttons.forEach(function(btn) {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.pointerEvents = 'auto';
+                    btn.style.cursor = 'pointer';
+
+                    // Remove any loading states
+                    var loading = btn.querySelector('.loading-spinner');
+                    if (loading) {
+                        loading.remove();
+                    }
+
+                    // Restore original text if it exists
+                    if (btn.dataset.originalText) {
+                        btn.innerHTML = btn.dataset.originalText;
+                        delete btn.dataset.originalText;
+                    }
+                });
+
+                console.log('✅ All buttons force-activated');
+                return buttons.length + ' buttons activated';
+            };
+
+            // CRITICAL: Add to global scope for easy access
+            window.fixButtons = window.forceButtonActivation;
 
 });
         // ============================================================================
