@@ -2478,8 +2478,15 @@ DASHBOARD_HTML = """
         // Verify all functions are properly assigned
         if (typeof window.processOrders !== 'function' ||
             typeof window.updateInventory !== 'function' ||
-            typeof window.generateReport !== 'function') {        } else {
-                    }
+            typeof window.generateReport !== 'function') {
+            console.error('❌ Functions not available:', {
+                processOrders: typeof window.processOrders,
+                updateInventory: typeof window.updateInventory,
+                generateReport: typeof window.generateReport
+            });
+        } else {
+            console.log('✅ All functions ready for use');
+        }
 
 
 
@@ -2547,17 +2554,32 @@ DASHBOARD_HTML = """
         // FIXED: Always wait for DOMContentLoaded to ensure DOM and dependencies are ready
         // FIXED: Verify functions exist before setting up listener (per external feedback)
         document.addEventListener('DOMContentLoaded', function setupEventDelegation() {
-                        // Verify functions are assigned to window before setting up listener
+            console.log('✅ DOMContentLoaded fired');
+
+            // Verify functions are assigned to window before setting up listener
             var functionsReady = typeof window.processOrders === 'function' &&
                                  typeof window.updateInventory === 'function' &&
                                  typeof window.generateReport === 'function';
 
-            if (!functionsReady) {                                // Retry after short delay
+            if (!functionsReady) {
+                console.error('❌ Functions not ready yet. Retrying in 100ms...');
+                console.log('Function status:', {
+                    processOrders: typeof window.processOrders,
+                    updateInventory: typeof window.updateInventory,
+                    generateReport: typeof window.generateReport
+                });
                 setTimeout(setupEventDelegation, 100);
                 return;
             }
 
-                        var buttonsFound = document.querySelectorAll('.card-btn[data-action]').length;
+            console.log('✅ All functions ready:', {
+                processOrders: typeof window.processOrders,
+                updateInventory: typeof window.updateInventory,
+                generateReport: typeof window.generateReport
+            });
+
+            var buttonsFound = document.querySelectorAll('.card-btn[data-action]').length;
+            console.log('✅ Buttons found:', buttonsFound);
                         // CRITICAL: Add EARLY click listener to catch ALL clicks before anything else
             // OPTIMIZED: Only log button clicks to reduce performance impact
             document.addEventListener('click', function(e) {
@@ -2577,7 +2599,9 @@ DASHBOARD_HTML = """
 
                 // ENHANCED LOGGING: Capture state before action (OPTIMIZED - minimal logging)
                 var action = btn.getAttribute('data-action');
-                                // Check CSS/pointer-events issues (only log if there's a problem)
+                console.log('✅ Button clicked:', action);
+
+                // Check CSS/pointer-events issues (only log if there's a problem)
                 var computedStyle = window.getComputedStyle(btn);
                 var pointerEvents = computedStyle.pointerEvents;
                 var display = computedStyle.display;
@@ -2600,7 +2624,8 @@ DASHBOARD_HTML = """
                 // Enhanced error handling to prevent application freezing
                 if (window[action] && typeof window[action] === 'function') {
                     try {
-                                                window[action](btn); // Call the corresponding function
+                        console.log('✅ Calling function:', action);
+                        window[action](btn); // Call the corresponding function
                     } catch(err) {
                         // Catch synchronous errors to prevent freezing                        console.error('Error details:', {
                             message: err.message,
@@ -2623,20 +2648,37 @@ DASHBOARD_HTML = """
                         }
                     }
                 } else {
-                    console.error('❌ Function not found for action:', action); // Log error for missing function (per external feedback)                }
+                    console.error('❌ Function not found for action:', action);
+                    console.log('Available functions:', Object.keys(window).filter(key => typeof window[key] === 'function').slice(0, 10));
+                }
             }, true); // Use capture phase to catch early
 
                         // CRITICAL: Add direct button test listeners as backup
-            // This will help us verify if buttons are clickable at all
-            var testButtons = document.querySelectorAll('.card-btn[data-action]');
+                        // This will help us verify if buttons are clickable at all
+                        var testButtons = document.querySelectorAll('.card-btn[data-action]');
+                        console.log('🔍 Found buttons for direct testing:', testButtons.length);
                         testButtons.forEach(function(btn, index) {
-                var action = btn.getAttribute('data-action');
-                                // Add direct click listener as backup test
-                btn.addEventListener('click', function(e) {
-                                                        }, true); // Capture phase
-            });
+                            var action = btn.getAttribute('data-action');
+                            console.log('🔍 Button ' + index + ':', {
+                                action: action,
+                                disabled: btn.disabled,
+                                style: btn.style.pointerEvents
+                            });
 
-        });
+                            // Add direct click listener as backup test
+                            btn.addEventListener('click', function(e) {
+                                console.log('🔍 DIRECT BUTTON LISTENER FIRED for:', action);
+                                console.log('🔍 Direct listener details:', {
+                                    action: action,
+                                    disabled: btn.disabled,
+                                    pointerEvents: window.getComputedStyle(btn).pointerEvents
+                                });
+                            }, true); // Capture phase
+                        });
+
+console.log('✅ Event delegation listener attached successfully');
+
+});
         // ============================================================================
         // END ROBUST BUTTON EVENT HANDLING
         // ============================================================================

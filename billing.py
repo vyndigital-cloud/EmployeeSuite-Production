@@ -51,6 +51,15 @@ def safe_redirect(url, shop=None, host=None):
 
 # Plan configuration
 PLANS = {
+    'free': {'name': 'Free', 'price': 0.00, 'features': [
+        'Basic order tracking',
+        'Inventory monitoring',
+        'Revenue analytics',
+        '30-day data history',
+        'Single store connection',
+        'Basic dashboard access',
+        'Community support'
+    ]},
     'pro': {'name': 'Pro', 'price': 29.00, 'features': [
         'Everything in Free plan',
         'CSV exports (all reports)',
@@ -58,7 +67,8 @@ PLANS = {
         'Auto-download reports',
         'Low-stock alerts',
         'Up to 3 store connections',
-        '90 days data history'
+        '90 days data history',
+        'Email support'
     ]},
     'business': {'name': 'Business', 'price': 99.00, 'features': [
         'Everything in Pro plan',
@@ -68,7 +78,8 @@ PLANS = {
         'Unlimited stores',
         'Unlimited data history',
         'API access',
-        'Priority support'
+        'Priority support',
+        'Custom integrations'
     ]}
 }
 
@@ -506,7 +517,7 @@ def subscribe():
 
     # Validate plan type
     if plan_type not in PLANS:
-        plan_type = 'pro'
+        plan_type = 'free'
 
     plan = PLANS[plan_type]
 
@@ -634,7 +645,11 @@ def create_charge():
 @billing_bp.route('/billing/confirm')
 def confirm_charge():
     """Handle return from Shopify after merchant approves/declines charge"""
-    from enhanced_models import SubscriptionPlan, PLAN_PRICES
+    try:
+        from enhanced_models import SubscriptionPlan, PLAN_PRICES
+    except ImportError:
+        # Fallback if enhanced_models not available
+        PLAN_PRICES = {'free': 0.00, 'pro': 29.00, 'business': 99.00}
 
     shop = request.args.get('shop', '')
     host = request.args.get('host', '')
