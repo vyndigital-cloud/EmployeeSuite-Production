@@ -51,235 +51,403 @@ def safe_redirect(url, shop=None, host=None):
 
 # Plan configuration
 PLANS = {
-    'pro': {'name': 'Pro', 'price': 29.00, 'features': [
-        'Everything in Free plan',
-        'CSV exports (all reports)',
-        'Date range filtering',
-        'Auto-download reports',
-        'Low-stock alerts',
-        'Up to 3 store connections',
-        '90 days data history'
+    'pro': {'name': 'Growth', 'price': 29.00, 'features': [
+        'Inventory Intelligence Dashboard',
+        'Smart Reorder Recommendations',
+        'Dead Stock Alerts',
+        '30-Day Sales Forecasting',
+        'CSV Export Capable',
+        'Up to 3 Store Connections',
+        'Email Support'
     ]},
-    'business': {'name': 'Business', 'price': 99.00, 'features': [
-        'Everything in Pro plan',
-        'Scheduled email reports',
-        'Daily/weekly/monthly delivery',
-        'SMS notifications',
-        'Unlimited stores',
-        'Unlimited data history',
-        'API access',
-        'Priority support'
+    'business': {'name': 'Scale', 'price': 99.00, 'features': [
+        'Everything in Growth',
+        'Advanced Multi-Location Sync',
+        'Automated Supplier Emails',
+        'Custom Reporting Engine',
+        'Unlimited Data History',
+        'Priority 24/7 Support',
+        'Dedicated Success Manager',
+        'Early Access to Beta Features'
     ]}
 }
 
 SUBSCRIBE_HTML = '''
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Subscribe - Employee Suite {{ plan_name }}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Upgrade to {{ plan_name }}</title>
+    <!-- Shopify App Bridge -->
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <script>
+        var apiKey = '{{ config_api_key }}'; // Injected by server if available
+        var shopOrigin = '{{ shop }}';
+        if (apiKey && shopOrigin) {
+            var AppBridge = window['app-bridge'];
+            var createApp = AppBridge.default;
+            var app = createApp({
+                apiKey: apiKey,
+                shopOrigin: shopOrigin,
+                forceRedirect: true
+            });
+        }
+    </script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --p-color-bg-surface: #ffffff;
+            --p-color-bg-app: #f1f2f4;
+            --p-color-text: #202223;
+            --p-color-text-subdued: #6d7175;
+            --p-color-action-primary: #008060;
+            --p-color-action-primary-hover: #006e52;
+            --p-border-radius-base: 8px;
+            --p-shadow-card: 0px 0px 5px rgba(23, 24, 24, 0.05), 0px 1px 2px rgba(0, 0, 0, 0.15);
+            --p-font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f6f6f7;
-            color: #202223;
+            font-family: var(--p-font-family);
+            background-color: var(--p-color-bg-app);
+            color: var(--p-color-text);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .layout {
+            max-width: 900px;
+            width: 100%;
+            padding: 40px 20px;
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 40px;
+            align-items: start;
+        }
+
+        /* Value Proposition Section (Left) */
+        .value-prop {
+            padding-top: 20px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            color: var(--p-color-text-subdued);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 24px;
+            font-weight: 500;
+            transition: color 0.15s;
+        }
+
+        .back-link:hover {
+            color: var(--p-color-action-primary);
+        }
+
+        .brand-pill {
+            display: inline-block;
+            background: #e3fcef;
+            color: #006e52;
+            font-weight: 600;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin-bottom: 16px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 0 0 12px 0;
+            line-height: 1.2;
+            color: #1a1a1a;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: var(--p-color-text-subdued);
+            line-height: 1.5;
+            margin-bottom: 32px;
+            max-width: 440px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .feature-card {
+            display: flex;
+            gap: 16px;
+        }
+
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            background: #ffffff;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+
+        .feature-content h3 {
+            font-size: 15px;
+            font-weight: 600;
+            margin: 0 0 4px 0;
+        }
+
+        .feature-content p {
+            font-size: 14px;
+            color: var(--p-color-text-subdued);
+            margin: 0;
             line-height: 1.5;
         }
-        .header {
-            background: #ffffff;
-            border-bottom: 1px solid #e1e3e5;
+
+        /* Checkout Card (Right) */
+        .checkout-card {
+            background: var(--p-color-bg-surface);
+            border-radius: var(--p-border-radius-base);
+            box-shadow: var(--p-shadow-card);
+            overflow: hidden;
             position: sticky;
-            top: 0;
-            z-index: 100;
+            top: 40px;
         }
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
-            height: 64px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+
+        .card-header {
+            padding: 24px 24px 20px;
+            border-bottom: 1px solid #e1e3e5;
         }
-        .logo { font-size: 16px; font-weight: 600; color: #202223; text-decoration: none; }
-        .nav-btn { padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none; color: #6d7175; }
-        .nav-btn:hover { background: #f6f6f7; color: #202223; }
-        .container { max-width: 600px; margin: 0 auto; padding: 32px 24px; }
-        .page-title { font-size: 28px; font-weight: 600; color: #202223; margin-bottom: 8px; text-align: center; }
-        .page-subtitle { font-size: 15px; color: #6d7175; margin-bottom: 32px; text-align: center; }
-        .pricing-card {
-            background: #ffffff;
-            border: 1px solid #e1e3e5;
-            border-radius: 8px;
-            padding: 32px;
-        }
-        .plan-badge {
-            display: inline-block;
-            background: {% if plan == 'business' %}#008060{% else %}#5c6ac4{% endif %};
-            color: white;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 12px;
+
+        .plan-name {
+            font-size: 13px;
             font-weight: 600;
+            color: var(--p-color-text-subdued);
             text-transform: uppercase;
-            margin-bottom: 16px;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
         }
-        .btn {
-            width: 100%;
-            padding: 12px 16px;
-            background: #008060;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
+
+        .price-container {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .price {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--p-color-text);
+        }
+
+        .period {
             font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.15s;
+            color: var(--p-color-text-subdued);
         }
-        .btn:hover { background: #006e52; }
-        .btn:disabled { background: #8c9196; cursor: not-allowed; }
-        .error-banner {
-            background: #fff4f4;
-            border: 1px solid #fecaca;
-            border-left: 3px solid #d72c0d;
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            color: #d72c0d;
-            font-size: 14px;
+
+        .card-body {
+            padding: 24px;
         }
-        .info-banner {
-            background: #e3fcef;
-            border: 1px solid #b2f5d1;
-            border-left: 3px solid #008060;
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            color: #006e52;
-            font-size: 14px;
+
+        .checklist {
+            margin-bottom: 24px;
         }
-        .features-box {
-            background: #f6f6f7;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 24px 0;
-        }
-        .features-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #202223;
-            margin-bottom: 12px;
-        }
-        .feature-item {
+
+        .check-item {
             display: flex;
             align-items: center;
             gap: 10px;
+            margin-bottom: 12px;
             font-size: 14px;
             color: #374151;
-            padding: 6px 0;
         }
-        .feature-item::before {
-            content: "✓";
-            color: #008060;
+
+        .check-icon {
+            color: var(--p-color-action-primary);
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+        }
+
+        .check-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .btn-subscribe {
+            display: block;
+            width: 100%;
+            background-color: var(--p-color-action-primary);
+            color: white;
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
             font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            box-shadow: 0 1px 0 rgba(0,0,0,0.05);
         }
-        .back-link {
-            display: inline-block;
+
+        .btn-subscribe:hover {
+            background-color: var(--p-color-action-primary-hover);
+        }
+
+        .btn-subscribe:disabled {
+            background-color: #a8a8a8;
+            cursor: not-allowed;
+        }
+
+        .guarantee-text {
+            text-align: center;
+            font-size: 12px;
+            color: var(--p-color-text-subdued);
+            margin-top: 16px;
+            line-height: 1.4;
+        }
+
+        .error-banner {
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            color: #c53030;
+            padding: 12px;
+            border-radius: 6px;
             margin-bottom: 20px;
-            color: #5c6ac4;
-            text-decoration: none;
-            font-size: 14px;
+            font-size: 13px;
+            line-height: 1.4;
         }
-        .back-link:hover { text-decoration: underline; }
-        @media (max-width: 768px) {
-            .container { padding: 24px 16px; }
-            .page-title { font-size: 24px; }
-            .pricing-card { padding: 24px; }
+
+        /* Responsive */
+        @media (max-width: 800px) {
+            .layout {
+                grid-template-columns: 1fr;
+                gap: 32px;
+                padding: 24px 16px;
+            }
+            .checkout-card {
+                position: static;
+                max-width: 500px;
+                margin: 0 auto;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="logo">Employee Suite</a>
-            <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="nav-btn">Back to Dashboard</a>
-        </div>
-    </div>
-
-    <div class="container">
-        <a href="/pricing" class="back-link">← View all plans</a>
-
-        <h1 class="page-title">{{ plan_name }} Plan</h1>
-        <p class="page-subtitle">
-            {% if not has_access %}
-            Your trial has ended. Subscribe to restore full access.
-            {% elif trial_active and not is_subscribed %}
-            Subscribe now to ensure uninterrupted access when your trial ends.
-            {% else %}
-            Get access to Employee Suite {{ plan_name }} features.
-            {% endif %}
-        </p>
-
-        {% if error %}
-        <div class="error-banner" style="white-space: pre-line;">{{ error }}</div>
-        {% endif %}
-
-        {% if not has_store %}
-        <div class="error-banner">
-            <div style="font-weight: 600; color: #202223; margin-bottom: 8px;">Connect Your Shopify Store First</div>
-            <div style="color: #6d7175; font-size: 14px; margin-bottom: 12px;">
-                You need to connect your Shopify store before you can subscribe.
-            </div>
-            <a href="/settings/shopify?shop={{ shop }}&host={{ host }}" style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;">
-                Connect Store →
+    <div class="layout">
+        <!-- Left Column: Value Proposition -->
+        <div class="value-prop">
+            <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="back-link">
+                <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor" style="margin-right: 4px;">
+                    <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/>
+                </svg>
+                Back to Dashboard
             </a>
-        </div>
-        {% endif %}
 
-        {% if trial_active and not is_subscribed %}
-        <div class="info-banner">
-            <strong>{{ days_left }} day{{ 's' if days_left != 1 else '' }} left in your trial</strong><br>
-            Subscribe now to avoid interruption.
-        </div>
-        {% endif %}
+            <div>
+                <span class="brand-pill">Inventory Intelligence</span>
+                <h1>Upgrade Your Store's Brain</h1>
+                <p class="subtitle">
+                    Stop guessing. Start knowing. Get purely data-driven insights to optimize stock, reduce waste, and maximize profit margins.
+                </p>
+            </div>
 
-        <div class="pricing-card">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <span class="plan-badge">{{ plan_name }}</span>
-                <div style="font-size: 48px; font-weight: 700; color: #202223; margin: 12px 0 8px;">
-                    ${{ price }}<span style="font-size: 18px; font-weight: 500; color: #6d7175;">/month</span>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <div class="feature-content">
+                        <h3>Dead Stock Detection</h3>
+                        <p>Identify items that haven't sold in 60+ days but are tying up your capital.</p>
+                    </div>
                 </div>
-                <div style="font-size: 14px; color: #6d7175;">7-day free trial • Cancel anytime</div>
+                <div class="feature-card">
+                    <div class="feature-icon">📈</div>
+                    <div class="feature-content">
+                        <h3>Smart Forecasts</h3>
+                        <p>Predict inventory needs based on real sales velocity, not just gut feeling.</p>
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-content">
+                        <h3>Automated Alerts</h3>
+                        <p>Get notified instantly when high-velocity items drop below safe levels.</p>
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-content">
+                        <h3>Profit Analytics</h3>
+                        <p>See true profitability per SKU, factoring in storage and holding costs.</p>
+                    </div>
+                </div>
             </div>
+        </div>
 
-            <div class="features-box">
-                <div class="features-title">What's included:</div>
-                {% for feature in features %}
-                <div class="feature-item">{{ feature }}</div>
-                {% endfor %}
+        <!-- Right Column: Checkout Card -->
+        <div class="checkout-card">
+            <div class="card-header">
+                <div class="plan-name">{{ plan_name }} Plan</div>
+                <div class="price-container">
+                    <span class="price">${{ price }}</span>
+                    <span class="period">/ month</span>
+                </div>
             </div>
+            
+            <div class="card-body">
+                {% if error %}
+                    <div class="error-banner">
+                        <strong>Something went wrong:</strong><br>
+                        {{ error }}
+                    </div>
+                {% endif %}
 
-            <form id="subscribe-form" method="POST" action="/billing/create-charge">
-                <input type="hidden" name="shop" value="{{ shop }}">
-                <input type="hidden" name="host" value="{{ host }}">
-                <input type="hidden" name="plan" value="{{ plan }}">
-                <button type="submit" class="btn" id="subscribe-btn" {% if not has_store %}disabled{% endif %}>
+                <div class="checklist">
+                    {% for feature in features %}
+                    <div class="check-item">
+                        <svg class="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>{{ feature }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <form id="subscribe-form" method="POST" action="/billing/create-charge">
+                    <input type="hidden" name="shop" value="{{ shop }}">
+                    <input type="hidden" name="host" value="{{ host }}">
+                    <input type="hidden" name="plan" value="{{ plan }}">
+                    
+                    <button type="submit" class="btn-subscribe" id="subscribe-btn" {% if not has_store %}disabled{% endif %}>
+                        {% if not has_store %}
+                            Connect Store First
+                        {% else %}
+                            Start 7-Day Free Trial
+                        {% endif %}
+                    </button>
+                    
                     {% if not has_store %}
-                        Connect Store to Subscribe
-                    {% elif not has_access %}
-                        Restore Access Now
-                    {% else %}
-                        Start 7-Day Free Trial
+                    <div style="text-align: center; margin-top: 12px;">
+                        <a href="/settings/shopify?shop={{ shop }}&host={{ host }}" style="font-size: 13px; color: #008060; text-decoration: none; font-weight: 500;">Connect Shopify Store &rarr;</a>
+                    </div>
                     {% endif %}
-                </button>
-            </form>
+                </form>
 
-            <p style="text-align: center; font-size: 12px; color: #6d7175; margin-top: 16px;">
-                Billed through your Shopify account. Cancel anytime from your Shopify admin.
-            </p>
+                <div class="guarantee-text">
+                    <strong>7-day free trial.</strong><br>
+                    You won't be charged until the trial ends.<br>
+                    Cancel anytime via Shopify Admin.
+                </div>
+            </div>
         </div>
     </div>
 
@@ -287,7 +455,7 @@ SUBSCRIBE_HTML = '''
         document.getElementById('subscribe-form').addEventListener('submit', function(e) {
             var btn = document.getElementById('subscribe-btn');
             btn.disabled = true;
-            btn.textContent = 'Redirecting to Shopify...';
+            btn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite; margin-right: 8px;">⟳</span> Processing...';
         });
     </script>
 </body>
@@ -550,7 +718,8 @@ def subscribe():
         trial_active=trial_active, has_access=has_access, days_left=days_left,
         is_subscribed=user.is_subscribed, shop=shop, host=host, has_store=has_store,
         plan=plan_type, plan_name=plan['name'], price=int(plan['price']),
-        features=plan['features'], error=error)
+        features=plan['features'], error=error,
+        config_api_key=os.getenv('SHOPIFY_API_KEY'))
 
 
 @billing_bp.route('/billing/create-charge', methods=['POST'])
