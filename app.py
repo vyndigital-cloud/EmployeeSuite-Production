@@ -1169,7 +1169,7 @@ DASHBOARD_HTML = """
     <meta property="og:description" content="Automate order processing, inventory management, and revenue reporting for your Shopify store.">
     <meta property="og:type" content="website">
     <script>
-        // CRITICAL: Robust navigation helper to preserve embedded context
+        // CRITICAL: Robust navigation helper to preserve embedded context (v2.0 - Forced Update)
         window.openPage = function(path) {
             var params = new URLSearchParams(window.location.search);
             var shop = params.get('shop');
