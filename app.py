@@ -4305,7 +4305,7 @@ def api_generate_report():
             clear_perf_cache()
         except Exception:
             pass
-        return jsonify({"success": False, "error": "An unexpected error occurred. Please try again or contact support if this persists."}), 500
+        return jsonify({"success": False, "error": f"Debug Error: {type(e).__name__}: {str(e)}"}), 500
     except Exception as e:
         logger.error('=== GENERATE REPORT REQUEST FAILED: Exception ===')
         logger.error(f'Error type: {type(e).__name__}')
