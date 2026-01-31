@@ -3101,119 +3101,81 @@ def home():
         # For embedded apps, ALWAYS render dashboard - don't check Flask-Login
         # Flask-Login sessions don't work in iframes, but session tokens do
         # CRITICAL: Always render HTML for embedded apps, never redirect
-        if True:  # Always render for embedded apps
-            # render_template_string is already imported at top of file
-            
-            # For embedded apps, get user info from store (if connected)
-            # Session tokens will verify this in API calls
-            if user:
-                # Store is connected - use user info for template
-                has_access = user.has_access()
-                trial_active = user.is_trial_active()
-                days_left = (user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
-                is_subscribed = user.is_subscribed
-                user_id = user.id
-            else:
-                # Store not connected yet - show connect prompt
-                # Session tokens will handle auth once store is connected
-                has_access = False
-                trial_active = False
-                days_left = 0
-                is_subscribed = False
-                user_id = None
-            
-            if user_id:
-                try:
-                    # Robust check: any store record for this user that isn't explicitly inactive
-                    has_shopify = ShopifyStore.query.filter(ShopifyStore.user_id == user_id, ShopifyStore.is_active != False).first() is not None
-                except Exception as e:
-                    logger.error(f"Error checking has_shopify for user {user_id}: {e}")
-                    db.session.rollback()
-                    has_shopify = False
-            elif shop:
-                try:
-                    # Robust check: any store record for this shop that isn't explicitly inactive
-                    has_shopify = ShopifyStore.query.filter(ShopifyStore.shop_url == shop, ShopifyStore.is_active != False).first() is not None
-                except Exception as e:
-                    logger.error(f"Error checking has_shopify for shop {shop}: {e}")
-                    db.session.rollback()
-                    has_shopify = False
-            
-            # Skip slow API calls for embedded apps - just show empty stats
-            # This prevents the page from hanging while waiting for Shopify API
-            quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
-            # Don't fetch quick stats on initial load - let the user click buttons to load data
-            # This makes the page load instantly
-            
-            shop_domain = shop or ''
-            if has_shopify and user_id:
-                try:
-                    store = ShopifyStore.query.filter(ShopifyStore.user_id == user_id, ShopifyStore.is_active != False).order_by(ShopifyStore.created_at.desc()).first()
-                except Exception as e:
-                    logger.error(f"Error fetching store for user {user_id}: {e}")
-                    db.session.rollback()
-                    store = None
-                if store and hasattr(store, 'shop_url') and store.shop_url:
-                    shop_domain = store.shop_url
-            elif shop:
-                try:
-                    store = ShopifyStore.query.filter(ShopifyStore.shop_url == shop, ShopifyStore.is_active != False).order_by(ShopifyStore.created_at.desc()).first()
-                except Exception as e:
-                    logger.error(f"Error fetching store for shop {shop}: {e}")
-                    db.session.rollback()
-                    store = None
-                if store and hasattr(store, 'shop_url') and store.shop_url:
-                    shop_domain = store.shop_url
-            
-            # CRITICAL: Pass host parameter to template for App Bridge initialization
-            host_param = request.args.get('host', '')
-            shop_param = shop_domain or shop or request.args.get('shop', '')
-            
-            APP_URL = os.getenv('APP_URL', request.url_root.rstrip('/'))
-            return render_template_string(DASHBOARD_HTML, 
-                                         trial_active=trial_active, 
-                                         days_left=days_left, 
-                                         is_subscribed=is_subscribed, 
-                                         has_shopify=has_shopify, 
-                                         has_access=has_access,
-                                         quick_stats=quick_stats,
-                                         shop=shop_param,
-                                         shop_domain=shop_domain,
-                                         SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
-                                         APP_URL=APP_URL,
-                                         host=host_param)
+        # ALWAYS render dashboard for embedded apps - don't check Flask-Login
+        # Session tokens handle all authentication for embedded apps
+        
+        # For embedded apps, get user info from store (if connected)
+        if user:
+            # Store is connected - use user info for template
+            has_access = user.has_access()
+            trial_active = user.is_trial_active()
+            days_left = (user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+            is_subscribed = user.is_subscribed
+            user_id = user.id
         else:
-            # Not logged in - for embedded apps, render dashboard with connect prompt
-            # DON'T redirect - just show the dashboard with a connect button
-            # This prevents iframe breaking
-            logger.info(f"Store not connected for embedded app: {shop}, showing dashboard with connect prompt")
-            
-            # Render dashboard with safe defaults (no auth required)
-            # render_template_string is already imported at top of file
+            # Store not connected yet
             has_access = False
             trial_active = False
             days_left = 0
             is_subscribed = False
+            user_id = None
+        
+        if user_id:
+            try:
+                has_shopify = ShopifyStore.query.filter(ShopifyStore.user_id == user_id, ShopifyStore.is_active != False).first() is not None
+            except Exception as e:
+                logger.error(f"Error checking has_shopify for user {user_id}: {e}")
+                db.session.rollback()
+                has_shopify = False
+        elif shop:
+            try:
+                has_shopify = ShopifyStore.query.filter(ShopifyStore.shop_url == shop, ShopifyStore.is_active != False).first() is not None
+            except Exception as e:
+                logger.error(f"Error checking has_shopify for shop {shop}: {e}")
+                db.session.rollback()
+                has_shopify = False
+        else:
             has_shopify = False
-            quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
-            shop_domain = shop or ''
             
-            # CRITICAL: Pass host parameter to template for App Bridge initialization
-            host_param = request.args.get('host', '')
-            
-            APP_URL = os.getenv('APP_URL', request.url_root.rstrip('/'))
-            return render_template_string(DASHBOARD_HTML, 
-                                         trial_active=trial_active, 
-                                         days_left=days_left, 
-                                         is_subscribed=is_subscribed, 
-                                         has_shopify=has_shopify, 
-                                         has_access=has_access,
-                                         quick_stats=quick_stats,
-                                         shop=shop_param,
-                                         shop_domain=shop_domain,
-                                         SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
-                                         APP_URL=APP_URL,
-                                         host=host_param)
+        quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
+        
+        shop_domain = shop or ''
+        if has_shopify and user_id:
+            try:
+                store = ShopifyStore.query.filter(ShopifyStore.user_id == user_id, ShopifyStore.is_active != False).order_by(ShopifyStore.created_at.desc()).first()
+            except Exception as e:
+                logger.error(f"Error fetching store for user {user_id}: {e}")
+                db.session.rollback()
+                store = None
+            if store and hasattr(store, 'shop_url') and store.shop_url:
+                shop_domain = store.shop_url
+        elif shop:
+            try:
+                store = ShopifyStore.query.filter(ShopifyStore.shop_url == shop, ShopifyStore.is_active != False).order_by(ShopifyStore.created_at.desc()).first()
+            except Exception as e:
+                logger.error(f"Error fetching store for shop {shop}: {e}")
+                db.session.rollback()
+                store = None
+            if store and hasattr(store, 'shop_url') and store.shop_url:
+                shop_domain = store.shop_url
+        
+        # CRITICAL: Prepare variables for template
+        host_param = request.args.get('host', '')
+        shop_param = shop_domain or shop or request.args.get('shop', '')
+        APP_URL = os.getenv('APP_URL', request.url_root.rstrip('/'))
+        
+        return render_template_string(DASHBOARD_HTML, 
+                                     trial_active=trial_active, 
+                                     days_left=days_left, 
+                                     is_subscribed=is_subscribed, 
+                                     has_shopify=has_shopify, 
+                                     has_access=has_access,
+                                     quick_stats=quick_stats,
+                                     shop=shop_param,
+                                     shop_domain=shop_domain,
+                                     SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
+                                     APP_URL=APP_URL,
+                                     host=host_param)
     
     # Regular (non-embedded) request handling
     if current_user.is_authenticated:
@@ -3492,7 +3454,7 @@ def health():
     return jsonify({
         "status": overall_status,
         "service": "Employee Suite",
-        "version": "2.3",
+        "version": "2.4",
         "database": database_status,
         "checks": checks,
         "timestamp": datetime.utcnow().isoformat()

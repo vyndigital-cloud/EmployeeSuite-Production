@@ -21,6 +21,8 @@ class User(UserMixin, db.Model):
     shopify_stores = db.relationship('ShopifyStore', backref='user', lazy=True, cascade='all, delete-orphan')
     
     def is_trial_active(self):
+        if not self.trial_ends_at:
+            return False
         return datetime.utcnow() < self.trial_ends_at and not self.is_subscribed
     
     def has_access(self):
