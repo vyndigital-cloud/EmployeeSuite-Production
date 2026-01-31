@@ -98,8 +98,7 @@ def process_orders(creds_path='creds.json', user_id=None):
         except Exception as e:
             return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading orders</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify API error</div><div style='margin-bottom: 12px;'>{str(e)}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
 
-        if len(all_orders) == 0:
-            return {"success": True, "message": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 8px 12px; background: #f0fdf4; border-left: 2px solid #16a34a; border-radius: 4px; font-size: 12px; color: #166534;'>No pending orders</div>"}
+
 
         # Build minimalistic HTML output with unified style (same as inventory/reports)
         from datetime import datetime
@@ -110,7 +109,10 @@ def process_orders(creds_path='creds.json', user_id=None):
         html += f"<div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Pending Orders ({len(all_orders)})</div>"
 
         # Summary box - minimalistic
-        html += f"<div style='padding: 8px 12px; background: #fffbeb; border-left: 2px solid #f59e0b; border-radius: 4px; margin-bottom: 12px; font-size: 11px; color: #92400e;'>Requires action</div>"
+        if len(all_orders) == 0:
+             html += f"<div style='padding: 8px 12px; background: #f0fdf4; border-left: 2px solid #16a34a; border-radius: 4px; margin-bottom: 12px; font-size: 11px; color: #166534;'>✅ All orders processed</div>"
+        else:
+             html += f"<div style='padding: 8px 12px; background: #fffbeb; border-left: 2px solid #f59e0b; border-radius: 4px; margin-bottom: 12px; font-size: 11px; color: #92400e;'>Requires action</div>"
 
         # Show orders - minimalistic, same style as inventory/reports
         for order in all_orders[:50]:  # Show up to 50 orders
