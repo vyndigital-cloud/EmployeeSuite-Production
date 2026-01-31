@@ -3353,27 +3353,9 @@ def home():
 # Icon is served via Flask static file serving automatically
 
 @app.route('/dashboard')
-    # DEPRECATED: Standardizing on merged home/dashboard route above
+def dashboard_alias():
+    """Alias for / to ensure Shopify loads correctly"""
     return home()
-    
-    # View Data
-    quick_stats = {'has_data': False, 'pending_orders': 0, 'total_products': 0, 'low_stock_items': 0}
-    shop_domain = shop or (store.shop_url if store else '')
-    host_param = host or request.args.get('host', '')
-    APP_URL = os.getenv('APP_URL', request.url_root.rstrip('/'))
-    
-    return render_template_string(DASHBOARD_HTML, 
-                                 trial_active=trial_active, 
-                                 days_left=days_left, 
-                                 is_subscribed=is_subscribed, 
-                                 has_shopify=has_shopify, 
-                                 has_access=has_access,
-                                 quick_stats=quick_stats,
-                                 shop=shop_domain,
-                                 shop_domain=shop_domain,
-                                 SHOPIFY_API_KEY=os.getenv('SHOPIFY_API_KEY', ''),
-                                 APP_URL=APP_URL,
-                                 host=host_param)
 
 
 @app.route('/cron/send-trial-warnings', methods=['GET', 'POST'])
