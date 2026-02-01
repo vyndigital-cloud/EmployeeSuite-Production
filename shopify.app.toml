@@ -1,6 +1,6 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "8c81ac3ce59f720a139b52f0c7b2ec32"
+client_id = "${SHOPIFY_API_KEY}"
 name = "Employee Suite"
 application_url = "https://employeesuite-production.onrender.com"
 embedded = true
@@ -30,7 +30,7 @@ api_version = "2025-10"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_inventory,read_orders,read_products"
+scopes = "read_orders,read_products,read_inventory"
 optional_scopes = [ ]
 use_legacy_install_flow = false
 

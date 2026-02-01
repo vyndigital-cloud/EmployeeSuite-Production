@@ -19,7 +19,7 @@ services:
           name: employeesuite
           property: url
       - key: SCOPES
-        value: read_orders,read_all_orders,read_products,read_inventory
+        value: read_orders,read_products,read_inventory
       - key: SECRET_KEY
         generateValue: true
       - key: ENCRYPTION_KEY

@@ -107,8 +107,16 @@ from gdpr_compliance import gdpr_bp
 from inventory import update_inventory
 from legal_routes import legal_bp
 
-# Register new analytics blueprint
-# MOVED BELOW to after app initialization
+# Register new blueprints for Shopify compliance
+from shopify_webhooks import webhooks_bp
+from gdpr_endpoints import gdpr_bp
+from shopify_billing_api import billing_bp
+from shopify_metafields import metafields_bp
+
+app.register_blueprint(webhooks_bp)
+app.register_blueprint(gdpr_bp)
+app.register_blueprint(billing_bp)
+app.register_blueprint(metafields_bp)
 from logging_config import logger
 from models import ShopifyStore, User, db
 from order_processing import process_orders
@@ -208,17 +216,24 @@ app.config["REMEMBER_COOKIE_NAME"] = "remember_token"  # Standard name
 # Session lifetime - shorter for embedded apps (they use tokens anyway)
 app.config["PERMANENT_SESSION_LIFETIME"] = 86400  # 24 hours (embedded apps use tokens)
 
-# Database configuration with automatic fallback to SQLite
-database_url = os.getenv("DATABASE_URL", "sqlite:///employeesuite.db")
+# Database configuration - NO fallback in production
+database_url = os.getenv("DATABASE_URL")
+if not database_url:
+    if os.getenv("ENVIRONMENT") == "production":
+        raise ValueError("DATABASE_URL environment variable is REQUIRED in production")
+    else:
+        # Allow SQLite fallback for development only
+        database_url = "sqlite:///employeesuite.db"
+        logger.warning("Using SQLite database - FOR DEVELOPMENT ONLY")
+
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
-# Test PostgreSQL connection, fallback to SQLite if it fails
+# Test PostgreSQL connection in production (no fallback)
 if database_url.startswith("postgresql://"):
     try:
         # Quick connection test
         from urllib.parse import urlparse
-
         import psycopg2
 
         parsed = urlparse(database_url)
@@ -234,9 +249,13 @@ if database_url.startswith("postgresql://"):
         logger.info("✅ PostgreSQL connection successful")
         app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     except Exception as e:
-        logger.warning(f"⚠️  PostgreSQL connection failed: {e}")
-        logger.info("🔄 Falling back to SQLite database")
-        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///employeesuite.db"
+        if os.getenv("ENVIRONMENT") == "production":
+            logger.error(f"❌ CRITICAL: PostgreSQL connection failed in production: {e}")
+            raise ValueError("Database connection failed in production - check DATABASE_URL")
+        else:
+            logger.warning(f"⚠️  PostgreSQL connection failed: {e}")
+            logger.info("🔄 Falling back to SQLite database for development")
+            app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///employeesuite.db"
 else:
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 
