@@ -227,3 +227,721 @@
 
 # 2026-02-02 02:06:25.515550
 +what is the command to push after all these fixes
+
+# 2026-02-02 02:09:25.058065
++2026-02-01 18:08:52,097 - config - WARNING - Configuration warning: Production should use HTTPS (https://)
+
+# 2026-02-02 02:10:23.956338
++
++2026-02-01 18:07:46,641 - missioncontrol.config - INFO - ✅ uninstalled_at column already exists
++2026-02-01 18:07:47,149 - missioncontrol.config - INFO - ✅ Migration completed successfully
++2026-02-01 18:07:47,149 - missioncontrol.config - INFO - Database tables initialized/verified
++[2026-02-01 18:08:10 +0000] [55] [CRITICAL] WORKER TIMEOUT (pid:179)
++[2026-02-01 18:08:11 +0000] [179] [INFO] Worker exiting (pid: 179)
++Sentry is attempting to send 4 pending events
++Waiting up to 2 seconds
++Press Ctrl-C to quit
++[2026-02-01 18:08:12 +0000] [55] [ERROR] Worker (pid:179) was sent SIGKILL! Perhaps out of memory?
++[2026-02-01 18:08:12 +0000] [183] [INFO] Booting worker with pid: 183
++2026-02-01 18:08:12,114 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-01 18:08:12,115 - missioncontrol.config - INFO - Enhanced models imported successfully
++2026-02-01 18:08:15,816 - missioncontrol.config - INFO - Checking for reset_token columns...
++2026-02-01 18:08:16,489 - missioncontrol.config - INFO - ✅ reset_token columns already exist
++2026-02-01 18:08:17,332 - missioncontrol.config - INFO - ✅ shop_id column already exists
++2026-02-01 18:08:17,502 - missioncontrol.config - INFO - ✅ charge_id column already exists
++2026-02-01 18:08:17,672 - missioncontrol.config - INFO - ✅ uninstalled_at column already exists
++==> Deploying...
++2026-02-01 18:08:18,175 - missioncontrol.config - INFO - ✅ Migration completed successfully
++2026-02-01 18:08:18,175 - missioncontrol.config - INFO - Database tables initialized/verified
++[2026-02-01 18:08:42 +0000] [55] [CRITICAL] WORKER TIMEOUT (pid:183)
++[2026-02-01 18:08:42 +0000] [183] [INFO] Worker exiting (pid: 183)
++Sentry is attempting to send 3 pending events
++Waiting up to 2 seconds
++Press Ctrl-C to quit
++[2026-02-01 18:08:43 +0000] [55] [ERROR] Worker (pid:183) was sent SIGKILL! Perhaps out of memory?
++[2026-02-01 18:08:43 +0000] [187] [INFO] Booting worker with pid: 187
++2026-02-01 18:08:43,218 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-01 18:08:43,218 - missioncontrol.config - INFO - Enhanced models imported successfully
++2026-02-01 18:08:47,060 - missioncontrol.config - INFO - Checking for reset_token columns...
++2026-02-01 18:08:47,735 - missioncontrol.config - INFO - ✅ reset_token columns already exist
++2026-02-01 18:08:48,592 - missioncontrol.config - INFO - ✅ shop_id column already exists
++==> Running 'gunicorn app:app'
++2026-02-01 18:08:48,763 - missioncontrol.config - INFO - ✅ charge_id column already exists
++2026-02-01 18:08:48,933 - missioncontrol.config - INFO - ✅ uninstalled_at column already exists
++==> Your service is live 🎉
++2026-02-01 18:08:49,440 - missioncontrol.config - INFO - ✅ Migration completed successfully
++2026-02-01 18:08:49,440 - missioncontrol.config - INFO - Database tables initialized/verified
++==> 
++==> ///////////////////////////////////////////////////////////
++==> 
++==> Available at your primary URL https://employeesuite-production.onrender.com
++==> 
++==> ///////////////////////////////////////////////////////////
++2026-02-01 18:08:52,097 - config - WARNING - Configuration warning: Production should use HTTPS (https://)
++2026-02-01 18:08:55,397 - missioncontrol.encryption - INFO - Encryption module loaded - Available: True
++2026-02-01 18:08:59,894 - missioncontrol.config - INFO - Sentry error monitoring initialized
++2026-02-01 18:09:00,933 - missioncontrol.config - INFO - ✅ PostgreSQL connection successful
++2026-02-01 18:09:01,698 - missioncontrol.config - INFO - App starting - Shopify routes: 5, Total routes: 82
++[2026-02-01 18:09:01 +0000] [54] [INFO] Starting gunicorn 21.2.0
++[2026-02-01 18:09:01 +0000] [54] [INFO] Listening at: http://0.0.0.0:10000 (54)
++[2026-02-01 18:09:01 +0000] [54] [INFO] Using worker: sync
++[2026-02-01 18:09:01 +0000] [56] [INFO] Booting worker with pid: 56
++2026-02-01 18:09:01,811 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-01 18:09:01,811 - missioncontrol.config - INFO - Enhanced models imported successfully
++2026-02-01 18:09:05,549 - missioncontrol.config - INFO - Checking for reset_token columns...
++2026-02-01 18:09:06,221 - missioncontrol.config - INFO - ✅ reset_token columns already exist
++2026-02-01 18:09:07,069 - missioncontrol.config - INFO - ✅ shop_id column already exists
++2026-02-01 18:09:07,239 - missioncontrol.config - INFO - ✅ charge_id column already exists
++2026-02-01 18:09:07,409 - missioncontrol.config - INFO - ✅ uninstalled_at column already exists
++2026-02-01 18:09:07,916 - missioncontrol.config - INFO - ✅ Migration completed successfully
++2026-02-01 18:09:07,917 - missioncontrol.config - INFO - Database tables initialized/verified
++[2026-02-01 18:09:13 +0000] [55] [CRITICAL] WORKER TIMEOUT (pid:187)
++[2026-02-01 18:09:13 +0000] [187] [INFO] Worker exiting (pid: 187)
++Sentry is attempting to send 3 pending events
++Waiting up to 2 seconds
++Press Ctrl-C to quit
++[2026-02-01 18:09:14 +0000] [55] [ERROR] Worker (pid:187) was sent SIGKILL! Perhaps out of memory?
++[2026-02-01 18:09:14 +0000] [197] [INFO] Booting worker with pid: 197
++2026-02-01 18:09:14,311 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-01 18:09:14,312 - missioncontrol.config - INFO - Enhanced models imported successfully
++2026-02-01 18:09:18,168 - missioncontrol.config - INFO - Checking for reset_token columns...
++2026-02-01 18:09:18,864 - missioncontrol.config - INFO - ✅ reset_token columns already exist
++2026-02-01 18:09:19,736 - missioncontrol.config - INFO - ✅ shop_id column already exists
++2026-02-01 18:09:19,928 - missioncontrol.config - INFO - ✅ charge_id column already exists
++==> No open HTTP ports detected on 0.0.0.0, continuing to scan...
++2026-02-01 18:09:20,104 - missioncontrol.config - INFO - ✅ uninstalled_at column already exists
++2026-02-01 18:09:20,627 - missioncontrol.config - INFO - ✅ Migration completed successfully
++2026-02-01 18:09:20,628 - missioncontrol.config - INFO - Database tables initialized/verified
++2026-02-01 18:09:32,213 - missioncontrol.config - INFO - ✅ Ran migrations from models.py
++[2026-02-01 18:09:32 +0000] [54] [CRITICAL] WORKER TIMEOUT (pid:56)
++[2026-02-01 18:09:33 +0000] [56] [INFO] Worker exiting (pid: 56)
++Sentry is attempting to send 3 pending events
++Menu
++Waiting up to 2 seconds
++Press Ctrl-C to quit
++[2026-02-01 18:09:33 +0000] [54] [ERROR] Worker (pid:56) was sent SIGKILL! Perhaps out of memory?
++[2026-02-01 18:09:33 +0000] [62] [INFO] Booting worker with pid: 62
++2026-02-01 18:09:34,000 - missioncontrol.config - INFO - Making request to: /, Method: GET
++2026-02-01 18:09:34,000 - missioncontrol.config - INFO - Enhanced models imported successfully
++2026-02-01 18:09:37,810 - missioncontrol.config - INFO - Checking for reset_token columns...
++2026-02-01 18:09:38,483 - missioncontrol.config - INFO - ✅ reset_token columns already exist
++2026-02-01 18:09:39,332 - missioncontrol.config - INFO - ✅ shop_id column already exists
++2026-02-01 18:09:39,502 - missioncontrol.config - INFO - ✅ charge_id column already exists
++2026-02-01 18:09:39,672 - missioncontrol.config - INFO - ✅ uninstalled_at column already exists
++2026-02-01 18:09:40,178 - missioncontrol.config - INFO - ✅ Migration completed successfully
++2026-02-01 18:09:40,179 - missioncontrol.config - INFO - Database tables initialized/verified
++[2026-02-01 18:09:44 +0000] [55] [CRITICAL] WORKER TIMEOUT (pid:197)
++[2026-02-01 18:09:44 +0000] [197] [INFO] Worker exiting (pid: 197)
++Sentry is attempting to send 3 pending events
++Waiting up to 2 seconds
++Press Ctrl-C to quit
++[2026-02-01 18:09:45 +0000] [55] [ERROR] Worker (pid:197) was sent SIGKILL! Perhaps out of memory?
++[2026-02-01 18:09:45 +0000] [201] [INFO] Booting worker with pid: 201
++2026-02-01 18:09:45,413 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-01 18:09:45,413 - missioncontrol.config - INFO - Enhanced models imported successfully
++[2026-02-01 18:09:48 +0000] [55] [INFO] Handling signal: term
+
+# 2026-02-02 02:10:26.332600
++y
+
+# 2026-02-02 02:12:13.601794
++I have these issues, but the scraping of my URL by you is not working: 2026-02-01T18:10:21.504388133Z ==> No open HTTP ports detected on 0.0.0.0, continuing to scan...
++2026-02-01T18:10:35.126315667Z [2026-02-01 18:10:35 +0000] [54] [CRITICAL] WORKER TIMEOUT (pid:67)
++2026-02-01T18:10:35.304290843Z [2026-02-01 18:10:35 +0000] [67] [INFO] Worker exiting (pid: 67)
++2026-02-01T18:10:35.493124266Z Sentry is attempting to send 3 pending events
++2026-02-01T18:10:35.493153096Z Waiting up to 2 seconds
++2026-02-01T18:10:35.493156436Z Press Ctrl-C to quit
++2026-02-01T18:10:36.134109084Z [2026-02-01 18:10:36 +0000] [54] [ERROR] Worker (pid:67) was sent SIGKILL! Perhaps out of memory?
++2026-02-01T18:10:36.139811253Z [2026-02-01 18:10:36 +0000] [71] [INFO] Booting worker with pid: 71
++2026-02-01T18:10:36.194546163Z 2026-02-01 18:10:36,194 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-01T18:10:36.194698696Z 2026-02-01 18:10:36,194 - missioncontrol.config - INFO - Enhanced models imported successfully
++2026-02-01T18:10:40.052858885Z 2026-02-01 18:10:40,052 - missioncontrol.config - INFO - Checking for reset_token columns...
++2026-02-01T18:10:40.750218827Z 2026-02-01 18:10:40,750 - missioncontrol.config - INFO - ✅ reset_token columns already exist
++2026-02-01T18:10:41.630075561Z 2026-02-01 18:10:41,629 - missioncontrol.config - INFO - ✅ shop_id column already exists
++2026-02-01T18:10:41.806120147Z 2026-02-01 18:10:41,805 - missioncontrol.config - INFO - ✅ charge_id column already exists
++2026-02-01T18:10:41.982309716Z 2026-02-01 18:10:41,982 - missioncontrol.config - INFO - ✅ uninstalled_at column already exists
++2026-02-01T18:10:42.524715292Z 2026-02-01 18:10:42,524 - missioncontrol.config - INFO - ✅ Migration completed successfully
++2026-02-01T18:10:42.524739792Z 2026-02-01 18:10:42,524 - missioncontrol.config - INFO - Database tables initialized/verified
++2026-02-01T18:11:06.219278787Z [2026-02-01 18:11:06 +0000] [54] [CRITICAL] WORKER TIMEOUT (pid:71)
++2026-02-01T18:11:06.597122426Z [2026-02-01 18:11:06 +0000] [71] [INFO] Worker exiting (pid: 71)
++2026-02-01T18:11:06.698346304Z Sentry is attempting to send 3 pending events
++2026-02-01T18:11:06.698383204Z Waiting up to 2 seconds
++2026-02-01T18:11:06.698389074Z Press Ctrl-C to quit
++2026-02-01T18:11:07.227691187Z [2026-02-01 18:11:07 +0000] [54] [ERROR] Worker (pid:71) was sent SIGKILL! Perhaps out of memory?
++2026-02-01T18:11:07.233186332Z [2026-02-01 18:11:07 +0000] [75] [INFO] Booting worker with pid: 75
++2026-02-01T18:11:07.296295436Z 2026-02-01 18:11:07,296 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-01T18:11:07.296469769Z 2026-02-01 18:11:07,296 - missioncontrol.config - INFO - Enhanced models imported successfully
++2026-02-01T18:11:11.001151259Z 2026-02-01 18:11:11,000 - missioncontrol.config - INFO - Checking for reset_token columns...
++2026-02-01T18:11:11.67390582Z 2026-02-01 18:11:11,673 - missioncontrol.config - INFO - ✅ reset_token columns already exist
++2026-02-01T18:11:12.512932262Z 2026-02-01 18:11:12,512 - missioncontrol.config - INFO - ✅ shop_id column already exists
++2026-02-01T18:11:12.682573105Z 2026-02-01 18:11:12,682 - missioncontrol.config - INFO - ✅ charge_id column already exists
++2026-02-01T18:11:12.876970143Z 2026-02-01 18:11:12,876 - missioncontrol.config - INFO - ✅ uninstalled_at column already exists
++2026-02-01T18:11:13.38099781Z 2026-02-01 18:11:13,380 - missioncontrol.config - INFO - ✅ Migration completed successfully
++2026-02-01T18:11:13.381147403Z 2026-02-01 18:11:13,381 - missioncontrol.config - INFO - Database tables initialized/verified
++2026-02-01T18:11:22.678366188Z ==> No open HTTP ports detected on 0.0.0.0, continuing to scan...
++2026-02-01T18:11:37.321339988Z [2026-02-01 18:11:37 +0000] [54] [CRITICAL] WORKER TIMEOUT (pid:75)
++2026-02-01T18:11:37.407933492Z [2026-02-01 18:11:37 +0000] [75] [INFO] Worker exiting (pid: 75)
++2026-02-01T18:11:37.50914093Z Sentry is attempting to send 3 pending events
++2026-02-01T18:11:37.50917512Z Waiting up to 2 seconds
++2026-02-01T18:11:37.50917982Z Press Ctrl-C to quit
++2026-02-01T18:11:38.329410041Z [2026-02-01 18:11:38 +0000] [54] [ERROR] Worker (pid:75) was sent SIGKILL! Perhaps out of memory?
++2026-02-01T18:11:38.335710132Z [2026-02-01 18:11:38 +0000] [79] [INFO] Booting worker with pid: 79
++2026-02-01T18:11:38.397624942Z 2026-02-01 18:11:38,397 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-01T18:11:38.397855457Z 2026-02-01 18:11:38,397 - missioncontrol.config - INFO - Enhanced models imported successfully
++2026-02-01T18:11:42.033312123Z 2026-02-01 18:11:42,033 - missioncontrol.config - INFO - Checking for reset_token columns...
++2026-02-01T18:11:42.688772642Z 2026-02-01 18:11:42,688 - missioncontrol.config - INFO - ✅ reset_token columns already exist
++2026-02-01T18:11:43.512755852Z 2026-02-01 18:11:43,512 - missioncontrol.config - INFO - ✅ shop_id column already exists
++2026-02-01T18:11:43.678867791Z 2026-02-01 18:11:43,678 - missioncontrol.config - INFO - ✅ charge_id column already exists
++2026-02-01T18:11:43.844247435Z 2026-02-01 18:11:43,844 - missioncontrol.config - INFO - ✅ uninstalled_at column already exists
++2026-02-01T18:11:44.337982396Z 2026-02-01 18:11:44,337 - missioncontrol.config - INFO - ✅ Migration completed successfully
++2026-02-01T18:11:44.338008837Z 2026-02-01 18:11:44,337 - missioncontrol.config - INFO - Database tables initialized/verified
+
+# 2026-02-02 02:18:42.433560
++
++
++Live tail
++
++
++
++
++95+ new logs
++==> Available at your primary URL https://employeesuite-production.onrender.com
++==> 
++==> ///////////////////////////////////////////////////////////
++[2026-02-01 18:17:21 +0000] [54] [ERROR] Worker (pid:119) was sent SIGKILL! Perhaps out of memory?
++[2026-02-01 18:17:21 +0000] [129] [INFO] Booting worker with pid: 129
++2026-02-01 18:17:21,497 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-01 18:17:21,497 - missioncontrol.config - INFO - Enhanced models imported successfully
++2026-02-01 18:17:22,877 - config - WARNING - Configuration warning: Production should use HTTPS (https://)
++2026-02-01 18:17:25,123 - missioncontrol.config - INFO - Checking for reset_token columns...
++2026-02-01 18:17:25,776 - missioncontrol.config - INFO - ✅ reset_token columns already exist
++2026-02-01 18:17:26,597 - missioncontrol.config - INFO - ✅ shop_id column already exists
++2026-02-01 18:17:26,763 - missioncontrol.config - INFO - ✅ charge_id column already exists
++2026-02-01 18:17:26,928 - missioncontrol.config - INFO - ✅ uninstalled_at column already exists
++2026-02-01 18:17:27,418 - missioncontrol.config - INFO - ✅ Migration completed successfully
++2026-02-01 18:17:27,418 - missioncontrol.config - INFO - Database tables initialized/verified
++2026-02-01 18:17:30,278 - missioncontrol.encryption - INFO - Encryption module loaded - Available: True
++2026-02-01 18:17:34,081 - missioncontrol.config - INFO - Sentry error monitoring initialized
++2026-02-01 18:17:35,211 - missioncontrol.config - INFO - ✅ PostgreSQL connection successful
++[2026-02-01 18:17:35 +0000] [57] [INFO] Starting gunicorn 21.2.0
++2026-02-01 18:17:35,975 - missioncontrol.config - INFO - App starting - Shopify routes: 5, Total routes: 82
++[2026-02-01 18:17:35 +0000] [57] [INFO] Listening at: http://0.0.0.0:10000 (57)
++[2026-02-01 18:17:35 +0000] [57] [INFO] Using worker: sync
++[2026-02-01 18:17:35 +0000] [59] [INFO] Booting worker with pid: 59
++2026-02-01 18:17:36,755 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-01 18:17:36,755 - missioncontrol.config - INFO - Enhanced models imported successfully
++2026-02-01 18:17:40,341 - missioncontrol.config - INFO - Checking for reset_token columns...
++2026-02-01 18:17:40,991 - missioncontrol.config - INFO - ✅ reset_token columns already exist
++2026-02-01 18:17:41,807 - missioncontrol.config - INFO - ✅ shop_id column already exists
++2026-02-01 18:17:41,971 - missioncontrol.config - INFO - ✅ charge_id column already exists
++2026-02-01 18:17:42,135 - missioncontrol.config - INFO - ✅ uninstalled_at column already exists
++2026-02-01 18:17:42,624 - missioncontrol.config - INFO - ✅ Migration completed successfully
++2026-02-01 18:17:42,624 - missioncontrol.config - INFO - Database tables initialized/verified
++2026-02-01 18:17:50,988 - missioncontrol.config - INFO - ✅ Ran migrations from models.py
++[2026-02-01 18:17:51 +0000] [54] [CRITICAL] WORKER TIMEOUT (pid:129)
++[2026-02-01 18:17:51 +0000] [129] [INFO] Worker exiting (pid: 129)
++Sentry is attempting to send 3 pending events
++Waiting up to 2 seconds
++Press Ctrl-C to quit
++[2026-02-01 18:17:52 +0000] [54] [ERROR] Worker (pid:129) was sent SIGKILL! Perhaps out of memory?
++[2026-02-01 18:17:52 +0000] [133] [INFO] Booting worker with pid: 133
++2026-02-01 18:17:52,602 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-01 18:17:52,602 - missioncontrol.config - INFO - Enhanced models imported successfully
++==> No open HTTP ports detected on 0.0.0.0, continuing to scan...
++2026-02-01 18:17:56,328 - missioncontrol.config - INFO - Checking for reset_token columns...
++2026-02-01 18:17:57,001 - missioncontrol.config - INFO - ✅ reset_token columns already exist
++2026-02-01 18:17:57,840 - missioncontrol.config - INFO - ✅ shop_id column already exists
++2026-02-01 18:17:58,010 - missioncontrol.config - INFO - ✅ charge_id column already exists
++2026-02-01 18:17:58,180 - missioncontrol.config - INFO - ✅ uninstalled_at column already exists
++2026-02-01 18:17:58,685 - missioncontrol.config - INFO - ✅ Migration completed successfully
++2026-02-01 18:17:58,685 - missioncontrol.config - INFO - Database tables initialized/verified
++2026-02-01 18:18:06,084 - missioncontrol.config - INFO - ✅ Ran migrations from models.py
++2026-02-01 18:18:06,894 - missioncontrol.config - WARNING - Column add attempt: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
++[SQL: ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT FALSE]
++(Background on this error at: https://sqlalche.me/e/20/2j85)
++2026-02-01 18:18:07,057 - missioncontrol.config - WARNING - Column add attempt: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
++[SQL: ALTER TABLE users ADD COLUMN last_login TIMESTAMP]
++(Background on this error at: https://sqlalche.me/e/20/2j85)
++[2026-02-01 18:18:07 +0000] [57] [CRITICAL] WORKER TIMEOUT (pid:59)
++[2026-02-01 18:18:07 +0000] [59] [INFO] Worker exiting (pid: 59)
++Sentry is attempting to send 3 pending events
++Waiting up to 2 seconds
++Press Ctrl-C to quit
++[2026-02-01 18:18:08 +0000] [57] [ERROR] Worker (pid:59) was sent SIGKILL! Perhaps out of memory?
++[2026-02-01 18:18:08 +0000] [64] [INFO] Booting worker with pid: 64
++2026-02-01 18:18:08,279 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-01 18:18:08,279 - missioncontrol.config - INFO - Enhanced models imported successfully
++2026-02-01 18:18:11,996 - missioncontrol.config - INFO - Checking for reset_token columns...
++2026-02-01 18:18:12,670 - missioncontrol.config - INFO - ✅ reset_token columns already exist
++2026-02-01 18:18:13,512 - missioncontrol.config - INFO - ✅ shop_id column already exists
++2026-02-01 18:18:13,682 - missioncontrol.config - INFO - ✅ charge_id column already exists
++2026-02-01 18:18:13,853 - missioncontrol.config - INFO - ✅ uninstalled_at column already exists
++2026-02-01 18:18:14,359 - missioncontrol.config - INFO - ✅ Migration completed successfully
++2026-02-01 18:18:14,360 - missioncontrol.config - INFO - Database tables initialized/verified
++[2026-02-01 18:18:20 +0000] [54] [INFO] Handling signal: term
++2026-02-01 18:18:22,885 - missioncontrol.config - INFO - ✅ Ran migrations from models.py
++2026-02-01 18:18:23,725 - missioncontrol.config - WARNING - Column add attempt: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
++[SQL: ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT FALSE]
++(Background on this error at: https://sqlalche.me/e/20/2j85)
++2026-02-01 18:18:23,893 - missioncontrol.config - WARNING - Column add attempt: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
++[SQL: ALTER TABLE users ADD COLUMN last_login TIMESTAMP]
++(Background on this error at: https://sqlalche.me/e/20/2j85)
++2026-02-01 18:18:24,061 - missioncontrol.config - WARNING - Column add attempt: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
++[SQL: ALTER TABLE users ADD COLUMN reset_token VARCHAR(100)]
++(Background on this error at: https://sqlalche.me/e/20/2j85)
++2026-02-01 18:18:24,229 - missioncontrol.config - WARNING - Column add attempt: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
++[SQL: ALTER TABLE users ADD COLUMN reset_token_expires TIMESTAMP]
++(Background on this error at: https://sqlalche.me/e/20/2j85)
++2026-02-01 18:18:24,397 - missioncontrol.config - INFO - ✅ Users table columns committed
++2026-02-01 18:18:25,242 - missioncontrol.config - WARNING - Column add attempt: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
++[SQL: ALTER TABLE shopify_stores ADD COLUMN shop_id BIGINT]
++(Background on this error at: https://sqlalche.me/e/20/2j85)
++2026-02-01 18:18:25,410 - missioncontrol.config - WARNING - Column add attempt: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
++[SQL: ALTER TABLE shopify_stores ADD COLUMN charge_id VARCHAR(255)]
++(Background on this error at: https://sqlalche.me/e/20/2j85)
++2026-02-01 18:18:25,578 - missioncontrol.config - WARNING - Column add attempt: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
++[SQL: ALTER TABLE shopify_stores ADD COLUMN uninstalled_at TIMESTAMP]
++(Background on this error at: https://sqlalche.me/e/20/2j85)
++2026-02-01 18:18:25,748 - missioncontrol.config - WARNING - Column add attempt: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
++[SQL: ALTER TABLE shopify_stores ADD COLUMN shop_domain VARCHAR(255)]
++(Background on this error at: https://sqlalche.me/e/20/2j85)
++2026-02-01 18:18:25,916 - missioncontrol.config - WARNING - Column add attempt: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
++[SQL: ALTER TABLE shopify_stores ADD COLUMN shop_email VARCHAR(255)]
++(Background on this error at: https://sqlalche.me/e/20/2j85)
++2026-02-01 18:18:26,085 - missioncontrol.config - WARNING - Column add attempt: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
++[SQL: ALTER TABLE shopify_stores ADD COLUMN shop_timezone VARCHAR(255)]
++(Background on this error at: https://sqlalche.me/e/20/2j85)
++2026-02-01 18:18:26,253 - missioncontrol.config - WARNING - Column add attempt: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
++[SQL: ALTER TABLE shopify_stores ADD COLUMN shop_currency VARCHAR(10)]
++(Background on this error at: https://sqlalche.me/e/20/2j85)
++2026-02-01 18:18:26,421 - missioncontrol.config - WARNING - Column add attempt: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
++[SQL: ALTER TABLE shopify_stores ADD COLUMN billing_plan VARCHAR(50)]
++(Background on this error at: https://sqlalche.me/e/20/2j85)
++2026-02-01 18:18:26,589 - missioncontrol.config - WARNING - Column add attempt: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
++[SQL: ALTER TABLE shopify_stores ADD COLUMN scopes_granted VARCHAR(500)]
++(Background on this error at: https://sqlalche.me/e/20/2j85)
++2026-02-01 18:18:26,757 - missioncontrol.config - WARNING - Column add attempt: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
++[SQL: ALTER TABLE shopify_stores ADD COLUMN is_installed BOOLEAN DEFAULT TRUE]
++(Background on this error at: https://sqlalche.me/e/20/2j85)
++2026-02-01 18:18:26,925 - missioncontrol.config - INFO - ✅ All database columns committed successfully
++2026-02-01 18:18:26,926 - missioncontrol.config - INFO - ✅ Database initialized successfully with emergency fixes
++2026-02-01 18:18:26,929 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/, referer=False, route=True
++2026-02-01 18:18:26,930 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/, shop=none, host=False, domains=5
++127.0.0.1 - - [01/Feb/2026:18:18:26 +0000] "HEAD / HTTP/1.1" 200 0 "-" "Go-http-client/1.1"
++[2026-02-01 18:18:26 +0000] [133] [INFO] Worker exiting (pid: 133)
+
+# 2026-02-02 02:18:46.840047
++n
+
+# 2026-02-02 02:18:50.328123
++y
+
+# 2026-02-02 02:19:36.200906
++bro i know u see the issue.  The thing doesn't load
+
+# 2026-02-02 02:19:58.707465
++bro the app doesnt loabro i know u see the issue.  The thing doesn't load   
+
+# 2026-02-02 02:22:07.887402
++Bad Gateway
++Request ID: 9c73693c2a73d132-PDX
++This service is currently unavailable. Please try again in a few minutes.
++If you are the site owner, refer to Render’s documentation for troubleshooting.
+
+# 2026-02-02 02:27:14.408676
++do a full deep audit of the app to make sure it works
+
+# 2026-02-02 02:30:46.668448
++read above, and do it ALL for me 
+
+# 2026-02-02 02:34:39.543874
++make these changes for me: FIX #1: Blueprint Name Conflict (CRITICAL)                                      
++
++In gdpr_endpoints.py line 10, change:                                           
++
++                                                                                
++# CHANGE THIS:                                                                  
++gdpr_bp = Blueprint('gdpr', __name__)                                           
++                                                                                
++# TO THIS:                                                                      
++gdpr_bp = Blueprint('gdpr_endpoints', __name__)                                 
++                                                                                
++
++FIX #2: Missing Import in API Function                                          
++
++In app.py, add this import at the top of the api_generate_report() function     
++(around line 1800):                                                             
++
++                                                                                
++@app.route("/api/generate_report", methods=["GET", "POST"])                     
++@verify_session_token                                                           
++def api_generate_report():                                                      
++    """Generate revenue report with detailed crash logging"""                   
++    from models import ShopifyStore  # ADD THIS LINE                            
++                                                                                
++    # Rest of function stays the same...                                        
++                                                                                
++
++FIX #3: Environment Variable Validation                                         
++
++Add to config.py at the end of the file:                                        
++
++                                                                                
++def validate_required_env_vars():                                               
++    """Validate critical environment variables on startup"""                    
++    if os.getenv("ENVIRONMENT") == "production":                                
++        required = ['SECRET_KEY', 'DATABASE_URL', 'SHOPIFY_API_KEY',            
++'SHOPIFY_API_SECRET']                                                           
++        missing = [var for var in required if not os.getenv(var)]               
++        if missing:                                                             
++            raise ValueError(f"Missing required production variables:           
++{missing}")                                                                     
++                                                                                
++    # Validate SECRET_KEY length                                                
++    secret_key = os.getenv("SECRET_KEY", "")                                    
++    if len(secret_key) < 32:                                                    
++        raise ValueError("SECRET_KEY must be at least 32 characters long")      
++                                                                                
++# Call validation immediately                                                   
++validate_required_env_vars()                                                    
++                                                                                
++
++FIX #4: Database Pool Optimization                                              
++
++In app.py, find the database configuration section (around line 158) and update:
++
++                                                                                
++# PostgreSQL-specific options (compatible with Neon pooled connections)         
++if app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgresql://"):           
++    engine_options.update(                                                      
++        {                                                                       
++            "pool_size": 15,  # INCREASED from 10                               
++            "max_overflow": 30,  # INCREASED from 20                            
++            "pool_recycle": 1800,  # CHANGED from 600 (30 minutes)              
++            "pool_timeout": 10,  # INCREASED from 5                             
++            "connect_args": {                                                   
++                "connect_timeout": 15,  # INCREASED from 10                     
++            },                                                                  
++            "isolation_level": "READ_COMMITTED",                                
++        }                                                                       
++    )                                                                           
++                                                                                
++
++FIX #5: Centralized Shop URL Normalization                                      
++
++Add this function to utils.py:                                                  
++
++                                                                                
++def normalize_shop_url(shop_url):                                               
++    """Centralized shop URL normalization - prevents OAuth failures"""          
++    if not shop_url:                                                            
++        return None                                                             
++                                                                                
++    # Remove protocol and www                                                   
++    shop_url = shop_url.lower().replace('https://', '').replace('http://',      
++'').replace('www.', '').strip()                                                 
++                                                                                
++    # Handle path components                                                    
++    if '/' in shop_url:                                                         
++        shop_url = shop_url.split('/')[0]                                       
++                                                                                
++    # Ensure .myshopify.com suffix                                              
++    if not shop_url.endswith('.myshopify.com'):                                 
++        if '.' not in shop_url:                                                 
++            shop_url = f"{shop_url}.myshopify.com"                              
++        elif not shop_url.endswith('.myshopify.com'):                           
++            raise ValueError("Invalid shop URL format")                         
++                                                                                
++    return shop_url                                                             
++                                                                                
++
++Then update models.py line 234:                                                 
++
++                                                                                
++@validates("shop_url")                                                          
++def validate_shop_url(self, key: str, shop_url: str) -> str:                    
++    """Validate and normalize shop URL"""                                       
++    from utils import normalize_shop_url                                        
++    return normalize_shop_url(shop_url)                                         
++                                                                                
++
++FIX #6: SQL Injection Prevention                                                
++
++In app.py, replace the dynamic SQL in ensure_db_initialized() with:             
++
++                                                                                
++def ensure_db_initialized():                                                    
++    """Lazy database initialization - called on first request - BULLETPROOF     
++VERSION"""                                                                      
++    global _db_initialized                                                      
++    if _db_initialized:                                                         
++        return                                                                  
++                                                                                
++    try:                                                                        
++        init_db()                                                               
++                                                                                
++        # SAFE MIGRATIONS - No dynamic SQL                                      
++        SAFE_USER_MIGRATIONS = [                                                
++            "ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE",      
++            "ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT FALSE",
++            "ALTER TABLE users ADD COLUMN last_login TIMESTAMP",                
++            "ALTER TABLE users ADD COLUMN reset_token VARCHAR(100)",            
++            "ALTER TABLE users ADD COLUMN reset_token_expires TIMESTAMP"        
++        ]                                                                       
++                                                                                
++        SAFE_STORE_MIGRATIONS = [                                               
++            "ALTER TABLE shopify_stores ADD COLUMN shop_name VARCHAR(255)",     
++            "ALTER TABLE shopify_stores ADD COLUMN shop_id BIGINT",             
++            "ALTER TABLE shopify_stores ADD COLUMN charge_id VARCHAR(255)",     
++            "ALTER TABLE shopify_stores ADD COLUMN uninstalled_at TIMESTAMP",   
++            "ALTER TABLE shopify_stores ADD COLUMN shop_domain VARCHAR(255)",   
++            "ALTER TABLE shopify_stores ADD COLUMN shop_email VARCHAR(255)",    
++            "ALTER TABLE shopify_stores ADD COLUMN shop_timezone VARCHAR(255)", 
++            "ALTER TABLE shopify_stores ADD COLUMN shop_currency VARCHAR(10)",  
++            "ALTER TABLE shopify_stores ADD COLUMN billing_plan VARCHAR(50)",   
++            "ALTER TABLE shopify_stores ADD COLUMN scopes_granted VARCHAR(500)",
++            "ALTER TABLE shopify_stores ADD COLUMN is_installed BOOLEAN DEFAULT 
++TRUE"                                                                           
++        ]                                                                       
++                                                                                
++        # Execute safe migrations                                               
++        for migration in SAFE_USER_MIGRATIONS:                                  
++            try:                                                                
++                db.session.execute(text(migration))                             
++                db.session.commit()                                             
++            except Exception as e:                                              
++                db.session.rollback()                                           
++                if "already exists" not in str(e).lower():                      
++                    logger.warning(f"Migration failed: {e}")                    
++                                                                                
++        for migration in SAFE_STORE_MIGRATIONS:                                 
++            try:                                                                
++                db.session.execute(text(migration))                             
++                db.session.commit()                                             
++            except Exception as e:                                              
++                db.session.rollback()                                           
++                if "already exists" not in str(e).lower():                      
++                    logger.warning(f"Migration failed: {e}")                    
++                                                                                
++        _db_initialized = True                                                  
++        logger.info("✅ Database initialized successfully with safe migrations")
++                                                                                
++    except Exception as e:                                                      
++        logger.error(f"Database initialization failed: {e}", exc_info=True)     
++        try:                                                                    
++            db.session.rollback()                                               
++        except Exception:                                                       
++            pass                                                                
++        raise                                                                   
++                                                                                
++
++FIX #7: Race Condition Prevention                                               
++
++Add threading lock to app.py before ensure_db_initialized():                    
++
++                                                                                
++import threading                                                                
++_init_lock = threading.Lock()                                                   
++_db_initialized = False                                                         
++                                                                                
++def ensure_db_initialized():                                                    
++    """Thread-safe database initialization"""                                   
++    global _db_initialized                                                      
++                                                                                
++    with _init_lock:  # Prevent race conditions                                 
++        if _db_initialized:                                                     
++            return                                                              
++                                                                                
++        # Your existing initialization code here...                             
++        # (Use the safe migrations from Fix #6)                                 
++                                                                                
++        _db_initialized = True                                                  
++                                                                                
++
++FIX #8: Query Optimization                                                      
++
++In app.py, update get_authenticated_user() function:                            
++
++                                                                                
++def get_authenticated_user():                                                   
++    """Get authenticated user with optimized queries"""                         
++    from sqlalchemy.orm import joinedload                                       
++                                                                                
++    # Try Flask-Login first                                                     
++    if current_user.is_authenticated:                                           
++        return current_user, None                                               
++                                                                                
++    # Session token authentication with optimized queries                       
++    auth_header = request.headers.get("Authorization", "")                      
++    if auth_header.startswith("Bearer "):                                       
++        try:                                                                    
++            # ... existing JWT verification code ...                            
++                                                                                
++            # OPTIMIZED: Single query with eager loading                        
++            store = ShopifyStore.query.options(                                 
++                joinedload(ShopifyStore.user)                                   
++            ).filter_by(shop_url=shop_domain, is_active=True).first()           
++                                                                                
++            if store and store.user:                                            
++                return store.user, None                                         
++            # ... rest of function                                              
++                                                                                
++
++FIX #9: Enhanced Health Check                                                   
++
++Update the /health endpoint in app.py:                                          
++
++                                                                                
++@app.route("/health")                                                           
++def health():                                                                   
++    """Enhanced health check endpoint"""                                        
++    import sys                                                                  
++    from datetime import datetime                                               
++    from performance import get_cache_stats                                     
++                                                                                
++    checks = {}                                                                 
++    overall_status = "healthy"                                                  
++                                                                                
++    # Database check with pool info                                             
++    try:                                                                        
++        db.session.execute(db.text("SELECT 1"))                                 
++        pool = db.engine.pool                                                   
++        checks["database"] = {                                                  
++            "status": "connected",                                              
++            "pool_size": pool.size(),                                           
++            "checked_out": pool.checkedout(),                                   
++            "overflow": pool.overflow(),                                        
++            "invalid": pool.invalid()                                           
++        }                                                                       
++    except Exception as e:                                                      
++        checks["database"] = {"error": str(e), "status": "disconnected"}        
++        overall_status = "unhealthy"                                            
++                                                                                
++    # Cache check                                                               
++    try:                                                                        
++        cache_stats = get_cache_stats()                                         
++        checks["cache"] = {                                                     
++            "entries": cache_stats.get("entries", 0),                           
++            "max_entries": cache_stats.get("max_entries", 100),                 
++            "size_mb": cache_stats.get("size_mb", 0.0),                         
++            "status": "operational"                                             
++        }                                                                       
++    except Exception as e:                                                      
++        checks["cache"] = {"error": str(e), "status": "error"}                  
++                                                                                
++    # Memory check                                                              
++    try:                                                                        
++        import psutil                                                           
++        process = psutil.Process()                                              
++        memory_info = process.memory_info()                                     
++        checks["memory"] = {                                                    
++            "rss_mb": round(memory_info.rss / (1024 * 1024), 2),                
++            "vms_mb": round(memory_info.vms / (1024 * 1024), 2),                
++            "status": "operational"                                             
++        }                                                                       
++    except ImportError:                                                         
++        checks["memory"] = {"note": "psutil not available", "status": "unknown"}
++                                                                                
++    return jsonify({                                                            
++        "status": overall_status,                                               
++        "service": "Employee Suite",                                            
++        "version": "2.8",                                                       
++        "checks": checks,                                                       
++        "timestamp": datetime.utcnow().isoformat()                              
++    }), 200 if overall_status == "healthy" else 500                             
++                                                                                
++
++FIX #10: Error Response Standardization                                         
++
++Add this function to app.py:                                                    
++
++                                                                                
++def create_standard_error_response(error_message, error_code=None,              
++status_code=500, action=None, action_url=None):                                 
++    """Create standardized error response"""                                    
++    response = {                                                                
++        "success": False,                                                       
++        "error": error_message,                                                 
++        "timestamp": datetime.utcnow().isoformat()                              
++    }                                                                           
++                                                                                
++    if error_code:                                                              
++        response["error_code"] = error_code                                     
++    if action:                                                                  
++        response["action"] = action                                             
++    if action_url:                                                              
++        response["action_url"] = action_url                                     
++                                                                                
++    return jsonify(response), status_code                                       
++                                                                                
++
++FIX #11: Frontend Function Availability                                         
++
++In the dashboard HTML template, add this check before function calls:           
++
++                                                                                
++// Add this function to verify function availability                            
++function callFunctionSafely(functionName, button) {                             
++    if (typeof window[functionName] === 'function') {                           
++        try {                                                                   
++            window[functionName](button);                                       
++        } catch (error) {                                                       
++            console.error('Function call failed:', functionName, error);        
++            showErrorMessage('An error occurred. Please refresh the page and try
++again.');                                                                       
++        }                                                                       
++    } else {                                                                    
++        console.error('Function not available:', functionName);                 
++        showErrorMessage('Feature not available. Please refresh the page.');    
++    }                                                                           
++}                                                                               
++                                                                                
++function showErrorMessage(message) {                                            
++    var outputEl = document.getElementById('output');                           
++    if (outputEl) {                                                             
++        outputEl.innerHTML = '<div style="padding: 20px; background: #fff4f4;   
++border: 1px solid #fecaca; border-radius: 8px;"><div style="color: #d72c0d;     
++font-weight: 600;">' + message + '</div></div>';                                
++    }                                                                           
++}                                                                               
++                                                                                
++
++FIX #12: Gunicorn Configuration                                                 
++
++Update your Procfile:                                                           
++
++                                                                                
++web: gunicorn --worker-class=sync --workers=2 --timeout=600 --max-requests=1000 
++--max-requests-jitter=100 main:app                                              
++                                                                                
++
++
++🚀 DEPLOYMENT COMMANDS                                                          
++
++After making ALL these changes:                                                 
++
++                                                                                
++git add .                                                                       
++git commit -m "Complete app audit fixes: blueprint conflicts, security,         
++performance, stability"                                                         
++git push origin main                                                            
++                                                                                
++
++
++📋 VERIFICATION CHECKLIST                                                       
++
++After deployment, verify:                                                       
++
++ • [ ] App starts without errors                                                
++ • [ ] /health endpoint returns detailed status                                 
++ • [ ] Dashboard loads properly                                                 
++ • [ ] API endpoints work (orders, inventory, reports)                          
++ • [ ] No blueprint conflicts in logs                                           
++ • [ ] Database connections stable                                              
++ • [ ] Memory usage reasonable                                                  
++
++These fixes address ALL 20+ issues identified in the audit and will make your   
++app production-ready!          
+
+# 2026-02-02 02:52:58.063343
++do a final master scan to see if there are any issues.

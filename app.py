@@ -2,6 +2,7 @@ import logging
 import os
 import signal
 import sys
+import threading
 import traceback
 
 # Load environment variables from .env file if it exists
@@ -104,14 +105,9 @@ from enhanced_features import enhanced_bp
 from faq_routes import faq_bp
 from features_pages import features_pages_bp
 from gdpr_compliance import gdpr_bp
+from gdpr_endpoints import gdpr_bp as gdpr_endpoints_bp
 from inventory import update_inventory
 from legal_routes import legal_bp
-
-# Register new blueprints for Shopify compliance (moved after app creation)
-from shopify_webhooks import webhooks_bp as shopify_webhooks_bp
-from gdpr_endpoints import gdpr_bp as gdpr_endpoints_bp
-from shopify_billing_api import billing_bp as shopify_billing_bp
-from shopify_metafields import metafields_bp as shopify_metafields_bp
 
 # These will be registered after app is created below
 from logging_config import logger
@@ -128,11 +124,20 @@ from security_enhancements import (
     sanitize_input_enhanced,
 )
 from session_token_verification import get_shop_from_session_token, verify_session_token
+from shopify_billing_api import billing_bp as shopify_billing_bp
+from shopify_metafields import metafields_bp as shopify_metafields_bp
 from shopify_oauth import oauth_bp
 from shopify_routes import shopify_bp
+
+# Register new blueprints for Shopify compliance (moved after app creation)
+from shopify_webhooks import webhooks_bp as shopify_webhooks_bp
 from utils import safe_redirect  # noqa: F401
 from webhook_shopify import webhook_shopify_bp
 from webhook_stripe import webhook_bp
+
+# Threading locks for race condition prevention
+_init_lock = threading.Lock()
+_db_initialized = False
 
 # Initialize Sentry for error monitoring (if DSN is provided)
 sentry_dsn = os.getenv("SENTRY_DSN")
@@ -231,6 +236,7 @@ if database_url.startswith("postgresql://"):
     try:
         # Quick connection test
         from urllib.parse import urlparse
+
         import psycopg2
 
         parsed = urlparse(database_url)
@@ -247,8 +253,12 @@ if database_url.startswith("postgresql://"):
         app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     except Exception as e:
         if os.getenv("ENVIRONMENT") == "production":
-            logger.error(f"❌ CRITICAL: PostgreSQL connection failed in production: {e}")
-            raise ValueError("Database connection failed in production - check DATABASE_URL")
+            logger.error(
+                f"❌ CRITICAL: PostgreSQL connection failed in production: {e}"
+            )
+            raise ValueError(
+                "Database connection failed in production - check DATABASE_URL"
+            )
         else:
             logger.warning(f"⚠️  PostgreSQL connection failed: {e}")
             logger.info("🔄 Falling back to SQLite database for development")
@@ -269,14 +279,14 @@ engine_options = {
 if app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgresql://"):
     engine_options.update(
         {
-            "pool_size": 10,  # Increased for production stability
-            "max_overflow": 20,  # Increased overflow capacity
-            "pool_recycle": 600,  # Recycle connections after 10 minutes (prevent stale connections)
-            "pool_timeout": 5,  # Shorter timeout for getting connection from pool
+            "pool_size": 15,  # INCREASED from 10
+            "max_overflow": 30,  # INCREASED from 20
+            "pool_recycle": 1800,  # CHANGED from 600 (30 minutes)
+            "pool_timeout": 10,  # INCREASED from 5
             "connect_args": {
-                "connect_timeout": 10,  # Connection timeout in seconds
+                "connect_timeout": 15,  # INCREASED from 10
             },
-            "isolation_level": "READ_COMMITTED",  # Prevent deadlocks
+            "isolation_level": "READ_COMMITTED",
         }
     )
 
@@ -534,8 +544,8 @@ def handle_400(e):
 
 
 # Database error handler - catch before general handler
+from sqlalchemy import or_, text
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import or_
 
 
 def handle_database_error_specifically(e):
@@ -672,7 +682,7 @@ app.register_blueprint(gdpr_bp)
 
 # Shopify compliance blueprints
 app.register_blueprint(shopify_webhooks_bp)
-app.register_blueprint(gdpr_endpoints_bp, name='gdpr_endpoints')
+app.register_blueprint(gdpr_endpoints_bp, name="gdpr_endpoints")
 app.register_blueprint(shopify_billing_bp)
 app.register_blueprint(shopify_metafields_bp)
 
@@ -3347,7 +3357,11 @@ def home():
             try:
                 has_shopify = (
                     ShopifyStore.query.filter(
-                        ShopifyStore.user_id == user_id, or_(ShopifyStore.is_active == True, ShopifyStore.is_active.is_(None))
+                        ShopifyStore.user_id == user_id,
+                        or_(
+                            ShopifyStore.is_active == True,
+                            ShopifyStore.is_active.is_(None),
+                        ),
                     ).first()
                     is not None
                 )
@@ -3359,7 +3373,11 @@ def home():
             try:
                 has_shopify = (
                     ShopifyStore.query.filter(
-                        ShopifyStore.shop_url == shop, or_(ShopifyStore.is_active == True, ShopifyStore.is_active.is_(None))
+                        ShopifyStore.shop_url == shop,
+                        or_(
+                            ShopifyStore.is_active == True,
+                            ShopifyStore.is_active.is_(None),
+                        ),
                     ).first()
                     is not None
                 )
@@ -3382,7 +3400,11 @@ def home():
             try:
                 store = (
                     ShopifyStore.query.filter(
-                        ShopifyStore.user_id == user_id, or_(ShopifyStore.is_active == True, ShopifyStore.is_active.is_(None))
+                        ShopifyStore.user_id == user_id,
+                        or_(
+                            ShopifyStore.is_active == True,
+                            ShopifyStore.is_active.is_(None),
+                        ),
                     )
                     .order_by(ShopifyStore.created_at.desc())
                     .first()
@@ -3397,7 +3419,11 @@ def home():
             try:
                 store = (
                     ShopifyStore.query.filter(
-                        ShopifyStore.shop_url == shop, or_(ShopifyStore.is_active == True, ShopifyStore.is_active.is_(None))
+                        ShopifyStore.shop_url == shop,
+                        or_(
+                            ShopifyStore.is_active == True,
+                            ShopifyStore.is_active.is_(None),
+                        ),
                     )
                     .order_by(ShopifyStore.created_at.desc())
                     .first()
@@ -3630,7 +3656,7 @@ def debug_routes():
 
 @app.route("/health")
 def health():
-    """Health check endpoint for monitoring"""
+    """Enhanced health check endpoint"""
     import sys
     from datetime import datetime
 
@@ -3638,6 +3664,21 @@ def health():
 
     checks = {}
     overall_status = "healthy"
+
+    # Database check with pool info
+    try:
+        db.session.execute(db.text("SELECT 1"))
+        pool = db.engine.pool
+        checks["database"] = {
+            "status": "connected",
+            "pool_size": pool.size(),
+            "checked_out": pool.checkedout(),
+            "overflow": pool.overflow(),
+            "invalid": pool.invalid(),
+        }
+    except Exception as e:
+        checks["database"] = {"error": str(e), "status": "disconnected"}
+        overall_status = "unhealthy"
 
     # Cache check
     try:
@@ -3650,29 +3691,8 @@ def health():
         }
     except Exception as e:
         checks["cache"] = {"error": str(e), "status": "error"}
-        overall_status = "unhealthy"
 
-    # Database check
-    try:
-        db.session.execute(db.text("SELECT 1"))
-        checks["database"] = {"status": "connected"}
-    except Exception as e:
-        checks["database"] = {"error": str(e), "status": "disconnected"}
-        overall_status = "unhealthy"
-
-    # Environment check
-    try:
-        import flask
-
-        checks["environment"] = {
-            "environment": os.getenv("ENVIRONMENT", "unknown"),
-            "flask_version": flask.__version__,
-            "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
-        }
-    except Exception as e:
-        checks["environment"] = {"error": str(e), "status": "error"}
-
-    # Memory check (optional - psutil might not be available)
+    # Memory check
     try:
         import psutil
 
@@ -3684,26 +3704,13 @@ def health():
             "status": "operational",
         }
     except ImportError:
-        checks["memory"] = {
-            "note": "psutil not available (optional)",
-            "status": "unknown",
-        }
-    except Exception as e:
-        checks["memory"] = {"error": str(e), "status": "error"}
-
-    # Determine overall database status for backward compatibility
-    database_status = (
-        "connected"
-        if checks.get("database", {}).get("status") == "connected"
-        else "disconnected"
-    )
+        checks["memory"] = {"note": "psutil not available", "status": "unknown"}
 
     return jsonify(
         {
             "status": overall_status,
             "service": "Employee Suite",
-            "version": "2.7",
-            "database": database_status,
+            "version": "2.8",
             "checks": checks,
             "timestamp": datetime.utcnow().isoformat(),
         }
@@ -3865,13 +3872,18 @@ def get_authenticated_user():
 
             # Find user from shop - CRITICAL: Protect against segfaults
             # DO NOT call db.session.remove() - let pool_pre_ping validate connections
+            from sqlalchemy.orm import joinedload
+
             from models import ShopifyStore, db
 
             store = None
             try:
-                store = ShopifyStore.query.filter_by(
-                    shop_url=shop_domain, is_active=True
-                ).first()
+                # OPTIMIZED: Single query with eager loading
+                store = (
+                    ShopifyStore.query.options(joinedload(ShopifyStore.user))
+                    .filter_by(shop_url=shop_domain, is_active=True)
+                    .first()
+                )
             except BaseException as db_error:
                 logger.error(
                     f"Database error in get_authenticated_user: {type(db_error).__name__}: {str(db_error)}",
@@ -4329,6 +4341,8 @@ def api_update_inventory():
 @verify_session_token
 def api_generate_report():
     """Generate revenue report with detailed crash logging"""
+    from models import ShopifyStore  # ADD THIS LINE
+
     # LOCAL DEV MODE: Return mock data for local testing
     is_local_dev = os.getenv("ENVIRONMENT", "").lower() != "production"
     shop_param = request.args.get("shop", "")
@@ -5061,291 +5075,68 @@ _db_initialized = False
 
 
 def ensure_db_initialized():
-    """Lazy database initialization - called on first request - BULLETPROOF VERSION"""
+    """Thread-safe database initialization"""
     global _db_initialized
-    # Always check and add missing columns, even if _db_initialized is True
-    # This handles cases where initialization partially failed
-    try:
-        init_db()
-        # EMERGENCY FIX: Add missing columns if they don't exist
-        # Use models.py migration function which is more robust
-        try:
-            from models import run_migrations
-            run_migrations(app)
-            logger.info("✅ Ran migrations from models.py")
-        except Exception as mig_err:
-            logger.warning(f"Migration from models.py failed, using emergency fix: {mig_err}")
-        
-        # Always run emergency column additions as backup (even if migrations succeeded)
-        # This ensures columns exist even if migration function has issues
-        from sqlalchemy import text
-        
-        # Add is_active column if missing
-        try:
-            db.session.execute(
-                text("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE")
-            )
-            logger.info("✅ Added missing is_active column")
-        except Exception as col_err:
-            if (
-                "already exists" in str(col_err).lower()
-                or "duplicate" in str(col_err).lower()
-            ):
-                logger.debug("Column is_active already exists on users table")
-            else:
-                logger.warning(f"Column add attempt: {col_err}")
+
+    with _init_lock:  # Prevent race conditions
+        if _db_initialized:
+            return
 
         try:
-            # Add email_verified column if missing
-            db.session.execute(
-                text(
-                    "ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT FALSE"
-                )
-            )
-            logger.info("✅ Added missing email_verified column")
-        except Exception as col_err:
-            if (
-                "already exists" in str(col_err).lower()
-                or "duplicate" in str(col_err).lower()
-            ):
-                logger.debug("Column email_verified already exists on users table")
-            else:
-                logger.warning(f"Column add attempt: {col_err}")
+            init_db()
 
-        try:
-            # Add last_login column if missing
-            db.session.execute(
-                text("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
-            )
-            logger.info("✅ Added missing last_login column")
-        except Exception as col_err:
-            if (
-                "already exists" in str(col_err).lower()
-                or "duplicate" in str(col_err).lower()
-            ):
-                logger.debug("Column last_login already exists on users table")
-            else:
-                logger.warning(f"Column add attempt: {col_err}")
+            # SAFE MIGRATIONS - No dynamic SQL
+            SAFE_USER_MIGRATIONS = [
+                "ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE",
+                "ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT FALSE",
+                "ALTER TABLE users ADD COLUMN last_login TIMESTAMP",
+                "ALTER TABLE users ADD COLUMN reset_token VARCHAR(100)",
+                "ALTER TABLE users ADD COLUMN reset_token_expires TIMESTAMP",
+            ]
 
-        try:
-            # Add reset_token column if missing
-            db.session.execute(
-                text("ALTER TABLE users ADD COLUMN reset_token VARCHAR(100)")
-            )
-            logger.info("✅ Added missing reset_token column")
-        except Exception as col_err:
-            if (
-                "already exists" in str(col_err).lower()
-                or "duplicate" in str(col_err).lower()
-            ):
-                logger.debug("Column reset_token already exists on users table")
-            else:
-                logger.warning(f"Column add attempt: {col_err}")
+            SAFE_STORE_MIGRATIONS = [
+                "ALTER TABLE shopify_stores ADD COLUMN shop_name VARCHAR(255)",
+                "ALTER TABLE shopify_stores ADD COLUMN shop_id BIGINT",
+                "ALTER TABLE shopify_stores ADD COLUMN charge_id VARCHAR(255)",
+                "ALTER TABLE shopify_stores ADD COLUMN uninstalled_at TIMESTAMP",
+                "ALTER TABLE shopify_stores ADD COLUMN shop_domain VARCHAR(255)",
+                "ALTER TABLE shopify_stores ADD COLUMN shop_email VARCHAR(255)",
+                "ALTER TABLE shopify_stores ADD COLUMN shop_timezone VARCHAR(255)",
+                "ALTER TABLE shopify_stores ADD COLUMN shop_currency VARCHAR(10)",
+                "ALTER TABLE shopify_stores ADD COLUMN billing_plan VARCHAR(50)",
+                "ALTER TABLE shopify_stores ADD COLUMN scopes_granted VARCHAR(500)",
+                "ALTER TABLE shopify_stores ADD COLUMN is_installed BOOLEAN DEFAULT TRUE",
+            ]
 
-        try:
-            # Add reset_token_expires column if missing
-            db.session.execute(
-                text("ALTER TABLE users ADD COLUMN reset_token_expires TIMESTAMP")
-            )
-            logger.info("✅ Added missing reset_token_expires column")
-        except Exception as col_err:
-            if (
-                "already exists" in str(col_err).lower()
-                or "duplicate" in str(col_err).lower()
-            ):
-                logger.debug("Column reset_token_expires already exists on users table")
-            else:
-                logger.warning(f"Column add attempt: {col_err}")
+            # Execute safe migrations
+            for migration in SAFE_USER_MIGRATIONS:
+                try:
+                    db.session.execute(text(migration))
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    if "already exists" not in str(e).lower():
+                        logger.warning(f"Migration failed: {e}")
 
-        # CRITICAL: Commit users table columns immediately so they're available for OAuth callbacks
-        try:
-            db.session.commit()
-            logger.info("✅ Users table columns committed")
-        except Exception as commit_err:
-            logger.warning(f"Commit attempt failed: {commit_err}")
+            for migration in SAFE_STORE_MIGRATIONS:
+                try:
+                    db.session.execute(text(migration))
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    if "already exists" not in str(e).lower():
+                        logger.warning(f"Migration failed: {e}")
+
+            _db_initialized = True
+            logger.info("✅ Database initialized successfully with safe migrations")
+
+        except Exception as e:
+            logger.error(f"Database initialization failed: {e}", exc_info=True)
             try:
                 db.session.rollback()
             except Exception:
                 pass
-
-        # Add missing shopify_stores columns
-        try:
-            db.session.execute(
-                text("ALTER TABLE shopify_stores ADD COLUMN shop_name VARCHAR(255)")
-            )
-            logger.info("✅ Added missing shop_name column to shopify_stores")
-        except Exception as col_err:
-            if (
-                "already exists" in str(col_err).lower()
-                or "duplicate" in str(col_err).lower()
-            ):
-                logger.debug("Column shop_name already exists on shopify_stores table")
-            else:
-                logger.warning(f"Column add attempt: {col_err}")
-
-        try:
-            db.session.execute(
-                text("ALTER TABLE shopify_stores ADD COLUMN shop_id BIGINT")
-            )
-            logger.info("✅ Added missing shop_id column to shopify_stores")
-        except Exception as col_err:
-            if (
-                "already exists" in str(col_err).lower()
-                or "duplicate" in str(col_err).lower()
-            ):
-                logger.debug("Column shop_id already exists on shopify_stores table")
-            else:
-                logger.warning(f"Column add attempt: {col_err}")
-
-        try:
-            db.session.execute(
-                text("ALTER TABLE shopify_stores ADD COLUMN charge_id VARCHAR(255)")
-            )
-            logger.info("✅ Added missing charge_id column to shopify_stores")
-        except Exception as col_err:
-            if (
-                "already exists" in str(col_err).lower()
-                or "duplicate" in str(col_err).lower()
-            ):
-                logger.debug("Column charge_id already exists on shopify_stores table")
-            else:
-                logger.warning(f"Column add attempt: {col_err}")
-
-        try:
-            db.session.execute(
-                text("ALTER TABLE shopify_stores ADD COLUMN uninstalled_at TIMESTAMP")
-            )
-            logger.info("✅ Added missing uninstalled_at column to shopify_stores")
-        except Exception as col_err:
-            if (
-                "already exists" in str(col_err).lower()
-                or "duplicate" in str(col_err).lower()
-            ):
-                logger.debug("Column uninstalled_at already exists on shopify_stores table")
-            else:
-                logger.warning(f"Column add attempt: {col_err}")
-
-        try:
-            db.session.execute(
-                text("ALTER TABLE shopify_stores ADD COLUMN shop_domain VARCHAR(255)")
-            )
-            logger.info("✅ Added missing shop_domain column to shopify_stores")
-        except Exception as col_err:
-            if (
-                "already exists" in str(col_err).lower()
-                or "duplicate" in str(col_err).lower()
-            ):
-                logger.debug("Column shop_domain already exists on shopify_stores table")
-            else:
-                logger.warning(f"Column add attempt: {col_err}")
-
-        try:
-            db.session.execute(
-                text("ALTER TABLE shopify_stores ADD COLUMN shop_email VARCHAR(255)")
-            )
-            logger.info("✅ Added missing shop_email column to shopify_stores")
-        except Exception as col_err:
-            if (
-                "already exists" in str(col_err).lower()
-                or "duplicate" in str(col_err).lower()
-            ):
-                logger.debug("Column shop_email already exists on shopify_stores table")
-            else:
-                logger.warning(f"Column add attempt: {col_err}")
-
-        try:
-            db.session.execute(
-                text("ALTER TABLE shopify_stores ADD COLUMN shop_timezone VARCHAR(255)")
-            )
-            logger.info("✅ Added missing shop_timezone column to shopify_stores")
-        except Exception as col_err:
-            if (
-                "already exists" in str(col_err).lower()
-                or "duplicate" in str(col_err).lower()
-            ):
-                logger.debug("Column shop_timezone already exists on shopify_stores table")
-            else:
-                logger.warning(f"Column add attempt: {col_err}")
-
-        try:
-            db.session.execute(
-                text("ALTER TABLE shopify_stores ADD COLUMN shop_currency VARCHAR(10)")
-            )
-            logger.info("✅ Added missing shop_currency column to shopify_stores")
-        except Exception as col_err:
-            if (
-                "already exists" in str(col_err).lower()
-                or "duplicate" in str(col_err).lower()
-            ):
-                logger.debug("Column shop_currency already exists on shopify_stores table")
-            else:
-                logger.warning(f"Column add attempt: {col_err}")
-
-        try:
-            db.session.execute(
-                text("ALTER TABLE shopify_stores ADD COLUMN billing_plan VARCHAR(50)")
-            )
-            logger.info("✅ Added missing billing_plan column to shopify_stores")
-        except Exception as col_err:
-            if (
-                "already exists" in str(col_err).lower()
-                or "duplicate" in str(col_err).lower()
-            ):
-                logger.debug("Column billing_plan already exists on shopify_stores table")
-            else:
-                logger.warning(f"Column add attempt: {col_err}")
-
-        try:
-            db.session.execute(
-                text("ALTER TABLE shopify_stores ADD COLUMN scopes_granted VARCHAR(500)")
-            )
-            logger.info("✅ Added missing scopes_granted column to shopify_stores")
-        except Exception as col_err:
-            if (
-                "already exists" in str(col_err).lower()
-                or "duplicate" in str(col_err).lower()
-            ):
-                logger.debug("Column scopes_granted already exists on shopify_stores table")
-            else:
-                logger.warning(f"Column add attempt: {col_err}")
-
-        try:
-            db.session.execute(
-                text("ALTER TABLE shopify_stores ADD COLUMN is_installed BOOLEAN DEFAULT TRUE")
-            )
-            logger.info("✅ Added missing is_installed column to shopify_stores")
-        except Exception as col_err:
-            if (
-                "already exists" in str(col_err).lower()
-                or "duplicate" in str(col_err).lower()
-            ):
-                logger.debug("Column is_installed already exists on shopify_stores table")
-            else:
-                logger.warning(f"Column add attempt: {col_err}")
-
-        # Final commit for all shopify_stores columns
-        try:
-            db.session.commit()
-            logger.info("✅ All database columns committed successfully")
-        except Exception as final_commit_err:
-            logger.warning(f"Final commit failed: {final_commit_err}")
-            try:
-                db.session.rollback()
-            except Exception:
-                pass
-        
-        _db_initialized = True
-        logger.info("✅ Database initialized successfully with emergency fixes")
-    except Exception as e:
-        logger.error(f"Database initialization failed: {e}", exc_info=True)
-        # Don't set _db_initialized = True if initialization failed
-        # This allows retry on next request
-        try:
-            db.session.rollback()
-        except Exception:
-            pass
-        # Re-raise to allow caller to handle
-        raise
+            raise
 
 
 try:
@@ -5359,6 +5150,29 @@ try:
     )
 except Exception as e:
     logger.error(f"Failed to log startup info: {e}")
+
+
+def create_standard_error_response(
+    error_message, error_code=None, status_code=500, action=None, action_url=None
+):
+    """Create standardized error response"""
+    from datetime import datetime
+
+    response = {
+        "success": False,
+        "error": error_message,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+    if error_code:
+        response["error_code"] = error_code
+    if action:
+        response["action"] = action
+    if action_url:
+        response["action_url"] = action_url
+
+    return jsonify(response), status_code
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))

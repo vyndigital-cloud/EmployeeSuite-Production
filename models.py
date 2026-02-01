@@ -239,24 +239,9 @@ class ShopifyStore(db.Model, TimestampMixin):
     @validates("shop_url")
     def validate_shop_url(self, key: str, shop_url: str) -> str:
         """Validate and normalize shop URL"""
-        if not shop_url:
-            raise ValueError("Shop URL is required")
+        from utils import normalize_shop_url
 
-        # Normalize the shop URL
-        shop_url = shop_url.lower().strip()
-
-        # Remove protocol if present
-        if shop_url.startswith("http://") or shop_url.startswith("https://"):
-            shop_url = shop_url.split("://", 1)[1]
-
-        # Ensure it ends with .myshopify.com
-        if not shop_url.endswith(".myshopify.com"):
-            if "." not in shop_url:
-                shop_url = f"{shop_url}.myshopify.com"
-            else:
-                raise ValueError("Shop URL must be a valid .myshopify.com domain")
-
-        return shop_url
+        return normalize_shop_url(shop_url)
 
     @validates("access_token")
     def validate_access_token(self, key: str, token: str) -> str:

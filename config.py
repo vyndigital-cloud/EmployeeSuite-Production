@@ -247,6 +247,29 @@ def get_config() -> Config:
 # Create global config instance
 config = get_config()
 
+
+def validate_required_env_vars():
+    """Validate critical environment variables on startup"""
+    if os.getenv("ENVIRONMENT") == "production":
+        required = [
+            "SECRET_KEY",
+            "DATABASE_URL",
+            "SHOPIFY_API_KEY",
+            "SHOPIFY_API_SECRET",
+        ]
+        missing = [var for var in required if not os.getenv(var)]
+        if missing:
+            raise ValueError(f"Missing required production variables: {missing}")
+
+    # Validate SECRET_KEY length
+    secret_key = os.getenv("SECRET_KEY", "")
+    if secret_key and len(secret_key) < 32:
+        raise ValueError("SECRET_KEY must be at least 32 characters long")
+
+
+# Call validation immediately
+validate_required_env_vars()
+
 # Backward compatibility exports
 DEBUG_MODE = config.DEBUG
 ENCRYPTION_KEY = config.ENCRYPTION_KEY
