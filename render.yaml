@@ -1,12 +1,22 @@
 services:
   - type: web
-    name: employeesuite
+    name: employeesuite-production
     env: python
-    region: oregon
-    plan: starter
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --worker-class=sync --workers=1 --timeout=120 main:app
+    startCommand: gunicorn --worker-class=sync --workers=4 --timeout=600 --max-requests=1000 --max-requests-jitter=100 main:app
+    plan: pro # Upgrade to Pro plan for auto-scaling
+    scaling:
+      minInstances: 2
+      maxInstances: 10
+      targetCPUPercent: 70
+      targetMemoryPercent: 80
     envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: employeesuite-redis
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: SHOPIFY_API_KEY
@@ -16,7 +26,7 @@ services:
       - key: SHOPIFY_APP_URL
         fromService:
           type: web
-          name: employeesuite
+          name: employeesuite-production
           property: url
       - key: SCOPES
         value: read_orders,read_products,read_inventory
@@ -24,8 +34,6 @@ services:
         generateValue: true
       - key: ENCRYPTION_KEY
         generateValue: true
-      - key: ENVIRONMENT
-        value: production
       - key: FLASK_ENV
         value: production
       - key: DATABASE_URL
@@ -33,6 +41,11 @@ services:
           name: employeesuite-db
           property: connectionString
     autoDeploy: true
+
+  - type: redis
+    name: employeesuite-redis
+    plan: pro
+    maxmemoryPolicy: allkeys-lru
 
 databases:
   - name: employeesuite-db

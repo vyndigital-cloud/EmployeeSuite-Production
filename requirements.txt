@@ -38,3 +38,7 @@ Flask-Limiter==3.5.0
 sentry-sdk[flask]==2.19.0
 boto3==1.35.0
 WTForms==3.1.1
+redis==4.5.4
+celery==5.2.7
+flower==1.2.0
+newrelic==8.7.0

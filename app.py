@@ -100,8 +100,17 @@ from analytics import analytics_bp
 from auth import auth_bp
 from billing import billing_bp
 
+# Enterprise imports for 100k+ user scaling
+from database_optimization import create_enterprise_engine, create_enterprise_indexes
+
 # Enhanced features
 from enhanced_features import enhanced_bp
+from enterprise_monitoring import monitor_performance, monitoring
+from enterprise_security import (
+    enterprise_rate_limit,
+    require_signature,
+    security_manager,
+)
 from faq_routes import faq_bp
 from features_pages import features_pages_bp
 from gdpr_compliance import gdpr_bp
@@ -115,6 +124,7 @@ from models import ShopifyStore, User, db
 from order_processing import process_orders
 from performance import compress_response
 from rate_limiter import init_limiter
+from redis_cache import cache, cached
 from reporting import generate_report
 from security_enhancements import (
     MAX_REQUEST_SIZE,
@@ -334,6 +344,18 @@ if app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgresql://"):
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = engine_options
 
 db.init_app(app)
+
+# Replace existing engine creation with enterprise version
+if os.getenv("ENTERPRISE_MODE") == "true":
+    from database_optimization import create_enterprise_engine
+
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {}  # Clear existing options
+    db.init_app(app)
+
+    # Override with enterprise engine
+    with app.app_context():
+        db.engine = create_enterprise_engine()
+        create_enterprise_indexes(db)
 
 # ============================================================================
 # COMPREHENSIVE ERROR LOGGING SYSTEM - Capture EVERY error crumb
@@ -646,6 +668,45 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "auth.login"
+
+
+@app.before_request
+def enterprise_middleware():
+    """Enterprise-grade request middleware"""
+    import time
+
+    from flask import g
+
+    g.request_start_time = time.time()
+
+    # Security checks
+    if request.endpoint and request.endpoint.startswith("api_"):
+        # Apply enterprise rate limiting
+        if not security_manager.check_rate_limit(
+            request.remote_addr,
+            limit=10000,  # 10k requests per hour per IP
+            window=3600,
+        ):
+            return jsonify({"error": "Rate limit exceeded"}), 429
+
+
+@app.after_request
+def enterprise_after_request(response):
+    """Enterprise-grade response middleware"""
+    import time
+
+    from flask import g
+
+    if hasattr(g, "request_start_time"):
+        duration = time.time() - g.request_start_time
+        monitoring.track_request(
+            request.endpoint or "unknown",
+            duration,
+            response.status_code,
+            getattr(g, "current_user_id", None),
+        )
+
+    return response
 
 
 @login_manager.user_loader
