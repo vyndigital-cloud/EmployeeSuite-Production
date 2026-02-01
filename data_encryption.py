@@ -26,9 +26,20 @@ class EncryptionManager:
     """Manages encryption and decryption operations"""
 
     def __init__(self, encryption_key: Optional[str] = None):
-        """Initialize encryption manager with key validation"""
-        self.encryption_key = encryption_key or os.getenv("ENCRYPTION_KEY")
-        self._cipher: Optional[Fernet] = None
+        """Initialize encryption manager with environment key priority"""
+        # Priority: 1. Passed key, 2. Environment variable, 3. None
+        self.encryption_key = (
+            encryption_key
+            or os.getenv("ENCRYPTION_KEY")
+            or os.getenv("SECRET_KEY")  # Fallback to SECRET_KEY
+        )
+
+        if self.encryption_key:
+            logger.info("Encryption manager initialized with key")
+        else:
+            logger.warning("No encryption key available - encryption disabled")
+
+        self._cipher = None
         self._validate_setup()
 
     def _validate_setup(self) -> None:
@@ -123,42 +134,28 @@ class EncryptionManager:
             return None
 
     def decrypt(self, encrypted_data: str) -> Optional[str]:
-        """
-        Decrypt base64-encoded encrypted data
-
-        Args:
-            encrypted_data: Base64-encoded encrypted data
-
-        Returns:
-            Decrypted string, or None if decryption failed
-        """
-        if not encrypted_data:
-            return None
-
-        cipher = self._get_cipher()
-        if cipher is None:
-            logger.debug("Encryption not available for decryption")
-            return None
+        """Decrypt data with graceful failure handling"""
+        if not encrypted_data or not self.is_encryption_available():
+            return encrypted_data  # Return as-is if no encryption
 
         try:
-            # Decode from base64
+            # Check if data is actually encrypted
+            if not self.is_encrypted(encrypted_data):
+                return encrypted_data  # Return plain text as-is
+
+            cipher = self._get_cipher()
+            if not cipher:
+                logger.warning("Cipher not available for decryption")
+                return None  # Graceful failure
+
+            # Decode from base64 and decrypt
             encrypted_bytes = base64.urlsafe_b64decode(encrypted_data.encode("ascii"))
-
-            # Decrypt the data
             decrypted_bytes = cipher.decrypt(encrypted_bytes)
+            return decrypted_bytes.decode("utf-8")
 
-            # Convert back to string
-            result = decrypted_bytes.decode("utf-8")
-
-            logger.debug(f"Successfully decrypted data (length: {len(result)})")
-            return result
-
-        except InvalidToken:
-            logger.error("Decryption failed - invalid token or corrupted data")
-            return None
         except Exception as e:
-            logger.error(f"Decryption failed: {e}")
-            return None
+            logger.warning(f"Decryption failed - invalid token: {e}")
+            return None  # GRACEFUL FAILURE - don't crash
 
     def is_encrypted(self, data: str) -> bool:
         """

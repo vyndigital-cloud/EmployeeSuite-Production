@@ -309,35 +309,34 @@ class ShopifyStore(db.Model, TimestampMixin):
         )
 
     def get_access_token(self) -> Optional[str]:
-        """Get decrypted access token"""
+        """Get decrypted access token with graceful failure handling"""
         if not self.access_token:
             return None
 
-        # Check if token is encrypted
-        if self.access_token.startswith("shpat_") or self.access_token.startswith(
-            "shpca_"
-        ):
-            # Token is plaintext
-            return self.access_token
-
-        # Try to decrypt
         try:
             from data_encryption import decrypt_access_token
 
             decrypted = decrypt_access_token(self.access_token)
 
-            if decrypted and (
-                decrypted.startswith("shpat_") or decrypted.startswith("shpca_")
-            ):
-                return decrypted
-            else:
+            if decrypted is None:
+                # Decryption failed - token is invalid/corrupted
                 logger.warning(
-                    f"Decrypted token doesn't match expected format for store {self.id}"
+                    f"Access token decryption failed for store {self.shop_url}"
                 )
+                # Mark store as needing reconnection
+                self.is_active = False
+                try:
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
                 return None
 
+            return decrypted
+
         except Exception as e:
-            logger.error(f"Error decrypting access token for store {self.id}: {e}")
+            logger.error(
+                f"Access token retrieval failed for store {self.shop_url}: {e}"
+            )
             return None
 
     def set_access_token(self, token: str) -> None:
