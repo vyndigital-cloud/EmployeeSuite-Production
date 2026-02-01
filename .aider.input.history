@@ -964,3 +964,92 @@
 +MAX_CONCURRENT_USERS=100000
 +DATABASE_POOL_SIZE=50
 +CACHE_TTL=3600
+
+# 2026-02-02 03:50:33.948873
++now strip away everything needed (give instructions etc), to have this fully free, and ready for 100 clients
+
+# 2026-02-02 03:55:48.294725
++
++    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
++                                                  ^^^^^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
++    return self._execute_internal(
++           ^^^^^^^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
++    result: Result[Any] = compile_state_cls.orm_execute_statement(
++                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
++    result = conn.execute(
++             ^^^^^^^^^^^^^
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
++    return meth(
++           ^^^^^
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
++    return connection._execute_clauseelement(
++           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
++    ret = self._execute_context(
++          ^^^^^^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
++    return self._exec_single_context(
++           ^^^^^^^^^^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
++    self._handle_dbapi_exception(
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
++    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
++    self.dialect.do_execute(
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
++    cursor.execute(statement, parameters)
++sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedColumn) column users.updated_at does not exist
++LINE 1: ...last_login, users.created_at AS users_created_at, users.upda...
++                                                             ^
++HINT:  Perhaps you meant to reference the column "users.created_at".
++[SQL: SELECT users.id AS users_id, users.email AS users_email, users.password_hash AS users_password_hash, users.trial_ends_at AS users_trial_ends_at, users.is_subscribed AS users_is_subscribed, users.stripe_customer_id AS users_stripe_customer_id, users.reset_token AS users_reset_token, users.reset_token_expires AS users_reset_token_expires, users.is_active AS users_is_active, users.email_verified AS users_email_verified, users.last_login AS users_last_login, users.created_at AS users_created_at, users.updated_at AS users_updated_at 
++FROM users 
++WHERE users.email = %(email_1)s 
++ LIMIT %(param_1)s]
++[parameters: {'email_1': 'employee-suite.myshopify.com@shopify.com', 'param_1': 1}]
++(Background on this error at: https://sqlalche.me/e/20/f405)
++2026-02-01 19:53:47,624 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/auth/callback, shop=employee-suite.myshopify.com, host=True, domains=6
++2026-02-01 19:53:47,640 - app - ERROR - Exception on /auth/callback [GET]
++Traceback (most recent call last):
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/flask/app.py", line 1455, in wsgi_app
++    response = self.full_dispatch_request()
++               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/flask/app.py", line 870, in full_dispatch_request
++    return self.finalize_request(rv)
++           ^^^^^^^^^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/flask/app.py", line 891, in finalize_request
++    response = self.process_response(response)
++               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/flask/app.py", line 1267, in process_response
++    response = self.ensure_sync(func)(response)
++               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/app.py", line 650, in log_response
++    log_comprehensive_error(
++TypeError: log_comprehensive_error() missing 1 required positional argument: 'exc_info'
++2026-02-01 19:53:47,907 - security_enhancements - ERROR - Security event: 500_error - Path: /auth/callback, Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
++2026-02-01 19:53:47,911 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/auth/callback, shop=employee-suite.myshopify.com, host=True, domains=6
++2026-02-01 19:53:47,913 - app - ERROR - Request finalizing failed with an error while handling an error
+
+# 2026-02-02 03:55:53.113616
++y
+
+# 2026-02-02 03:57:03.595305
++"Hey Claude, I'm getting two critical errors in my logs.
++
++SQLAlchemy Error: The users table is missing the updated_at column, but the model is trying to query it. Please check models.py and tell me if I should add the column or if we need to trigger a migration to sync the DB.
++
++Logging Error: In app.py at line 650, log_comprehensive_error is failing because it's missing the exc_info argument. Please fix the function call in log_response so it handles exceptions correctly without crashing.
+
+# 2026-02-02 03:57:51.186185
++/drop
+
+# 2026-02-02 03:58:05.169134
++SQLAlchemy Error: The users table is missing the updated_at column, but the model is trying to query it. Please check models.py and tell me if I should add the column or if we need to trigger a migration to sync the DB.
++
++Logging Error: In app.py at line 650, log_comprehensive_error is failing because it's missing the exc_info argument. Please fix the function call in log_response so it handles exceptions correctly without crashing.
+
+# 2026-02-02 03:58:08.147092
++n
