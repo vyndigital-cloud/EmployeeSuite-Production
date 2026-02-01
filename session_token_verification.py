@@ -21,7 +21,12 @@ if SHOPIFY_API_KEY and len(SHOPIFY_API_KEY) > 2:
     ) or (
         SHOPIFY_API_KEY.startswith("'") and SHOPIFY_API_KEY.endswith("'")
     ):
-        SHOPIFY_API_KEY = SHOPIFY_API_KEY[1:-1].strip()
+        # Create a normalized version but keep original for comparison
+        SHOPIFY_API_KEY_NORMALIZED = SHOPIFY_API_KEY[1:-1].strip()
+    else:
+        SHOPIFY_API_KEY_NORMALIZED = SHOPIFY_API_KEY
+else:
+    SHOPIFY_API_KEY_NORMALIZED = SHOPIFY_API_KEY
 
 
 def validate_shopify_config():
@@ -128,10 +133,17 @@ def verify_session_token(f):
                     logger.warning("JWT token missing audience field")
                     return jsonify({"error": "Invalid token - missing audience"}), 401
 
-                if aud != current_api_key:
+                # ENHANCED: Log both values for debugging
+                logger.debug(f"JWT audience validation:")
+                logger.debug(f"  Received audience: {aud}")
+                logger.debug(f"  Expected API key: {current_api_key}")
+
+                if aud != current_api_key and aud != SHOPIFY_API_KEY_NORMALIZED:
                     logger.warning(f"JWT audience mismatch:")
                     logger.warning(f"  Received: {aud}")
                     logger.warning(f"  Expected: {current_api_key}")
+                    logger.warning(f"  Also tried: {SHOPIFY_API_KEY_NORMALIZED}")
+                    logger.warning(f"  Lengths: received={len(aud)}, expected={len(current_api_key)}")
                     return jsonify({"error": "Invalid token audience (API Key mismatch)"}), 401
 
                 # Verify destination (should match shop domain)
