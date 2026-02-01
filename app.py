@@ -139,6 +139,47 @@ from webhook_stripe import webhook_bp
 _init_lock = threading.Lock()
 _db_initialized = False
 
+
+def cleanup_memory():
+    """Clean up memory to prevent leaks"""
+    try:
+        from performance import clear_cache
+
+        clear_cache()
+
+        import gc
+
+        gc.collect()
+
+        logger.debug("Memory cleanup completed")
+    except Exception as e:
+        logger.warning(f"Memory cleanup failed: {e}")
+
+
+def validate_shop_parameter(shop):
+    """Validate shop parameter to prevent injection attacks"""
+    if not shop:
+        return None
+
+    # Remove any suspicious characters
+    import re
+
+    shop = re.sub(r"[^a-zA-Z0-9\-\.]", "", shop)
+
+    # Must end with .myshopify.com
+    if not shop.endswith(".myshopify.com"):
+        if "." not in shop:
+            shop = f"{shop}.myshopify.com"
+        else:
+            raise ValueError("Invalid shop format")
+
+    # Length check
+    if len(shop) > 100:
+        raise ValueError("Shop name too long")
+
+    return shop.lower()
+
+
 # Initialize Sentry for error monitoring (if DSN is provided)
 sentry_dsn = os.getenv("SENTRY_DSN")
 if sentry_dsn:
@@ -752,37 +793,24 @@ def optimize_response(response):
 # This prevents connection pool exhaustion and segfaults (code 139)
 @app.teardown_appcontext
 def close_db(error):
-    """Close database session after each request - prevents connection leaks and segfaults"""
-    # CRITICAL: Wrap ALL operations in try/except - this runs AFTER response is sent
-    # Any crashes here cause segfaults (code 139) because response is already sent
-    from models import db
-
+    """Close database session and cleanup memory"""
     try:
-        # CRITICAL: Check if session exists and is bound before removing
-        # This prevents segfaults from trying to remove a corrupted session
-        try:
-            # Check if session is bound (has a connection)
-            if db.session.is_active:
-                # Only remove if session is active - prevents segfaults from corrupted connections
-                db.session.remove()
-        except (AttributeError, RuntimeError, Exception) as e:
-            # Non-critical - session might already be removed or connection is corrupted
-            # Silently ignore to prevent segfaults
-            pass
+        from models import db
 
-        # CRITICAL: Disable garbage collection in teardown - it can cause segfaults
-        # Let Python's automatic GC handle it instead
-        # if error:
-        #     import gc
-        #     gc.collect()  # DISABLED - causes segfaults after response
-    except BaseException as e:
-        # Catch ALL exceptions including segfault precursors (SystemExit, KeyboardInterrupt, etc.)
-        # CRITICAL: Never let teardown crash - response already sent
-        # Silently ignore all errors to prevent segfaults
-        logger.debug(f"Teardown error handled (non-critical): {type(e).__name__}")
-    # CRITICAL: Do NOT access request or response here
-    # This function is called during app context teardown, which can happen outside requests
-    # Request/response handling should be done in after_request handler instead
+        if db.session.is_active:
+            db.session.remove()
+
+        # Periodic memory cleanup
+        if hasattr(close_db, "_cleanup_counter"):
+            close_db._cleanup_counter += 1
+        else:
+            close_db._cleanup_counter = 1
+
+        if close_db._cleanup_counter % 100 == 0:  # Every 100 requests
+            cleanup_memory()
+
+    except Exception as e:
+        logger.debug(f"Teardown error handled: {type(e).__name__}")
 
 
 # Request validation before processing (optimized - fast checks only)
@@ -3778,10 +3806,9 @@ def api_docs():
 
 
 def get_authenticated_user():
-    """
-    Get authenticated user from either Flask-Login or Shopify session token.
-    Returns (user, error_response) tuple. If user is None, error_response contains the error.
-    """
+    """Get authenticated user with optimized queries"""
+    from sqlalchemy.orm import joinedload
+
     # Try Flask-Login first (for standalone access)
     if current_user.is_authenticated:
         logger.debug(f"User authenticated via Flask-Login: {current_user.id}")
@@ -3884,6 +3911,25 @@ def get_authenticated_user():
                     .filter_by(shop_url=shop_domain, is_active=True)
                     .first()
                 )
+
+                if store and store.user:
+                    logger.info(
+                        f"✅ Session token verified - user {store.user.id} from shop {shop_domain}"
+                    )
+                    return store.user, None
+                else:
+                    logger.warning(f"❌ No store found for shop: {shop_domain}")
+                    return None, (
+                        jsonify(
+                            {
+                                "error": "Your store is not connected. Please install the app from your Shopify admin.",
+                                "success": False,
+                                "action": "install",
+                                "message": "To get started, install Employee Suite from your Shopify admin panel.",
+                            }
+                        ),
+                        404,
+                    )
             except BaseException as db_error:
                 logger.error(
                     f"Database error in get_authenticated_user: {type(db_error).__name__}: {str(db_error)}",
@@ -5172,6 +5218,133 @@ def create_standard_error_response(
         response["action_url"] = action_url
 
     return jsonify(response), status_code
+
+
+def log_comprehensive_error(
+    error_type, error_message, error_location, error_data, exc_info
+):
+    """Log comprehensive error information"""
+    logger.error(f"COMPREHENSIVE ERROR: {error_type} - {error_message}")
+    logger.error(f"Location: {error_location}")
+    logger.error(f"Context: {error_data}")
+    if exc_info:
+        logger.error("Stack trace:", exc_info=exc_info)
+
+
+@app.errorhandler(Exception)
+def handle_all_exceptions(e):
+    """Enhanced exception handler with full context"""
+    import sys
+    import traceback
+    from datetime import datetime
+
+    error_type = type(e).__name__
+    error_message = str(e)
+    error_location = f"{request.endpoint or 'unknown'}:{request.method}"
+
+    # Enhanced context collection
+    def get_request_context():
+        context = {
+            "url": request.url,
+            "method": request.method,
+            "endpoint": request.endpoint,
+            "args": dict(request.args),
+            "remote_addr": request.remote_addr,
+            "user_agent": request.headers.get("User-Agent"),
+            "referer": request.headers.get("Referer"),
+            "content_type": request.headers.get("Content-Type"),
+            "content_length": request.content_length,
+        }
+
+        # Add user context if available
+        try:
+            if current_user.is_authenticated:
+                context["user_id"] = current_user.id
+                context["user_email"] = getattr(current_user, "email", "unknown")
+        except Exception:
+            pass
+
+        # Add shop context if available
+        shop = request.args.get("shop")
+        if shop:
+            context["shop"] = shop
+
+        return context
+
+    error_data = get_request_context()
+
+    # Log with full stack trace
+    exc_info = sys.exc_info()
+    log_comprehensive_error(
+        error_type, error_message, error_location, error_data, exc_info
+    )
+
+    # Return appropriate response
+    if request.path.startswith("/api/"):
+        return jsonify(
+            {
+                "success": False,
+                "error": error_message,
+                "error_type": error_type,
+                "location": error_location,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        ), 500
+    else:
+        return (
+            f"<h1>Error: {error_message}</h1><pre>{traceback.format_exc()}</pre>",
+            500,
+        )
+
+
+def cleanup_cache_memory():
+    """Prevent memory leaks by cleaning old cache entries"""
+    try:
+        from performance import (
+            MAX_CACHE_ENTRIES,
+            _cache,
+            _cache_access_times,
+            _cache_timestamps,
+        )
+
+        if len(_cache) > MAX_CACHE_ENTRIES:
+            # Remove 25% of oldest entries
+            remove_count = len(_cache) // 4
+            oldest_keys = sorted(_cache_timestamps.items(), key=lambda x: x[1])[
+                :remove_count
+            ]
+
+            for key, _ in oldest_keys:
+                _cache.pop(key, None)
+                _cache_timestamps.pop(key, None)
+                _cache_access_times.pop(key, None)
+
+            logger.info(f"Cache cleanup: removed {remove_count} entries")
+    except ImportError:
+        pass
+
+
+def get_user_id_for_rate_limit():
+    """Get user ID for rate limiting, fallback to IP"""
+    try:
+        if current_user.is_authenticated:
+            return f"user:{current_user.id}"
+    except Exception:
+        pass
+
+    # Try session token
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        try:
+            shop = get_shop_from_session_token()
+            if shop:
+                return f"shop:{shop}"
+        except Exception:
+            pass
+
+    from flask_limiter.util import get_remote_address
+
+    return get_remote_address()
 
 
 if __name__ == "__main__":

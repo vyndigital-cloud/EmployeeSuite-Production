@@ -14,6 +14,7 @@
         />
         <script src="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/polaris.min.js"></script>
         <script>
+            // Enhanced App Bridge initialization with error handling
             (function () {
                 var urlParams = new URLSearchParams(window.location.search);
                 var host = urlParams.get("host");
@@ -24,13 +25,6 @@
                 window.appBridgeReadyPromise = new Promise(function (resolve) {
                     window.appBridgeReadyResolve = resolve;
                 });
-                window.waitForAppBridge = function () {
-                    return window.appBridgeReadyPromise;
-                };
-
-                if (window.isEmbedded && document.body) {
-                    document.body.classList.add("embedded");
-                }
 
                 if (!host) {
                     window.shopifyApp = null;
@@ -45,8 +39,13 @@
                     return;
                 }
 
-                // App Bridge v4: exposes window.shopify automatically
+                // App Bridge v4 with timeout and error handling
+                var initAttempts = 0;
+                var maxAttempts = 50; // 5 seconds max
+
                 function init() {
+                    initAttempts++;
+
                     if (window.shopify) {
                         window.shopifyApp = window.shopify;
                         window.appBridgeReady = true;
@@ -59,7 +58,23 @@
                         }
                         return;
                     }
-                    setTimeout(init, 50);
+
+                    if (initAttempts >= maxAttempts) {
+                        console.warn(
+                            "App Bridge initialization timeout - falling back to cookie auth",
+                        );
+                        window.appBridgeReady = true;
+                        if (window.appBridgeReadyResolve) {
+                            window.appBridgeReadyResolve({
+                                ready: false,
+                                embedded: true,
+                                app: null,
+                            });
+                        }
+                        return;
+                    }
+
+                    setTimeout(init, 100);
                 }
                 init();
             })();

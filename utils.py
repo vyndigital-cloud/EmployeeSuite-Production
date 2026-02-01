@@ -1,6 +1,11 @@
 from typing import Optional
 
-from flask import redirect
+try:
+    from flask import redirect
+except ImportError:
+    # Handle case where Flask is not available during static analysis
+    def redirect(url):
+        return url
 
 
 def normalize_shop_url(shop_url: Optional[str]) -> Optional[str]:
