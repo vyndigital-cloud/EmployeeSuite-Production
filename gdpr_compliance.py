@@ -10,7 +10,7 @@ import os
 from models import db, User, ShopifyStore
 from logging_config import logger
 
-gdpr_bp = Blueprint('gdpr', __name__)
+gdpr_bp = Blueprint('gdpr_compliance', __name__)
 
 SHOPIFY_API_SECRET = os.getenv('SHOPIFY_API_SECRET')
 

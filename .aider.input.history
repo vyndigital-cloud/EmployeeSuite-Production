@@ -181,3 +181,49 @@
 
 # 2026-02-02 01:48:06.933961
 +implemet all these changes fam
+
+# 2026-02-02 01:53:42.491578
++35 +0000] [55] [INFO] Starting gunicorn 21.2.0
++[2026-02-01 17:52:35 +0000] [55] [INFO] Listening at: http://0.0.0.0:10000 (55)
++[2026-02-01 17:52:35 +0000] [55] [INFO] Using worker: sync
++[2026-02-01 17:52:35 +0000] [57] [INFO] Booting worker with pid: 57
++2026-02-01 17:52:35,813 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-01 17:52:35,813 - missioncontrol.config - INFO - Enhanced models imported successfully
++2026-02-01 17:52:39,595 - missioncontrol.config - INFO - Checking for reset_token columns...
++2026-02-01 17:52:40,282 - missioncontrol.config - INFO - ✅ reset_token columns already exist
++2026-02-01 17:52:41,178 - missioncontrol.config - INFO - ✅ shop_id column already exists
++2026-02-01 17:52:41,349 - missioncontrol.config - INFO - ✅ charge_id column already exists
++2026-02-01 17:52:41,520 - missioncontrol.config - INFO - ✅ uninstalled_at column already exists
++==> Your service is live 🎉
++==> 
++==> ///////////////////////////////////////////////////////////
++==> 
++==> Available at your primary URL https://employeesuite-production.onrender.com
++==> 
++==> ///////////////////////////////////////////////////////////
++2026-02-01 17:52:42,038 - missioncontrol.config - INFO - ✅ Migration completed successfully
++2026-02-01 17:52:42,038 - missioncontrol.config - INFO - Database tables initialized/verified
++==> No open HTTP ports detected on 0.0.0.0, continuing to scan...
++2026-02-01 17:53:06,404 - missioncontrol.config - INFO - ✅ Ran migrations from models.py
++[2026-02-01 17:53:06 +0000] [55] [CRITICAL] WORKER TIMEOUT (pid:57)
++[2026-02-01 17:53:07 +0000] [57] [INFO] Worker exiting (pid: 57)
++Sentry is attempting to send 3 pending events
++Waiting up to 2 seconds
++Press Ctrl-C to quit
++[2026-02-01 17:53:07 +0000] [55] [ERROR] Worker (pid:57) was sent SIGKILL! Perhaps out of memory?
++[2026-02-01 17:53:07 +0000] [63] [INFO] Booting worker with pid: 63
+
+# 2026-02-02 01:53:46.936125
++y
+
+# 2026-02-02 01:57:04.340319
++yeah my app doesn't load
+
+# 2026-02-02 01:57:33.901771
++I showed you my logs above.
+
+# 2026-02-02 02:03:20.559644
++bro wyd
+
+# 2026-02-02 02:06:25.515550
++what is the command to push after all these fixes
