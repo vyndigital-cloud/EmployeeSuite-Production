@@ -672,7 +672,7 @@ app.register_blueprint(gdpr_bp)
 
 # Shopify compliance blueprints
 app.register_blueprint(shopify_webhooks_bp)
-app.register_blueprint(gdpr_endpoints_bp)
+app.register_blueprint(gdpr_endpoints_bp, name='gdpr_endpoints')
 app.register_blueprint(shopify_billing_bp)
 app.register_blueprint(shopify_metafields_bp)
 
