@@ -435,98 +435,51 @@ def init_db(app) -> None:
     logger.info("Database initialized successfully")
 
 
+def _add_column(table: str, column: str, col_type: str) -> None:
+    """Add a column to a table if it doesn't exist. Each call uses its own transaction."""
+    try:
+        inspector = db.inspect(db.engine)
+        existing = [col["name"] for col in inspector.get_columns(table)]
+        if column in existing:
+            return
+        db.session.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
+        db.session.commit()
+        logger.info(f"Added {column} column to {table} table")
+    except Exception as e:
+        db.session.rollback()
+        error_str = str(e).lower()
+        if "already exists" in error_str or "duplicate" in error_str:
+            logger.debug(f"Column {column} already exists on {table}")
+        else:
+            logger.error(f"Failed to add {column} to {table}: {e}")
+
+
 def run_migrations(app) -> None:
-    """Run database migrations"""
+    """Run database migrations - each column addition is independent."""
     try:
         with app.app_context():
-            # Add any migration logic here
+            # Users table migrations
+            _add_column("users", "email_verified", "BOOLEAN DEFAULT FALSE")
+            _add_column("users", "is_active", "BOOLEAN DEFAULT TRUE")
+            _add_column("users", "last_login", "TIMESTAMP")
+            _add_column("users", "reset_token", "VARCHAR(100)")
+            _add_column("users", "reset_token_expires", "TIMESTAMP")
 
-            # Example: Add columns that might not exist
-            inspector = db.inspect(db.engine)
-
-            # Check if new columns exist and add them if needed
-            user_columns = [col["name"] for col in inspector.get_columns("users")]
-            store_columns = [
-                col["name"] for col in inspector.get_columns("shopify_stores")
-            ]
-
-            # Add email_verified column if it doesn't exist
-            if "email_verified" not in user_columns:
-                db.session.execute(
-                    text(
-                        "ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT FALSE"
-                    )
-                )
-                logger.info("Added email_verified column to users table")
-
-            # Add is_active column if it doesn't exist
-            if "is_active" not in user_columns:
-                db.session.execute(
-                    text("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE")
-                )
-                logger.info("Added is_active column to users table")
-
-            # Add last_login column if it doesn't exist
-            if "last_login" not in user_columns:
-                db.session.execute(
-                    text("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
-                )
-                logger.info("Added last_login column to users table")
-
-            # Add reset_token column if it doesn't exist
-            if "reset_token" not in user_columns:
-                db.session.execute(
-                    text("ALTER TABLE users ADD COLUMN reset_token VARCHAR(100)")
-                )
-                logger.info("Added reset_token column to users table")
-
-            # Add reset_token_expires column if it doesn't exist
-            if "reset_token_expires" not in user_columns:
-                db.session.execute(
-                    text("ALTER TABLE users ADD COLUMN reset_token_expires TIMESTAMP")
-                )
-                logger.info("Added reset_token_expires column to users table")
-
-            # Add shop_name column if it doesn't exist
-            if "shop_name" not in store_columns:
-                db.session.execute(
-                    text("ALTER TABLE shopify_stores ADD COLUMN shop_name VARCHAR(255)")
-                )
-                logger.info("Added shop_name column to shopify_stores table")
-
-            # Add other new columns as needed
-            new_store_columns = [
-                "shop_domain",
-                "shop_email",
-                "shop_timezone",
-                "shop_currency",
-                "billing_plan",
-                "scopes_granted",
-                "is_installed",
-            ]
-
-            for col_name in new_store_columns:
-                if col_name not in store_columns:
-                    if col_name == "is_installed":
-                        db.session.execute(
-                            text(
-                                f"ALTER TABLE shopify_stores ADD COLUMN {col_name} BOOLEAN DEFAULT TRUE"
-                            )
-                        )
-                    else:
-                        db.session.execute(
-                            text(
-                                f"ALTER TABLE shopify_stores ADD COLUMN {col_name} VARCHAR(255)"
-                            )
-                        )
-                    logger.info(f"Added {col_name} column to shopify_stores table")
-
-            db.session.commit()
+            # ShopifyStore table migrations
+            _add_column("shopify_stores", "shop_name", "VARCHAR(255)")
+            _add_column("shopify_stores", "shop_id", "BIGINT")
+            _add_column("shopify_stores", "charge_id", "VARCHAR(255)")
+            _add_column("shopify_stores", "uninstalled_at", "TIMESTAMP")
+            _add_column("shopify_stores", "shop_domain", "VARCHAR(255)")
+            _add_column("shopify_stores", "shop_email", "VARCHAR(255)")
+            _add_column("shopify_stores", "shop_timezone", "VARCHAR(255)")
+            _add_column("shopify_stores", "shop_currency", "VARCHAR(255)")
+            _add_column("shopify_stores", "billing_plan", "VARCHAR(255)")
+            _add_column("shopify_stores", "scopes_granted", "VARCHAR(500)")
+            _add_column("shopify_stores", "is_installed", "BOOLEAN DEFAULT TRUE")
 
     except Exception as e:
         logger.error(f"Migration failed: {e}")
-        db.session.rollback()
-        raise
 
 
 # Utility functions

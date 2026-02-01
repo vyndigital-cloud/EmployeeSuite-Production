@@ -87,21 +87,6 @@ def log_event(location, message, data=None, hypothesis_id="GENERAL"):
         logger.error(f"Failed to log event: {e}")
 
 
-def safe_redirect(url, shop=None, host=None):
-    """
-    Safe redirect for Shopify embedded apps.
-    Uses standard HTTP redirect - Shopify handles iframe navigation.
-    """
-    # For Shopify OAuth URLs, always use standard redirect
-    # Shopify's OAuth flow handles the iframe breaking automatically
-    if "myshopify.com" in url or "shopify.com" in url:
-        return redirect(url)
-
-    # For internal app URLs, use standard redirect
-    # The browser/Shopify will handle this correctly
-    return redirect(url)
-
-
 import logging
 from datetime import datetime
 
@@ -140,6 +125,7 @@ from security_enhancements import (
 from session_token_verification import get_shop_from_session_token, verify_session_token
 from shopify_oauth import oauth_bp
 from shopify_routes import shopify_bp
+from utils import safe_redirect  # noqa: F401
 from webhook_shopify import webhook_shopify_bp
 from webhook_stripe import webhook_bp
 
