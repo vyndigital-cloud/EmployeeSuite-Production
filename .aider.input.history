@@ -1198,3 +1198,131 @@
 
 # 2026-02-02 05:17:00.502120
 +deploy command?
+
+# 2026-02-02 05:21:25.736413
++2026-02-01T21:20:48.148883305Z 2026-02-01 21:20:48,148 - missioncontrol.config - WARNING - Error response status: N/A
++2026-02-01T21:20:48.14909641Z 2026-02-01 21:20:48,149 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/api/update_inventory, shop=employee-suite.myshopify.com, host=False, domains=6
++2026-02-01T21:20:48.149447938Z 2026-02-01 21:20:48,149 - missioncontrol.config - ERROR - COMPREHENSIVE ERROR: HTTP_401 - HTTP 401 response
++2026-02-01T21:20:48.151937088Z 2026-02-01 21:20:48,151 - missioncontrol.config - ERROR - Location: api_update_inventory:GET
++2026-02-01T21:20:48.155198015Z 2026-02-01 21:20:48,155 - missioncontrol.config - ERROR - Context: {'status_code': 401, 'url': 'https://employeesuite-production.onrender.com/api/update_inventory?shop=employee-suite.myshopify.com', 'method': 'GET', 'response_size': 199}
++2026-02-01T21:20:48.331721196Z 127.0.0.1 - - [01/Feb/2026:21:20:48 +0000] "GET /api/update_inventory?shop=employee-suite.myshopify.com HTTP/1.1" 401 199 "https://employeesuite-production.onrender.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-01T21:20:50.618341026Z 2026-02-01 21:20:50,618 - missioncontrol.config - INFO - Making request to: /settings/shopify, Method: GET
++2026-02-01T21:20:51.31473934Z 2026-02-01 21:20:51,314 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/settings/shopify, shop=employee-suite.myshopify.com, host=True, domains=6
++2026-02-01T21:20:51.489342816Z 127.0.0.1 - - [01/Feb/2026:21:20:51 +0000] "GET /settings/shopify?shop=employee-suite.myshopify.com&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&embedded=1 HTTP/1.1" 200 886 "https://employeesuite-production.onrender.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-01T21:20:53.065344704Z 2026-02-01 21:20:53,065 - missioncontrol.config - INFO - Making request to: /install, Method: GET
++2026-02-01T21:20:53.065457937Z 2026-02-01 21:20:53,065 - missioncontrol.config - INFO - Normalized install shop: employee-suite.myshopify.com
++2026-02-01T21:20:53.065561459Z 2026-02-01 21:20:53,065 - missioncontrol.config - INFO - ✅ Verified: read_orders is included in scopes
++2026-02-01T21:20:53.065637941Z 2026-02-01 21:20:53,065 - missioncontrol.config - INFO - OAuth install: Using redirect_uri=https://employeesuite-production.onrender.com/auth/callback (must match Partners Dashboard exactly)
++2026-02-01T21:20:53.065694962Z 2026-02-01 21:20:53,065 - missioncontrol.config - INFO - OAuth install: Requesting scopes: read_orders,read_products,read_inventory
++2026-02-01T21:20:53.065800925Z 2026-02-01 21:20:53,065 - missioncontrol.config - INFO - OAuth install: Scope breakdown - read_orders: True, read_products: True, read_inventory: True
++2026-02-01T21:20:53.065988409Z 2026-02-01 21:20:53,065 - missioncontrol.config - INFO - OAuth install: Scope parameter in URL: True
++2026-02-01T21:20:53.066051351Z 2026-02-01 21:20:53,065 - missioncontrol.config - INFO - ✅ OAuth install: Scope parameter correctly included in URL
++2026-02-01T21:20:53.066120503Z 2026-02-01 21:20:53,066 - missioncontrol.config - INFO - Embedded OAuth install detected for employee-suite.myshopify.com, showing link to open OAuth in new window
++2026-02-01T21:20:53.067243019Z 2026-02-01 21:20:53,067 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/install, shop=employee-suite.myshopify.com, host=True, domains=6
++2026-02-01T21:20:53.068243583Z 127.0.0.1 - - [01/Feb/2026:21:20:53 +0000] "GET /install?shop=employee-suite.myshopify.com&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU HTTP/1.1" 200 876 "https://employeesuite-production.onrender.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-01T21:21:01.858544033Z 2026-02-01 21:21:01,858 - missioncontrol.config - INFO - Making request to: /auth/callback, Method: GET
++2026-02-01T21:21:01.85883575Z 2026-02-01 21:21:01,858 - missioncontrol.config - INFO - OAuth callback received parameters: {'code': '6374f37130056e6527ace9911a55c1d2', 'hmac': '417b9d3849c5acc2b3d7acde786a6cc997d8e943b1f5dfcb44e2808b98ab3446', 'host': 'YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU', 'shop': 'employee-suite.myshopify.com', 'state': 'employee-suite.myshopify.com||YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU', 'timestamp': '1769980858'}
++2026-02-01T21:21:01.858908862Z 2026-02-01 21:21:01,858 - missioncontrol.config - INFO - OAuth callback parameters: {'code': '6374f37130056e6527ace9911a55c1d2', 'hmac': '417b9d3849c5acc2b3d7acde786a6cc997d8e943b1f5dfcb44e2808b98ab3446', 'host': 'YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU', 'shop': 'employee-suite.myshopify.com', 'state': 'employee-suite.myshopify.com||YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU', 'timestamp': '1769980858'}
++2026-02-01T21:21:01.859079535Z 2026-02-01 21:21:01,858 - missioncontrol.config - INFO - OAUTH DEBUG: Using API key for token exchange: 8c81ac3c... (length: 32)
++2026-02-01T21:21:01.859116356Z 2026-02-01 21:21:01,859 - missioncontrol.config - INFO - OAUTH DEBUG: Shop: employee-suite.myshopify.com
++2026-02-01T21:21:02.192271337Z 2026-02-01 21:21:02,192 - missioncontrol.config - INFO - OAuth token exchange: Requested scopes: read_orders,read_products,read_inventory
++2026-02-01T21:21:02.19238284Z 2026-02-01 21:21:02,192 - missioncontrol.config - INFO - OAuth token exchange: Granted scopes: read_inventory,read_orders,read_products
++2026-02-01T21:21:02.192465242Z 2026-02-01 21:21:02,192 - missioncontrol.config - INFO - ✅ Scopes match: read_inventory,read_orders,read_products
++2026-02-01T21:21:02.195196787Z 2026-02-01 21:21:02,194 - missioncontrol.config - INFO - OAUTH DEBUG: Access token received: shpat_a6d1... (first 10 chars)
++2026-02-01T21:21:02.195234977Z 2026-02-01 21:21:02,195 - missioncontrol.config - INFO - OAUTH DEBUG: This token is tied to API key: 8c81ac3c...
++2026-02-01T21:21:03.258240374Z 2026-02-01 21:21:03,258 - missioncontrol.config - INFO - OAuth callback: Using existing logged-in user employee-suite.myshopify.com@shopify.com (ID: 4)
++2026-02-01T21:21:03.258310916Z 2026-02-01 21:21:03,258 - missioncontrol.config - INFO - OAUTH COMPLETE: Generated new access_token using Partners API key: 8c81ac3c... (length: 32)
++2026-02-01T21:21:03.258390778Z 2026-02-01 21:21:03,258 - missioncontrol.config - INFO - OAUTH COMPLETE: This access_token is tied to Partners app: 8c81ac3c...
++2026-02-01T21:21:03.436929957Z 2026-02-01 21:21:03,436 - missioncontrol.config - INFO - Updated existing store employee-suite.myshopify.com - set is_active=True, cleared uninstalled_at
++2026-02-01T21:21:03.438178126Z 2026-02-01 21:21:03,438 - missioncontrol.config - ERROR - OAuth callback EXCEPTION: cannot access local variable 'db' where it is not associated with a value
++2026-02-01T21:21:03.440218235Z 2026-02-01 21:21:03,440 - missioncontrol.config - ERROR - Full traceback:
++2026-02-01T21:21:03.440228755Z Traceback (most recent call last):
++2026-02-01T21:21:03.440231805Z   File "/opt/render/project/src/shopify_oauth.py", line 347, in callback
++2026-02-01T21:21:03.440234955Z     return _handle_oauth_callback()
++2026-02-01T21:21:03.440237795Z            ^^^^^^^^^^^^^^^^^^^^^^^^
++2026-02-01T21:21:03.440240955Z   File "/opt/render/project/src/shopify_oauth.py", line 579, in _handle_oauth_callback
++2026-02-01T21:21:03.440244065Z     db.session.commit()
++2026-02-01T21:21:03.440246745Z     ^^
++2026-02-01T21:21:03.440261686Z UnboundLocalError: cannot access local variable 'db' where it is not associated with a value
++2026-02-01T21:21:03.440264626Z 
++2026-02-01T21:21:03.442574431Z 2026-02-01 21:21:03,442 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/auth/callback, shop=employee-suite.myshopify.com, host=True, domains=6
++2026-02-01T21:21:03.443078403Z 2026-02-01 21:21:03,442 - missioncontrol.config - ERROR - COMPREHENSIVE ERROR: HTTP_500 - HTTP 500 response
++2026-02-01T21:21:03.445005918Z 2026-02-01 21:21:03,444 - missioncontrol.config - ERROR - Location: oauth.callback:GET
++2026-02-01T21:21:03.446593156Z 2026-02-01 21:21:03,446 - missioncontrol.config - ERROR - Context: {'status_code': 500, 'url': 'https://employeesuite-production.onrender.com/auth/callback?code=6374f37130056e6527ace9911a55c1d2&hmac=417b9d3849c5acc2b3d7acde786a6cc997d8e943b1f5dfcb44e2808b98ab3446&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&shop=employee-suite.myshopify.com&state=employee-suite.myshopify.com||YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&timestamp=1769980858', 'method': 'GET', 'response_size': 86}
++2026-02-01T21:21:03.623424964Z 127.0.0.1 - - [01/Feb/2026:21:21:03 +0000] "GET /auth/callback?code=6374f37130056e6527ace9911a55c1d2&hmac=417b9d3849c5acc2b3d7acde786a6cc997d8e943b1f5dfcb44e2808b98ab3446&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&shop=employee-suite.myshopify.com&state=employee-suite.myshopify.com%7C%7CYWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&timestamp=1769980858 HTTP/1.1" 500 86 "https://employeesuite-production.onrender.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
+
+# 2026-02-02 05:21:28.078547
++y
+
+# 2026-02-02 05:21:43.218836
++A
+
+# 2026-02-02 05:33:01.837171
++/clear
+
+# 2026-02-02 05:33:03.698436
++
++==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
++2026-02-01 21:26:18,194 - missioncontrol.config - INFO - Making request to: /health, Method: HEAD
++2026-02-01 21:26:18,890 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (production default): path=/health
++2026-02-01 21:26:18,890 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/health, shop=none, host=False, domains=5
++127.0.0.1 - - [01/Feb/2026:21:26:19 +0000] "HEAD /health HTTP/1.1" 200 0 "https://employeesuite-production.onrender.com/health" "Mozilla/5.0+(compatible; UptimeRobot/2.0; http://www.uptimerobot.com/)"
++==> Deploying...
++==> Your service is live 🎉
++==> 
++==> ///////////////////////////////////////////////////////////
++==> 
++==> Available at your primary URL https://employeesuite-production.onrender.com
++==> 
++==> ///////////////////////////////////////////////////////////
++2026-02-01 21:30:15,524 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-01 21:30:15,525 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/, referer=False, route=True
++2026-02-01 21:30:15,525 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/, shop=none, host=False, domains=5
++127.0.0.1 - - [01/Feb/2026:21:30:15 +0000] "HEAD / HTTP/1.1" 200 0 "-" "Go-http-client/1.1"
++2026-02-01 21:30:15,526 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-01 21:30:15,527 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/, referer=False, route=True
++2026-02-01 21:30:15,527 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/, shop=none, host=False, domains=5
++127.0.0.1 - - [01/Feb/2026:21:30:15 +0000] "HEAD / HTTP/1.1" 200 0 "-" "Go-http-client/1.1"
++2026-02-01 21:30:15,529 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-01 21:30:15,530 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/, referer=False, route=True
++2026-02-01 21:30:15,530 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/, shop=none, host=False, domains=5
++127.0.0.1 - - [01/Feb/2026:21:30:15 +0000] "HEAD / HTTP/1.1" 200 0 "-" "Go-http-client/1.1"
++[2026-02-01 21:31:01 +0000] [55] [INFO] Handling signal: term
++[2026-02-01 21:31:01 +0000] [58] [INFO] Worker exiting (pid: 58)
++[2026-02-01 21:31:02 +0000] [55] [INFO] Shutting down: Master
++2026-02-01 21:31:24,378 - missioncontrol.config - INFO - Making request to: /health, Method: HEAD
++2026-02-01 21:31:25,061 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (production default): path=/health
++2026-02-01 21:31:25,062 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/health, shop=none, host=False, domains=5
++127.0.0.1 - - [01/Feb/2026:21:31:25 +0000] "HEAD /health HTTP/1.1" 200 0 "https://employeesuite-production.onrender.com/health" "Mozilla/5.0+(compatible; UptimeRobot/2.0; http://www.uptimerobot.com/)"
++2026-02-01 21:31:55,580 - missioncontrol.config - INFO - Making request to: /, Method: GET
++2026-02-01 21:31:56,496 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/, referer=False, route=True
++2026-02-01 21:31:56,496 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/, shop=none, host=False, domains=5
++127.0.0.1 - - [01/Feb/2026:21:31:56 +0000] "GET / HTTP/1.1" 200 18304 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-01 21:32:10,373 - missioncontrol.config - INFO - Making request to: /, Method: GET
++2026-02-01 21:32:11,022 - missioncontrol.config - WARNING - Store found for employee-suite.myshopify.com but explicitly inactive (is_active=False)
++2026-02-01 21:32:11,595 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/, shop=employee-suite.myshopify.com, host=True, domains=6
++127.0.0.1 - - [01/Feb/2026:21:32:11 +0000] "GET /?embedded=1&hmac=b3e2e358bfebe3c2faf9ed918dcf9a7f04caad235f7d517042d626aceb14bab1&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&id_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczpcL1wvZW1wbG95ZWUtc3VpdGUubXlzaG9waWZ5LmNvbVwvYWRtaW4iLCJkZXN0IjoiaHR0cHM6XC9cL2VtcGxveWVlLXN1aXRlLm15c2hvcGlmeS5jb20iLCJhdWQiOiI4YzgxYWMzY2U1OWY3MjBhMTM5YjUyZjBjN2IyZWMzMiIsInN1YiI6Ijg0MzQxNTg4MDcxIiwiZXhwIjoxNzY5OTgxNTg5LCJuYmYiOjE3Njk5ODE1MjksImlhdCI6MTc2OTk4MTUyOSwianRpIjoiNmZhMzRkMmMtYzliYy00MDk5LTk2MmMtMGEwMjljZGI0Njg5Iiwic2lkIjoiODc4ZmEyZjQtNDU2NC00NTYyLWJmNzUtMjdmNDIyODk1YmI0Iiwic2lnIjoiZDliNDkyMzQ2Y2JjZGM4MDI4YzY1ZmNmZjJlYWJhYmY1YmI5MWVjNzBkZjg5MDgyM2Y5MDIwZGI4NWRjZTFmOSJ9.euIOtjG8TRBEzyTI292bD4tQDtMRmx_1GQmd5C8Ec3Q&locale=en-AU&session=c2d5b776447344b5e77fdcd3b18059982acf2209215c5880bd0cbf733584b39f&shop=employee-suite.myshopify.com&timestamp=1769981529 HTTP/1.1" 200 18459 "https://admin.shopify.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-01 21:32:17,676 - missioncontrol.config - INFO - Making request to: /api/update_inventory, Method: GET
++2026-02-01 21:32:18,325 - missioncontrol.config - INFO - === UPDATE INVENTORY REQUEST START ===
++2026-02-01 21:32:18,325 - missioncontrol.config - INFO - Request method: GET
++2026-02-01 21:32:18,325 - missioncontrol.config - INFO - Request path: /api/update_inventory
++2026-02-01 21:32:18,325 - missioncontrol.config - INFO - Request URL: https://employeesuite-production.onrender.com/api/update_inventory?shop=employee-suite.myshopify.com
++2026-02-01 21:32:18,325 - missioncontrol.config - INFO - Request content-type: none
++2026-02-01 21:32:18,325 - missioncontrol.config - INFO - Request args: {'shop': 'employee-suite.myshopify.com'}
++2026-02-01 21:32:18,325 - missioncontrol.config - INFO - Has Authorization header: True
++2026-02-01 21:32:18,326 - missioncontrol.config - INFO - Has shop parameter: True
++2026-02-01 21:32:18,326 - missioncontrol.config - INFO - Step 1: Getting authenticated user...
++2026-02-01 21:32:18,326 - missioncontrol.config - WARNING - Invalid session token: Invalid audience
++2026-02-01 21:32:18,326 - missioncontrol.config - WARNING - Step 1 FAILED: Authentication error
++2026-02-01 21:32:18,326 - missioncontrol.config - WARNING - Error response status: N/A
++2026-02-01 21:32:18,326 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/api/update_inventory, shop=employee-suite.myshopify.com, host=False, domains=6
++2026-02-01 21:32:18,327 - missioncontrol.config - ERROR - COMPREHENSIVE ERROR: HTTP_401 - HTTP 401 response
++2026-02-01 21:32:18,328 - missioncontrol.config - ERROR - Location: api_update_inventory:GET
++2026-02-01 21:32:18,330 - missioncontrol.config - ERROR - Context: {'status_code': 401, 'url': 'https://employeesuite-production.onrender.com/api/update_inventory?shop=employee-suite.myshopify.com', 'method': 'GET', 'response_size': 199}
++127.0.0.1 - - [01/Feb/2026:21:32:18 +0000] "GET /api/update_inventory?shop=employee-suite.myshopify.com HTTP/1.1" 
+
+# 2026-02-02 05:33:06.265774
++y
+
+# 2026-02-02 05:33:30.327733
++A
