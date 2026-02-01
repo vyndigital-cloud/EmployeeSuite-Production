@@ -269,8 +269,8 @@ engine_options = {
 if app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgresql://"):
     engine_options.update(
         {
-            "pool_size": 2,  # Ultra-conservative to prevent connection exhaustion and segfaults
-            "max_overflow": 3,  # Minimal overflow for stability
+            "pool_size": 10,  # Increased for production stability
+            "max_overflow": 20,  # Increased overflow capacity
             "pool_recycle": 600,  # Recycle connections after 10 minutes (prevent stale connections)
             "pool_timeout": 5,  # Shorter timeout for getting connection from pool
             "connect_args": {
@@ -2640,21 +2640,35 @@ DASHBOARD_HTML = """
                         debounceTimers.generateReport = null;
                     }
 
-                    // Check if the HTML contains an error message (from backend)
-                    if (html.includes('Error Loading revenue') || html.includes('No Shopify store connected')) {
-                        // Backend already formatted the error, display directly
-                        document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${html}</div>`;
-                    } else {
-                        // Success - display with title
+                    if (d.success) {
+                        const icon = '✅';
                         document.getElementById('output').innerHTML = `
                             <div style="animation: fadeIn 0.3s ease-in;">
                                 <h3 class="success" style="display: flex; align-items: center; gap: 8px;">
-                                    <span>✅</span>
+                                    <span>${icon}</span>
                                     <span>Revenue Report Generated</span>
                                 </h3>
                                 <div style="margin-top: 12px; line-height: 1.6;">${d.html || d.message || d.error || 'No details available'}</div>
                             </div>
                         `;
+                    } else {
+                        // Professional error display with actionable buttons
+                        var errorHtml = '<div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">';
+                        errorHtml += '<div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">' + (d.error || 'Something went wrong') + '</div>';
+                        if (d.message) {
+                            errorHtml += '<div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">' + d.message + '</div>';
+                        }
+                        if (d.action === 'refresh') {
+                            errorHtml += '<button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>';
+                        } else if (d.action === 'subscribe' && d.subscribe_url) {
+                            errorHtml += '<a href="' + d.subscribe_url + '" style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Subscribe Now</a>';
+                        } else if (d.action === 'install') {
+                            errorHtml += '<a href="/settings/shopify" style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Connect Store</a>';
+                        } else if (d.action === 'retry') {
+                            errorHtml += '<button onclick="generateReport(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>';
+                        }
+                        errorHtml += '</div>';
+                        document.getElementById('output').innerHTML = errorHtml;
                     }
                 })
                 .catch(err => {
@@ -3564,16 +3578,10 @@ def api_key_info():
     response = {
         "api_key": {
             "status": "SET" if api_key != "NOT_SET" and api_key else "NOT_SET",
-            "preview": api_key[:8] + "..."
-            if api_key and api_key != "NOT_SET" and len(api_key) >= 8
-            else "N/A",
             "length": len(api_key) if api_key and api_key != "NOT_SET" else 0,
         },
         "api_secret": {
             "status": "SET" if api_secret != "NOT_SET" and api_secret else "NOT_SET",
-            "preview": api_secret[:8] + "..."
-            if api_secret and api_secret != "NOT_SET" and len(api_secret) >= 8
-            else "N/A",
             "length": len(api_secret) if api_secret and api_secret != "NOT_SET" else 0,
         },
     }
@@ -4478,13 +4486,13 @@ def api_generate_report():
             else:
                 logger.error(f"Generate report error for user {user_id}: {error_msg}")
             logger.error("=== GENERATE REPORT REQUEST FAILED: Report Error ===")
-            return error_msg, 500
+            return jsonify({"success": False, "error": error_msg}), 500
 
         if not data.get("message"):
             logger.warning(f"Step 5d WARNING: No message in report data")
             logger.warning(f"Generate report returned no message for user {user_id}")
             logger.error("=== GENERATE REPORT REQUEST FAILED: No Data ===")
-            return '<h3 class="error">❌ No report data available</h3>', 500
+            return jsonify({"success": False, "error": "No report data available"}), 500
 
         html = data.get("message", '<h3 class="error">❌ No report data available</h3>')
         logger.info(f"Step 5d: Report HTML generated, length: {len(html)} characters")
@@ -4496,7 +4504,7 @@ def api_generate_report():
             logger.info("Step 5e: Report data stored in session for CSV export")
 
         logger.info("=== GENERATE REPORT REQUEST SUCCESS ===")
-        return html, 200
+        return jsonify({"success": True, "html": html}), 200
 
     except MemoryError as e:
         logger.error("=== GENERATE REPORT REQUEST FAILED: Memory Error ===")
