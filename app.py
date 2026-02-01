@@ -5032,8 +5032,8 @@ _db_initialized = False
 def ensure_db_initialized():
     """Lazy database initialization - called on first request"""
     global _db_initialized
-    if _db_initialized:
-        return
+    # Always check and add missing columns, even if _db_initialized is True
+    # This handles cases where initialization partially failed
     try:
         init_db()
         # EMERGENCY FIX: Add missing columns if they don't exist
@@ -5287,6 +5287,12 @@ def ensure_db_initialized():
         logger.info("✅ Database initialized successfully with emergency fixes")
     except Exception as e:
         logger.warning(f"Database initialization deferred: {e}")
+        # Don't set _db_initialized = True if initialization failed
+        # This allows retry on next request
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
 
 
 try:

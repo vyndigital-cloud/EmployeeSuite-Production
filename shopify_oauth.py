@@ -391,7 +391,34 @@ def _handle_oauth_callback():
     if not user:
         # No logged-in user - this is likely an App Store installation
         # Get or create user (for App Store, use shop domain as identifier)
-        user = User.query.filter_by(email=f"{shop}@shopify.com").first()
+        # CRITICAL: Ensure database columns exist before querying
+        try:
+            from app import ensure_db_initialized
+            ensure_db_initialized()
+        except Exception as init_err:
+            logger.warning(f"Database initialization check failed: {init_err}")
+        
+        try:
+            user = User.query.filter_by(email=f"{shop}@shopify.com").first()
+        except Exception as query_err:
+            # If query fails due to missing columns, try to add them and retry
+            if "does not exist" in str(query_err).lower() or "undefinedcolumn" in str(query_err).lower():
+                logger.warning(f"Query failed due to missing columns, attempting to fix: {query_err}")
+                try:
+                    from sqlalchemy import text
+                    from models import db
+                    # Add missing last_login column
+                    db.session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP"))
+                    db.session.commit()
+                    logger.info("✅ Added missing last_login column on-the-fly")
+                    # Retry query
+                    user = User.query.filter_by(email=f"{shop}@shopify.com").first()
+                except Exception as fix_err:
+                    logger.error(f"Failed to fix missing columns: {fix_err}")
+                    raise query_err  # Re-raise original error
+            else:
+                raise  # Re-raise if it's a different error
+        
         if not user:
             from datetime import datetime, timedelta
             user = User(
