@@ -421,17 +421,18 @@ def update_timestamp(mapper, connection, target):
 
 # Database initialization and migration helpers
 def init_db(app) -> None:
-    """Initialize database with application context"""
-    db.init_app(app)
+    """Initialize database with application context.
 
-    with app.app_context():
-        # Create all tables
-        db.create_all()
+    Note: db.init_app(app) must be called before this function.
+    This only creates tables and runs migrations.
+    """
+    # Create all tables
+    db.create_all()
 
-        # Run any necessary migrations
-        run_migrations(app)
+    # Run any necessary migrations
+    run_migrations(app)
 
-        logger.info("Database initialized successfully")
+    logger.info("Database initialized successfully")
 
 
 def run_migrations(app) -> None:

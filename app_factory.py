@@ -60,6 +60,9 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     # Register blueprints (avoid circular imports by importing here)
     register_blueprints(app)
 
+    # Register core routes (/, /dashboard, /health)
+    register_core_routes(app)
+
     # Register error handlers
     register_error_handlers(app)
 
@@ -185,22 +188,63 @@ def register_blueprints(app: Flask) -> None:
             from webhook_stripe import webhook_bp
 
             # Register legacy blueprints
+            # Note: most blueprints already include full paths in their route
+            # decorators (e.g. @billing_bp.route('/billing/create-charge')),
+            # so they must NOT get an additional url_prefix here.
             app.register_blueprint(auth_bp, url_prefix="/auth")
-            app.register_blueprint(oauth_bp, url_prefix="/oauth")
-            app.register_blueprint(shopify_bp, url_prefix="/shopify")
-            app.register_blueprint(billing_bp, url_prefix="/billing")
-            app.register_blueprint(admin_bp, url_prefix="/admin")
+            app.register_blueprint(oauth_bp)
+            app.register_blueprint(shopify_bp)
+            app.register_blueprint(billing_bp)
+            app.register_blueprint(admin_bp)  # has url_prefix='/admin' in Blueprint()
             app.register_blueprint(legal_bp, url_prefix="/legal")
-            app.register_blueprint(faq_bp, url_prefix="/faq")
-            app.register_blueprint(webhook_bp, url_prefix="/webhooks/stripe")
-            app.register_blueprint(webhook_shopify_bp, url_prefix="/webhooks/shopify")
-            app.register_blueprint(gdpr_bp, url_prefix="/gdpr")
+            app.register_blueprint(faq_bp)
+            app.register_blueprint(webhook_bp)
+            app.register_blueprint(webhook_shopify_bp)
+            app.register_blueprint(gdpr_bp)
 
             logger.info("Legacy blueprints registered successfully")
 
         except ImportError as e2:
             logger.error(f"Failed to register blueprints: {e2}")
             # Don't raise here - app might still work with main routes
+
+
+def register_core_routes(app: Flask) -> None:
+    """Register core routes that aren't in any blueprint (/, /dashboard, /health)"""
+    from flask import jsonify, redirect, render_template_string, request, url_for
+
+    @app.route("/")
+    @app.route("/dashboard", endpoint="dashboard")
+    def home():
+        from flask_login import current_user
+
+        shop = request.args.get("shop")
+        host = request.args.get("host")
+
+        # If accessed from Shopify (has shop/host params), render dashboard
+        if shop or host or current_user.is_authenticated:
+            return redirect(url_for("auth.login"))
+
+        # Default: show install page
+        return render_template_string(
+            '<!DOCTYPE html><html><head><title>Employee Suite</title>'
+            '<meta name="viewport" content="width=device-width, initial-scale=1">'
+            '<style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;'
+            'background:#f6f6f7;display:flex;align-items:center;justify-content:center;'
+            'min-height:100vh;margin:0;padding:20px}'
+            '.c{background:#fff;border-radius:8px;padding:48px;max-width:500px;'
+            'text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.1)}'
+            'h1{font-size:28px;color:#202223}p{color:#6d7175;line-height:1.6}'
+            '.btn{display:inline-block;background:#008060;color:#fff;padding:12px 24px;'
+            'border-radius:6px;text-decoration:none;font-weight:500}</style></head>'
+            '<body><div class="c"><h1>Employee Suite</h1>'
+            '<p>Install this app through Shopify, or log in below.</p>'
+            '<a href="/auth/login" class="btn">Log In</a></div></body></html>'
+        )
+
+    @app.route("/health")
+    def health():
+        return jsonify({"status": "healthy"}), 200
 
 
 def register_error_handlers(app: Flask) -> None:
@@ -379,10 +423,6 @@ def create_dev_app() -> Flask:
 def create_prod_app() -> Flask:
     """Create app for production"""
     return create_app("production")
-
-
-# For Gunicorn/WSGI
-app = create_app()
 
 
 if __name__ == "__main__":

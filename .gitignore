@@ -1,5 +1,7 @@
 .env
 instance/
+venv/
+venv_test/
 
 # Ignore temporary/debug files
 *.log

@@ -43,10 +43,12 @@ class CSRFManager:
         app.config["WTF_CSRF_TIME_LIMIT"] = config.WTF_CSRF_TIME_LIMIT
         app.config["WTF_CSRF_SECRET_KEY"] = config.SECRET_KEY
 
-        # Custom error handler
-        @self.csrf.error_handler
-        def csrf_error(reason):
-            logger.warning(f"CSRF validation failed: {reason}")
+        # Custom error handler for CSRF failures (Flask-WTF 1.2+ API)
+        from flask_wtf.csrf import CSRFError
+
+        @app.errorhandler(CSRFError)
+        def csrf_error(e):
+            logger.warning(f"CSRF validation failed: {e.description}")
 
             if request.is_json:
                 return jsonify(
@@ -57,7 +59,6 @@ class CSRFManager:
                     }
                 ), 400
             else:
-                # For HTML forms, redirect or show error page
                 return abort(400, description="CSRF token validation failed")
 
         # Before request handler to set up CSRF context
