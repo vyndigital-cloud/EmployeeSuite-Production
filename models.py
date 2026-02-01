@@ -451,16 +451,23 @@ def run_migrations(app) -> None:
 
             # Add email_verified column if it doesn't exist
             if "email_verified" not in user_columns:
-                db.engine.execute(
+                db.session.execute(
                     text(
                         "ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT FALSE"
                     )
                 )
                 logger.info("Added email_verified column to users table")
 
+            # Add is_active column if it doesn't exist
+            if "is_active" not in user_columns:
+                db.session.execute(
+                    text("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE")
+                )
+                logger.info("Added is_active column to users table")
+
             # Add shop_name column if it doesn't exist
             if "shop_name" not in store_columns:
-                db.engine.execute(
+                db.session.execute(
                     text("ALTER TABLE shopify_stores ADD COLUMN shop_name VARCHAR(255)")
                 )
                 logger.info("Added shop_name column to shopify_stores table")
@@ -479,13 +486,13 @@ def run_migrations(app) -> None:
             for col_name in new_store_columns:
                 if col_name not in store_columns:
                     if col_name == "is_installed":
-                        db.engine.execute(
+                        db.session.execute(
                             text(
                                 f"ALTER TABLE shopify_stores ADD COLUMN {col_name} BOOLEAN DEFAULT TRUE"
                             )
                         )
                     else:
-                        db.engine.execute(
+                        db.session.execute(
                             text(
                                 f"ALTER TABLE shopify_stores ADD COLUMN {col_name} VARCHAR(255)"
                             )
