@@ -1,0 +1,1008 @@
+"""
+Core application routes extracted from app.py.
+Contains: dashboard, API endpoints, cron jobs, debug endpoints, CSV exports.
+"""
+
+import csv
+import io
+import logging
+import os
+import sys
+import traceback
+from datetime import datetime
+
+from flask import (
+    Blueprint,
+    Response,
+    jsonify,
+    redirect,
+    render_template,
+    render_template_string,
+    request,
+    session,
+    url_for,
+)
+from flask_login import current_user, login_required, login_user
+
+from access_control import require_access
+from logging_config import log_comprehensive_error, logger
+from models import ShopifyStore, User, db
+from session_token_verification import get_shop_from_session_token, verify_session_token
+from utils import safe_redirect
+
+core_bp = Blueprint("core", __name__)
+
+
+# ---------------------------------------------------------------------------
+# Helper: get_authenticated_user
+# ---------------------------------------------------------------------------
+
+
+def get_authenticated_user():
+    """
+    Get authenticated user from either Flask-Login or Shopify session token.
+    Returns (user, error_response) tuple. If user is None, error_response contains the error.
+    """
+    # Try Flask-Login first (for standalone access)
+    if current_user.is_authenticated:
+        logger.debug(f"User authenticated via Flask-Login: {current_user.id}")
+        return current_user, None
+
+    # Try session token (for embedded apps)
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        try:
+            token = auth_header.split(" ")[1] if " " in auth_header else None
+            if not token:
+                return None, (
+                    jsonify({"error": "Invalid token format", "success": False}),
+                    401,
+                )
+
+            import jwt
+
+            api_secret = os.getenv("SHOPIFY_API_SECRET")
+            api_key = os.getenv("SHOPIFY_API_KEY")
+
+            if not api_secret:
+                logger.warning(
+                    "SHOPIFY_API_SECRET not set - cannot verify session token"
+                )
+                return None, (
+                    jsonify({"error": "Server configuration error", "success": False}),
+                    500,
+                )
+
+            if not api_key:
+                logger.warning("SHOPIFY_API_KEY not set - cannot verify session token")
+                return None, (
+                    jsonify({"error": "Server configuration error", "success": False}),
+                    500,
+                )
+
+            payload = jwt.decode(
+                token,
+                api_secret,
+                algorithms=["HS256"],
+                options={
+                    "verify_signature": True,
+                    "verify_exp": True,
+                    "verify_iat": True,
+                    "require": ["iss", "dest", "aud", "sub", "exp", "nbf", "iat"],
+                },
+            )
+
+            token_aud = payload.get("aud", "")
+            if token_aud != api_key:
+                logger.warning(
+                    f"Invalid audience in session token: got '{token_aud}', expected '{api_key}'"
+                )
+
+            dest = payload.get("dest", "")
+            if not dest or not dest.endswith(".myshopify.com"):
+                logger.warning(f"Invalid destination in session token: {dest}")
+                return None, (
+                    jsonify({"error": "Invalid token", "success": False}),
+                    401,
+                )
+
+            try:
+                cleaned_dest = dest.replace("https://", "").replace("http://", "")
+                shop_domain = (
+                    cleaned_dest.split("/")[0] if "/" in cleaned_dest else cleaned_dest
+                )
+                if not shop_domain:
+                    raise ValueError("Empty shop domain")
+            except (IndexError, AttributeError, ValueError) as e:
+                logger.warning(f"Error parsing shop domain from dest '{dest}': {e}")
+                return None, (
+                    jsonify({"error": "Invalid token format", "success": False}),
+                    401,
+                )
+
+            store = None
+            try:
+                store = ShopifyStore.query.filter_by(
+                    shop_url=shop_domain, is_active=True
+                ).first()
+            except BaseException as db_error:
+                logger.error(
+                    f"Database error in get_authenticated_user: {db_error}",
+                    exc_info=True,
+                )
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                return None, (
+                    jsonify(
+                        {
+                            "error": "Database connection error",
+                            "success": False,
+                            "action": "retry",
+                        }
+                    ),
+                    500,
+                )
+
+            if store and store.user:
+                logger.info(
+                    f"Session token verified - user {store.user.id} from shop {shop_domain}"
+                )
+                return store.user, None
+            else:
+                logger.warning(f"No store found for shop: {shop_domain}")
+                return None, (
+                    jsonify(
+                        {
+                            "error": "Your store is not connected. Please install the app from your Shopify admin.",
+                            "success": False,
+                            "action": "install",
+                        }
+                    ),
+                    404,
+                )
+
+        except Exception as e:
+            import jwt as jwt_module
+
+            if isinstance(e, jwt_module.ExpiredSignatureError):
+                return None, (
+                    jsonify(
+                        {
+                            "error": "Your session has expired. Please refresh the page.",
+                            "success": False,
+                            "action": "refresh",
+                        }
+                    ),
+                    401,
+                )
+            elif isinstance(e, jwt_module.InvalidTokenError):
+                return None, (
+                    jsonify(
+                        {
+                            "error": "Unable to verify your session. Please refresh the page.",
+                            "success": False,
+                            "action": "refresh",
+                        }
+                    ),
+                    401,
+                )
+            else:
+                logger.error(f"Error verifying session token: {e}", exc_info=True)
+                return None, (
+                    jsonify(
+                        {
+                            "error": "Session verification failed. Please try again.",
+                            "success": False,
+                            "action": "retry",
+                        }
+                    ),
+                    401,
+                )
+
+    # Try shop parameter authentication
+    shop_param = request.args.get("shop")
+    if shop_param:
+        try:
+            shop_domain = (
+                shop_param.replace("https://", "").replace("http://", "").split("/")[0]
+            )
+            if not shop_domain.endswith(".myshopify.com"):
+                shop_domain = f"{shop_domain}.myshopify.com"
+
+            store = ShopifyStore.query.filter_by(
+                shop_url=shop_domain, is_active=True
+            ).first()
+            if store and store.user:
+                logger.info(
+                    f"Shop parameter auth successful - user {store.user.id} from shop {shop_domain}"
+                )
+                return store.user, None
+        except Exception as e:
+            logger.error(f"Error in shop parameter auth: {e}", exc_info=True)
+
+    return None, (
+        jsonify(
+            {
+                "error": "Please sign in to continue.",
+                "success": False,
+                "action": "login",
+            }
+        ),
+        401,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Dashboard / Home
+# ---------------------------------------------------------------------------
+
+
+@core_bp.route("/")
+@core_bp.route("/dashboard", endpoint="dashboard")
+def home():
+    """Home page/Dashboard - Shared entry point for embedded and standalone"""
+    shop = request.args.get("shop")
+    embedded = request.args.get("embedded")
+    host = request.args.get("host")
+
+    is_local_dev = (
+        os.getenv("ENVIRONMENT", "").lower() != "production" and not shop and not host
+    )
+
+    if is_local_dev:
+        logger.info("LOCAL DEV MODE: Showing dashboard with mock data")
+        APP_URL = os.getenv("APP_URL", request.url_root.rstrip("/"))
+        return render_template(
+            "dashboard.html",
+            trial_active=True,
+            days_left=7,
+            is_subscribed=False,
+            has_shopify=True,
+            has_access=True,
+            quick_stats={
+                "has_data": True,
+                "pending_orders": 5,
+                "total_products": 42,
+                "low_stock_items": 3,
+            },
+            shop="demo-store.myshopify.com",
+            shop_domain="demo-store.myshopify.com",
+            SHOPIFY_API_KEY=os.getenv("SHOPIFY_API_KEY", "demo-api-key"),
+            APP_URL=APP_URL,
+            host="",
+        )
+
+    referer = request.headers.get("Referer", "")
+    is_from_shopify_admin = (
+        "admin.shopify.com" in referer or ".myshopify.com" in referer
+    )
+
+    if not shop and referer:
+        try:
+            from urllib.parse import parse_qs, urlparse
+
+            parsed = urlparse(referer)
+            if "admin.shopify.com" in parsed.netloc and "/store/" in parsed.path:
+                shop_name = parsed.path.split("/store/")[1].split("/")[0]
+                shop = f"{shop_name}.myshopify.com"
+            if not shop and parsed.query:
+                qs = parse_qs(parsed.query)
+                if "shop" in qs:
+                    shop = qs["shop"][0]
+                if "host" in qs and not host:
+                    host = qs["host"][0]
+        except Exception as e:
+            logger.warning(f"Failed to parse shop from Referer: {e}")
+
+    if shop:
+        shop = (
+            shop.lower()
+            .replace("https://", "")
+            .replace("http://", "")
+            .replace("www.", "")
+            .strip()
+        )
+        if not shop.endswith(".myshopify.com") and "." not in shop:
+            shop = f"{shop}.myshopify.com"
+
+    is_embedded = embedded == "1" or shop or host or is_from_shopify_admin
+
+    if is_embedded or current_user.is_authenticated or is_from_shopify_admin:
+        store = None
+        user = current_user if current_user.is_authenticated else None
+        if shop:
+            try:
+                store = (
+                    ShopifyStore.query.filter_by(shop_url=shop)
+                    .order_by(
+                        ShopifyStore.is_active.desc(), ShopifyStore.created_at.desc()
+                    )
+                    .first()
+                )
+            except Exception as e:
+                logger.error(f"Failed to query store for {shop}: {e}")
+                db.session.rollback()
+                store = None
+
+            if store and hasattr(store, "user") and store.user:
+                user = store.user
+
+        if user:
+            has_access = user.has_access()
+            trial_active = user.is_trial_active()
+            days_left = (
+                (user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
+            )
+            is_subscribed = user.is_subscribed
+            user_id = user.id
+        else:
+            has_access = False
+            trial_active = False
+            days_left = 0
+            is_subscribed = False
+            user_id = None
+
+        has_shopify = False
+        if user_id:
+            try:
+                has_shopify = (
+                    ShopifyStore.query.filter(
+                        ShopifyStore.user_id == user_id, ShopifyStore.is_active != False
+                    ).first()
+                    is not None
+                )
+            except Exception as e:
+                logger.error(f"Error checking has_shopify for user {user_id}: {e}")
+                db.session.rollback()
+        elif shop:
+            try:
+                has_shopify = (
+                    ShopifyStore.query.filter(
+                        ShopifyStore.shop_url == shop, ShopifyStore.is_active != False
+                    ).first()
+                    is not None
+                )
+            except Exception as e:
+                logger.error(f"Error checking has_shopify for shop {shop}: {e}")
+                db.session.rollback()
+
+        quick_stats = {
+            "has_data": False,
+            "pending_orders": 0,
+            "total_products": 0,
+            "low_stock_items": 0,
+        }
+
+        shop_domain = shop or ""
+        if has_shopify and user_id:
+            try:
+                store = (
+                    ShopifyStore.query.filter(
+                        ShopifyStore.user_id == user_id, ShopifyStore.is_active != False
+                    )
+                    .order_by(ShopifyStore.created_at.desc())
+                    .first()
+                )
+            except Exception as e:
+                logger.error(f"Error fetching store for user {user_id}: {e}")
+                db.session.rollback()
+                store = None
+            if store and hasattr(store, "shop_url") and store.shop_url:
+                shop_domain = store.shop_url
+        elif shop:
+            try:
+                store = (
+                    ShopifyStore.query.filter(
+                        ShopifyStore.shop_url == shop, ShopifyStore.is_active != False
+                    )
+                    .order_by(ShopifyStore.created_at.desc())
+                    .first()
+                )
+            except Exception as e:
+                logger.error(f"Error fetching store for shop {shop}: {e}")
+                db.session.rollback()
+                store = None
+            if store and hasattr(store, "shop_url") and store.shop_url:
+                shop_domain = store.shop_url
+
+        host_param = request.args.get("host", "")
+        shop_param = shop_domain or shop or request.args.get("shop", "")
+        APP_URL = os.getenv("APP_URL", request.url_root.rstrip("/"))
+
+        return render_template(
+            "dashboard.html",
+            trial_active=trial_active,
+            days_left=days_left,
+            is_subscribed=is_subscribed,
+            has_shopify=has_shopify,
+            has_access=has_access,
+            quick_stats=quick_stats,
+            shop=shop_param,
+            shop_domain=shop_domain,
+            SHOPIFY_API_KEY=os.getenv("SHOPIFY_API_KEY", ""),
+            APP_URL=APP_URL,
+            host=host_param,
+        )
+
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Employee Suite - Install via Shopify</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f6f6f7; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
+            .container { background: white; border-radius: 8px; padding: 48px; max-width: 500px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+            h1 { font-size: 28px; font-weight: 600; color: #202223; margin-bottom: 16px; }
+            p { font-size: 15px; color: #6d7175; line-height: 1.6; margin-bottom: 32px; }
+            .btn { display: inline-block; background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; }
+            .btn:hover { background: #006e52; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Install Employee Suite</h1>
+            <p>This app is designed to be installed through the Shopify App Store. Please install it from your Shopify admin panel.</p>
+            <p style="font-size: 14px; color: #8c9196; margin-top: 24px;">If you're a developer, you can also connect your store manually via Settings after logging in.</p>
+            <a href="/settings/shopify" class="btn" style="margin-top: 8px;">Go to Settings</a>
+        </div>
+    </body>
+    </html>
+    """)
+
+
+# ---------------------------------------------------------------------------
+# Favicon / Apple Touch Icon
+# ---------------------------------------------------------------------------
+
+
+@core_bp.route("/favicon.ico")
+def favicon():
+    return Response(status=204)
+
+
+@core_bp.route("/apple-touch-icon.png")
+@core_bp.route("/apple-touch-icon-precomposed.png")
+def apple_touch_icon():
+    return Response(status=204)
+
+
+# ---------------------------------------------------------------------------
+# Health Check
+# ---------------------------------------------------------------------------
+
+
+@core_bp.route("/health")
+def health():
+    """Health check endpoint for monitoring"""
+    checks = {}
+    overall_status = "healthy"
+
+    try:
+        from performance import get_cache_stats
+
+        cache_stats = get_cache_stats()
+        checks["cache"] = {
+            "entries": cache_stats.get("entries", 0),
+            "status": "operational",
+        }
+    except Exception as e:
+        checks["cache"] = {"error": str(e), "status": "error"}
+        overall_status = "unhealthy"
+
+    try:
+        db.session.execute(db.text("SELECT 1"))
+        checks["database"] = {"status": "connected"}
+    except Exception as e:
+        checks["database"] = {"error": str(e), "status": "disconnected"}
+        overall_status = "unhealthy"
+
+    try:
+        import flask
+
+        checks["environment"] = {
+            "environment": os.getenv("ENVIRONMENT", "unknown"),
+            "flask_version": flask.__version__,
+            "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+        }
+    except Exception as e:
+        checks["environment"] = {"error": str(e)}
+
+    database_status = (
+        "connected"
+        if checks.get("database", {}).get("status") == "connected"
+        else "disconnected"
+    )
+
+    return jsonify(
+        {
+            "status": overall_status,
+            "service": "Employee Suite",
+            "version": "2.7",
+            "database": database_status,
+            "checks": checks,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    ), 200 if overall_status == "healthy" else 500
+
+
+# ---------------------------------------------------------------------------
+# Cron Endpoints
+# ---------------------------------------------------------------------------
+
+
+@core_bp.route("/cron/send-trial-warnings", methods=["GET", "POST"])
+def cron_trial_warnings():
+    secret = request.args.get("secret") or request.form.get("secret")
+    if secret != os.getenv("CRON_SECRET"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    from cron_jobs import send_trial_warnings
+
+    try:
+        send_trial_warnings()
+        return jsonify({"success": True, "message": "Warnings sent"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@core_bp.route("/cron/database-backup", methods=["GET", "POST"])
+def cron_database_backup():
+    secret = request.args.get("secret") or request.form.get("secret")
+    if secret != os.getenv("CRON_SECRET"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    try:
+        from database_backup import run_backup
+
+        result = run_backup()
+        if result["success"]:
+            return jsonify(
+                {
+                    "success": True,
+                    "message": "Backup completed",
+                    "backup_file": result["backup_file"],
+                }
+            ), 200
+        else:
+            return jsonify({"success": False, "error": result.get("error")}), 500
+    except Exception as e:
+        return jsonify({"error": str(e), "success": False}), 500
+
+
+# ---------------------------------------------------------------------------
+# Debug Endpoints (development only)
+# ---------------------------------------------------------------------------
+
+
+def _is_debug_enabled():
+    env = os.getenv("ENVIRONMENT", "production")
+    debug = os.getenv("DEBUG", "False").lower() == "true"
+    return env == "development" or debug
+
+
+@core_bp.route("/api-key-info")
+def api_key_info():
+    if not _is_debug_enabled():
+        return jsonify({"error": "Not available in production"}), 403
+
+    api_key = os.getenv("SHOPIFY_API_KEY", "NOT_SET")
+    api_secret = os.getenv("SHOPIFY_API_SECRET", "NOT_SET")
+    return jsonify(
+        {
+            "api_key": {
+                "status": "SET" if api_key != "NOT_SET" and api_key else "NOT_SET",
+                "preview": api_key[:8] + "..."
+                if api_key and api_key != "NOT_SET" and len(api_key) >= 8
+                else "N/A",
+            },
+            "api_secret": {
+                "status": "SET"
+                if api_secret != "NOT_SET" and api_secret
+                else "NOT_SET",
+                "preview": api_secret[:8] + "..."
+                if api_secret and api_secret != "NOT_SET" and len(api_secret) >= 8
+                else "N/A",
+            },
+        }
+    )
+
+
+@core_bp.route("/test-shopify-route")
+def test_shopify_route():
+    from flask import current_app
+
+    return jsonify(
+        {
+            "status": "ok",
+            "message": "App is picking up changes",
+            "shopify_routes": [
+                str(rule)
+                for rule in current_app.url_map.iter_rules()
+                if "shopify" in str(rule)
+            ],
+        }
+    )
+
+
+@core_bp.route("/debug-routes")
+def debug_routes():
+    if not _is_debug_enabled():
+        return jsonify({"error": "Not available in production"}), 403
+
+    from flask import current_app
+
+    all_routes = [
+        {
+            "rule": str(rule.rule),
+            "endpoint": rule.endpoint,
+            "methods": list(rule.methods),
+        }
+        for rule in current_app.url_map.iter_rules()
+    ]
+    return jsonify({"total_routes": len(all_routes), "all_routes": all_routes[:50]})
+
+
+# ---------------------------------------------------------------------------
+# Frontend JS Error Logging
+# ---------------------------------------------------------------------------
+
+
+@core_bp.route("/api/log_error", methods=["POST"])
+def log_error():
+    try:
+        error_data = request.get_json()
+        if not error_data:
+            return jsonify({"success": False, "error": "No error data provided"}), 400
+
+        full_error_data = {
+            **error_data,
+            "request_url": request.url,
+            "remote_addr": request.remote_addr,
+            "referer": request.headers.get("Referer"),
+        }
+
+        log_comprehensive_error(
+            f"JS_{error_data.get('error_type', 'UnknownError')}",
+            error_data.get("error_message", "Unknown error"),
+            error_data.get("error_location", "unknown"),
+            full_error_data,
+            None,
+        )
+        return jsonify({"success": True, "message": "Error logged"}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": "Failed to log error"}), 500
+
+
+@core_bp.route("/api/docs")
+def api_docs():
+    return redirect(
+        "https://github.com/vyndigital-cloud/EmployeeSuite-Production/blob/main/API_DOCUMENTATION.md"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Core API Endpoints
+# ---------------------------------------------------------------------------
+
+
+@core_bp.route("/api/process_orders", methods=["GET", "POST"])
+@verify_session_token
+def api_process_orders():
+    """Process orders endpoint"""
+    is_local_dev = os.getenv("ENVIRONMENT", "").lower() != "production"
+    shop_param = request.args.get("shop", "")
+
+    if is_local_dev and (not shop_param or shop_param == "demo-store.myshopify.com"):
+        mock_html = '<div style="padding:20px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;"><h3 style="color:#166534;">Mock Orders (Local Dev Mode)</h3><p>Connect a real Shopify store to see actual orders.</p></div>'
+        return jsonify({"success": True, "html": mock_html, "mode": "local_dev"})
+
+    shop_domain = get_shop_from_session_token()
+    if not shop_domain:
+        shop_domain = request.args.get("shop")
+
+    user = None
+    if shop_domain:
+        store = ShopifyStore.query.filter_by(
+            shop_url=shop_domain, is_active=True
+        ).first()
+        if store:
+            user = store.user
+
+    if not user:
+        user, error_response = get_authenticated_user()
+        if error_response:
+            return error_response
+
+    if not user:
+        return jsonify({"error": "Authentication failed", "success": False}), 401
+
+    user_id = user.id
+    try:
+        if not user.has_access():
+            return jsonify(
+                {
+                    "error": "Subscription required",
+                    "success": False,
+                    "action": "subscribe",
+                }
+            ), 403
+
+        login_user(user, remember=False)
+
+        from order_processing import process_orders
+
+        result = process_orders(user_id=user_id)
+
+        if isinstance(result, dict):
+            return jsonify(result)
+        return jsonify({"message": str(result), "success": True})
+
+    except MemoryError:
+        from performance import clear_cache as clear_perf_cache
+
+        clear_perf_cache()
+        return jsonify(
+            {"error": "Memory error - please try again", "success": False}
+        ), 500
+    except SystemExit:
+        raise
+    except BaseException as e:
+        logger.error(
+            f"Critical error processing orders for user {user_id}: {e}", exc_info=True
+        )
+        return jsonify(
+            {
+                "error": "An unexpected error occurred. Please try again.",
+                "success": False,
+            }
+        ), 500
+
+
+@core_bp.route("/api/update_inventory", methods=["GET", "POST"])
+@verify_session_token
+def api_update_inventory():
+    """Update inventory endpoint"""
+    is_local_dev = os.getenv("ENVIRONMENT", "").lower() != "production"
+    shop_param = request.args.get("shop", "")
+
+    if is_local_dev and (not shop_param or shop_param == "demo-store.myshopify.com"):
+        mock_html = '<div style="padding:20px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;"><h3 style="color:#1e40af;">Mock Inventory (Local Dev Mode)</h3><p>Connect a real Shopify store to see actual inventory.</p></div>'
+        return jsonify({"success": True, "html": mock_html, "mode": "local_dev"})
+
+    try:
+        user, error_response = get_authenticated_user()
+        if error_response:
+            return error_response
+
+        if not user.has_access():
+            return jsonify(
+                {
+                    "error": "Subscription required",
+                    "success": False,
+                    "action": "subscribe",
+                }
+            ), 403
+
+        user_id = user.id
+        login_user(user, remember=False)
+
+        from performance import clear_cache as clear_perf_cache
+
+        clear_perf_cache("get_products")
+
+        from inventory import update_inventory
+
+        result = update_inventory(user_id=user_id)
+
+        if isinstance(result, dict):
+            if result.get("success") and "inventory_data" in result:
+                session["inventory_data"] = result["inventory_data"]
+            return jsonify(result)
+        return jsonify({"success": False, "error": str(result)})
+
+    except MemoryError:
+        from performance import clear_cache as clear_perf_cache
+
+        clear_perf_cache()
+        return jsonify(
+            {"success": False, "error": "Memory error - please try again"}
+        ), 500
+    except SystemExit:
+        raise
+    except BaseException as e:
+        logger.error(f"Critical error updating inventory: {e}", exc_info=True)
+        return jsonify(
+            {
+                "success": False,
+                "error": "An unexpected error occurred. Please try again.",
+            }
+        ), 500
+
+
+@core_bp.route("/api/generate_report", methods=["GET", "POST"])
+@verify_session_token
+def api_generate_report():
+    """Generate revenue report endpoint"""
+    is_local_dev = os.getenv("ENVIRONMENT", "").lower() != "production"
+    shop_param = request.args.get("shop", "")
+
+    if is_local_dev and (not shop_param or shop_param == "demo-store.myshopify.com"):
+        mock_html = '<div style="padding:20px;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;"><h3 style="color:#92400e;">Mock Revenue Report (Local Dev Mode)</h3><p>Connect a real Shopify store to see actual revenue.</p></div>'
+        return jsonify({"success": True, "html": mock_html, "mode": "local_dev"})
+
+    shop_domain = get_shop_from_session_token()
+    if not shop_domain:
+        shop_domain = request.args.get("shop")
+
+    user = None
+    if shop_domain:
+        store = ShopifyStore.query.filter_by(
+            shop_url=shop_domain, is_active=True
+        ).first()
+        if store:
+            user = store.user
+
+    if not user:
+        user, error_response = get_authenticated_user()
+        if error_response:
+            return error_response
+
+    if not user:
+        return jsonify({"error": "Authentication failed", "success": False}), 401
+
+    user_id = user.id
+    try:
+        if not user.has_access():
+            return jsonify(
+                {
+                    "error": "Subscription required",
+                    "success": False,
+                    "action": "subscribe",
+                }
+            ), 403
+
+        if not (
+            current_user
+            and current_user.is_authenticated
+            and str(getattr(current_user, "id", None)) == str(user_id)
+        ):
+            login_user(user, remember=False)
+
+        shop_url = request.args.get("shop") or shop_domain
+        if not shop_url and hasattr(user, "shopify_stores"):
+            active_store = next((s for s in user.shopify_stores if s.is_active), None)
+            if active_store:
+                shop_url = active_store.shop_url
+
+        from reporting import generate_report
+
+        data = generate_report(user_id=user_id, shop_url=shop_url)
+
+        if data.get("error") and data["error"] is not None:
+            return data["error"], 500
+
+        if not data.get("message"):
+            return '<h3 class="error">No report data available</h3>', 500
+
+        html = data.get("message", '<h3 class="error">No report data available</h3>')
+
+        if "report_data" in data:
+            session["report_data"] = data["report_data"]
+
+        return html, 200
+
+    except MemoryError:
+        from performance import clear_cache as clear_perf_cache
+
+        clear_perf_cache()
+        return jsonify(
+            {"success": False, "error": "Memory error - please try again"}
+        ), 500
+    except SystemExit:
+        raise
+    except BaseException as e:
+        logger.error(
+            f"Critical error generating report for user {user_id}: {e}", exc_info=True
+        )
+        return jsonify(
+            {"success": False, "error": f"Failed to generate report: {e}"}
+        ), 500
+
+
+# ---------------------------------------------------------------------------
+# CSV Export Endpoints (legacy)
+# ---------------------------------------------------------------------------
+
+
+@core_bp.route("/api/export/inventory-simple", methods=["GET"])
+@login_required
+@require_access
+def export_inventory_csv():
+    try:
+        from inventory import check_inventory
+
+        inventory_data = session.get("inventory_data", [])
+        if not inventory_data:
+            result = check_inventory()
+            if result.get("success") and "inventory_data" in result:
+                inventory_data = result["inventory_data"]
+                session["inventory_data"] = inventory_data
+
+        if not inventory_data:
+            return "No inventory data available. Please check inventory first.", 404
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Product", "SKU", "Stock", "Price"])
+        for item in inventory_data:
+            writer.writerow(
+                [
+                    item.get("product", "N/A"),
+                    item.get("sku", "N/A"),
+                    item.get("stock", 0),
+                    item.get("price", "N/A"),
+                ]
+            )
+
+        return Response(
+            output.getvalue(),
+            mimetype="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=inventory_{datetime.utcnow().strftime('%Y%m%d')}.csv"
+            },
+        )
+    except Exception as e:
+        logger.error(f"Error exporting inventory CSV: {e}", exc_info=True)
+        return jsonify({"error": f"Failed to export inventory: {e}"}), 500
+
+
+@core_bp.route("/api/export/report", methods=["GET"])
+@login_required
+@require_access
+def export_report_csv():
+    try:
+        from reporting import generate_report
+
+        report_data = session.get("report_data", {})
+        if not report_data:
+            data = generate_report()
+            if data.get("success") and "report_data" in data:
+                report_data = data["report_data"]
+
+        if not report_data or "products" not in report_data:
+            return "No report data available. Please generate report first.", 404
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(
+            ["Product", "Revenue", "Percentage", "Total Revenue", "Total Orders"]
+        )
+
+        total_revenue = report_data.get("total_revenue", 0)
+        total_orders = report_data.get("total_orders", 0)
+
+        for product, revenue in report_data.get("products", [])[:10]:
+            percentage = (revenue / total_revenue * 100) if total_revenue > 0 else 0
+            writer.writerow(
+                [
+                    product,
+                    f"${revenue:,.2f}",
+                    f"{percentage:.1f}%",
+                    f"${total_revenue:,.2f}",
+                    total_orders,
+                ]
+            )
+
+        return Response(
+            output.getvalue(),
+            mimetype="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=revenue_report_{datetime.utcnow().strftime('%Y%m%d')}.csv"
+            },
+        )
+    except Exception as e:
+        logger.error(f"Error exporting report CSV: {e}", exc_info=True)
+        return f"Error exporting CSV: {e}", 500

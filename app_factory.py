@@ -60,9 +60,6 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     # Register blueprints (avoid circular imports by importing here)
     register_blueprints(app)
 
-    # Register core routes (/, /dashboard, /health)
-    register_core_routes(app)
-
     # Register error handlers
     register_error_handlers(app)
 
@@ -107,7 +104,56 @@ def init_extensions(app: Flask) -> None:
         def load_user(user_id):
             from models import User
 
-            return User.query.get(int(user_id))
+            try:
+                return User.query.get(int(user_id))
+            except Exception:
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                return None
+
+        # Shopify-specific unauthorized handler
+        @login_manager.unauthorized_handler
+        def unauthorized():
+            from flask import has_request_context, redirect, request, session, url_for
+
+            from utils import safe_redirect
+
+            if not has_request_context():
+                return redirect("/install")
+
+            shop = (
+                request.args.get("shop")
+                or session.get("shop")
+                or session.get("current_shop")
+            )
+            host = request.args.get("host")
+
+            if not shop:
+                referer = request.headers.get("Referer", "")
+                if "myshopify.com" in referer or "admin.shopify.com" in referer:
+                    try:
+                        from urllib.parse import urlparse
+
+                        parsed = urlparse(referer)
+                        if ".myshopify.com" in parsed.netloc:
+                            shop = parsed.netloc
+                        elif "/store/" in parsed.path:
+                            shop_name = parsed.path.split("/store/")[1].split("/")[0]
+                            shop = f"{shop_name}.myshopify.com"
+                    except Exception:
+                        pass
+
+            if shop:
+                install_url = (
+                    url_for("oauth.install", shop=shop, host=host)
+                    if host
+                    else url_for("oauth.install", shop=shop)
+                )
+                return safe_redirect(install_url, shop=shop, host=host)
+
+            return redirect("/install")
 
         logger.info("Flask-Login initialized")
 
@@ -202,49 +248,16 @@ def register_blueprints(app: Flask) -> None:
             app.register_blueprint(webhook_shopify_bp)
             app.register_blueprint(gdpr_bp)
 
+            # Core routes (dashboard, API, cron, health, etc.)
+            from core_routes import core_bp
+
+            app.register_blueprint(core_bp)
+
             logger.info("Legacy blueprints registered successfully")
 
         except ImportError as e2:
             logger.error(f"Failed to register blueprints: {e2}")
             # Don't raise here - app might still work with main routes
-
-
-def register_core_routes(app: Flask) -> None:
-    """Register core routes that aren't in any blueprint (/, /dashboard, /health)"""
-    from flask import jsonify, redirect, render_template_string, request, url_for
-
-    @app.route("/")
-    @app.route("/dashboard", endpoint="dashboard")
-    def home():
-        from flask_login import current_user
-
-        shop = request.args.get("shop")
-        host = request.args.get("host")
-
-        # If accessed from Shopify (has shop/host params), render dashboard
-        if shop or host or current_user.is_authenticated:
-            return redirect(url_for("auth.login"))
-
-        # Default: show install page
-        return render_template_string(
-            '<!DOCTYPE html><html><head><title>Employee Suite</title>'
-            '<meta name="viewport" content="width=device-width, initial-scale=1">'
-            '<style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;'
-            'background:#f6f6f7;display:flex;align-items:center;justify-content:center;'
-            'min-height:100vh;margin:0;padding:20px}'
-            '.c{background:#fff;border-radius:8px;padding:48px;max-width:500px;'
-            'text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.1)}'
-            'h1{font-size:28px;color:#202223}p{color:#6d7175;line-height:1.6}'
-            '.btn{display:inline-block;background:#008060;color:#fff;padding:12px 24px;'
-            'border-radius:6px;text-decoration:none;font-weight:500}</style></head>'
-            '<body><div class="c"><h1>Employee Suite</h1>'
-            '<p>Install this app through Shopify, or log in below.</p>'
-            '<a href="/auth/login" class="btn">Log In</a></div></body></html>'
-        )
-
-    @app.route("/health")
-    def health():
-        return jsonify({"status": "healthy"}), 200
 
 
 def register_error_handlers(app: Flask) -> None:
@@ -374,40 +387,76 @@ def register_cli_commands(app: Flask) -> None:
 
 def setup_hooks(app: Flask) -> None:
     """Setup request/response hooks"""
-    from flask import g, request
+    from flask import g, jsonify, request
 
     from logging_config import PerformanceLogger
 
     @app.before_request
     def before_request():
-        """Setup request context"""
-        # Start performance monitoring for slow requests
+        """Setup request context with security validation"""
+        logger = logging.getLogger("missioncontrol.config")
+        logger.info(f"Making request to: {request.path}, Method: {request.method}")
+
+        # Skip validation for static files and health checks
+        if request.endpoint in ("static", "core.favicon", "core.apple_touch_icon"):
+            return
+
+        # Start performance monitoring
         g.start_time = None
-        if not request.endpoint or request.endpoint not in ["static", "favicon"]:
+        if not request.endpoint or request.endpoint not in ["static", "core.favicon"]:
             g.perf_logger = PerformanceLogger(
                 f"{request.method} {request.endpoint or 'unknown'}"
             )
             g.perf_logger.__enter__()
 
+        # Request size validation for POST/PUT
+        if request.method in ("POST", "PUT") and request.content_length:
+            max_size = app.config.get("MAX_CONTENT_LENGTH", 16 * 1024 * 1024)
+            if request.content_length > max_size:
+                return jsonify({"error": "Request too large"}), 413
+
     @app.after_request
     def after_request(response):
-        """Process response"""
-        # Apply security headers
-        from security_enhancements import add_security_headers
+        """Process response - security headers and compression"""
+        try:
+            from security_enhancements import add_security_headers
 
-        response = add_security_headers(response)
+            response = add_security_headers(response)
 
-        # End performance monitoring
-        if hasattr(g, "perf_logger"):
-            g.perf_logger.__exit__(None, None, None)
+            # Try response compression
+            try:
+                from performance import compress_response
+
+                response = compress_response(response)
+            except Exception:
+                pass
+
+            # End performance monitoring
+            if hasattr(g, "perf_logger"):
+                g.perf_logger.__exit__(None, None, None)
+
+            # Keep-Alive for webhook endpoints (Shopify requirement)
+            if request.path.startswith("/webhooks/") or request.path.startswith(
+                "/webhook/"
+            ):
+                response.headers["Connection"] = "keep-alive"
+                response.headers["Keep-Alive"] = "timeout=5, max=1000"
+
+        except Exception as e:
+            logging.getLogger("missioncontrol.errors").error(
+                f"Error in after_request handler: {e}", exc_info=True
+            )
 
         return response
 
     @app.teardown_appcontext
     def close_db(error):
-        """Close database connection"""
-        if hasattr(g, "db"):
-            g.db.close()
+        """Close database session after each request"""
+        try:
+            if db.session.is_active:
+                db.session.remove()
+        except Exception:
+            pass
 
 
 def create_test_app() -> Flask:
