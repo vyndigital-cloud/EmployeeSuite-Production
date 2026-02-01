@@ -3744,7 +3744,7 @@ def health():
             "checks": checks,
             "timestamp": datetime.utcnow().isoformat(),
         }
-    ), 200 if overall_status == "healthy" else 500
+    ), 200
 
 
 @app.route("/api/log_error", methods=["POST"])

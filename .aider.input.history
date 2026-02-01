@@ -1053,3 +1053,109 @@
 
 # 2026-02-02 03:58:08.147092
 +n
+
+# 2026-02-02 04:04:15.036071
++y
+
+# 2026-02-02 04:04:18.642807
++n
+
+# 2026-02-02 04:04:21.713210
++y
+
+# 2026-02-02 04:04:23.117504
++n
+
+# 2026-02-02 04:06:29.312537
++I did it all for 100% accuracy, then I got this Error: can't compare offset-naive and offset-aware datetimes
++
++Traceback (most recent call last):
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/flask/app.py", line 1484, in full_dispatch_request
++    rv = self.dispatch_request()
++         ^^^^^^^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/flask/app.py", line 1469, in dispatch_request
++    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
++           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/app.py", line 3371, in home
++    has_access = user.has_access()
++                 ^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/models.py", line 131, in has_access
++    return self.is_subscribed or self.is_trial_active()
++                                 ^^^^^^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/models.py", line 126, in is_trial_active
++    datetime.now(timezone.utc) < self.trial_ends_at and not self.is_subscribed
++    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++TypeError: can't compare offset-naive and offset-aware datetimes
+
+# 2026-02-02 04:07:22.138501
++I did it all for 100% accuracy then i got this fam Error: can't compare offset-naive and offset-aware datetimes
++
++Traceback (most recent call last):
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/flask/app.py", line 1484, in full_dispatch_request
++    rv = self.dispatch_request()
++         ^^^^^^^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/.venv/lib/python3.11/site-packages/flask/app.py", line 1469, in dispatch_request
++    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
++           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/app.py", line 3371, in home
++    has_access = user.has_access()
++                 ^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/models.py", line 131, in has_access
++    return self.is_subscribed or self.is_trial_active()
++                                 ^^^^^^^^^^^^^^^^^^^^^^
++  File "/opt/render/project/src/models.py", line 126, in is_trial_active
++    datetime.now(timezone.utc) < self.trial_ends_at and not self.is_subscribed
++    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++TypeError: can't compare offset-naive and offset-aware datetimes
+
+# 2026-02-02 04:16:17.498354
++"Aider, the logs show Decryption failed - invalid token in missioncontrol.encryption.
++
++Check encryption.py (or wherever your encryption logic lives) and ensure it's using the ENCRYPTION_KEY from environment variables.
++
++Check the ShopifyStore model in models.py. Ensure the access_token property correctly handles encryption on write and decryption on read.
++
++If the decryption fails, make sure the code returns None gracefully instead of crashing, so the user is prompted to reconnect (which they are already doing)."
+
+# 2026-02-02 04:18:27.224531
++A
+
+# 2026-02-02 04:21:20.355143
++ok
+
+# 2026-02-02 04:21:29.280698
++o
+
+# 2026-02-02 04:38:02.786972
++"Aider, the logs show Invalid session token: Invalid audience causing 401 errors.
++
++Check the JWT validation logic (likely in auth.py or decorators.py).
++
++Ensure that when it decodes the Shopify session token, it is using SHOPIFY_API_KEY as the expected audience.
++
++Verify that SHOPIFY_API_KEY in my environment variables matches the API Key in my Shopify Partners Dashboard (NOT the Client Secret).
++
++While you're at it, check the redirect_uri in the /install route to make sure it matches the one registered in the Partners Dashboard exactly."
+
+# 2026-02-02 04:38:04.978050
++y
+
+# 2026-02-02 04:48:35.323621
++/clear
+
+# 2026-02-02 04:54:38.553393
++"Aider, we have a multi-front issue based on the latest production logs. Please perform the following:
++
++Fix the Crash: In shopify_oauth.py, fix the UnboundLocalError. The function _handle_oauth_callback cannot find db. Import db correctly so db.session.commit() works.
++
++Update Store State: In the same callback logic, ensure that when a store successfully authenticates, we set is_active = True and clear any uninstalled_at timestamps. The logs show the store is being found but flagged as inactive.
++
++Fix the Health Check: Look at the /health route. It's returning a 500. If it performs a DB check, wrap it in a try/except or ensure the DB connection is ready. We need this to return a 200 for Render/UptimeRobot.
++
++Sync JWT Audience: The logs still show Invalid audience for session tokens. Search the codebase for where JWT_PAYLOAD_EXPECTED_AUDIENCE or the aud check is defined. Ensure it is strictly using the same API Key (8c81ac3c...) that is working for OAuth."
+
+# 2026-02-02 04:54:40.691997
++y
+
+# 2026-02-02 04:59:28.151968
++since i fixed this all locally, how do i deploy? what's the command.
