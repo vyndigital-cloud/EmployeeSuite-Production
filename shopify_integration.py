@@ -1,61 +1,84 @@
-import requests
-import os
 import logging
-from performance import cache_result, CACHE_TTL_INVENTORY, CACHE_TTL_ORDERS
+import os
+
+import requests
+
 from config import SHOPIFY_API_VERSION
+from performance import CACHE_TTL_INVENTORY, CACHE_TTL_ORDERS, cache_result
 
 logger = logging.getLogger(__name__)
 
+
 class ShopifyClient:
     def __init__(self, shop_url, access_token):
-        self.shop_url = shop_url.replace('https://', '').replace('http://', '')
-        
-        # CRITICAL: If token doesn't look like a valid Shopify token, try to decrypt it
-        # This is a safeguard in case a caller passes an encrypted token
-        if access_token and not (access_token.startswith('shpat_') or access_token.startswith('shpca_')):
-            # Token might be encrypted - try to decrypt
+        self.shop_url = shop_url.replace("https://", "").replace("http://", "")
+
+        # Handle encrypted tokens with graceful failure
+        if access_token and not (
+            access_token.startswith("shpat_") or access_token.startswith("shpca_")
+        ):
             try:
                 from data_encryption import decrypt_access_token
+
                 decrypted = decrypt_access_token(access_token)
-                if decrypted and (decrypted.startswith('shpat_') or decrypted.startswith('shpca_')):
-                    logger.info(f"ShopifyClient: Decrypted token (was encrypted)")
-                    access_token = decrypted
+                if decrypted:
+                    self.access_token = decrypted
                 else:
-                    logger.warning(f"ShopifyClient: Token doesn't match expected format and decryption failed or returned invalid format")
+                    logger.warning(
+                        f"Token decryption failed for {shop_url} - store needs reconnection"
+                    )
+                    self.access_token = None  # Force reconnection
             except Exception as e:
-                logger.warning(f"ShopifyClient: Failed to decrypt token: {e}")
-        
-        self.access_token = access_token
+                logger.error(f"Token handling failed for {shop_url}: {e}")
+                self.access_token = None  # Force reconnection
+        else:
+            self.access_token = access_token
         self.api_version = SHOPIFY_API_VERSION  # Match app.json API version
-        
+
         # Debug logging: Verify token format
         if access_token:
-            token_preview = access_token[:10] if len(access_token) > 10 else access_token
+            token_preview = (
+                access_token[:10] if len(access_token) > 10 else access_token
+            )
             token_length = len(access_token)
-            starts_with_shpat = access_token.startswith('shpat_') if access_token else False
-            starts_with_shpca = access_token.startswith('shpca_') if access_token else False
-            
-            logger.info(f"ShopifyClient initialized with token: {token_preview}... (length: {token_length}, starts with shpat_: {starts_with_shpat}, starts with shpca_: {starts_with_shpca})")
-            
+            starts_with_shpat = (
+                access_token.startswith("shpat_") if access_token else False
+            )
+            starts_with_shpca = (
+                access_token.startswith("shpca_") if access_token else False
+            )
+
+            logger.info(
+                f"ShopifyClient initialized with token: {token_preview}... (length: {token_length}, starts with shpat_: {starts_with_shpat}, starts with shpca_: {starts_with_shpca})"
+            )
+
             if not (starts_with_shpat or starts_with_shpca):
-                logger.warning(f"WARNING: Access token doesn't match expected format! Token starts with: {access_token[:20]}")
+                logger.warning(
+                    f"WARNING: Access token doesn't match expected format! Token starts with: {access_token[:20]}"
+                )
         else:
             logger.error("ShopifyClient initialized with None/empty access_token!")
-        
+
     def _get_headers(self):
         # Debug logging: Verify token format before API call
         if self.access_token:
-            token_preview = self.access_token[:10] if len(self.access_token) > 10 else self.access_token
+            token_preview = (
+                self.access_token[:10]
+                if len(self.access_token) > 10
+                else self.access_token
+            )
             token_length = len(self.access_token)
-            logger.debug(f"Using token for API call: {token_preview}... (length: {token_length})")
+            logger.debug(
+                f"Using token for API call: {token_preview}... (length: {token_length})"
+            )
         else:
             logger.error("CRITICAL: No access token available for API call!")
-        
+
         return {
             "X-Shopify-Access-Token": self.access_token,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
-    
+
     def _make_request(self, endpoint, retries=3):
         """
         Make API request with automatic retry logic (professional standard)
@@ -63,13 +86,15 @@ class ShopifyClient:
         """
         url = f"https://{self.shop_url}/admin/api/{self.api_version}/{endpoint}"
         headers = self._get_headers()
-        headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        headers['Pragma'] = 'no-cache'
-        headers['Expires'] = '0'
-        
+        headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        headers["Pragma"] = "no-cache"
+        headers["Expires"] = "0"
+
         for attempt in range(retries):
             try:
-                response = requests.get(url, headers=headers, timeout=10)  # Reduced for faster failures
+                response = requests.get(
+                    url, headers=headers, timeout=10
+                )  # Reduced for faster failures
                 # CRITICAL: Check status code BEFORE raise_for_status to handle 403 properly
                 status_code = response.status_code
                 if status_code == 403:
@@ -77,111 +102,193 @@ class ShopifyClient:
                     error_detail = "Access denied - Missing required permissions"
                     response_text = ""
                     try:
-                        response_text = response.text[:500]  # Get first 500 chars for logging
+                        response_text = response.text[
+                            :500
+                        ]  # Get first 500 chars for logging
                         error_data = response.json()
                         if isinstance(error_data, dict):
-                            errors = error_data.get('errors', {})
+                            errors = error_data.get("errors", {})
                             if isinstance(errors, dict):
                                 # Try multiple error fields
-                                error_detail = errors.get('base', errors.get('message', errors.get('error', [error_detail])))
+                                error_detail = errors.get(
+                                    "base",
+                                    errors.get(
+                                        "message", errors.get("error", [error_detail])
+                                    ),
+                                )
                                 if isinstance(error_detail, list):
-                                    error_detail = error_detail[0] if error_detail else "Access denied - Missing required permissions"
+                                    error_detail = (
+                                        error_detail[0]
+                                        if error_detail
+                                        else "Access denied - Missing required permissions"
+                                    )
                                 elif not error_detail:
-                                    error_detail = "Access denied - Missing required permissions"
+                                    error_detail = (
+                                        "Access denied - Missing required permissions"
+                                    )
                             elif isinstance(errors, str):
                                 error_detail = errors
                             elif isinstance(errors, list) and errors:
-                                error_detail = errors[0] if isinstance(errors[0], str) else str(errors[0])
+                                error_detail = (
+                                    errors[0]
+                                    if isinstance(errors[0], str)
+                                    else str(errors[0])
+                                )
                             # Also check top-level error fields
-                            if error_detail == "Access denied - Missing required permissions":
-                                error_detail = error_data.get('message', error_data.get('error', error_detail))
+                            if (
+                                error_detail
+                                == "Access denied - Missing required permissions"
+                            ):
+                                error_detail = error_data.get(
+                                    "message", error_data.get("error", error_detail)
+                                )
                         elif isinstance(error_data, str):
                             error_detail = error_data
                     except (ValueError, AttributeError, TypeError) as parse_error:
                         # Use response text if JSON parsing failed
                         if response_text:
-                            error_detail = response_text[:200] if len(response_text) < 200 else response_text[:200] + "..."
-                    return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
+                            error_detail = (
+                                response_text[:200]
+                                if len(response_text) < 200
+                                else response_text[:200] + "..."
+                            )
+                    return {
+                        "error": f"{error_detail} - Check your app permissions",
+                        "permission_denied": True,
+                    }
                 response.raise_for_status()
                 return response.json()
             except requests.exceptions.Timeout:
                 if attempt < retries - 1:
                     # Faster retries - max 0.5s delay
                     import time
+
                     time.sleep(min(0.5, 0.2 * (attempt + 1)))
                     continue
-                return {"error": "Request timeout - Shopify API is taking too long to respond"}
+                return {
+                    "error": "Request timeout - Shopify API is taking too long to respond"
+                }
             except requests.exceptions.ConnectionError:
                 if attempt < retries - 1:
                     # Faster retries - max 0.5s delay
                     import time
+
                     time.sleep(min(0.5, 0.2 * (attempt + 1)))
                     continue
-                return {"error": "Connection error - Cannot connect to Shopify. Check your internet connection."}
+                return {
+                    "error": "Connection error - Cannot connect to Shopify. Check your internet connection."
+                }
             except requests.exceptions.HTTPError as e:
                 # CRITICAL: Handle HTTP errors with proper error extraction
-                status_code = e.response.status_code if hasattr(e, 'response') and e.response else None
-                
+                status_code = (
+                    e.response.status_code
+                    if hasattr(e, "response") and e.response
+                    else None
+                )
+
                 # Don't retry on HTTP errors (4xx, 5xx) - these are permanent
                 if status_code == 401:
                     # Authentication failed - token may be expired or revoked
                     error_detail = "Authentication failed"
                     try:
-                        if hasattr(e, 'response') and e.response:
+                        if hasattr(e, "response") and e.response:
                             error_data = e.response.json()
                             if isinstance(error_data, dict):
-                                error_detail = error_data.get('errors', {}).get('base', [error_detail])
+                                error_detail = error_data.get("errors", {}).get(
+                                    "base", [error_detail]
+                                )
                                 if isinstance(error_detail, list):
-                                    error_detail = error_detail[0] if error_detail else "Authentication failed"
+                                    error_detail = (
+                                        error_detail[0]
+                                        if error_detail
+                                        else "Authentication failed"
+                                    )
                             elif isinstance(error_data, str):
                                 error_detail = error_data
                     except (ValueError, AttributeError, TypeError):
                         pass
-                    return {"error": f"{error_detail} - Please reconnect your store", "auth_failed": True}
+                    return {
+                        "error": f"{error_detail} - Please reconnect your store",
+                        "auth_failed": True,
+                    }
                 elif status_code == 403:
                     # Permission denied - missing scopes
                     error_detail = "Access denied - Missing required permissions"
                     response_text = ""
                     try:
-                        response_text = response.text[:500]  # Get first 500 chars for logging
+                        response_text = response.text[
+                            :500
+                        ]  # Get first 500 chars for logging
                         error_data = response.json()
                         if isinstance(error_data, dict):
-                            errors = error_data.get('errors', {})
+                            errors = error_data.get("errors", {})
                             if isinstance(errors, dict):
                                 # Try multiple error fields
-                                error_detail = errors.get('base', errors.get('message', errors.get('error', [error_detail])))
+                                error_detail = errors.get(
+                                    "base",
+                                    errors.get(
+                                        "message", errors.get("error", [error_detail])
+                                    ),
+                                )
                                 if isinstance(error_detail, list):
-                                    error_detail = error_detail[0] if error_detail else "Access denied - Missing required permissions"
+                                    error_detail = (
+                                        error_detail[0]
+                                        if error_detail
+                                        else "Access denied - Missing required permissions"
+                                    )
                                 elif not error_detail:
-                                    error_detail = "Access denied - Missing required permissions"
+                                    error_detail = (
+                                        "Access denied - Missing required permissions"
+                                    )
                             elif isinstance(errors, str):
                                 error_detail = errors
                             elif isinstance(errors, list) and errors:
-                                error_detail = errors[0] if isinstance(errors[0], str) else str(errors[0])
+                                error_detail = (
+                                    errors[0]
+                                    if isinstance(errors[0], str)
+                                    else str(errors[0])
+                                )
                             # Also check top-level error fields
-                            if error_detail == "Access denied - Missing required permissions":
-                                error_detail = error_data.get('message', error_data.get('error', error_detail))
+                            if (
+                                error_detail
+                                == "Access denied - Missing required permissions"
+                            ):
+                                error_detail = error_data.get(
+                                    "message", error_data.get("error", error_detail)
+                                )
                         elif isinstance(error_data, str):
                             error_detail = error_data
                     except (ValueError, AttributeError, TypeError) as parse_error:
                         # Use response text if JSON parsing failed
                         if response_text:
-                            error_detail = response_text[:200] if len(response_text) < 200 else response_text[:200] + "..."
-                    return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
+                            error_detail = (
+                                response_text[:200]
+                                if len(response_text) < 200
+                                else response_text[:200] + "..."
+                            )
+                    return {
+                        "error": f"{error_detail} - Check your app permissions",
+                        "permission_denied": True,
+                    }
                 elif status_code == 429:
                     # Rate limit - wait but not too long
                     if attempt < retries - 1:
                         import time
+
                         time.sleep(min(2, 1 * (attempt + 1)))  # Max 2 seconds
                         continue
-                    return {"error": "Rate limit exceeded - Please wait a moment and try again"}
+                    return {
+                        "error": "Rate limit exceeded - Please wait a moment and try again"
+                    }
                 elif status_code:
                     error_detail = f"API error: {status_code}"
                     try:
-                        if hasattr(e, 'response') and e.response:
+                        if hasattr(e, "response") and e.response:
                             error_data = e.response.json()
                             if isinstance(error_data, dict):
-                                error_detail = str(error_data.get('errors', error_detail))
+                                error_detail = str(
+                                    error_data.get("errors", error_detail)
+                                )
                             elif isinstance(error_data, str):
                                 error_detail = error_data
                     except (ValueError, AttributeError, TypeError):
@@ -192,12 +299,13 @@ class ShopifyClient:
                 if attempt < retries - 1:
                     # Faster retries - max 0.5s delay
                     import time
+
                     time.sleep(min(0.5, 0.2 * (attempt + 1)))
                     continue
                 return {"error": f"Request failed: {str(e)}"}
-        
+
         return {"error": "Request failed after multiple attempts"}
-    
+
     def _make_graphql_request(self, query, variables=None, retries=3):
         """
         Make GraphQL request with automatic retry logic (professional standard)
@@ -205,15 +313,17 @@ class ShopifyClient:
         """
         url = f"https://{self.shop_url}/admin/api/{self.api_version}/graphql.json"
         headers = self._get_headers()
-        headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        
+        headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+
         payload = {"query": query}
         if variables:
             payload["variables"] = variables
-        
+
         for attempt in range(retries):
             try:
-                response = requests.post(url, json=payload, headers=headers, timeout=10)  # Reduced from 15s for faster failures
+                response = requests.post(
+                    url, json=payload, headers=headers, timeout=10
+                )  # Reduced from 15s for faster failures
                 # CRITICAL: Check status code BEFORE raise_for_status to handle 403 properly
                 status_code = response.status_code
                 if status_code == 403:
@@ -221,149 +331,259 @@ class ShopifyClient:
                     error_detail = "Access denied - Missing required permissions"
                     response_text = ""
                     try:
-                        response_text = response.text[:500]  # Get first 500 chars for logging
+                        response_text = response.text[
+                            :500
+                        ]  # Get first 500 chars for logging
                         error_data = response.json()
                         if isinstance(error_data, dict):
-                            errors = error_data.get('errors', {})
+                            errors = error_data.get("errors", {})
                             if isinstance(errors, dict):
                                 # Try multiple error fields
-                                error_detail = errors.get('base', errors.get('message', errors.get('error', [error_detail])))
+                                error_detail = errors.get(
+                                    "base",
+                                    errors.get(
+                                        "message", errors.get("error", [error_detail])
+                                    ),
+                                )
                                 if isinstance(error_detail, list):
-                                    error_detail = error_detail[0] if error_detail else "Access denied - Missing required permissions"
+                                    error_detail = (
+                                        error_detail[0]
+                                        if error_detail
+                                        else "Access denied - Missing required permissions"
+                                    )
                                 elif not error_detail:
-                                    error_detail = "Access denied - Missing required permissions"
+                                    error_detail = (
+                                        "Access denied - Missing required permissions"
+                                    )
                             elif isinstance(errors, str):
                                 error_detail = errors
                             elif isinstance(errors, list) and errors:
-                                error_detail = errors[0] if isinstance(errors[0], str) else str(errors[0])
+                                error_detail = (
+                                    errors[0]
+                                    if isinstance(errors[0], str)
+                                    else str(errors[0])
+                                )
                             # Also check top-level error fields
-                            if error_detail == "Access denied - Missing required permissions":
-                                error_detail = error_data.get('message', error_data.get('error', error_detail))
+                            if (
+                                error_detail
+                                == "Access denied - Missing required permissions"
+                            ):
+                                error_detail = error_data.get(
+                                    "message", error_data.get("error", error_detail)
+                                )
                         elif isinstance(error_data, str):
                             error_detail = error_data
                     except (ValueError, AttributeError, TypeError) as parse_error:
                         # Use response text if JSON parsing failed
                         if response_text:
-                            error_detail = response_text[:200] if len(response_text) < 200 else response_text[:200] + "..."
-                    return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
+                            error_detail = (
+                                response_text[:200]
+                                if len(response_text) < 200
+                                else response_text[:200] + "..."
+                            )
+                    return {
+                        "error": f"{error_detail} - Check your app permissions",
+                        "permission_denied": True,
+                    }
                 response.raise_for_status()
-                
+
                 # CRITICAL: Parse JSON response and check for GraphQL errors
                 # GraphQL can return 200 status even when there are errors in the response
                 try:
                     response_json = response.json()
-                    logger.info(f"GraphQL response received: {list(response_json.keys())}")
-                    
+                    logger.info(
+                        f"GraphQL response received: {list(response_json.keys())}"
+                    )
+
                     # Check for GraphQL errors in the response
-                    if 'errors' in response_json:
-                        errors = response_json['errors']
+                    if "errors" in response_json:
+                        errors = response_json["errors"]
                         logger.error(f"GraphQL errors in response: {errors}")
                         # Extract error message(s)
                         if isinstance(errors, list) and len(errors) > 0:
-                            error_msg = errors[0].get('message', str(errors[0])) if isinstance(errors[0], dict) else str(errors[0])
+                            error_msg = (
+                                errors[0].get("message", str(errors[0]))
+                                if isinstance(errors[0], dict)
+                                else str(errors[0])
+                            )
                         else:
                             error_msg = str(errors)
-                        return {"error": f"GraphQL error: {error_msg}", "graphql_errors": errors}
-                    
+                        return {
+                            "error": f"GraphQL error: {error_msg}",
+                            "graphql_errors": errors,
+                        }
+
                     # Check if data is present
-                    if 'data' not in response_json:
-                        logger.warning(f"GraphQL response missing 'data' field: {response_json}")
-                        return {"error": "GraphQL response missing data field", "response": response_json}
-                    
+                    if "data" not in response_json:
+                        logger.warning(
+                            f"GraphQL response missing 'data' field: {response_json}"
+                        )
+                        return {
+                            "error": "GraphQL response missing data field",
+                            "response": response_json,
+                        }
+
                     # Log successful response structure for debugging
-                    logger.debug(f"GraphQL response structure: data keys = {list(response_json.get('data', {}).keys())}")
-                    
+                    logger.debug(
+                        f"GraphQL response structure: data keys = {list(response_json.get('data', {}).keys())}"
+                    )
+
                     return response_json
                 except ValueError as json_error:
                     # Failed to parse JSON
-                    logger.error(f"Failed to parse GraphQL response as JSON: {json_error}")
+                    logger.error(
+                        f"Failed to parse GraphQL response as JSON: {json_error}"
+                    )
                     logger.error(f"Response status: {response.status_code}")
-                    logger.error(f"Response text (first 500 chars): {response.text[:500]}")
-                    return {"error": f"Failed to parse GraphQL response: {str(json_error)}"}
+                    logger.error(
+                        f"Response text (first 500 chars): {response.text[:500]}"
+                    )
+                    return {
+                        "error": f"Failed to parse GraphQL response: {str(json_error)}"
+                    }
                 except Exception as parse_error:
                     # Any other parsing error
-                    logger.error(f"Unexpected error parsing GraphQL response: {parse_error}")
+                    logger.error(
+                        f"Unexpected error parsing GraphQL response: {parse_error}"
+                    )
                     logger.error(f"Response status: {response.status_code}")
-                    logger.error(f"Response text (first 500 chars): {response.text[:500]}")
-                    return {"error": f"Error parsing GraphQL response: {str(parse_error)}"}
+                    logger.error(
+                        f"Response text (first 500 chars): {response.text[:500]}"
+                    )
+                    return {
+                        "error": f"Error parsing GraphQL response: {str(parse_error)}"
+                    }
             except requests.exceptions.Timeout:
                 if attempt < retries - 1:
                     # Faster retries - max 0.5s delay
                     import time
+
                     time.sleep(min(0.5, 0.2 * (attempt + 1)))
                     continue
-                return {"error": "Request timeout - Shopify API is taking too long to respond"}
+                return {
+                    "error": "Request timeout - Shopify API is taking too long to respond"
+                }
             except requests.exceptions.ConnectionError:
                 if attempt < retries - 1:
                     # Faster retries - max 0.5s delay
                     import time
+
                     time.sleep(min(0.5, 0.2 * (attempt + 1)))
                     continue
-                return {"error": "Connection error - Cannot connect to Shopify. Check your internet connection."}
+                return {
+                    "error": "Connection error - Cannot connect to Shopify. Check your internet connection."
+                }
             except requests.exceptions.HTTPError as e:
                 # CRITICAL: Handle HTTP errors with proper error extraction
-                status_code = e.response.status_code if hasattr(e, 'response') and e.response else None
-                
+                status_code = (
+                    e.response.status_code
+                    if hasattr(e, "response") and e.response
+                    else None
+                )
+
                 # Don't retry on HTTP errors (4xx, 5xx) - these are permanent
                 if status_code == 401:
                     # Authentication failed - token may be expired or revoked
                     error_detail = "Authentication failed"
                     try:
-                        if hasattr(e, 'response') and e.response:
+                        if hasattr(e, "response") and e.response:
                             error_data = e.response.json()
                             if isinstance(error_data, dict):
-                                error_detail = error_data.get('errors', {}).get('base', [error_detail])
+                                error_detail = error_data.get("errors", {}).get(
+                                    "base", [error_detail]
+                                )
                                 if isinstance(error_detail, list):
-                                    error_detail = error_detail[0] if error_detail else "Authentication failed"
+                                    error_detail = (
+                                        error_detail[0]
+                                        if error_detail
+                                        else "Authentication failed"
+                                    )
                             elif isinstance(error_data, str):
                                 error_detail = error_data
                     except (ValueError, AttributeError, TypeError):
                         pass
-                    return {"error": f"{error_detail} - Please reconnect your store", "auth_failed": True}
+                    return {
+                        "error": f"{error_detail} - Please reconnect your store",
+                        "auth_failed": True,
+                    }
                 elif status_code == 403:
                     # Permission denied - missing scopes
                     error_detail = "Access denied - Missing required permissions"
                     response_text = ""
                     try:
-                        response_text = response.text[:500]  # Get first 500 chars for logging
+                        response_text = response.text[
+                            :500
+                        ]  # Get first 500 chars for logging
                         error_data = response.json()
                         if isinstance(error_data, dict):
-                            errors = error_data.get('errors', {})
+                            errors = error_data.get("errors", {})
                             if isinstance(errors, dict):
                                 # Try multiple error fields
-                                error_detail = errors.get('base', errors.get('message', errors.get('error', [error_detail])))
+                                error_detail = errors.get(
+                                    "base",
+                                    errors.get(
+                                        "message", errors.get("error", [error_detail])
+                                    ),
+                                )
                                 if isinstance(error_detail, list):
-                                    error_detail = error_detail[0] if error_detail else "Access denied - Missing required permissions"
+                                    error_detail = (
+                                        error_detail[0]
+                                        if error_detail
+                                        else "Access denied - Missing required permissions"
+                                    )
                                 elif not error_detail:
-                                    error_detail = "Access denied - Missing required permissions"
+                                    error_detail = (
+                                        "Access denied - Missing required permissions"
+                                    )
                             elif isinstance(errors, str):
                                 error_detail = errors
                             elif isinstance(errors, list) and errors:
-                                error_detail = errors[0] if isinstance(errors[0], str) else str(errors[0])
+                                error_detail = (
+                                    errors[0]
+                                    if isinstance(errors[0], str)
+                                    else str(errors[0])
+                                )
                             # Also check top-level error fields
-                            if error_detail == "Access denied - Missing required permissions":
-                                error_detail = error_data.get('message', error_data.get('error', error_detail))
+                            if (
+                                error_detail
+                                == "Access denied - Missing required permissions"
+                            ):
+                                error_detail = error_data.get(
+                                    "message", error_data.get("error", error_detail)
+                                )
                         elif isinstance(error_data, str):
                             error_detail = error_data
                     except (ValueError, AttributeError, TypeError) as parse_error:
                         # Use response text if JSON parsing failed
                         if response_text:
-                            error_detail = response_text[:200] if len(response_text) < 200 else response_text[:200] + "..."
-                    return {"error": f"{error_detail} - Check your app permissions", "permission_denied": True}
+                            error_detail = (
+                                response_text[:200]
+                                if len(response_text) < 200
+                                else response_text[:200] + "..."
+                            )
+                    return {
+                        "error": f"{error_detail} - Check your app permissions",
+                        "permission_denied": True,
+                    }
                 elif status_code == 429:
                     # Rate limit - wait but not too long
                     if attempt < retries - 1:
                         import time
+
                         time.sleep(min(2, 1 * (attempt + 1)))  # Max 2 seconds
                         continue
-                    return {"error": "Rate limit exceeded - Please wait a moment and try again"}
+                    return {
+                        "error": "Rate limit exceeded - Please wait a moment and try again"
+                    }
                 elif status_code:
                     error_detail = f"API error: {status_code}"
                     try:
-                        if hasattr(e, 'response') and e.response:
+                        if hasattr(e, "response") and e.response:
                             error_data = e.response.json()
                             if isinstance(error_data, dict):
-                                error_detail = str(error_data.get('errors', error_detail))
+                                error_detail = str(
+                                    error_data.get("errors", error_detail)
+                                )
                             elif isinstance(error_data, str):
                                 error_detail = error_data
                     except (ValueError, AttributeError, TypeError):
@@ -374,12 +594,13 @@ class ShopifyClient:
                 if attempt < retries - 1:
                     # Faster retries - max 0.5s delay
                     import time
+
                     time.sleep(min(0.5, 0.2 * (attempt + 1)))
                     continue
                 return {"error": f"Request failed: {str(e)}"}
-        
+
         return {"error": "Request failed after multiple attempts"}
-    
+
     @cache_result(ttl=CACHE_TTL_INVENTORY)
     def get_products(self):
         """
@@ -426,130 +647,149 @@ class ShopifyClient:
             }
         }
         """
-        
+
         inventory = []
         cursor = None
         has_next_page = True
-        
+
         # Paginate through all products
         while has_next_page:
             variables = {"first": 250}  # Max 250 products per request
             if cursor:
                 variables["after"] = cursor
             data = self._make_graphql_request(query, variables)
-            
+
             if "error" in data:
                 return {"error": data["error"]}
-            
+
             if "errors" in data:
                 return {"error": str(data["errors"])}
-            
+
             products_data = data.get("data", {}).get("products", {})
             page_info = products_data.get("pageInfo", {})
             has_next_page = page_info.get("hasNextPage", False)
             cursor = page_info.get("endCursor")
-            
+
             # Process products
             for edge in products_data.get("edges", []):
                 try:
                     product = edge.get("node", {})
                     if not product:
                         continue
-                    
+
                     product_title = product.get("title", "Untitled")
-                    
+
                     # Process variants - handle cases where variants might be None or missing
                     variants_data = product.get("variants", {})
                     if not isinstance(variants_data, dict):
                         # If no variants, skip this product
                         continue
-                    
+
                     variant_edges = variants_data.get("edges", [])
                     if not variant_edges:
                         # Product with no variants - still add it with default values
-                        inventory.append({
-                            'product': product_title,
-                            'sku': 'N/A',
-                            'stock': 0,
-                            'price': 'N/A'
-                        })
+                        inventory.append(
+                            {
+                                "product": product_title,
+                                "sku": "N/A",
+                                "stock": 0,
+                                "price": "N/A",
+                            }
+                        )
                         continue
-                    
+
                     # Process each variant
                     for variant_edge in variant_edges:
                         try:
                             variant = variant_edge.get("node", {})
                             if not variant:
                                 continue
-                            
+
                             # Handle None values - Shopify can return None for SKU
-                            sku = variant.get("sku") or 'N/A'
-                            price_value = variant.get("price") or '0'
-                            price = f"${price_value}" if price_value != '0' else 'N/A'
-                            
+                            sku = variant.get("sku") or "N/A"
+                            price_value = variant.get("price") or "0"
+                            price = f"${price_value}" if price_value != "0" else "N/A"
+
                             # Get inventory quantity from GraphQL structure
                             # CRITICAL: Shopify changed to quantities array structure
                             # quantities(names: ["available"]) returns array with {name, quantity}
                             stock = 0
                             inventory_item = variant.get("inventoryItem")
                             if inventory_item and isinstance(inventory_item, dict):
-                                inventory_levels = inventory_item.get("inventoryLevels", {})
-                                if inventory_levels and isinstance(inventory_levels, dict):
+                                inventory_levels = inventory_item.get(
+                                    "inventoryLevels", {}
+                                )
+                                if inventory_levels and isinstance(
+                                    inventory_levels, dict
+                                ):
                                     edges = inventory_levels.get("edges", [])
                                     if edges and len(edges) > 0:
                                         node = edges[0].get("node", {})
                                         if node and isinstance(node, dict):
                                             # Parse quantities array: [{"name": "available", "quantity": 10}]
                                             quantities = node.get("quantities", [])
-                                            if quantities and isinstance(quantities, list):
+                                            if quantities and isinstance(
+                                                quantities, list
+                                            ):
                                                 # Find the "available" quantity
                                                 for q in quantities:
-                                                    if isinstance(q, dict) and q.get("name") == "available":
-                                                        stock = q.get("quantity", 0) or 0
+                                                    if (
+                                                        isinstance(q, dict)
+                                                        and q.get("name") == "available"
+                                                    ):
+                                                        stock = (
+                                                            q.get("quantity", 0) or 0
+                                                        )
                                                         break
-                            
-                            inventory.append({
-                                'product': product_title,
-                                'sku': sku,
-                                'stock': stock,
-                                'price': price
-                            })
+
+                            inventory.append(
+                                {
+                                    "product": product_title,
+                                    "sku": sku,
+                                    "stock": stock,
+                                    "price": price,
+                                }
+                            )
                         except Exception as e:
                             # Skip this variant if there's an error, continue with others
                             continue
                 except Exception as e:
                     # Skip this product if there's an error, continue with others
                     continue
-        
+
         return inventory
-    
+
     @cache_result(ttl=CACHE_TTL_ORDERS)
-    def get_orders(self, status='any', limit=50):
+    def get_orders(self, status="any", limit=50):
         data = self._make_request(f"orders.json?status={status}&limit={limit}")
         if "error" in data:
             return {"error": data["error"]}
         orders = []
-        for order in data.get('orders', []):
-            orders.append({
-                'id': order['order_number'],
-                'customer': order.get('customer', {}).get('email', 'Guest'),
-                'total': f"${order['total_price']}",
-                'items': len(order['line_items']),
-                'status': order.get('financial_status', 'N/A').upper()
-            })
+        for order in data.get("orders", []):
+            orders.append(
+                {
+                    "id": order["order_number"],
+                    "customer": order.get("customer", {}).get("email", "Guest"),
+                    "total": f"${order['total_price']}",
+                    "items": len(order["line_items"]),
+                    "status": order.get("financial_status", "N/A").upper(),
+                }
+            )
         return orders
-    
+
     def get_low_stock(self, threshold=5):
         inventory = self.get_products()
         if isinstance(inventory, dict) and "error" in inventory:
             return inventory
-        return [item for item in inventory if item['stock'] < threshold]
+        return [item for item in inventory if item["stock"] < threshold]
+
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
+
     load_dotenv()
-    SHOP_URL = os.getenv('SHOPIFY_URL', 'testsuite-dev.myshopify.com')
-    ACCESS_TOKEN = os.getenv('SHOPIFY_TOKEN', '')
+    SHOP_URL = os.getenv("SHOPIFY_URL", "testsuite-dev.myshopify.com")
+    ACCESS_TOKEN = os.getenv("SHOPIFY_TOKEN", "")
     if not ACCESS_TOKEN:
         print("No SHOPIFY_TOKEN found in .env file!")
         exit(1)

@@ -4106,6 +4106,15 @@ def api_process_orders():
         store = ShopifyStore.query.filter_by(
             shop_url=shop_domain, is_active=True
         ).first()
+        if store and not store.get_access_token():
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "Store connection expired. Please reconnect your store.",
+                    "action": "reconnect",
+                    "action_url": "/install",
+                }
+            ), 401
         if store:
             user = store.user
 
@@ -4431,6 +4440,15 @@ def api_generate_report():
         store = ShopifyStore.query.filter_by(
             shop_url=shop_domain, is_active=True
         ).first()
+        if store and not store.get_access_token():
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "Store connection expired. Please reconnect your store.",
+                    "action": "reconnect",
+                    "action_url": "/install",
+                }
+            ), 401
         if store:
             user = store.user
 
@@ -5122,6 +5140,41 @@ def init_db():
 _db_initialized = False
 
 
+def fix_encrypted_tokens():
+    """Fix existing encrypted tokens that can't be decrypted"""
+    try:
+        from data_encryption import decrypt_access_token
+        from models import ShopifyStore
+
+        # Find stores with potentially corrupted tokens
+        stores = ShopifyStore.query.filter(
+            ShopifyStore.access_token.isnot(None), ShopifyStore.is_active == True
+        ).all()
+
+        corrupted_count = 0
+        for store in stores:
+            try:
+                # Test if token can be decrypted
+                decrypted = decrypt_access_token(store.access_token)
+                if decrypted is None:
+                    # Mark as needing reconnection
+                    store.is_active = False
+                    corrupted_count += 1
+            except Exception:
+                store.is_active = False
+                corrupted_count += 1
+
+        if corrupted_count > 0:
+            db.session.commit()
+            logger.info(
+                f"Marked {corrupted_count} stores for reconnection due to encryption issues"
+            )
+
+    except Exception as e:
+        logger.error(f"Token cleanup failed: {e}")
+        db.session.rollback()
+
+
 def ensure_db_initialized():
     """Thread-safe database initialization"""
     global _db_initialized
@@ -5176,6 +5229,9 @@ def ensure_db_initialized():
                     db.session.rollback()
                     if "already exists" not in str(e).lower():
                         logger.warning(f"Migration failed: {e}")
+
+            # Fix encrypted tokens that can't be decrypted
+            fix_encrypted_tokens()
 
             _db_initialized = True
             logger.info("✅ Database initialized successfully with safe migrations")
