@@ -465,6 +465,27 @@ def run_migrations(app) -> None:
                 )
                 logger.info("Added is_active column to users table")
 
+            # Add last_login column if it doesn't exist
+            if "last_login" not in user_columns:
+                db.session.execute(
+                    text("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
+                )
+                logger.info("Added last_login column to users table")
+
+            # Add reset_token column if it doesn't exist
+            if "reset_token" not in user_columns:
+                db.session.execute(
+                    text("ALTER TABLE users ADD COLUMN reset_token VARCHAR(100)")
+                )
+                logger.info("Added reset_token column to users table")
+
+            # Add reset_token_expires column if it doesn't exist
+            if "reset_token_expires" not in user_columns:
+                db.session.execute(
+                    text("ALTER TABLE users ADD COLUMN reset_token_expires TIMESTAMP")
+                )
+                logger.info("Added reset_token_expires column to users table")
+
             # Add shop_name column if it doesn't exist
             if "shop_name" not in store_columns:
                 db.session.execute(
