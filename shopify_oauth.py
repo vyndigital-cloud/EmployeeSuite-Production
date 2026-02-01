@@ -555,6 +555,7 @@ def _handle_oauth_callback():
         store.access_token = encrypted_token
         store.shop_id = shop_id
         store.is_active = True
+        store.uninstalled_at = None  # Clear uninstalled timestamp
         store.user_id = user.id  # Ensure it's linked to the correct user
         logger.info(
             f"Updated existing store {shop} with new OAuth access_token (old: {old_token_preview}..., new: {new_token_preview}..., old_user_id: {old_user_id}, new_user_id: {user.id})"
@@ -578,6 +579,7 @@ def _handle_oauth_callback():
             shop_id=shop_id,
             access_token=encrypted_token,
             is_active=True,
+            uninstalled_at=None,  # Ensure it's explicitly None for new stores
         )
         db.session.add(store)
         token_preview = access_token[:10] if len(access_token) > 10 else access_token

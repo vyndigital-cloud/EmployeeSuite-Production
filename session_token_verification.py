@@ -11,8 +11,17 @@ from flask import jsonify, request
 
 from logging_config import logger
 
-SHOPIFY_API_KEY = os.getenv("SHOPIFY_API_KEY")
-SHOPIFY_API_SECRET = os.getenv("SHOPIFY_API_SECRET")
+SHOPIFY_API_KEY = os.getenv("SHOPIFY_API_KEY", "").strip()
+SHOPIFY_API_SECRET = os.getenv("SHOPIFY_API_SECRET", "").strip()
+
+# Remove quotes if present (apply same normalization as in verify_session_token)
+if SHOPIFY_API_KEY and len(SHOPIFY_API_KEY) > 2:
+    if (
+        SHOPIFY_API_KEY.startswith('"') and SHOPIFY_API_KEY.endswith('"')
+    ) or (
+        SHOPIFY_API_KEY.startswith("'") and SHOPIFY_API_KEY.endswith("'")
+    ):
+        SHOPIFY_API_KEY = SHOPIFY_API_KEY[1:-1].strip()
 
 
 def validate_shopify_config():
@@ -96,19 +105,25 @@ def verify_session_token(f):
                 # Verify audience (should be API key)
                 aud = payload.get("aud")
 
-                # LAZY LOAD: Get API key at runtime with better error handling
+                # CRITICAL: Use the exact same API key that OAuth uses
+                # Get API key with same normalization as OAuth flow
                 current_api_key = os.getenv("SHOPIFY_API_KEY", "").strip()
 
                 # Remove quotes if present (common environment variable issue)
                 if current_api_key and len(current_api_key) > 2:
                     if (
-                        current_api_key.startswith('"')
-                        and current_api_key.endswith('"')
+                        current_api_key.startswith('"') and current_api_key.endswith('"')
                     ) or (
-                        current_api_key.startswith("'")
-                        and current_api_key.endswith("'")
+                        current_api_key.startswith("'") and current_api_key.endswith("'")
                     ):
                         current_api_key = current_api_key[1:-1].strip()
+
+                # Ensure we're using the same API key format as OAuth
+                # Log for debugging but don't expose full key
+                if current_api_key:
+                    logger.debug(f"JWT validation using API key: {current_api_key[:8]}... (len: {len(current_api_key)})")
+                else:
+                    logger.error("CRITICAL: SHOPIFY_API_KEY not found for JWT validation")
 
                 # Validate API key is present
                 if not current_api_key:
