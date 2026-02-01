@@ -1175,3 +1175,26 @@
 +D. The Infrastructure Stability: The /health route is returning a 500. This is causing deployment instability. Re-write the /health route to be a robust, minimal check that returns a 200 OK. If it checks the DB, wrap it in a try/except block to prevent a total app crash if the DB is momentarily busy.
 +
 +E. The URL Cleanup: Standardize the redirect_uri construction. Ensure it is a clean string without brackets or quotes, and that the same string is used for both the initial redirect and the final token exchange."
+
+# 2026-02-02 05:14:23.748587
++"Aider, we are using Sonnet 3.7 for a final system reconciliation. The logs prove the OAuth handshake is successful, but the app crashes at the very end of the callback. Perform these steps:
++
++Fix the Scoping Crash: In shopify_oauth.py, locate the _handle_oauth_callback function. It is throwing an UnboundLocalError on db.session.commit(). You must ensure db is properly imported (likely from models.py) and available within this function scope. If there is a circular import risk, import db inside the function.
++
++Finalize Store Activation: The log Updated existing store... set is_active=True shows the logic is correct, but the crash prevents the save. Ensure that after the db scope is fixed, this commit actually happens so the store isn't stuck as 'inactive' on the next request.
++
++Kill the 'Invalid Audience' Error: The logs still show Invalid session token: Invalid audience.
++
++Search the codebase for your JWT validation/decorator (e.g., in auth_scopes.py or decorators.py).
++
++The audience check MUST match the API Key: 8c81ac3c....
++
++Ensure the code is reading SHOPIFY_API_KEY from the environment as a clean string.
++
++Standardize Redirects: Confirm that the redirect_uri used in shopify_oauth.py is a clean string: https://employeesuite-production.onrender.com/auth/callback. No brackets, no quotes."
+
+# 2026-02-02 05:14:26.631143
++y
+
+# 2026-02-02 05:17:00.502120
++deploy command?
