@@ -119,12 +119,20 @@ class User(UserMixin, db.Model, TimestampMixin):
         return check_password_hash(self.password_hash, password)
 
     def is_trial_active(self) -> bool:
-        """Check if trial is still active"""
+        """Check if user's trial is still active"""
         if not self.trial_ends_at:
             return False
-        return (
-            datetime.now(timezone.utc) < self.trial_ends_at and not self.is_subscribed
-        )
+
+        # FIX: Handle timezone-aware vs timezone-naive datetime comparison
+        now = datetime.now(timezone.utc)
+
+        # Make trial_ends_at timezone-aware if it's naive
+        if self.trial_ends_at.tzinfo is None:
+            trial_end = self.trial_ends_at.replace(tzinfo=timezone.utc)
+        else:
+            trial_end = self.trial_ends_at
+
+        return now < trial_end and not self.is_subscribed
 
     def has_access(self) -> bool:
         """Check if user has access (subscribed or trial active)"""
