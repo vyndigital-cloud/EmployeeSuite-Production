@@ -5115,6 +5115,161 @@ def ensure_db_initialized():
             else:
                 logger.warning(f"Column add attempt: {col_err}")
 
+        # Add missing shopify_stores columns
+        try:
+            db.session.execute(
+                text("ALTER TABLE shopify_stores ADD COLUMN shop_name VARCHAR(255)")
+            )
+            logger.info("✅ Added missing shop_name column to shopify_stores")
+        except Exception as col_err:
+            if (
+                "already exists" in str(col_err).lower()
+                or "duplicate" in str(col_err).lower()
+            ):
+                logger.debug("Column shop_name already exists on shopify_stores table")
+            else:
+                logger.warning(f"Column add attempt: {col_err}")
+
+        try:
+            db.session.execute(
+                text("ALTER TABLE shopify_stores ADD COLUMN shop_id BIGINT")
+            )
+            logger.info("✅ Added missing shop_id column to shopify_stores")
+        except Exception as col_err:
+            if (
+                "already exists" in str(col_err).lower()
+                or "duplicate" in str(col_err).lower()
+            ):
+                logger.debug("Column shop_id already exists on shopify_stores table")
+            else:
+                logger.warning(f"Column add attempt: {col_err}")
+
+        try:
+            db.session.execute(
+                text("ALTER TABLE shopify_stores ADD COLUMN charge_id VARCHAR(255)")
+            )
+            logger.info("✅ Added missing charge_id column to shopify_stores")
+        except Exception as col_err:
+            if (
+                "already exists" in str(col_err).lower()
+                or "duplicate" in str(col_err).lower()
+            ):
+                logger.debug("Column charge_id already exists on shopify_stores table")
+            else:
+                logger.warning(f"Column add attempt: {col_err}")
+
+        try:
+            db.session.execute(
+                text("ALTER TABLE shopify_stores ADD COLUMN uninstalled_at TIMESTAMP")
+            )
+            logger.info("✅ Added missing uninstalled_at column to shopify_stores")
+        except Exception as col_err:
+            if (
+                "already exists" in str(col_err).lower()
+                or "duplicate" in str(col_err).lower()
+            ):
+                logger.debug("Column uninstalled_at already exists on shopify_stores table")
+            else:
+                logger.warning(f"Column add attempt: {col_err}")
+
+        try:
+            db.session.execute(
+                text("ALTER TABLE shopify_stores ADD COLUMN shop_domain VARCHAR(255)")
+            )
+            logger.info("✅ Added missing shop_domain column to shopify_stores")
+        except Exception as col_err:
+            if (
+                "already exists" in str(col_err).lower()
+                or "duplicate" in str(col_err).lower()
+            ):
+                logger.debug("Column shop_domain already exists on shopify_stores table")
+            else:
+                logger.warning(f"Column add attempt: {col_err}")
+
+        try:
+            db.session.execute(
+                text("ALTER TABLE shopify_stores ADD COLUMN shop_email VARCHAR(255)")
+            )
+            logger.info("✅ Added missing shop_email column to shopify_stores")
+        except Exception as col_err:
+            if (
+                "already exists" in str(col_err).lower()
+                or "duplicate" in str(col_err).lower()
+            ):
+                logger.debug("Column shop_email already exists on shopify_stores table")
+            else:
+                logger.warning(f"Column add attempt: {col_err}")
+
+        try:
+            db.session.execute(
+                text("ALTER TABLE shopify_stores ADD COLUMN shop_timezone VARCHAR(255)")
+            )
+            logger.info("✅ Added missing shop_timezone column to shopify_stores")
+        except Exception as col_err:
+            if (
+                "already exists" in str(col_err).lower()
+                or "duplicate" in str(col_err).lower()
+            ):
+                logger.debug("Column shop_timezone already exists on shopify_stores table")
+            else:
+                logger.warning(f"Column add attempt: {col_err}")
+
+        try:
+            db.session.execute(
+                text("ALTER TABLE shopify_stores ADD COLUMN shop_currency VARCHAR(10)")
+            )
+            logger.info("✅ Added missing shop_currency column to shopify_stores")
+        except Exception as col_err:
+            if (
+                "already exists" in str(col_err).lower()
+                or "duplicate" in str(col_err).lower()
+            ):
+                logger.debug("Column shop_currency already exists on shopify_stores table")
+            else:
+                logger.warning(f"Column add attempt: {col_err}")
+
+        try:
+            db.session.execute(
+                text("ALTER TABLE shopify_stores ADD COLUMN billing_plan VARCHAR(50)")
+            )
+            logger.info("✅ Added missing billing_plan column to shopify_stores")
+        except Exception as col_err:
+            if (
+                "already exists" in str(col_err).lower()
+                or "duplicate" in str(col_err).lower()
+            ):
+                logger.debug("Column billing_plan already exists on shopify_stores table")
+            else:
+                logger.warning(f"Column add attempt: {col_err}")
+
+        try:
+            db.session.execute(
+                text("ALTER TABLE shopify_stores ADD COLUMN scopes_granted VARCHAR(500)")
+            )
+            logger.info("✅ Added missing scopes_granted column to shopify_stores")
+        except Exception as col_err:
+            if (
+                "already exists" in str(col_err).lower()
+                or "duplicate" in str(col_err).lower()
+            ):
+                logger.debug("Column scopes_granted already exists on shopify_stores table")
+            else:
+                logger.warning(f"Column add attempt: {col_err}")
+
+        try:
+            db.session.execute(
+                text("ALTER TABLE shopify_stores ADD COLUMN is_installed BOOLEAN DEFAULT TRUE")
+            )
+            logger.info("✅ Added missing is_installed column to shopify_stores")
+        except Exception as col_err:
+            if (
+                "already exists" in str(col_err).lower()
+                or "duplicate" in str(col_err).lower()
+            ):
+                logger.debug("Column is_installed already exists on shopify_stores table")
+            else:
+                logger.warning(f"Column add attempt: {col_err}")
+
         db.session.commit()
         _db_initialized = True
         logger.info("✅ Database initialized successfully with emergency fixes")
