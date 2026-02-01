@@ -107,16 +107,13 @@ from gdpr_compliance import gdpr_bp
 from inventory import update_inventory
 from legal_routes import legal_bp
 
-# Register new blueprints for Shopify compliance
-from shopify_webhooks import webhooks_bp
-from gdpr_endpoints import gdpr_bp
-from shopify_billing_api import billing_bp
-from shopify_metafields import metafields_bp
+# Register new blueprints for Shopify compliance (moved after app creation)
+from shopify_webhooks import webhooks_bp as shopify_webhooks_bp
+from gdpr_endpoints import gdpr_bp as gdpr_endpoints_bp
+from shopify_billing_api import billing_bp as shopify_billing_bp
+from shopify_metafields import metafields_bp as shopify_metafields_bp
 
-app.register_blueprint(webhooks_bp)
-app.register_blueprint(gdpr_bp)
-app.register_blueprint(billing_bp)
-app.register_blueprint(metafields_bp)
+# These will be registered after app is created below
 from logging_config import logger
 from models import ShopifyStore, User, db
 from order_processing import process_orders
@@ -672,6 +669,13 @@ app.register_blueprint(faq_bp)
 app.register_blueprint(webhook_bp)
 app.register_blueprint(webhook_shopify_bp)
 app.register_blueprint(gdpr_bp)
+
+# Shopify compliance blueprints
+app.register_blueprint(shopify_webhooks_bp)
+app.register_blueprint(gdpr_endpoints_bp)
+app.register_blueprint(shopify_billing_bp)
+app.register_blueprint(shopify_metafields_bp)
+
 # Enhanced features blueprints
 app.register_blueprint(enhanced_bp)
 app.register_blueprint(features_pages_bp)
