@@ -1159,3 +1159,19 @@
 
 # 2026-02-02 04:59:28.151968
 +since i fixed this all locally, how do i deploy? what's the command.
+
+# 2026-02-02 05:01:14.990332
++y
+
+# 2026-02-02 05:05:49.805556
++Aider, we are using Claude 3.7 to perform a total system reconciliation. The app is currently failing at every critical junction. Perform these 5 steps in order to F-U-L-L-Y fix the app:
++
++A. The Database Scope Fix: In shopify_oauth.py, fix the UnboundLocalError. The variable db is referenced in _handle_oauth_callback but is not in scope. Ensure db is imported and available so db.session.commit() functions properly.
++
++B. The Identity Sync: The logs show Invalid audience for session tokens. You must find the JWT validation logic (check decorators and auth utilities). Ensure the audience it expects is the Shopify API Key (8c81ac3c...). Also, ensure the code is not stripping or adding characters to the API Key when reading it from the environment.
++
++C. The Lifecycle Recovery: Even when OAuth works, the logs say the store is explicitly inactive (is_active=False). Modify the OAuth callback so that upon a successful token exchange, the store's is_active flag is set to True and uninstalled_at is set to None.
++
++D. The Infrastructure Stability: The /health route is returning a 500. This is causing deployment instability. Re-write the /health route to be a robust, minimal check that returns a 200 OK. If it checks the DB, wrap it in a try/except block to prevent a total app crash if the DB is momentarily busy.
++
++E. The URL Cleanup: Standardize the redirect_uri construction. Ensure it is a clean string without brackets or quotes, and that the same string is used for both the initial redirect and the final token exchange."
