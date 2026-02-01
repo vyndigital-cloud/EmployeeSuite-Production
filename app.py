@@ -764,8 +764,8 @@ def validate_request_security():
     if request.endpoint in ("static", "health") or request.endpoint is None:
         return
 
-    # Ensure database is initialized (lazy initialization - non-blocking)
-    # Only initialize on actual requests, not health checks
+    # CRITICAL: Ensure database is initialized BEFORE any route processing
+    # This must run for OAuth callbacks too, as they need the database columns
     ensure_db_initialized()
 
     # Skip for webhook endpoints (they have HMAC verification)
@@ -781,6 +781,7 @@ def validate_request_security():
         return
 
     # Skip for OAuth callbacks (Shopify handles security)
+    # Note: Database is already initialized above, so this is safe
     if request.path.startswith("/auth/callback") or request.path.startswith("/install"):
         return
 
@@ -5114,6 +5115,17 @@ def ensure_db_initialized():
                 logger.debug("Column reset_token_expires already exists on users table")
             else:
                 logger.warning(f"Column add attempt: {col_err}")
+
+        # CRITICAL: Commit users table columns immediately so they're available for OAuth callbacks
+        try:
+            db.session.commit()
+            logger.info("✅ Users table columns committed")
+        except Exception as commit_err:
+            logger.warning(f"Commit attempt failed: {commit_err}")
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
 
         # Add missing shopify_stores columns
         try:
