@@ -340,6 +340,9 @@ def callback():
     """Handle Shopify OAuth callback"""
     import traceback
 
+    # Log all received parameters for debugging
+    logger.info(f"OAuth callback received parameters: {dict(request.args)}")
+    
     try:
         return _handle_oauth_callback()
     except Exception as e:
@@ -356,15 +359,21 @@ def _handle_oauth_callback():
         logger.error("OAuth callback failed: Missing API credentials")
         return "Configuration error: API credentials not set", 500
 
+    # Log all parameters for debugging
+    all_params = dict(request.args)
+    logger.info(f"OAuth callback parameters: {all_params}")
+    
     shop = request.args.get("shop")
     code = request.args.get("code")
     state = request.args.get("state")
 
     if not shop or not code:
-        logger.error(
-            f"OAuth callback failed: Missing parameters - shop={bool(shop)}, code={bool(code)}"
-        )
-        return "Missing required parameters", 400
+        logger.error(f"OAuth callback failed: Missing parameters")
+        logger.error(f"  shop: {shop}")
+        logger.error(f"  code: {'present' if code else 'missing'}")
+        logger.error(f"  state: {state}")
+        logger.error(f"  all params: {all_params}")
+        return "Missing required parameters (shop or code)", 400
 
     # Verify HMAC
     hmac_verified = verify_hmac(request.args)
@@ -666,9 +675,6 @@ def verify_hmac(params):
 def exchange_code_for_token(shop, code):
     """Exchange authorization code for access token"""
     url = f"https://{shop}/admin/oauth/access_token"
-    
-    # Use the same clean redirect URI
-    clean_redirect_uri = REDIRECT_URI.strip().strip('"').strip("'")
     
     payload = {
         "client_id": SHOPIFY_API_KEY,

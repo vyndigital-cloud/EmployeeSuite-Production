@@ -106,7 +106,6 @@ def verify_session_token(f):
                 aud = payload.get("aud")
 
                 # CRITICAL: Use the exact same API key normalization as OAuth
-                # Get API key with same normalization as OAuth flow
                 current_api_key = os.getenv("SHOPIFY_API_KEY", "").strip()
 
                 # Apply the EXACT same normalization as in shopify_oauth.py
@@ -124,11 +123,6 @@ def verify_session_token(f):
                     logger.error("SHOPIFY_API_KEY environment variable is NOT SET or empty")
                     return jsonify({"error": "Server configuration error - missing API key"}), 500
 
-                # Enhanced logging for debugging
-                logger.debug(f"JWT audience validation:")
-                logger.debug(f"  Token audience: {aud}")
-                logger.debug(f"  Expected API key: {current_api_key[:8]}{'*' * (len(current_api_key) - 8)}")
-
                 # Validate audience matches API key
                 if not aud:
                     logger.warning("JWT token missing audience field")
@@ -136,8 +130,8 @@ def verify_session_token(f):
 
                 if aud != current_api_key:
                     logger.warning(f"JWT audience mismatch:")
-                    logger.warning(f"  Received: {aud[:8]}{'*' * max(0, len(aud) - 8)} (len: {len(aud)})")
-                    logger.warning(f"  Expected: {current_api_key[:8]}{'*' * max(0, len(current_api_key) - 8)} (len: {len(current_api_key)})")
+                    logger.warning(f"  Received: {aud}")
+                    logger.warning(f"  Expected: {current_api_key}")
                     return jsonify({"error": "Invalid token audience (API Key mismatch)"}), 401
 
                 # Verify destination (should match shop domain)
