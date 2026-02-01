@@ -519,6 +519,7 @@ def handle_400(e):
 
 # Database error handler - catch before general handler
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import or_
 
 
 def handle_database_error_specifically(e):
@@ -3261,7 +3262,7 @@ def home():
                     )
                     .first()
                 )
-                if store and store.is_active != False:
+                if store and (store.is_active is True or store.is_active is None):
                     # Treat NULL as True (active) for existing stores
                     pass
                 elif store:
@@ -3308,7 +3309,7 @@ def home():
             try:
                 has_shopify = (
                     ShopifyStore.query.filter(
-                        ShopifyStore.user_id == user_id, ShopifyStore.is_active != False
+                        ShopifyStore.user_id == user_id, or_(ShopifyStore.is_active == True, ShopifyStore.is_active.is_(None))
                     ).first()
                     is not None
                 )
@@ -3320,7 +3321,7 @@ def home():
             try:
                 has_shopify = (
                     ShopifyStore.query.filter(
-                        ShopifyStore.shop_url == shop, ShopifyStore.is_active != False
+                        ShopifyStore.shop_url == shop, or_(ShopifyStore.is_active == True, ShopifyStore.is_active.is_(None))
                     ).first()
                     is not None
                 )
@@ -3343,7 +3344,7 @@ def home():
             try:
                 store = (
                     ShopifyStore.query.filter(
-                        ShopifyStore.user_id == user_id, ShopifyStore.is_active != False
+                        ShopifyStore.user_id == user_id, or_(ShopifyStore.is_active == True, ShopifyStore.is_active.is_(None))
                     )
                     .order_by(ShopifyStore.created_at.desc())
                     .first()
@@ -3358,7 +3359,7 @@ def home():
             try:
                 store = (
                     ShopifyStore.query.filter(
-                        ShopifyStore.shop_url == shop, ShopifyStore.is_active != False
+                        ShopifyStore.shop_url == shop, or_(ShopifyStore.is_active == True, ShopifyStore.is_active.is_(None))
                     )
                     .order_by(ShopifyStore.created_at.desc())
                     .first()
@@ -5048,7 +5049,7 @@ def ensure_db_initialized():
                 "already exists" in str(col_err).lower()
                 or "duplicate" in str(col_err).lower()
             ):
-                logger.debug(f"Column {column} already exists on {table}")
+                logger.debug("Column is_active already exists on users table")
             else:
                 logger.warning(f"Column add attempt: {col_err}")
 
@@ -5065,7 +5066,7 @@ def ensure_db_initialized():
                 "already exists" in str(col_err).lower()
                 or "duplicate" in str(col_err).lower()
             ):
-                logger.debug(f"Column {column} already exists on {table}")
+                logger.debug("Column email_verified already exists on users table")
             else:
                 logger.warning(f"Column add attempt: {col_err}")
 
@@ -5080,7 +5081,7 @@ def ensure_db_initialized():
                 "already exists" in str(col_err).lower()
                 or "duplicate" in str(col_err).lower()
             ):
-                logger.debug(f"Column {column} already exists on {table}")
+                logger.debug("Column last_login already exists on users table")
             else:
                 logger.warning(f"Column add attempt: {col_err}")
 
@@ -5095,7 +5096,7 @@ def ensure_db_initialized():
                 "already exists" in str(col_err).lower()
                 or "duplicate" in str(col_err).lower()
             ):
-                logger.debug(f"Column {column} already exists on {table}")
+                logger.debug("Column reset_token already exists on users table")
             else:
                 logger.warning(f"Column add attempt: {col_err}")
 
@@ -5110,7 +5111,7 @@ def ensure_db_initialized():
                 "already exists" in str(col_err).lower()
                 or "duplicate" in str(col_err).lower()
             ):
-                logger.debug(f"Column {column} already exists on {table}")
+                logger.debug("Column reset_token_expires already exists on users table")
             else:
                 logger.warning(f"Column add attempt: {col_err}")
 

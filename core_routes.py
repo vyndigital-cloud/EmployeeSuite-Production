@@ -28,6 +28,7 @@ from access_control import require_access
 from logging_config import log_comprehensive_error, logger
 from models import ShopifyStore, User, db
 from session_token_verification import get_shop_from_session_token, verify_session_token
+from sqlalchemy import or_
 from utils import safe_redirect
 
 core_bp = Blueprint("core", __name__)
@@ -349,7 +350,7 @@ def home():
             try:
                 has_shopify = (
                     ShopifyStore.query.filter(
-                        ShopifyStore.user_id == user_id, ShopifyStore.is_active != False
+                        ShopifyStore.user_id == user_id, or_(ShopifyStore.is_active == True, ShopifyStore.is_active.is_(None))
                     ).first()
                     is not None
                 )
@@ -360,7 +361,7 @@ def home():
             try:
                 has_shopify = (
                     ShopifyStore.query.filter(
-                        ShopifyStore.shop_url == shop, ShopifyStore.is_active != False
+                        ShopifyStore.shop_url == shop, or_(ShopifyStore.is_active == True, ShopifyStore.is_active.is_(None))
                     ).first()
                     is not None
                 )
@@ -380,7 +381,7 @@ def home():
             try:
                 store = (
                     ShopifyStore.query.filter(
-                        ShopifyStore.user_id == user_id, ShopifyStore.is_active != False
+                        ShopifyStore.user_id == user_id, or_(ShopifyStore.is_active == True, ShopifyStore.is_active.is_(None))
                     )
                     .order_by(ShopifyStore.created_at.desc())
                     .first()
@@ -395,7 +396,7 @@ def home():
             try:
                 store = (
                     ShopifyStore.query.filter(
-                        ShopifyStore.shop_url == shop, ShopifyStore.is_active != False
+                        ShopifyStore.shop_url == shop, or_(ShopifyStore.is_active == True, ShopifyStore.is_active.is_(None))
                     )
                     .order_by(ShopifyStore.created_at.desc())
                     .first()
