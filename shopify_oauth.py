@@ -407,9 +407,16 @@ def _handle_oauth_callback():
                 try:
                     from sqlalchemy import text
                     from models import db
-                    # Add missing last_login column
-                    db.session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP"))
-                    db.session.commit()
+                    # Add missing last_login column (PostgreSQL doesn't support IF NOT EXISTS in ALTER TABLE)
+                    try:
+                        db.session.execute(text("ALTER TABLE users ADD COLUMN last_login TIMESTAMP"))
+                        db.session.commit()
+                    except Exception as add_err:
+                        if "already exists" in str(add_err).lower() or "duplicate" in str(add_err).lower():
+                            db.session.rollback()
+                            logger.debug("Column last_login already exists")
+                        else:
+                            raise
                     logger.info("✅ Added missing last_login column on-the-fly")
                     # Retry query
                     user = User.query.filter_by(email=f"{shop}@shopify.com").first()

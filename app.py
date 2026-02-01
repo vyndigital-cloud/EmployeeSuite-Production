@@ -5030,17 +5030,27 @@ _db_initialized = False
 
 
 def ensure_db_initialized():
-    """Lazy database initialization - called on first request"""
+    """Lazy database initialization - called on first request - BULLETPROOF VERSION"""
     global _db_initialized
     # Always check and add missing columns, even if _db_initialized is True
     # This handles cases where initialization partially failed
     try:
         init_db()
         # EMERGENCY FIX: Add missing columns if they don't exist
+        # Use models.py migration function which is more robust
         try:
-            from sqlalchemy import text
-
-            # Add is_active column if missing
+            from models import run_migrations
+            run_migrations(app)
+            logger.info("✅ Ran migrations from models.py")
+        except Exception as mig_err:
+            logger.warning(f"Migration from models.py failed, using emergency fix: {mig_err}")
+        
+        # Always run emergency column additions as backup (even if migrations succeeded)
+        # This ensures columns exist even if migration function has issues
+        from sqlalchemy import text
+        
+        # Add is_active column if missing
+        try:
             db.session.execute(
                 text("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE")
             )
@@ -5282,17 +5292,29 @@ def ensure_db_initialized():
             else:
                 logger.warning(f"Column add attempt: {col_err}")
 
-        db.session.commit()
+        # Final commit for all shopify_stores columns
+        try:
+            db.session.commit()
+            logger.info("✅ All database columns committed successfully")
+        except Exception as final_commit_err:
+            logger.warning(f"Final commit failed: {final_commit_err}")
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+        
         _db_initialized = True
         logger.info("✅ Database initialized successfully with emergency fixes")
     except Exception as e:
-        logger.warning(f"Database initialization deferred: {e}")
+        logger.error(f"Database initialization failed: {e}", exc_info=True)
         # Don't set _db_initialized = True if initialization failed
         # This allows retry on next request
         try:
             db.session.rollback()
         except Exception:
             pass
+        # Re-raise to allow caller to handle
+        raise
 
 
 try:
