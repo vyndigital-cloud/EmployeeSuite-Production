@@ -14,7 +14,7 @@ from logging_config import logger
 SHOPIFY_API_KEY = os.getenv("SHOPIFY_API_KEY", "").strip()
 SHOPIFY_API_SECRET = os.getenv("SHOPIFY_API_SECRET", "").strip()
 
-# Remove quotes if present (apply same normalization as in verify_session_token)
+# Apply same normalization as OAuth flow
 if SHOPIFY_API_KEY and len(SHOPIFY_API_KEY) > 2:
     if (
         SHOPIFY_API_KEY.startswith('"') and SHOPIFY_API_KEY.endswith('"')
@@ -105,10 +105,11 @@ def verify_session_token(f):
                 # Verify audience (should be API key)
                 aud = payload.get("aud")
 
-                # CRITICAL: Use the exact same API key that OAuth uses
+                # CRITICAL: Use the exact same API key normalization as OAuth
                 # Get API key with same normalization as OAuth flow
                 current_api_key = os.getenv("SHOPIFY_API_KEY", "").strip()
 
+                # Apply the EXACT same normalization as in shopify_oauth.py
                 # Remove quotes if present (common environment variable issue)
                 if current_api_key and len(current_api_key) > 2:
                     if (
@@ -118,30 +119,15 @@ def verify_session_token(f):
                     ):
                         current_api_key = current_api_key[1:-1].strip()
 
-                # Ensure we're using the same API key format as OAuth
-                # Log for debugging but don't expose full key
-                if current_api_key:
-                    logger.debug(f"JWT validation using API key: {current_api_key[:8]}... (len: {len(current_api_key)})")
-                else:
-                    logger.error("CRITICAL: SHOPIFY_API_KEY not found for JWT validation")
-
                 # Validate API key is present
                 if not current_api_key:
-                    logger.error(
-                        "SHOPIFY_API_KEY environment variable is NOT SET or empty"
-                    )
-                    return jsonify(
-                        {"error": "Server configuration error - missing API key"}
-                    ), 500
+                    logger.error("SHOPIFY_API_KEY environment variable is NOT SET or empty")
+                    return jsonify({"error": "Server configuration error - missing API key"}), 500
 
                 # Enhanced logging for debugging
                 logger.debug(f"JWT audience validation:")
                 logger.debug(f"  Token audience: {aud}")
-                logger.debug(
-                    f"  Expected API key: {current_api_key[:8]}{'*' * (len(current_api_key) - 8)}"
-                )
-                logger.debug(f"  Audience length: {len(aud) if aud else 0}")
-                logger.debug(f"  API key length: {len(current_api_key)}")
+                logger.debug(f"  Expected API key: {current_api_key[:8]}{'*' * (len(current_api_key) - 8)}")
 
                 # Validate audience matches API key
                 if not aud:
@@ -150,26 +136,9 @@ def verify_session_token(f):
 
                 if aud != current_api_key:
                     logger.warning(f"JWT audience mismatch:")
-                    logger.warning(
-                        f"  Received: {aud[:8]}{'*' * max(0, len(aud) - 8)} (len: {len(aud)})"
-                    )
-                    logger.warning(
-                        f"  Expected: {current_api_key[:8]}{'*' * max(0, len(current_api_key) - 8)} (len: {len(current_api_key)})"
-                    )
-
-                    # Check for common issues
-                    if aud.strip() == current_api_key.strip():
-                        logger.warning(
-                            "Audience matches after stripping whitespace - check environment variable"
-                        )
-                    elif aud.lower() == current_api_key.lower():
-                        logger.warning(
-                            "Audience matches case-insensitive - check case sensitivity"
-                        )
-
-                    return jsonify(
-                        {"error": "Invalid token audience (API Key mismatch)"}
-                    ), 401
+                    logger.warning(f"  Received: {aud[:8]}{'*' * max(0, len(aud) - 8)} (len: {len(aud)})")
+                    logger.warning(f"  Expected: {current_api_key[:8]}{'*' * max(0, len(current_api_key) - 8)} (len: {len(current_api_key)})")
+                    return jsonify({"error": "Invalid token audience (API Key mismatch)"}), 401
 
                 # Verify destination (should match shop domain)
                 dest = payload.get("dest", "")

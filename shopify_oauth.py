@@ -38,7 +38,7 @@ SCOPES = "read_orders,read_products,read_inventory"  # GraphQL API doesn't need 
 REDIRECT_URI = os.getenv(
     "SHOPIFY_REDIRECT_URI",
     "https://employeesuite-production.onrender.com/auth/callback",
-)
+).strip().strip('"').strip("'")
 # Access mode: offline = persistent token, online = session-based token
 # Use offline for background operations (webhooks, cron jobs)
 ACCESS_MODE = "offline"
@@ -231,7 +231,7 @@ def install():
     params = {
         "client_id": SHOPIFY_API_KEY,
         "scope": scopes_string,  # Use explicit scopes list
-        "redirect_uri": REDIRECT_URI,  # Must match Partners Dashboard exactly - no query params
+        "redirect_uri": REDIRECT_URI.strip().strip('"').strip("'"),  # Clean URI
         "state": state_data,
         # Modern OAuth flow: grant_options[] removed - access mode configured in Partners Dashboard
         # Dashboard shows "Use legacy install flow: false" - using modern flow
@@ -530,47 +530,30 @@ def _handle_oauth_callback():
         store = ShopifyStore.query.filter_by(shop_url=shop).first()
 
     if store:
-        # CRITICAL: Always update access_token when reconnecting (gets new token from new Partners app)
+        # CRITICAL: Always update access_token when reconnecting
         # Encrypt the token before storing
         from data_encryption import encrypt_access_token
 
         encrypted_token = encrypt_access_token(access_token)
 
-        # If encryption failed (returned None), store plaintext with warning (for backwards compatibility)
+        # If encryption failed (returned None), store plaintext with warning
         if encrypted_token is None:
-            logger.warning(
-                f"Encryption failed for token, storing as plaintext (ENCRYPTION_KEY may not be set)"
-            )
+            logger.warning("Encryption failed for token, storing as plaintext")
             encrypted_token = access_token
 
-        old_token_preview = (
-            store.access_token[:10]
-            if store.access_token and len(store.access_token) > 10
-            else (store.access_token or "None")
-        )
-        new_token_preview = (
-            access_token[:10] if len(access_token) > 10 else access_token
-        )
-        old_user_id = store.user_id
         store.access_token = encrypted_token
         store.shop_id = shop_id
-        store.is_active = True
-        store.uninstalled_at = None  # Clear uninstalled timestamp
-        store.user_id = user.id  # Ensure it's linked to the correct user
-        logger.info(
-            f"Updated existing store {shop} with new OAuth access_token (old: {old_token_preview}..., new: {new_token_preview}..., old_user_id: {old_user_id}, new_user_id: {user.id})"
-        )
+        store.is_active = True  # CRITICAL: Set store as active
+        store.uninstalled_at = None  # CRITICAL: Clear uninstalled timestamp
+        store.user_id = user.id
+        logger.info(f"Updated existing store {shop} - set is_active=True, cleared uninstalled_at")
     else:
-        # Encrypt the token before storing
+        # Create new store
         from data_encryption import encrypt_access_token
 
         encrypted_token = encrypt_access_token(access_token)
-
-        # If encryption failed (returned None), store plaintext with warning (for backwards compatibility)
         if encrypted_token is None:
-            logger.warning(
-                f"Encryption failed for token, storing as plaintext (ENCRYPTION_KEY may not be set)"
-            )
+            logger.warning("Encryption failed for token, storing as plaintext")
             encrypted_token = access_token
 
         store = ShopifyStore(
@@ -578,14 +561,11 @@ def _handle_oauth_callback():
             shop_url=shop,
             shop_id=shop_id,
             access_token=encrypted_token,
-            is_active=True,
-            uninstalled_at=None,  # Ensure it's explicitly None for new stores
+            is_active=True,  # CRITICAL: New stores are active
+            uninstalled_at=None,  # CRITICAL: Explicitly set to None
         )
         db.session.add(store)
-        token_preview = access_token[:10] if len(access_token) > 10 else access_token
-        logger.info(
-            f"Created new store {shop} with OAuth access_token: {token_preview}... for user {user.id}"
-        )
+        logger.info(f"Created new store {shop} - set is_active=True")
 
     db.session.commit()
 
@@ -686,6 +666,10 @@ def verify_hmac(params):
 def exchange_code_for_token(shop, code):
     """Exchange authorization code for access token"""
     url = f"https://{shop}/admin/oauth/access_token"
+    
+    # Use the same clean redirect URI
+    clean_redirect_uri = REDIRECT_URI.strip().strip('"').strip("'")
+    
     payload = {
         "client_id": SHOPIFY_API_KEY,
         "client_secret": SHOPIFY_API_SECRET,
