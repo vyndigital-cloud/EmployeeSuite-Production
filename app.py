@@ -5083,6 +5083,51 @@ def ensure_db_initialized():
             else:
                 logger.warning(f"Column add attempt: {col_err}")
 
+        try:
+            # Add last_login column if missing
+            db.session.execute(
+                text("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
+            )
+            logger.info("✅ Added missing last_login column")
+        except Exception as col_err:
+            if (
+                "already exists" in str(col_err).lower()
+                or "duplicate" in str(col_err).lower()
+            ):
+                pass  # Column already exists
+            else:
+                logger.warning(f"Column add attempt: {col_err}")
+
+        try:
+            # Add reset_token column if missing
+            db.session.execute(
+                text("ALTER TABLE users ADD COLUMN reset_token VARCHAR(100)")
+            )
+            logger.info("✅ Added missing reset_token column")
+        except Exception as col_err:
+            if (
+                "already exists" in str(col_err).lower()
+                or "duplicate" in str(col_err).lower()
+            ):
+                pass  # Column already exists
+            else:
+                logger.warning(f"Column add attempt: {col_err}")
+
+        try:
+            # Add reset_token_expires column if missing
+            db.session.execute(
+                text("ALTER TABLE users ADD COLUMN reset_token_expires TIMESTAMP")
+            )
+            logger.info("✅ Added missing reset_token_expires column")
+        except Exception as col_err:
+            if (
+                "already exists" in str(col_err).lower()
+                or "duplicate" in str(col_err).lower()
+            ):
+                pass  # Column already exists
+            else:
+                logger.warning(f"Column add attempt: {col_err}")
+
         db.session.commit()
         _db_initialized = True
         logger.info("✅ Database initialized successfully with emergency fixes")
