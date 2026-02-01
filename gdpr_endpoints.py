@@ -10,7 +10,7 @@ from flask import Blueprint, request, jsonify, Response
 from models import db, ShopifyStore, User
 from logging_config import logger
 
-gdpr_bp = Blueprint('gdpr', __name__)
+gdpr_bp = Blueprint('gdpr_endpoints', __name__)
 
 @gdpr_bp.route('/api/gdpr/customer-data-request', methods=['POST'])
 def customer_data_request():
