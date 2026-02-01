@@ -471,8 +471,6 @@ def _handle_oauth_callback():
                 try:
                     from sqlalchemy import text
 
-                    from models import db
-
                     # Add missing last_login column (PostgreSQL doesn't support IF NOT EXISTS in ALTER TABLE)
                     try:
                         db.session.execute(
