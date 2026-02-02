@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Dashboard - Employee Suite</title>
+    <!-- Styles & Icons -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge/latest/environments/production.js"></script>
+    <script>
+        window.openPage = function (path) {
+            var params = new URLSearchParams(window.location.search);
+            var shop = params.get('shop');
+            var host = params.get('host');
+            var embedded = params.get('embedded') || (host ? '1' : '');
+            var sep = path.indexOf('?') > -1 ? '&' : '?';
+            var dest = path;
+            if (shop) dest += sep + 'shop=' + shop;
+            if (host) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'host=' + host;
+            if (embedded) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'embedded=' + embedded;
+            window.location.href = dest;
+            return false;
+        };
+    </script>
+</head>
+
+<body>
+    <div class="header">
+        <div class="header-content">
+            <a href="#" onclick="openPage('/dashboard'); return false;" class="logo">
+                <i class="ph-bold ph-arrow-left"></i>
+                <span>Back to Dashboard</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="page-wrapper">
+        <div class="container" style="max-width: 1000px;">
+            <div class="text-center" style="margin-bottom: 40px; text-align: center;">
+                <h1 class="page-title">Comprehensive Dashboard</h1>
+                <p class="page-subtitle">View all reports (Orders, Inventory, Revenue) in one unified view.</p>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <div class="card">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: start; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;">
+                    <div>
+                        <h2 class="card-title" style="margin-bottom: 4px;">All Reports</h2>
+                        <p style="color: var(--text-sub); font-size: 14px; margin: 0;">Get a complete overview of your
+                            store's performance.</p>
+                    </div>
+                    <button class="card-btn" onclick="loadDashboard()" id="load-btn" style="width: auto;">
+                        <span id="load-btn-text">Load All Reports</span>
+                        <i class="ph-bold ph-arrows-clockwise"></i>
+                    </button>
+                </div>
+
+                <div id="dashboard-content">
+                    <div style="text-align: center; padding: 60px 20px; color: var(--text-sub);">
+                        <i class="ph-duotone ph-chart-polar"
+                            style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                        <p style="font-size: 16px; margin-bottom: 8px; font-weight: 500; color: var(--text-main);">Ready
+                            to view your comprehensive dashboard</p>
+                        <p style="font-size: 14px;">Click "Load All Reports" to fetch orders, inventory, and revenue
+                            data.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            // Using updated styles
+            alert.style.cssText = type === 'success'
+                ? 'padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; display: flex; align-items: center; gap: 12px;'
+                : type === 'error'
+                    ? 'padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; display: flex; align-items: center; gap: 12px;'
+                    : 'padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; display: flex; align-items: center; gap: 12px;';
+
+            let icon = '<i class="ph-bold ph-info"></i>';
+            if (type === 'success') icon = '<i class="ph-bold ph-check-circle"></i>';
+            if (type === 'error') icon = '<i class="ph-bold ph-warning-circle"></i>';
+
+            alert.innerHTML = icon + '<span>' + message + '</span>';
+            container.innerHTML = '';
+            container.appendChild(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        function renderReportSection(title, data, isError) {
+            if (!data) return '';
+
+            if (isError || data.success === false) {
+                return `
+                    <div style="padding: 20px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; margin-bottom: 24px;">
+                        <h3 style="color: #991b1b; margin-bottom: 8px; font-size: 16px; font-weight: 600;">${title}</h3>
+                        <p style="color: #7f1d1d; margin-bottom: 12px; font-size: 14px;">${data.error || data.message || 'Error loading data'}</p>
+                        ${data.action === 'reconnect_store' ? '<a href="/settings/shopify" style="color: var(--primary); text-decoration: underline; font-weight: 500;">Reconnect Store →</a>' : ''}
+                    </div>
+                `;
+            }
+
+            const html = data.message || data.html || JSON.stringify(data, null, 2);
+            return `
+                <div style="margin-bottom: 32px;">
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
+                        ${title}
+                    </h3>
+                    <div style="background: #fafafa; border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto;">
+                        ${html}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadDashboard() {
+            const content = document.getElementById('dashboard-content');
+            const btn = document.getElementById('load-btn');
+            const btnText = document.getElementById('load-btn-text');
+            const originalIcon = btn.querySelector('i').className;
+
+            content.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px;">
+                    <i class="ph-duotone ph-spinner ph-spin" style="font-size: 32px; color: var(--primary); margin-bottom: 16px;"></i>
+                    <p style="color: var(--text-sub);">Loading comprehensive report data...</p>
+                </div>`;
+
+            btn.disabled = true;
+            btnText.textContent = 'Loading...';
+            btn.querySelector('i').className = 'ph-bold ph-spinner ph-spin';
+
+            try {
+                const response = await fetch('/api/dashboard/comprehensive');
+                const data = await response.json();
+
+                if (data.success || (data.orders || data.inventory || data.revenue)) {
+                    let html = '';
+
+                    if (data.orders) {
+                        html += renderReportSection('<i class="ph-bold ph-package"></i> Orders Report', data.orders, false);
+                    }
+                    if (data.inventory) {
+                        html += renderReportSection('<i class="ph-bold ph-clipboard-text"></i> Inventory Report', data.inventory, false);
+                    }
+                    if (data.revenue) {
+                        html += renderReportSection('<i class="ph-bold ph-chart-bar"></i> Revenue Report', data.revenue, false);
+                    }
+
+                    if (data.errors && data.errors.length > 0) {
+                        data.errors.forEach(error => {
+                            let icon = '<i class="ph-bold ph-warning"></i> ';
+                            html += renderReportSection(
+                                icon + error.type.charAt(0).toUpperCase() + error.type.slice(1) + ' Error',
+                                { error: error.error, action: error.action },
+                                true
+                            );
+                        });
+                    }
+
+                    if (!html) {
+                        html = '<p style="color: var(--text-sub); text-align: center; padding: 40px;">No data available. Please try again.</p>';
+                    }
+
+                    content.innerHTML = html;
+
+                    if (data.errors && data.errors.length > 0) {
+                        showAlert('Some reports failed to load. Please check the errors below.', 'error');
+                    } else {
+                        showAlert('All reports loaded successfully!', 'success');
+                    }
+                } else {
+                    const errorMsg = data.error || 'Failed to load dashboard';
+                    content.innerHTML = `
+                         <div style="text-align: center; padding: 40px; color: var(--text-sub);">
+                            <i class="ph-duotone ph-warning-circle" style="font-size: 32px; margin-bottom: 16px; opacity: 0.5;"></i>
+                            <p style="color: #ef4444; margin-bottom: 16px;">${errorMsg}</p>
+                            <button class="nav-btn" onclick="loadDashboard()">Try Again</button>
+                        </div>
+                    `;
+                    showAlert(errorMsg, 'error');
+                }
+            } catch (error) {
+                content.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-sub);">
+                        <i class="ph-duotone ph-wifi-slash" style="font-size: 32px; margin-bottom: 16px; opacity: 0.5;"></i>
+                        <p style="color: #ef4444; margin-bottom: 8px;">Error loading dashboard</p>
+                        <p style="font-size: 13px; margin-bottom: 16px;">${error.message}</p>
+                        <button class="nav-btn" onclick="loadDashboard()">Try Again</button>
+                    </div>
+                `;
+                showAlert('Error loading dashboard. Please try again.', 'error');
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = 'Reload All Reports';
+                btn.querySelector('i').className = 'ph-bold ph-arrows-clockwise';
+            }
+        }
+    </script>
+</body>
+
+</html>
