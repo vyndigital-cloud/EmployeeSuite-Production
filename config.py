@@ -1,278 +1,188 @@
+"""
+Single Source of Truth Configuration Factory
+Required flags ensure app refuses to start if critical config is missing
+"""
 import logging
 import os
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Dict, Optional
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+from enum import Enum
 
+class ConfigLevel(Enum):
+    REQUIRED = "required"
+    OPTIONAL = "optional"
+    DEVELOPMENT_ONLY = "development_only"
+
+class ConfigValidationError(Exception):
+    """Raised when required configuration is missing or invalid"""
+    pass
 
 @dataclass
-class Config:
-    """Application configuration with validation"""
+class ConfigItem:
+    key: str
+    level: ConfigLevel
+    default: Any = None
+    validator: Optional[callable] = None
+    description: str = ""
 
-    # Environment
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
-    DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
-    TESTING: bool = os.getenv("TESTING", "False").lower() == "true"
-
-    # Flask Configuration
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "")
-    WTF_CSRF_ENABLED: bool = True
-    WTF_CSRF_TIME_LIMIT: int = 3600  # 1 hour
-
-    # Database Configuration
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///app.db")
-    SQLALCHEMY_DATABASE_URI: str = DATABASE_URL
-    SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
-    SQLALCHEMY_ENGINE_OPTIONS: Dict[str, Any] = None
-
-    # Shopify Configuration
-    SHOPIFY_API_KEY: str = os.getenv("SHOPIFY_API_KEY", "")
-    SHOPIFY_API_SECRET: str = os.getenv("SHOPIFY_API_SECRET", "")
-    SHOPIFY_API_VERSION: str = os.getenv("SHOPIFY_API_VERSION", "2025-10")
-    SHOPIFY_SCOPES: str = os.getenv(
-        "SHOPIFY_SCOPES",
-        "read_products,write_products,read_orders,write_orders,read_inventory,write_inventory",
-    )
-
-    # App URLs
-    APP_URL: str = os.getenv("APP_URL", "http://localhost:5000")
-    REDIRECT_URI: str = ""  # Will be set based on APP_URL
-
-    # Security & Encryption
-    ENCRYPTION_KEY: str = os.getenv("ENCRYPTION_KEY", "")
-    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "")
-    JWT_ACCESS_TOKEN_EXPIRES: int = int(
-        os.getenv("JWT_ACCESS_TOKEN_EXPIRES", "86400")
-    )  # 24 hours
-
-    # Stripe Configuration
-    STRIPE_PUBLIC_KEY: str = os.getenv("STRIPE_PUBLIC_KEY", "")
-    STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "")
-    STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET", "")
-
-    # SendGrid Configuration
-    SENDGRID_API_KEY: str = os.getenv("SENDGRID_API_KEY", "")
-    FROM_EMAIL: str = os.getenv("FROM_EMAIL", "noreply@example.com")
-
-    # Sentry Configuration
-    SENTRY_DSN: str = os.getenv("SENTRY_DSN", "")
-    SENTRY_ENVIRONMENT: str = os.getenv("SENTRY_ENVIRONMENT", ENVIRONMENT)
-
-    # Rate Limiting
-    RATELIMIT_STORAGE_URL: str = os.getenv("RATELIMIT_STORAGE_URL", "memory://")
-    RATELIMIT_DEFAULT: str = os.getenv("RATELIMIT_DEFAULT", "100 per hour")
-
-    # Logging
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
-    LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-
-    # Performance
-    CACHE_TYPE: str = os.getenv("CACHE_TYPE", "simple")
-    CACHE_REDIS_URL: str = os.getenv("CACHE_REDIS_URL", "")
-    CACHE_DEFAULT_TIMEOUT: int = int(
-        os.getenv("CACHE_DEFAULT_TIMEOUT", "300")
-    )  # 5 minutes
-
-    # File Upload
-    MAX_CONTENT_LENGTH: int = 16 * 1024 * 1024  # 16MB
-    UPLOAD_FOLDER: str = os.getenv("UPLOAD_FOLDER", "uploads")
-
-    def __post_init__(self):
-        """Validate configuration after initialization"""
-        self.validate()
-        self.setup_derived_values()
-
-    def validate(self) -> None:
-        """Validate critical configuration values"""
-        errors = []
-        warnings = []
-
-        # Critical validations for production
-        if self.ENVIRONMENT == "production":
-            if not self.SECRET_KEY:
-                errors.append("SECRET_KEY must be set in production")
-            elif len(self.SECRET_KEY) < 32:
-                errors.append("SECRET_KEY must be at least 32 characters long")
-
-            if not self.ENCRYPTION_KEY:
-                errors.append("ENCRYPTION_KEY must be set in production")
-            elif len(self.ENCRYPTION_KEY) < 32:
-                errors.append("ENCRYPTION_KEY must be at least 32 characters long")
-
-            if not self.SHOPIFY_API_KEY:
-                errors.append("SHOPIFY_API_KEY must be set in production")
-
-            if not self.SHOPIFY_API_SECRET:
-                errors.append("SHOPIFY_API_SECRET must be set in production")
-
-            if not self.DATABASE_URL or "sqlite" in self.DATABASE_URL.lower():
-                errors.append("Production must use PostgreSQL, not SQLite")
-
-            if self.DEBUG:
-                warnings.append("DEBUG should be False in production")
-
-        # Development validations
-        if self.ENVIRONMENT == "development":
-            if not self.SECRET_KEY:
-                object.__setattr__(
-                    self, "SECRET_KEY", "dev-secret-key-change-in-production"
-                )
-                warnings.append("Using default SECRET_KEY for development")
-
-            if not self.ENCRYPTION_KEY:
-                import secrets
-
-                object.__setattr__(self, "ENCRYPTION_KEY", secrets.token_urlsafe(32))
-                warnings.append("Generated temporary ENCRYPTION_KEY for development")
-
-        # General validations
-        if not self.APP_URL:
-            errors.append("APP_URL must be set")
-
-        if self.APP_URL and not (
-            self.APP_URL.startswith("http://") or self.APP_URL.startswith("https://")
-        ):
-            errors.append("APP_URL must start with http:// or https://")
-
-        if self.ENVIRONMENT == "production" and self.APP_URL.startswith("http://"):
-            warnings.append("Production should use HTTPS (https://)")
-
-        # Log errors and warnings
+class ConfigFactory:
+    """Single source of truth for all configuration"""
+    
+    CONFIG_SCHEMA = [
+        # Critical - App won't start without these
+        ConfigItem("SECRET_KEY", ConfigLevel.REQUIRED, 
+                  validator=lambda x: len(x) >= 32,
+                  description="Flask secret key (min 32 chars)"),
+        ConfigItem("SHOPIFY_API_KEY", ConfigLevel.REQUIRED,
+                  validator=lambda x: len(x) >= 20,
+                  description="Shopify Partners API key"),
+        ConfigItem("SHOPIFY_API_SECRET", ConfigLevel.REQUIRED,
+                  validator=lambda x: len(x) >= 30,
+                  description="Shopify Partners API secret"),
+        ConfigItem("DATABASE_URL", ConfigLevel.REQUIRED,
+                  validator=lambda x: x.startswith(('postgresql://', 'sqlite://')),
+                  description="Database connection URL"),
+        ConfigItem("ENCRYPTION_KEY", ConfigLevel.REQUIRED,
+                  validator=lambda x: len(x) >= 32,
+                  description="Data encryption key (min 32 chars)"),
+        
+        # Important but has defaults
+        ConfigItem("ENVIRONMENT", ConfigLevel.OPTIONAL, "development"),
+        ConfigItem("APP_URL", ConfigLevel.OPTIONAL, "http://localhost:5000"),
+        ConfigItem("SHOPIFY_API_VERSION", ConfigLevel.OPTIONAL, "2025-10"),
+        ConfigItem("LOG_LEVEL", ConfigLevel.OPTIONAL, "INFO"),
+        ConfigItem("WTF_CSRF_ENABLED", ConfigLevel.OPTIONAL, True),
+        ConfigItem("WTF_CSRF_TIME_LIMIT", ConfigLevel.OPTIONAL, 3600),
+        ConfigItem("SQLALCHEMY_TRACK_MODIFICATIONS", ConfigLevel.OPTIONAL, False),
+        ConfigItem("MAX_CONTENT_LENGTH", ConfigLevel.OPTIONAL, 16 * 1024 * 1024),
+        
+        # Development only
+        ConfigItem("DEBUG", ConfigLevel.DEVELOPMENT_ONLY, "False"),
+        ConfigItem("TESTING", ConfigLevel.DEVELOPMENT_ONLY, "False"),
+    ]
+    
+    def __init__(self):
+        self.config: Dict[str, Any] = {}
+        self.validation_errors: List[str] = []
+        self.warnings: List[str] = []
+        
+    def load_and_validate(self) -> Dict[str, Any]:
+        """Load all configuration and validate strictly"""
         logger = logging.getLogger(__name__)
-        for warning in warnings:
-            logger.warning(f"Configuration warning: {warning}")
-
-        if errors:
-            for error in errors:
-                logger.error(f"Configuration error: {error}")
-            raise ValueError(f"Configuration validation failed: {'; '.join(errors)}")
-
-    def setup_derived_values(self) -> None:
+        
+        environment = os.getenv("ENVIRONMENT", "development")
+        
+        for item in self.CONFIG_SCHEMA:
+            try:
+                self._process_config_item(item, environment)
+            except Exception as e:
+                if item.level == ConfigLevel.REQUIRED:
+                    self.validation_errors.append(f"{item.key}: {str(e)}")
+                else:
+                    self.warnings.append(f"{item.key}: {str(e)}")
+        
+        # Setup derived values
+        self._setup_derived_values()
+        
+        # Log warnings
+        for warning in self.warnings:
+            logger.warning(f"Config warning: {warning}")
+        
+        # Fail fast on errors
+        if self.validation_errors:
+            error_msg = "CRITICAL CONFIGURATION ERRORS:\n" + "\n".join(
+                f"  - {error}" for error in self.validation_errors
+            )
+            logger.error(error_msg)
+            raise ConfigValidationError(error_msg)
+        
+        logger.info(f"✅ Configuration validated successfully for {environment}")
+        return self.config
+    
+    def _process_config_item(self, item: ConfigItem, environment: str):
+        """Process a single configuration item"""
+        # Skip development-only items in production
+        if (item.level == ConfigLevel.DEVELOPMENT_ONLY and 
+            environment == "production"):
+            return
+        
+        # Get value from environment
+        value = os.getenv(item.key)
+        
+        # Handle missing values
+        if value is None:
+            if item.level == ConfigLevel.REQUIRED:
+                raise ValueError(f"Required environment variable not set. {item.description}")
+            else:
+                value = item.default
+        
+        # Clean string values
+        if isinstance(value, str):
+            value = value.strip().strip('"').strip("'")
+        
+        # Convert boolean strings
+        if isinstance(value, str) and value.lower() in ('true', 'false'):
+            value = value.lower() == 'true'
+        
+        # Validate if validator provided
+        if item.validator and value is not None:
+            try:
+                if not item.validator(value):
+                    raise ValueError(f"Validation failed. {item.description}")
+            except Exception as e:
+                raise ValueError(f"Validation error: {str(e)}. {item.description}")
+        
+        self.config[item.key] = value
+    
+    def _setup_derived_values(self):
         """Setup values derived from other configuration"""
         # Setup redirect URI
-        if not self.REDIRECT_URI:
-            object.__setattr__(
-                self, "REDIRECT_URI", f"{self.APP_URL.rstrip('/')}/auth/callback"
-            )
-
+        app_url = self.config.get('APP_URL', 'http://localhost:5000')
+        self.config['REDIRECT_URI'] = f"{app_url.rstrip('/')}/auth/callback"
+        
+        # Setup database URI
+        database_url = self.config.get('DATABASE_URL', 'sqlite:///app.db')
+        self.config['SQLALCHEMY_DATABASE_URI'] = database_url
+        
         # Setup SQLAlchemy engine options
-        if not self.SQLALCHEMY_ENGINE_OPTIONS:
-            if "postgresql" in self.DATABASE_URL.lower():
-                object.__setattr__(
-                    self,
-                    "SQLALCHEMY_ENGINE_OPTIONS",
-                    {
-                        "pool_size": 10,
-                        "max_overflow": 20,
-                        "pool_recycle": 3600,
-                        "pool_timeout": 30,
-                        "pool_pre_ping": True,
-                    },
-                )
-            else:
-                object.__setattr__(self, "SQLALCHEMY_ENGINE_OPTIONS", {})
+        if "postgresql" in database_url.lower():
+            self.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+                "pool_size": 10,
+                "max_overflow": 20,
+                "pool_recycle": 3600,
+                "pool_timeout": 30,
+                "pool_pre_ping": True,
+            }
+        else:
+            self.config['SQLALCHEMY_ENGINE_OPTIONS'] = {}
 
-    def is_production(self) -> bool:
-        """Check if running in production"""
-        return self.ENVIRONMENT == "production"
+# Global config instance
+_config_factory = ConfigFactory()
+_config_cache = None
 
-    def is_development(self) -> bool:
-        """Check if running in development"""
-        return self.ENVIRONMENT == "development"
+def get_config() -> Dict[str, Any]:
+    """Get validated configuration (cached after first load)"""
+    global _config_cache
+    if _config_cache is None:
+        _config_cache = _config_factory.load_and_validate()
+    return _config_cache
 
-    def is_testing(self) -> bool:
-        """Check if running in testing mode"""
-        return self.TESTING or self.ENVIRONMENT == "testing"
+def require_config(key: str) -> Any:
+    """Get required config value, fail fast if missing"""
+    config = get_config()
+    if key not in config:
+        raise ConfigValidationError(f"Required config key '{key}' not found")
+    return config[key]
 
-    def get_database_url(self) -> str:
-        """Get database URL with proper formatting"""
-        return self.DATABASE_URL
+def get_config_safe(key: str, default: Any = None) -> Any:
+    """Get config value with safe fallback"""
+    try:
+        return get_config().get(key, default)
+    except ConfigValidationError:
+        return default
 
-    def get_shopify_redirect_uri(self) -> str:
-        """Get Shopify OAuth redirect URI"""
-        return self.REDIRECT_URI
-
-    def get_log_level(self) -> int:
-        """Get numeric log level"""
-        levels = {
-            "DEBUG": logging.DEBUG,
-            "INFO": logging.INFO,
-            "WARNING": logging.WARNING,
-            "ERROR": logging.ERROR,
-            "CRITICAL": logging.CRITICAL,
-        }
-        return levels.get(self.LOG_LEVEL.upper(), logging.INFO)
-
-
-class DevelopmentConfig(Config):
-    """Development configuration"""
-
-    DEBUG = True
-    TESTING = False
-    SQLALCHEMY_ECHO = True  # Log SQL queries in development
-
-
-class ProductionConfig(Config):
-    """Production configuration"""
-
-    DEBUG = False
-    TESTING = False
-    SQLALCHEMY_ECHO = False
-
-    def __post_init__(self):
-        super().__post_init__()
-        # Additional production validations
-        if not self.SENTRY_DSN:
-            logging.warning(
-                "SENTRY_DSN not set - error tracking disabled in production"
-            )
-
-
-class TestingConfig(Config):
-    """Testing configuration"""
-
-    DEBUG = True
-    TESTING = True
-    WTF_CSRF_ENABLED = False
-    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
-
-
-# Configuration factory
-def get_config() -> Config:
-    """Get configuration based on environment"""
-    env = os.getenv("ENVIRONMENT", "development").lower()
-
-    config_map = {
-        "development": DevelopmentConfig,
-        "production": ProductionConfig,
-        "testing": TestingConfig,
-    }
-
-    config_class = config_map.get(env, DevelopmentConfig)
-    return config_class()
-
-
-# Create global config instance
-config = get_config()
-
-
-def validate_required_env_vars():
-    """Validate critical environment variables on startup"""
-    if os.getenv("ENVIRONMENT") == "production":
-        required = [
-            "SECRET_KEY",
-            "DATABASE_URL",
-            "SHOPIFY_API_KEY",
-            "SHOPIFY_API_SECRET",
-        ]
-        missing = [var for var in required if not os.getenv(var)]
-        if missing:
-            raise ValueError(f"Missing required production variables: {missing}")
-
-    # Validate SECRET_KEY length
-    secret_key = os.getenv("SECRET_KEY", "")
-    if secret_key and len(secret_key) < 32:
-        raise ValueError("SECRET_KEY must be at least 32 characters long")
+# Backward compatibility exports
+SHOPIFY_API_VERSION = get_config_safe('SHOPIFY_API_VERSION', '2025-10')
 
 
 # Auto-scaling database configuration

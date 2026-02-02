@@ -1,108 +1,213 @@
 """
-Application Factory for MissionControl Shopify App
-Resolves circular import issues and provides clean application initialization
+Production-Grade Fortress Application Factory
+Implements resilience, self-correction, and fail-fast principles
 """
-
 import logging
 import os
+import sys
 from typing import Optional
 
-from flask import Flask
+from flask import Flask, jsonify
 
-from config import get_config
-from csrf_protection import init_csrf_protection
+# Import fortress components
+from config import get_config, ConfigValidationError
+from core.circuit_breaker import database_breaker, shopify_breaker
+from core.cleanup import init_cleanup_middleware
+from core.degradation import service_status
 from logging_config import setup_logging
 from models import db, init_db
 
-# Optional rate limiter import with fallback
+# Optional imports with fallbacks
 try:
-    from rate_limiter import init_limiter
-
-    RATE_LIMITER_AVAILABLE = True
+    from schemas.validation import validate_response, APIResponseSchema
+    SCHEMA_VALIDATION_AVAILABLE = True
 except ImportError:
-    RATE_LIMITER_AVAILABLE = False
-
-    def init_limiter(app):
-        pass  # No-op function
-
+    SCHEMA_VALIDATION_AVAILABLE = False
+    def validate_response(data):
+        return data
 
 def create_app(config_name: Optional[str] = None) -> Flask:
     """
-    Application factory function
-
-    Args:
-        config_name: Configuration name (development, production, testing)
-
-    Returns:
-        Configured Flask application
+    Fortress Application Factory - Fail fast, recover automatically
     """
-    # Create Flask app instance
+    try:
+        # STEP 1: Validate configuration (fail fast if invalid)
+        if config_name:
+            os.environ["ENVIRONMENT"] = config_name
+        
+        config = get_config()  # This will raise ConfigValidationError if invalid
+        
+    except ConfigValidationError as e:
+        # Log to stderr and exit immediately
+        print(f"FATAL: Configuration validation failed:\n{e}", file=sys.stderr)
+        sys.exit(1)
+    
+    # STEP 2: Create Flask app with validated config
     app = Flask(__name__)
-
-    # Load configuration
-    if config_name:
-        os.environ["ENVIRONMENT"] = config_name
-
-    config = get_config()
-
-    # Configure Flask app
-    app.config.from_object(config)
-
-    # Additional Flask configuration
-    app.config.update(
-        {
-            "SQLALCHEMY_DATABASE_URI": config.SQLALCHEMY_DATABASE_URI,
-            "SQLALCHEMY_TRACK_MODIFICATIONS": config.SQLALCHEMY_TRACK_MODIFICATIONS,
-            "SQLALCHEMY_ENGINE_OPTIONS": config.SQLALCHEMY_ENGINE_OPTIONS,
-            "SECRET_KEY": config.SECRET_KEY,
-            "WTF_CSRF_ENABLED": config.WTF_CSRF_ENABLED,
-            "WTF_CSRF_TIME_LIMIT": config.WTF_CSRF_TIME_LIMIT,
-            "MAX_CONTENT_LENGTH": config.MAX_CONTENT_LENGTH,
-        }
-    )
-
-    # Setup logging first
+    app.config.update(config)
+    
+    # STEP 3: Setup logging with error capture
     logger = setup_logging(app)
-    logger.info(f"Creating MissionControl app - Environment: {config.ENVIRONMENT}")
-
-    # Initialize extensions
-    init_extensions(app)
-
-    # Register blueprints (avoid circular imports by importing here)
-    register_blueprints(app)
-
-    # Register error handlers
-    register_error_handlers(app)
-
-    # Register CLI commands
-    register_cli_commands(app)
-
-    # Setup request/response hooks
-    setup_hooks(app)
-
-    # Initialize database - FIXED: Proper error handling
+    logger.info(f"🏰 Creating Fortress App - Environment: {config['ENVIRONMENT']}")
+    
+    # STEP 4: Initialize fortress components
+    try:
+        init_fortress_extensions(app, logger)
+        register_fortress_blueprints(app, logger)
+        setup_fortress_error_handlers(app, logger)
+        init_cleanup_middleware(app)
+        
+    except Exception as e:
+        logger.error(f"Fortress initialization failed: {e}")
+        sys.exit(1)
+    
+    # STEP 5: Database initialization with circuit breaker
     with app.app_context():
         try:
-            # Skip heavy operations in production to prevent timeouts
-            if (
-                config.ENVIRONMENT == "production"
-                and os.getenv("SKIP_STARTUP_MIGRATIONS") == "true"
-            ):
-                logger.info(
-                    "Skipping database migrations in production for fast startup"
-                )
-                # Just test connection
-                db.session.execute(db.text("SELECT 1"))
-            else:
-                init_db(app)
+            init_fortress_database(app, logger)
         except Exception as e:
             logger.error(f"Database initialization failed: {e}")
-            # Don't fail startup in production - let app start and handle DB errors gracefully
-            if config.ENVIRONMENT != "production":
-                raise
-
-    logger.info("MissionControl application created successfully")
+            if config['ENVIRONMENT'] == 'production':
+                # In production, mark database as down but continue
+                service_status.mark_service_down('database', str(e))
+                logger.warning("Continuing with database marked as down")
+            else:
+                sys.exit(1)
+    
+    logger.info("🏰 Fortress Application created successfully")
     return app
+
+def init_fortress_extensions(app: Flask, logger: logging.Logger):
+    """Initialize extensions with circuit breakers"""
+    
+    # Database with circuit breaker
+    @database_breaker
+    def init_database():
+        db.init_app(app)
+        return True
+    
+    try:
+        init_database()
+        logger.info("✅ Database extension initialized with circuit breaker")
+    except Exception as e:
+        logger.error(f"Database extension failed: {e}")
+        service_status.mark_service_down('database', str(e))
+    
+    # Flask-Login
+    from flask_login import LoginManager
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = "auth.login"
+    
+    @login_manager.user_loader
+    def load_user(user_id):
+        try:
+            from models import User
+            return User.query.get(int(user_id))
+        except Exception:
+            return None
+    
+    # Flask-Bcrypt
+    from flask_bcrypt import Bcrypt
+    Bcrypt(app)
+    
+    logger.info("✅ Core extensions initialized")
+
+def register_fortress_blueprints(app: Flask, logger: logging.Logger):
+    """Register blueprints with error handling"""
+    blueprint_configs = [
+        ('core_routes', 'core_bp', None),
+        ('auth', 'auth_bp', None),
+        ('shopify_oauth', 'oauth_bp', None),
+        ('shopify_routes', 'shopify_bp', None),
+        ('billing', 'billing_bp', None),
+        ('features_routes', 'features_bp', None),
+        ('legal_routes', 'legal_bp', '/legal'),
+    ]
+    
+    for module_name, blueprint_name, url_prefix in blueprint_configs:
+        try:
+            module = __import__(module_name)
+            blueprint = getattr(module, blueprint_name)
+            
+            if url_prefix:
+                app.register_blueprint(blueprint, url_prefix=url_prefix)
+            else:
+                app.register_blueprint(blueprint)
+                
+            logger.info(f"✅ Blueprint {blueprint_name} registered")
+            
+        except ImportError as e:
+            logger.error(f"❌ Failed to import {module_name}: {e}")
+            if module_name in ['core_routes', 'auth']:  # Critical blueprints
+                raise
+        except Exception as e:
+            logger.error(f"❌ Failed to register {blueprint_name}: {e}")
+            raise
+
+def setup_fortress_error_handlers(app: Flask, logger: logging.Logger):
+    """Setup error handlers with schema validation"""
+    
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        logger.error(f"Unhandled exception: {e}", exc_info=True)
+        
+        # Create validated error response
+        error_response = {
+            'success': False,
+            'error': 'An unexpected error occurred',
+            'action': 'retry'
+        }
+        
+        # Validate response schema if available
+        if SCHEMA_VALIDATION_AVAILABLE:
+            validated_response = validate_response(error_response)
+            return jsonify(validated_response.dict()), 500
+        else:
+            return jsonify(error_response), 500
+    
+    @app.errorhandler(404)
+    def handle_404(e):
+        error_response = {
+            'success': False,
+            'error': 'Resource not found',
+            'action': 'navigate'
+        }
+        if SCHEMA_VALIDATION_AVAILABLE:
+            validated_response = validate_response(error_response)
+            return jsonify(validated_response.dict()), 404
+        else:
+            return jsonify(error_response), 404
+    
+    logger.info("✅ Fortress error handlers registered")
+
+@database_breaker
+def init_fortress_database(app: Flask, logger: logging.Logger):
+    """Initialize database with circuit breaker protection"""
+    
+    # Skip heavy operations in production startup
+    if (app.config.get('ENVIRONMENT') == 'production' and 
+        os.getenv('SKIP_STARTUP_MIGRATIONS') == 'true'):
+        
+        # Just test connection
+        db.session.execute(db.text("SELECT 1"))
+        logger.info("✅ Database connection verified (production mode)")
+    else:
+        init_db(app)
+        logger.info("✅ Database initialized with full schema")
+
+def create_fortress_app() -> Flask:
+    """Create production fortress app"""
+    return create_app("production")
+
+if __name__ == "__main__":
+    # Development server with fortress architecture
+    try:
+        app = create_app("development")
+        app.run(host="0.0.0.0", port=5000, debug=False)  # Debug=False for fortress mode
+    except ConfigValidationError as e:
+        print(f"FATAL: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def init_extensions(app: Flask) -> None:
