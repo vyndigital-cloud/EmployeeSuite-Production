@@ -535,8 +535,7 @@
             // Fetch AI Forecast - Only if subscribed
             document.addEventListener('DOMContentLoaded', function () {
                 // Safety check for template variable
-                var isSubscribed = {{ 'true' if is_subscribed else 'false' }
-            };
+                var isSubscribed = {{ 'true' if is_subscribed else 'false' }};
             if (!isSubscribed) return;
 
             var shopParam = '{{ shop or "" }}';
@@ -810,11 +809,11 @@
             </div>
         </div>
 
-    <div id="connection-status" style="display: none; margin-bottom: 16px"></div>
-    <div class="output-container">
-        <div class="output-header">Results</div>
-        <div id="output"></div>
-    </div>
+        <div id="connection-status" style="display: none; margin-bottom: 16px"></div>
+        <div class="output-container">
+            <div class="output-header">Results</div>
+            <div id="output"></div>
+        </div>
     </div>
 
     <script>
