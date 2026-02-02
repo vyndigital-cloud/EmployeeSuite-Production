@@ -39,9 +39,30 @@ def generate_report(user_id=None, shop_url=None):
                     continue
 
         # Format response
-        html = f"<h3>Revenue Report</h3>"
-        html += f"<p>Total Orders: {len(orders) if orders else 0}</p>"
-        html += f"<p>Total Revenue: ${total_revenue:,.2f}</p>"
+        avg_value = total_revenue / len(orders) if orders else 0
+        
+        html = f"""
+        <div class="output-card">
+            <div class="output-header">
+                <h4>Revenue Overview</h4>
+                <span class="badge badge-primary">Today</span>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Total Orders</div>
+                    <div class="stat-value">{len(orders) if orders else 0}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-value">${total_revenue:,.2f}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Avg. Order Value</div>
+                    <div class="stat-value">${avg_value:,.2f}</div>
+                </div>
+            </div>
+        </div>
+        """
 
         return {"success": True, "html": html}
 

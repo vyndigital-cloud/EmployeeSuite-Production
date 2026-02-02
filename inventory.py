@@ -27,11 +27,50 @@ def update_inventory(user_id=None):
 
         # Format response
         if inventory:
-            html = f"<h3>Found {len(inventory)} products</h3>"
+            html = """
+            <div class="output-card">
+                <div class="output-header">
+                    <h4>Inventory Status</h4>
+                    <span class="badge badge-warning">Low Stock Alerts</span>
+                </div>
+                <div class="inventory-list">
+            """
             for item in inventory[:10]:  # Show first 10
-                html += f"<div>{item['product']}: {item['stock']} units at {item['price']}</div>"
+                # Calculate simple percentage for demo stock bar (max 100 for visual)
+                try:
+                    stock_val = int(item['stock'])
+                    percentage = min(100, max(0, (stock_val / 50) * 100))
+                except (ValueError, TypeError):
+                    stock_val = 0
+                    percentage = 0
+                
+                html += f"""
+                    <div class="inventory-item">
+                        <div class="inventory-info">
+                            <div class="product-name">{item['product']}</div>
+                            <div class="price-text">{item['price']}</div>
+                        </div>
+                        <div class="inventory-stock">
+                            <div class="stock-count">{stock_val} units</div>
+                            <div class="stock-bar-bg">
+                                <div class="stock-bar-fill" style="width: {percentage}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                """
+            html += """
+                </div>
+            </div>
+            """
         else:
-            html = "<p>No inventory found</p>"
+            html = """
+            <div class="output-card">
+                <div class="output-header"><h4>Inventory Status</h4></div>
+                <div style="padding: 24px; text-align: center; color: #6d7175;">
+                    No inventory items found
+                </div>
+            </div>
+            """
 
         return {"success": True, "html": html}
 
