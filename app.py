@@ -420,6 +420,9 @@ def handle_404(e):
 
     from flask import request
 
+    # Get shop context for dashboard link
+    shop = request.args.get("shop") or session.get("shop", "")
+
     # Sanitize sensitive form data
     def _sanitize(form_dict):
         if not form_dict:
@@ -472,7 +475,8 @@ def handle_404(e):
         ), 404
 
     # For non-API requests, return a user-friendly 404 page
-    return render_template_string("""
+    return render_template_string(
+        """
     <!DOCTYPE html>
     <html>
     <head>
@@ -491,11 +495,14 @@ def handle_404(e):
         <div class="container">
             <h1>Page not found</h1>
             <p>The page you're looking for doesn't exist or has been moved.</p>
-            <a href="/dashboard" class="btn">Go to Dashboard</a>
+            <a href="/dashboard?shop="""
+        + shop
+        + """" class="btn">Go to Dashboard</a>
         </div>
     </body>
     </html>
-    """), 404
+    """
+    ), 404
 
 
 @app.errorhandler(500)
@@ -3224,41 +3231,17 @@ def apple_touch_icon():
 
 
 @app.route("/subscribe")
-def handle_subscribe():
-    """Handle subscribe requests - store in session and redirect to billing"""
-    shop = request.args.get("shop")
-    host = request.args.get("host")
-    embedded = request.args.get("embedded")
+def subscribe():
+    shop = request.args.get("shop") or session.get("shop", "")
+    host = request.args.get("host") or session.get("host", "")
 
-    # Store in session
+    # Store shop in session
     if shop:
         session["shop"] = shop
-        session["current_shop"] = shop  # Backup key
         session.permanent = True
         session.modified = True
 
-    if host:
-        session["host"] = host
-        session["embedded"] = True
-        session.permanent = True
-        session.modified = True
-
-    # Build the correct billing URL
-    params = []
-    if shop:
-        params.append(f"shop={shop}")
-    if host:
-        params.append(f"host={host}")
-    if embedded:
-        params.append(f"embedded={embedded}")
-
-    query_string = "&".join(params)
-    billing_url = (
-        f"/billing/subscribe?{query_string}" if query_string else "/billing/subscribe"
-    )
-
-    logger.info(f"Subscribe route hit, redirecting to: {billing_url}")
-    return redirect(billing_url)
+    return redirect(f"/dashboard?shop={shop}&host={host}")
 
 
 @app.route("/debug/routes")
@@ -4836,13 +4819,17 @@ def internal_error(error):
         "500_error", f"Path: {request.path}, Error: {str(error)}", "ERROR"
     )
 
+    # Get shop context for dashboard link
+    shop = request.args.get("shop") or session.get("shop", "")
+
     # Return JSON for API requests, HTML for browser requests
     if request.path.startswith("/api/"):
         return jsonify(
             {"error": "An internal error occurred. Please try again later."}
         ), 500
 
-    error_html = """
+    error_html = (
+        """
     <!DOCTYPE html>
     <html>
     <head>
@@ -4926,13 +4913,16 @@ def internal_error(error):
             <h1 class="error-title">Server Error</h1>
             <p class="error-message">Something went wrong on our end. We've been notified and are working on a fix.</p>
             <div class="error-actions">
-                <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+                <a href="/dashboard?shop="""
+        + shop
+        + """" class="btn btn-primary">Go to Dashboard</a>
                 <a href="javascript:location.reload()" class="btn btn-secondary">Try Again</a>
             </div>
         </div>
     </body>
     </html>
     """
+    )
     return error_html, 500
 
 
