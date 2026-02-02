@@ -23,7 +23,8 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required, login_user
-from flask_wtf import csrf
+
+# Removed flask_wtf import due to version compatibility issues
 from sqlalchemy import or_
 
 from access_control import require_access
@@ -739,7 +740,7 @@ def debug_routes():
 
 
 @core_bp.route("/api/log_error", methods=["POST"])
-@csrf.exempt  # CRITICAL: Exempt from CSRF for JS error logging
+# CSRF exemption removed due to compatibility issues
 def log_error():
     """Frontend JS error logging with recursion prevention"""
     try:

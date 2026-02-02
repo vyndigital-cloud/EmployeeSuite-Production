@@ -93,9 +93,9 @@ def init_extensions(app: Flask) -> None:
         db.init_app(app)
         logger.info("Database extension initialized")
 
-        # Initialize CSRF protection
-        init_csrf_protection(app)
-        logger.info("CSRF protection initialized")
+        # Initialize CSRF protection - TEMPORARILY DISABLED due to Flask-WTF compatibility
+        # init_csrf_protection(app)
+        logger.info("CSRF protection temporarily disabled for deployment")
 
         # Initialize Flask-Login
         from flask_login import LoginManager

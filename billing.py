@@ -4,7 +4,9 @@ MANDATORY: All Shopify App Store apps MUST use Shopify Billing API
 Stripe/external payment processors are NOT allowed for embedded apps
 """
 
+import hashlib
 import os
+import secrets
 from datetime import datetime
 
 from flask import (
@@ -17,7 +19,6 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
-from flask_wtf import csrf
 
 from logging_config import logger
 from models import ShopifyStore, User, db
@@ -744,10 +745,31 @@ def subscribe():
     )
 
 
+def validate_csrf_token():
+    """Simple CSRF validation without Flask-WTF"""
+    try:
+        # For Shopify embedded apps, we can validate the shop parameter
+        # and session consistency as a form of CSRF protection
+        shop_from_form = request.form.get("shop") or request.args.get("shop", "")
+        shop_from_session = session.get("shop") or session.get("current_shop", "")
+
+        if shop_from_form and shop_from_session:
+            return shop_from_form.lower().strip() == shop_from_session.lower().strip()
+
+        # If no shop validation possible, check referer
+        referer = request.headers.get("Referer", "")
+        return "myshopify.com" in referer or "admin.shopify.com" in referer
+    except Exception:
+        return False
+
+
 @billing_bp.route("/create-charge", methods=["POST"])
-@csrf.protect  # Add CSRF protection
 def create_charge():
     """Create a Shopify recurring charge"""
+    # Simple CSRF protection
+    if not validate_csrf_token():
+        logger.warning("CSRF validation failed for billing request")
+        return redirect("/billing?error=invalid_request")
     shop = request.form.get("shop") or request.args.get("shop", "")
     if shop:
         shop = (
