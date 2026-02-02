@@ -1204,8 +1204,10 @@ def export_inventory_csv():
 
 @core_bp.route("/api/export/orders", methods=["GET"])
 @login_required
-@require_access
 def export_orders_csv():
+    # Add inline access check
+    if not current_user.has_access():
+        return jsonify({"error": "Subscription required", "success": False}), 403
     try:
         from order_processing import process_orders
 
