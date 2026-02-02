@@ -27,8 +27,7 @@ from flask_login import current_user, login_required, login_user
 # Removed flask_wtf import due to version compatibility issues
 from sqlalchemy import or_
 
-# Remove these imports that reference missing files:
-# from access_control import require_access  # Create this file or remove usage
+from access_control import require_access
 from logging_config import logger
 
 # Deferred imports - moved inside functions to speed up startup
