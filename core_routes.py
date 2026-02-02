@@ -1202,6 +1202,50 @@ def export_inventory_csv():
         return jsonify({"error": f"Failed to export inventory: {e}"}), 500
 
 
+@core_bp.route("/api/export/orders", methods=["GET"])
+@login_required
+@require_access
+def export_orders_csv():
+    try:
+        from order_processing import process_orders
+
+        # Try to get cached orders data first
+        orders_data = session.get("orders_data", [])
+        if not orders_data:
+            result = process_orders(user_id=current_user.id)
+            if result.get("success") and "orders_data" in result:
+                orders_data = result["orders_data"]
+                session["orders_data"] = orders_data
+
+        if not orders_data:
+            return "No orders data available. Please process orders first.", 404
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Order ID", "Customer", "Total", "Items", "Status", "Date"])
+
+        for order in orders_data:
+            writer.writerow([
+                order.get("id", "N/A"),
+                order.get("customer", "N/A"),
+                order.get("total", "N/A"),
+                order.get("items", 0),
+                order.get("status", "N/A"),
+                datetime.utcnow().strftime('%Y-%m-%d')
+            ])
+
+        return Response(
+            output.getvalue(),
+            mimetype="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=orders_{datetime.utcnow().strftime('%Y%m%d')}.csv"
+            },
+        )
+    except Exception as e:
+        logger.error(f"Error exporting orders CSV: {e}", exc_info=True)
+        return jsonify({"error": f"Failed to export orders: {e}"}), 500
+
+
 @core_bp.route("/api/export/report", methods=["GET"])
 @login_required
 @require_access
@@ -1276,6 +1320,98 @@ def csv_exports():
         shop=shop,
         host=host,
     )
+
+
+@core_bp.route("/api/scheduled-reports/create", methods=["POST"])
+@login_required
+@require_access
+def create_scheduled_report():
+    try:
+        from enhanced_models import ScheduledReport
+
+        report_type = request.form.get("report_type")
+        frequency = request.form.get("frequency")
+        email = request.form.get("email")
+        shop = request.form.get("shop", "")
+        host = request.form.get("host", "")
+
+        if not all([report_type, frequency, email]):
+            return redirect(f"/features/scheduled-reports?shop={shop}&host={host}&error=All fields are required")
+
+        # Create scheduled report
+        scheduled_report = ScheduledReport(
+            user_id=current_user.id,
+            report_type=report_type,
+            frequency=frequency,
+            delivery_email=email,
+            is_active=True
+        )
+
+        # Calculate next send time
+        scheduled_report.next_send_at = scheduled_report.calculate_next_send()
+
+        db.session.add(scheduled_report)
+        db.session.commit()
+
+        return redirect(f"/features/scheduled-reports?shop={shop}&host={host}&success=Schedule created successfully")
+
+    except Exception as e:
+        logger.error(f"Error creating scheduled report: {e}")
+        return redirect(f"/features/scheduled-reports?shop={shop}&host={host}&error=Failed to create schedule")
+
+
+@core_bp.route("/api/scheduled-reports/list", methods=["GET"])
+@login_required
+@require_access
+def list_scheduled_reports():
+    try:
+        from enhanced_models import ScheduledReport
+
+        reports = ScheduledReport.query.filter_by(
+            user_id=current_user.id,
+            is_active=True
+        ).all()
+
+        reports_data = []
+        for report in reports:
+            reports_data.append({
+                "id": report.id,
+                "report_type": report.report_type,
+                "frequency": report.frequency,
+                "delivery_email": report.delivery_email,
+                "next_send_at": report.next_send_at.strftime('%Y-%m-%d %H:%M') if report.next_send_at else "Not scheduled"
+            })
+
+        return jsonify({"success": True, "reports": reports_data})
+
+    except Exception as e:
+        logger.error(f"Error listing scheduled reports: {e}")
+        return jsonify({"success": False, "error": "Failed to load reports"}), 500
+
+
+@core_bp.route("/api/scheduled-reports/delete/<int:report_id>", methods=["POST"])
+@login_required
+@require_access
+def delete_scheduled_report(report_id):
+    try:
+        from enhanced_models import ScheduledReport
+
+        report = ScheduledReport.query.filter_by(
+            id=report_id,
+            user_id=current_user.id
+        ).first()
+
+        if not report:
+            return jsonify({"success": False, "error": "Report not found"}), 404
+
+        report.is_active = False
+        db.session.commit()
+
+        return jsonify({"success": True, "message": "Schedule deleted successfully"})
+
+    except Exception as e:
+        logger.error(f"Error deleting scheduled report: {e}")
+        return jsonify({"success": False, "error": "Failed to delete schedule"}), 500
 
 
 @core_bp.route("/install")

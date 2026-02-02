@@ -124,6 +124,8 @@ def csv_exports():
 def scheduled_reports():
     shop = request.args.get("shop", "")
     host = request.args.get("host", "")
+    success = request.args.get("success", "")
+    error = request.args.get("error", "")
 
     return render_template_string(
         """
@@ -138,10 +140,21 @@ def scheduled_reports():
             .container { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
             .header { background: white; border-bottom: 1px solid #e1e3e5; padding: 16px 24px; margin-bottom: 32px; border-radius: 8px; }
             .back-btn { color: #008060; text-decoration: none; font-weight: 500; }
-            .card { background: white; padding: 24px; border-radius: 8px; border: 1px solid #e1e3e5; }
-            .coming-soon { text-align: center; padding: 48px 24px; }
-            .coming-soon h2 { font-size: 24px; font-weight: 600; color: #202223; margin-bottom: 16px; }
-            .coming-soon p { color: #6d7175; font-size: 16px; line-height: 1.6; }
+            .card { background: white; padding: 24px; border-radius: 8px; border: 1px solid #e1e3e5; margin-bottom: 24px; }
+            .card h3 { font-size: 18px; font-weight: 600; color: #202223; margin-bottom: 16px; }
+            .form-group { margin-bottom: 16px; }
+            .form-group label { display: block; font-size: 14px; font-weight: 500; color: #202223; margin-bottom: 6px; }
+            .form-group select, .form-group input { width: 100%; padding: 10px 12px; border: 1px solid #e1e3e5; border-radius: 6px; font-size: 14px; }
+            .btn { background: #008060; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+            .btn:hover { background: #006e52; }
+            .btn-danger { background: #d72c0d; }
+            .btn-danger:hover { background: #bf280a; }
+            .success { background: #f0fdf4; border: 1px solid #86efac; padding: 12px 16px; border-radius: 6px; color: #166534; margin-bottom: 20px; }
+            .error { background: #fff4f4; border: 1px solid #fecaca; padding: 12px 16px; border-radius: 6px; color: #d72c0d; margin-bottom: 20px; }
+            .report-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; border: 1px solid #e1e3e5; border-radius: 6px; margin-bottom: 12px; }
+            .report-info { flex: 1; }
+            .report-info h4 { font-size: 16px; font-weight: 600; color: #202223; margin-bottom: 4px; }
+            .report-info p { font-size: 14px; color: #6d7175; }
         </style>
     </head>
     <body>
@@ -151,18 +164,105 @@ def scheduled_reports():
         <div class="container">
             <h1 style="font-size: 28px; font-weight: 600; margin-bottom: 32px;">📅 Scheduled Reports</h1>
 
+            {% if success %}
+            <div class="success">✅ {{ success }}</div>
+            {% endif %}
+            
+            {% if error %}
+            <div class="error">❌ {{ error }}</div>
+            {% endif %}
+
             <div class="card">
-                <div class="coming-soon">
-                    <h2>🚀 Coming Soon</h2>
-                    <p>Automated report delivery via email and SMS is in development. You'll be able to schedule daily, weekly, or monthly reports to stay updated on your store performance.</p>
+                <h3>Create New Schedule</h3>
+                <form method="POST" action="/api/scheduled-reports/create">
+                    <input type="hidden" name="shop" value="{{ shop }}">
+                    <input type="hidden" name="host" value="{{ host }}">
+                    
+                    <div class="form-group">
+                        <label>Report Type:</label>
+                        <select name="report_type" required>
+                            <option value="">Select report type...</option>
+                            <option value="orders">Orders Report</option>
+                            <option value="inventory">Inventory Report</option>
+                            <option value="revenue">Revenue Report</option>
+                            <option value="all">All Reports</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Frequency:</label>
+                        <select name="frequency" required>
+                            <option value="">Select frequency...</option>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Email Address:</label>
+                        <input type="email" name="email" placeholder="your-email@example.com" required>
+                    </div>
+                    
+                    <button type="submit" class="btn">Create Schedule</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>Your Scheduled Reports</h3>
+                <div id="reports-list">
+                    <p style="color: #6d7175; text-align: center; padding: 20px;">Loading your scheduled reports...</p>
                 </div>
             </div>
         </div>
+
+        <script>
+            // Load existing scheduled reports
+            fetch('/api/scheduled-reports/list')
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('reports-list');
+                    if (data.success && data.reports.length > 0) {
+                        container.innerHTML = data.reports.map(report => `
+                            <div class="report-item">
+                                <div class="report-info">
+                                    <h4>${report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1)} Report</h4>
+                                    <p>Frequency: ${report.frequency} • Email: ${report.delivery_email}</p>
+                                    <p>Next delivery: ${report.next_send_at}</p>
+                                </div>
+                                <button class="btn btn-danger" onclick="deleteReport(${report.id})">Delete</button>
+                            </div>
+                        `).join('');
+                    } else {
+                        container.innerHTML = '<p style="color: #6d7175; text-align: center; padding: 20px;">No scheduled reports yet. Create one above to get started.</p>';
+                    }
+                })
+                .catch(e => {
+                    document.getElementById('reports-list').innerHTML = '<p style="color: #d72c0d; text-align: center; padding: 20px;">Error loading reports. Please refresh the page.</p>';
+                });
+
+            function deleteReport(reportId) {
+                if (confirm('Are you sure you want to delete this scheduled report?')) {
+                    fetch(`/api/scheduled-reports/delete/${reportId}`, { method: 'POST' })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert('Error deleting report: ' + data.error);
+                            }
+                        })
+                        .catch(e => alert('Error deleting report. Please try again.'));
+                }
+            }
+        </script>
     </body>
     </html>
     """,
         shop=shop,
         host=host,
+        success=success,
+        error=error,
     )
 
 
