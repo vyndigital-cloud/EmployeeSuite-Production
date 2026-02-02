@@ -38,6 +38,33 @@ from utils import safe_redirect
 core_bp = Blueprint("core", __name__)
 
 
+@core_bp.route("/admin/scaling-status")
+def scaling_status():
+    """Admin dashboard for scaling status"""
+    if os.getenv("ENVIRONMENT") != "production":
+        return jsonify({"error": "Only available in production"}), 403
+
+    try:
+        from auto_scaling import get_auto_scaler
+        from performance import get_cache_efficiency
+
+        scaler = get_auto_scaler()
+        cache_stats = get_cache_efficiency()
+
+        return jsonify(
+            {
+                "current_tier": scaler.current_tier,
+                "max_load_seen": scaler.max_load_seen,
+                "cache_efficiency": cache_stats,
+                "scaling_thresholds": scaler.scaling_thresholds,
+                "status": "healthy",
+            }
+        )
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ---------------------------------------------------------------------------
 # Helper: get_authenticated_user
 # ---------------------------------------------------------------------------

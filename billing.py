@@ -65,42 +65,35 @@ def safe_redirect(url, shop=None, host=None):
         return redirect(url)
 
 
-# Plan configuration (Production Prices: $99 and $297)
+# Plan configuration (Production Price: $39/month - competitive pricing)
 PLANS = {
     "pro": {
-        "name": "Growth",
-        "price": 99.00,
+        "name": "Employee Suite Pro",
+        "price": 39.00,  # Changed from $99 to $39
         "features": [
-            "Inventory Intelligence Dashboard",
-            "Smart Reorder Recommendations",
-            "Dead Stock Alerts",
-            "30-Day Sales Forecasting",
-            "CSV Export Capable",
-            "Up to 3 Store Connections",
-            "Email Support",
+            "🤖 AI-Powered Stockout Predictions",
+            "📊 Real-Time Inventory Dashboard",
+            "📦 Smart Order Management",
+            "💰 Revenue Analytics & Forecasting",
+            "📥 Unlimited CSV Exports",
+            "🔄 Automated Reorder Alerts",
+            "📱 Mobile-Responsive Interface",
+            "⚡ Real-Time Sync with Shopify",
+            "🎯 Low Stock Notifications",
+            "📈 Sales Velocity Analysis",
+            "🛡️ Enterprise Security",
+            "💬 Priority Email Support",
         ],
     },
-    "business": {
-        "name": "Scale",
-        "price": 297.00,
-        "features": [
-            "Everything in Growth",
-            "Advanced Multi-Location Sync",
-            "Automated Supplier Emails",
-            "Custom Reporting Engine",
-            "Unlimited Data History",
-            "Priority 24/7 Support",
-            "Dedicated Success Manager",
-            "Early Access to Beta Features",
-        ],
-    },
+    # Remove the $297 tier - single $39 plan for maximum conversions
 }
 
 SUBSCRIBE_HTML = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Pricing - Employee Suite</title>
+    <title>Subscribe - Employee Suite</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -129,22 +122,34 @@ SUBSCRIBE_HTML = """
         .nav-btn { padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none; color: #6d7175; }
         .nav-btn:hover { background: #f6f6f7; color: #202223; }
         .container {
-            max-width: 1100px;
+            max-width: 800px;
             margin: 0 auto;
             padding: 48px 24px;
         }
-        .page-header {
+        .hero {
             text-align: center;
             margin-bottom: 48px;
         }
-        .page-title {
-            font-size: 32px;
-            font-weight: 600;
+        .hero-title {
+            font-size: 48px;
+            font-weight: 700;
             color: #202223;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
+            letter-spacing: -1px;
         }
-        .page-subtitle {
-            font-size: 16px;
+        .hero-subtitle {
+            font-size: 20px;
+            color: #6d7175;
+            margin-bottom: 24px;
+        }
+        .hero-price {
+            font-size: 64px;
+            font-weight: 800;
+            color: #008060;
+            margin-bottom: 8px;
+        }
+        .hero-price span {
+            font-size: 24px;
             color: #6d7175;
         }
         .trial-badge {
@@ -154,33 +159,27 @@ SUBSCRIBE_HTML = """
             padding: 8px 16px;
             border-radius: 20px;
             font-size: 14px;
-            font-weight: 500;
-            margin-top: 16px;
-        }
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
-        }
-        @media (max-width: 900px) {
-            .pricing-grid {
-                grid-template-columns: 1fr;
-                max-width: 400px;
-                margin: 0 auto;
-            }
+            font-weight: 600;
+            margin-bottom: 32px;
         }
         .pricing-card {
             background: #ffffff;
-            border: 1px solid #e1e3e5;
-            border-radius: 8px;
-            padding: 32px 24px;
-            display: flex;
-            flex-direction: column;
-        }
-        .pricing-card.featured {
             border: 2px solid #008060;
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 128, 96, 0.1);
             position: relative;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        .pricing-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #008060, #00a076);
         }
         .popular-badge {
             position: absolute;
@@ -189,88 +188,80 @@ SUBSCRIBE_HTML = """
             transform: translateX(-50%);
             background: #008060;
             color: white;
-            padding: 4px 12px;
-            border-radius: 4px;
+            padding: 6px 20px;
+            border-radius: 20px;
             font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .plan-name {
-            font-size: 20px;
-            font-weight: 600;
-            color: #202223;
-            margin-bottom: 8px;
-        }
-        .plan-desc {
-            font-size: 14px;
-            color: #6d7175;
-            margin-bottom: 16px;
-        }
-        .plan-price {
-            font-size: 42px;
             font-weight: 700;
-            color: #202223;
-            margin-bottom: 8px;
-        }
-        .plan-price span {
-            font-size: 16px;
-            font-weight: 500;
-            color: #6d7175;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         .plan-features {
             list-style: none;
-            margin: 24px 0;
-            flex-grow: 1;
+            margin: 32px 0;
+            text-align: left;
         }
         .plan-features li {
-            padding: 8px 0;
-            font-size: 14px;
+            padding: 12px 0;
+            font-size: 16px;
             color: #374151;
             display: flex;
-            align-items: flex-start;
-            gap: 10px;
+            align-items: center;
+            gap: 12px;
         }
         .plan-features li::before {
-            content: "✓";
-            color: #008060;
-            font-weight: 600;
+            content: "✅";
+            font-size: 18px;
             flex-shrink: 0;
         }
-        .plan-features li.disabled {
-            color: #b5b5b5;
-        }
-        .plan-features li.disabled::before {
-            content: "—";
-            color: #b5b5b5;
-        }
-        .btn {
-            display: block;
+        .cta-button {
             width: 100%;
-            padding: 12px 16px;
-            text-align: center;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 500;
-            font-size: 14px;
-            transition: all 0.15s;
-            border: none;
-            cursor: pointer;
-            font-family: inherit;
-        }
-        .btn-primary {
-            background: #008060;
+            padding: 20px;
+            background: linear-gradient(135deg, #008060 0%, #00a076 100%);
             color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 16px rgba(0, 128, 96, 0.3);
         }
-        .btn-primary:hover {
-            background: #006e52;
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 128, 96, 0.4);
         }
-        .btn-secondary {
-            background: #f6f6f7;
+        .guarantee {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 14px;
+            color: #6d7175;
+        }
+        .value-props {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-top: 48px;
+        }
+        .value-prop {
+            text-align: center;
+            padding: 24px;
+        }
+        .value-prop-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .value-prop-title {
+            font-size: 18px;
+            font-weight: 600;
             color: #202223;
-            border: 1px solid #e1e3e5;
+            margin-bottom: 8px;
         }
-        .btn-secondary:hover {
-            background: #e1e3e5;
+        .value-prop-desc {
+            font-size: 14px;
+            color: #6d7175;
+            line-height: 1.6;
         }
     </style>
 </head>
@@ -283,77 +274,58 @@ SUBSCRIBE_HTML = """
     </div>
 
     <div class="container">
-        <div class="page-header">
-            <h1 class="page-title">Simple, Transparent Pricing</h1>
-            <p class="page-subtitle">Choose the plan that's right for your business</p>
-            <span class="trial-badge">7-day free trial on all paid plans</span>
+        <div class="hero">
+            <h1 class="hero-title">Everything You Need</h1>
+            <p class="hero-subtitle">Complete inventory management with AI-powered insights</p>
+            <div class="hero-price">$39<span>/month</span></div>
+            <div class="trial-badge">🎉 7-day free trial • Cancel anytime</div>
         </div>
 
-        <div class="pricing-grid">
-            <!-- FREE Plan -->
-            <div class="pricing-card">
-                <div class="plan-name">Free</div>
-                <div class="plan-desc">Get started with basics</div>
-                <div class="plan-price">$0<span>/month</span></div>
-                <ul class="plan-features">
-                    <li>Dashboard with live data</li>
-                    <li>Orders report (view only)</li>
-                    <li>Inventory tracking</li>
-                    <li>Revenue overview</li>
-                    <li>1 store connection</li>
-                    <li>7 days data history</li>
-                    <li class="disabled">CSV exports</li>
-                    <li class="disabled">Scheduled reports</li>
-                </ul>
-                <a href="/register" class="btn btn-secondary">Get Started Free</a>
-            </div>
+        <div class="pricing-card">
+            <div class="popular-badge">Most Popular</div>
 
-            <!-- GROWTH Plan ($99) -->
-            <div class="pricing-card featured">
-                <span class="popular-badge">Most Popular</span>
-                <div class="plan-name">Growth</div>
-                <div class="plan-desc">Inventory Intelligence</div>
-                <div class="plan-price">$99<span>/month</span></div>
-                <ul class="plan-features">
-                    <li>Inventory Intelligence Dashboard</li>
-                    <li>Smart Reorder Recommendations</li>
-                    <li>Dead Stock Alerts ($)</li>
-                    <li>30-Day Sales Forecasting</li>
-                    <li>CSV Exports</li>
-                    <li>Up to 3 Store Connections</li>
-                    <li>90 days data history</li>
-                    <li>Email Support</li>
-                </ul>
-                <form method="POST" action="/billing/create-charge" style="margin:0;">
-                    <input type="hidden" name="shop" value="{{ shop }}">
-                    <input type="hidden" name="host" value="{{ host }}">
-                    <input type="hidden" name="plan" value="pro">
-                    <button type="submit" class="btn btn-primary">Start Free Trial</button>
-                    <div style="text-align: center; margin-top: 8px; font-size: 12px; color: #6d7175;">No risk. Cancel anytime.</div>
-                </form>
-            </div>
+            <ul class="plan-features">
+                <li>🤖 AI-Powered Stockout Predictions</li>
+                <li>📊 Real-Time Inventory Dashboard</li>
+                <li>📦 Smart Order Management</li>
+                <li>💰 Revenue Analytics & Forecasting</li>
+                <li>📥 Unlimited CSV Exports</li>
+                <li>🔄 Automated Reorder Alerts</li>
+                <li>📱 Mobile-Responsive Interface</li>
+                <li>⚡ Real-Time Sync with Shopify</li>
+                <li>🎯 Low Stock Notifications</li>
+                <li>📈 Sales Velocity Analysis</li>
+                <li>🛡️ Enterprise Security</li>
+                <li>💬 Priority Email Support</li>
+            </ul>
 
-            <!-- SCALE Plan ($297) -->
-            <div class="pricing-card">
-                <div class="plan-name">Scale</div>
-                <div class="plan-desc">For high-volume merchants</div>
-                <div class="plan-price">$297<span>/month</span></div>
-                <ul class="plan-features">
-                    <li>Everything in Growth</li>
-                    <li>Advanced Multi-Location Sync</li>
-                    <li>Automated Supplier Emails</li>
-                    <li>Custom Reporting Engine</li>
-                    <li>Unlimited Data History</li>
-                    <li>Unlimited Stores</li>
-                    <li>Priority 24/7 Support</li>
-                    <li>Dedicated Success Manager</li>
-                </ul>
-                <form method="POST" action="/billing/create-charge" style="margin:0;">
-                    <input type="hidden" name="shop" value="{{ shop }}">
-                    <input type="hidden" name="host" value="{{ host }}">
-                    <input type="hidden" name="plan" value="business">
-                    <button type="submit" class="btn btn-primary">Start Free Trial</button>
-                </form>
+            <form method="POST" action="/billing/create-charge" style="margin:0;">
+                <input type="hidden" name="shop" value="{{ shop }}">
+                <input type="hidden" name="host" value="{{ host }}">
+                <input type="hidden" name="plan" value="pro">
+                <button type="submit" class="cta-button">Start Free Trial</button>
+            </form>
+
+            <div class="guarantee">
+                🛡️ 30-day money-back guarantee • No setup fees • Cancel anytime
+            </div>
+        </div>
+
+        <div class="value-props">
+            <div class="value-prop">
+                <div class="value-prop-icon">⚡</div>
+                <div class="value-prop-title">Instant Setup</div>
+                <div class="value-prop-desc">Connect your store in 30 seconds. No technical knowledge required.</div>
+            </div>
+            <div class="value-prop">
+                <div class="value-prop-icon">🤖</div>
+                <div class="value-prop-title">AI-Powered</div>
+                <div class="value-prop-desc">Smart predictions prevent stockouts and maximize profits.</div>
+            </div>
+            <div class="value-prop">
+                <div class="value-prop-icon">📈</div>
+                <div class="value-prop-title">Grow Revenue</div>
+                <div class="value-prop-desc">Merchants see 15-30% revenue increase within 60 days.</div>
             </div>
         </div>
 

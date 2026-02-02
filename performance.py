@@ -10,6 +10,7 @@ import sys
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from functools import wraps
+from typing import Any, Dict
 
 import psutil
 
@@ -32,6 +33,9 @@ CACHE_TTL_INVENTORY = (
 CACHE_TTL_ORDERS = 120  # 2 minutes for orders (reduced from 3min)
 CACHE_TTL_REPORTS = 300  # 5 minutes for reports (reduced from 10min to prevent crashes)
 CACHE_TTL_STATS = 180  # 3 minutes for dashboard stats
+
+# Cache statistics tracking
+_cache_stats = {}
 
 
 def get_cache_key(prefix, *args, **kwargs):
@@ -308,4 +312,34 @@ def get_db_pool_settings():
         "max_overflow": 10,
         "pool_pre_ping": True,  # Verify connections before using
         "pool_recycle": 3600,  # Recycle connections after 1 hour
+    }
+
+
+# Add these functions to performance.py
+
+
+def update_cache_config(ttl: int, max_size: int):
+    """Update cache configuration for auto-scaling"""
+    global CACHE_TTL_INVENTORY, MAX_CACHE_SIZE_MB
+
+    CACHE_TTL_INVENTORY = ttl
+    # Convert max_size (items) to approximate MB
+    MAX_CACHE_SIZE_MB = max_size * 0.01  # Rough estimate: 10KB per item
+
+    logger.info(f"Cache config updated: TTL={ttl}s, MaxSize={max_size} items")
+
+
+def get_cache_efficiency() -> Dict[str, Any]:
+    """Get cache efficiency metrics"""
+    total_requests = sum(stats.get("requests", 0) for stats in _cache_stats.values())
+    total_hits = sum(stats.get("hits", 0) for stats in _cache_stats.values())
+
+    hit_rate = (total_hits / total_requests * 100) if total_requests > 0 else 0
+
+    return {
+        "hit_rate": hit_rate,
+        "total_requests": total_requests,
+        "total_hits": total_hits,
+        "cache_size": len(_cache),
+        "memory_usage_mb": _get_cache_size_mb(),
     }

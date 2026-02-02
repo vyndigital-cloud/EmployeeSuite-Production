@@ -114,13 +114,15 @@ class Config:
         # Development validations
         if self.ENVIRONMENT == "development":
             if not self.SECRET_KEY:
-                self.SECRET_KEY = "dev-secret-key-change-in-production"
+                object.__setattr__(
+                    self, "SECRET_KEY", "dev-secret-key-change-in-production"
+                )
                 warnings.append("Using default SECRET_KEY for development")
 
             if not self.ENCRYPTION_KEY:
                 import secrets
 
-                self.ENCRYPTION_KEY = secrets.token_urlsafe(32)
+                object.__setattr__(self, "ENCRYPTION_KEY", secrets.token_urlsafe(32))
                 warnings.append("Generated temporary ENCRYPTION_KEY for development")
 
         # General validations
@@ -149,20 +151,26 @@ class Config:
         """Setup values derived from other configuration"""
         # Setup redirect URI
         if not self.REDIRECT_URI:
-            self.REDIRECT_URI = f"{self.APP_URL.rstrip('/')}/auth/callback"
+            object.__setattr__(
+                self, "REDIRECT_URI", f"{self.APP_URL.rstrip('/')}/auth/callback"
+            )
 
         # Setup SQLAlchemy engine options
         if not self.SQLALCHEMY_ENGINE_OPTIONS:
             if "postgresql" in self.DATABASE_URL.lower():
-                self.SQLALCHEMY_ENGINE_OPTIONS = {
-                    "pool_size": 10,
-                    "max_overflow": 20,
-                    "pool_recycle": 3600,
-                    "pool_timeout": 30,
-                    "pool_pre_ping": True,
-                }
+                object.__setattr__(
+                    self,
+                    "SQLALCHEMY_ENGINE_OPTIONS",
+                    {
+                        "pool_size": 10,
+                        "max_overflow": 20,
+                        "pool_recycle": 3600,
+                        "pool_timeout": 30,
+                        "pool_pre_ping": True,
+                    },
+                )
             else:
-                self.SQLALCHEMY_ENGINE_OPTIONS = {}
+                object.__setattr__(self, "SQLALCHEMY_ENGINE_OPTIONS", {})
 
     def is_production(self) -> bool:
         """Check if running in production"""
@@ -269,6 +277,34 @@ def validate_required_env_vars():
 
 # Call validation immediately
 validate_required_env_vars()
+
+# Auto-scaling database configuration
+AUTO_SCALING_ENGINE_OPTIONS = {
+    "pool_size": 20,  # Start with 20 connections
+    "max_overflow": 50,  # Can burst to 70 total connections
+    "pool_recycle": 3600,  # Recycle connections every hour
+    "pool_timeout": 30,  # 30 second timeout
+    "pool_pre_ping": True,  # Verify connections before use
+    "echo": False,  # Disable SQL logging in production
+}
+
+# Connection pooling for high-traffic
+if os.getenv("ENVIRONMENT") == "production":
+    AUTO_SCALING_ENGINE_OPTIONS.update(
+        {
+            "pool_size": 50,  # Higher pool for production
+            "max_overflow": 100,  # Can handle 150 concurrent connections
+            "pool_recycle": 1800,  # Recycle every 30 minutes
+        }
+    )
+
+# Redis configuration for session storage (scales to millions of users)
+AUTO_SCALING_REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+AUTO_SCALING_SESSION_TYPE = "redis" if AUTO_SCALING_REDIS_URL else "filesystem"
+AUTO_SCALING_SESSION_REDIS = AUTO_SCALING_REDIS_URL if AUTO_SCALING_REDIS_URL else None
+AUTO_SCALING_SESSION_PERMANENT = False
+AUTO_SCALING_SESSION_USE_SIGNER = True
+AUTO_SCALING_SESSION_KEY_PREFIX = "employeesuite:"
 
 # Backward compatibility exports
 DEBUG_MODE = config.DEBUG
