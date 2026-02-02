@@ -2411,3 +2411,57 @@
 
 # 2026-02-02 18:33:59.077846
 +continue
+
+# 2026-02-02 18:41:03.484881
++/clear
+
+# 2026-02-02 18:41:04.104748
++Aider, before we deploy, perform a comprehensive final scan of the codebase for deployment readiness:
++
++Check for Duplicate Endpoints: Scan all blueprints (especially core_routes.py) for any duplicate function names that would cause an AssertionError.
++
++Dependency Audit: Verify that every library imported (like psutil, flask_cors, flask_limiter) is explicitly listed in requirements.txt.
++
++Import Integrity: Ensure there are no circular imports between app_factory.py, main.py, and your route files.
++
++Production Flags: Ensure debug=True is NOT hardcoded in app.run() and that we are using environment variables for secrets.
++
++Static Assets: Verify that any CSS/JS files referenced in templates actually exist in the /static folder.
++
++If you find any issues, fix them now. If it's clean, give me a 'Ready for Launch' summary.
+
+# 2026-02-02 18:44:55.588690
++/clear
+
+# 2026-02-02 18:44:57.129203
++Aider, we are moving to the 'For Life' architectural seal. I want you to re-engineer the app's core for Resilience and Self-Correction:
++
++Strict Schema Enforcement: Ensure every incoming request and outgoing response is validated against a schema. No 'loose' dictionaries. Use Pydantic models or strict Marshmallow schemas so data corruption is impossible.
++
++Circuit Breaker Pattern: Wrap all external calls (Shopify, Database) in a circuit breaker. If an external service is slow or down, the app must 'fail fast' and recover automatically without hanging the server.
++
++The 'Single Source of Truth' Factory: Consolidate all environment variable fetching into a single Config class with 'Required' flags. If a single variable is missing or malformed, the app should refuse to start and log exactly why.
++
++Graceful Degradation: If the database is under load or a non-essential service fails, implement logic to keep the core UI alive for the user instead of crashing the whole process.
++
++Automated Cleanup: Add a middleware that clears stale memory or database connections after every request to prevent the 'Slow Death' of memory leaks.
++
++This is not a 'fix'—this is a structural upgrade to a Production-Grade Fortress. Verify the entire flow from wsgi.py to the final response.
+
+# 2026-02-02 18:50:35.695859
++y
+
+# 2026-02-02 18:51:26.469825
++did u apply those  changes above or do I have to do anything else
+
+# 2026-02-02 18:52:09.788199
++y
+
+# 2026-02-02 18:52:11.574075
++A
+
+# 2026-02-02 18:52:21.754261
++Give me all the final level instructions so I can place them into my Zed
+
+# 2026-02-02 18:53:14.575404
++/clear

@@ -52,9 +52,9 @@ optimize_startup()
 
 # Create app using factory pattern
 try:
-    from app_factory import create_app
+    from app_factory import create_fortress_app
 
-    app = create_app()
+    app = create_fortress_app()
 
     # Validate config AFTER app creation
     validate_production_config()

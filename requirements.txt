@@ -21,3 +21,4 @@ blinker==1.6.3
 redis==5.0.1
 limits==3.6.0
 psutil>=5.8.0
+pydantic>=1.10.0
