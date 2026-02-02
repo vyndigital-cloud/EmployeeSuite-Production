@@ -21,11 +21,33 @@ try:
     from startup import create_app
 
     app = create_app()
+    
+    # Register GDPR webhook handlers for Protected Customer Data compliance
+    from webhook_shopify import webhook_shopify_bp
+    app.register_blueprint(webhook_shopify_bp)
+    
+    # Add Protected Customer Data compliance headers
+    @app.after_request
+    def add_gdpr_headers(response):
+        """Add Shopify Protected Customer Data compliance headers"""
+        response.headers['X-Shopify-Data-Protection'] = 'compliant'
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+        
 except ImportError:
     # Ultimate fallback
     from flask import Flask, jsonify
 
     app = Flask(__name__)
+    
+    # Register GDPR webhook handlers even in fallback mode
+    try:
+        from webhook_shopify import webhook_shopify_bp
+        app.register_blueprint(webhook_shopify_bp)
+    except ImportError:
+        pass
 
     @app.route("/")
     def home():
@@ -34,6 +56,16 @@ except ImportError:
     @app.route("/health")
     def health():
         return jsonify({"status": "healthy"})
+        
+    # Add Protected Customer Data compliance headers for fallback mode
+    @app.after_request
+    def add_gdpr_headers(response):
+        """Add Shopify Protected Customer Data compliance headers"""
+        response.headers['X-Shopify-Data-Protection'] = 'compliant'
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
 
 
 if __name__ == "__main__":

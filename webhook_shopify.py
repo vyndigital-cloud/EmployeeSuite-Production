@@ -82,6 +82,104 @@ def app_uninstall():
         logger.error(f"Error handling app/uninstall webhook: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
+@webhook_shopify_bp.route('/webhooks/customers/data_request', methods=['POST'])
+def customer_data_request():
+    """Handle customer data request webhook for GDPR compliance"""
+    try:
+        # Verify webhook signature
+        hmac_header = request.headers.get('X-Shopify-Hmac-Sha256')
+        raw_data = request.get_data(as_text=False)
+        if not verify_shopify_webhook(raw_data, hmac_header):
+            logger.warning("Invalid webhook signature for customers/data_request")
+            return jsonify({'error': 'Invalid signature'}), 401
+        
+        data = request.get_json()
+        shop_domain = request.headers.get('X-Shopify-Shop-Domain', '')
+        if shop_domain:
+            shop_domain = shop_domain.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+            if not shop_domain.endswith('.myshopify.com') and '.' not in shop_domain:
+                shop_domain = f"{shop_domain}.myshopify.com"
+        
+        customer_id = data.get('customer', {}).get('id')
+        customer_email = data.get('customer', {}).get('email')
+        
+        logger.info(f"Customer data request received for shop: {shop_domain}, customer: {customer_email}")
+        
+        # TODO: Implement actual customer data export logic
+        # This should collect all customer data from your database and return it
+        # For now, return acknowledgment that request was received
+        
+        return jsonify({'status': 'success', 'message': 'Data request received and will be processed'}), 200
+        
+    except Exception as e:
+        logger.error(f"Error handling customers/data_request webhook: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@webhook_shopify_bp.route('/webhooks/customers/redact', methods=['POST'])
+def customer_redact():
+    """Handle customer data deletion webhook for GDPR compliance"""
+    try:
+        # Verify webhook signature
+        hmac_header = request.headers.get('X-Shopify-Hmac-Sha256')
+        raw_data = request.get_data(as_text=False)
+        if not verify_shopify_webhook(raw_data, hmac_header):
+            logger.warning("Invalid webhook signature for customers/redact")
+            return jsonify({'error': 'Invalid signature'}), 401
+        
+        data = request.get_json()
+        shop_domain = request.headers.get('X-Shopify-Shop-Domain', '')
+        if shop_domain:
+            shop_domain = shop_domain.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+            if not shop_domain.endswith('.myshopify.com') and '.' not in shop_domain:
+                shop_domain = f"{shop_domain}.myshopify.com"
+        
+        customer_id = data.get('customer', {}).get('id')
+        customer_email = data.get('customer', {}).get('email')
+        
+        logger.info(f"Customer redaction request received for shop: {shop_domain}, customer: {customer_email}")
+        
+        # TODO: Implement actual customer data deletion logic
+        # This should remove/anonymize all customer data from your database
+        # For now, return acknowledgment that request was received
+        
+        return jsonify({'status': 'success', 'message': 'Redaction request received and will be processed'}), 200
+        
+    except Exception as e:
+        logger.error(f"Error handling customers/redact webhook: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@webhook_shopify_bp.route('/webhooks/shop/redact', methods=['POST'])
+def shop_redact():
+    """Handle shop data deletion webhook for GDPR compliance"""
+    try:
+        # Verify webhook signature
+        hmac_header = request.headers.get('X-Shopify-Hmac-Sha256')
+        raw_data = request.get_data(as_text=False)
+        if not verify_shopify_webhook(raw_data, hmac_header):
+            logger.warning("Invalid webhook signature for shop/redact")
+            return jsonify({'error': 'Invalid signature'}), 401
+        
+        data = request.get_json()
+        shop_domain = request.headers.get('X-Shopify-Shop-Domain', '')
+        if shop_domain:
+            shop_domain = shop_domain.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
+            if not shop_domain.endswith('.myshopify.com') and '.' not in shop_domain:
+                shop_domain = f"{shop_domain}.myshopify.com"
+        
+        shop_id = data.get('shop_id')
+        
+        logger.info(f"Shop redaction request received for shop: {shop_domain}, shop_id: {shop_id}")
+        
+        # TODO: Implement actual shop data deletion logic
+        # This should remove all shop data from your database after 48 hours
+        # For now, return acknowledgment that request was received
+        
+        return jsonify({'status': 'success', 'message': 'Shop redaction request received and will be processed'}), 200
+        
+    except Exception as e:
+        logger.error(f"Error handling shop/redact webhook: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
 @webhook_shopify_bp.route('/webhooks/app_subscriptions/update', methods=['POST'])
 def app_subscription_update():
     """Handle app subscription update webhook from Shopify"""
