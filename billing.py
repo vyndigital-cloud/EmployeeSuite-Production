@@ -21,6 +21,16 @@ from flask import (
 )
 from flask_login import current_user, login_required
 
+# Add error handling for imports
+try:
+    from enhanced_models import PLAN_PRICES, SubscriptionPlan
+except ImportError:
+    PLAN_PRICES = {"pro": 39.00, "business": 99.00}
+
+    class SubscriptionPlan:
+        pass
+
+
 from logging_config import logger
 from models import ShopifyStore, User, db
 

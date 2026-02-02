@@ -9,7 +9,13 @@ from functools import wraps
 import jwt
 from flask import jsonify, request
 
-from logging_config import logger
+# Replace the import at the top:
+try:
+    from logging_config import logger
+except ImportError:
+    import logging
+
+    logger = logging.getLogger(__name__)
 
 SHOPIFY_API_KEY = os.getenv("SHOPIFY_API_KEY", "").strip()
 SHOPIFY_API_SECRET = os.getenv("SHOPIFY_API_SECRET", "").strip()

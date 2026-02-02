@@ -3,54 +3,27 @@ services:
     name: employeesuite-production
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --worker-class=gevent --workers=4 --worker-connections=1000 --timeout=120 --max-requests=1000 --max-requests-jitter=100 --preload main:app
+    startCommand: python main.py
     plan: starter
     envVars:
       - key: ENVIRONMENT
         value: production
-      - key: SHOPIFY_API_KEY
-        sync: false
-      - key: SHOPIFY_API_SECRET
-        sync: false
-      - key: SHOPIFY_APP_URL
-        fromService:
-          type: web
-          name: employeesuite-production
-          property: url
-      - key: APP_URL
-        fromService:
-          type: web
-          name: employeesuite-production
-          property: url
-      - key: SCOPES
-        value: read_orders,read_products,read_inventory
       - key: SECRET_KEY
         generateValue: true
       - key: ENCRYPTION_KEY
         generateValue: true
-      - key: FLASK_ENV
-        value: production
+      - key: SHOPIFY_API_KEY
+        sync: false
+      - key: SHOPIFY_API_SECRET
+        sync: false
       - key: DATABASE_URL
         fromDatabase:
           name: employeesuite-db
           property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: employeesuite-redis
-          property: connectionString
     autoDeploy: true
-    scaling:
-      minInstances: 1
-      maxInstances: 10
 
 databases:
   - name: employeesuite-db
     databaseName: employeesuite
     user: employeesuite_user
-    plan: starter
-
-services:
-  - name: employeesuite-redis
-    type: redis
     plan: starter

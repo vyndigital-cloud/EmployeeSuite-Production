@@ -1,12 +1,19 @@
 from flask import Blueprint, render_template_string
 
-legal_bp = Blueprint('legal', __name__)
+legal_bp = Blueprint("legal", __name__)
 
-with open('privacy_policy.txt', 'r') as f:
-    PRIVACY_TEXT = f.read()
+# Read files with error handling
+try:
+    with open("privacy_policy.txt", "r") as f:
+        PRIVACY_TEXT = f.read()
+except FileNotFoundError:
+    PRIVACY_TEXT = "Privacy Policy content not available."
 
-with open('terms_of_service.txt', 'r') as f:
-    TERMS_TEXT = f.read()
+try:
+    with open("terms_of_service.txt", "r") as f:
+        TERMS_TEXT = f.read()
+except FileNotFoundError:
+    TERMS_TEXT = "Terms of Service content not available."
 
 LEGAL_HTML = """
 <!DOCTYPE html>
@@ -23,7 +30,7 @@ LEGAL_HTML = """
             color: #202223;
             line-height: 1.5;
         }
-        .header { 
+        .header {
             background: #ffffff;
             border-bottom: 1px solid #e1e3e5;
             position: sticky;
@@ -42,7 +49,7 @@ LEGAL_HTML = """
         .container { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
         .page-title { font-size: 28px; font-weight: 600; color: #202223; margin-bottom: 8px; letter-spacing: -0.3px; }
         .page-subtitle { font-size: 15px; color: #6d7175; margin-bottom: 32px; }
-        .content { 
+        .content {
             background: #ffffff;
             border: 1px solid #e1e3e5;
             border-radius: 8px;
@@ -51,7 +58,7 @@ LEGAL_HTML = """
         }
         h2 { font-size: 20px; font-weight: 600; color: #202223; margin: 32px 0 16px; }
         p { margin: 16px 0; color: #6d7175; font-size: 14px; }
-        
+
         /* Mobile */
         @media (max-width: 768px) {
             .container { padding: 24px 16px; }
@@ -83,14 +90,16 @@ LEGAL_HTML = """
 </html>
 """
 
-@legal_bp.route('/privacy')
+
+@legal_bp.route("/privacy")
 def privacy():
-    content = PRIVACY_TEXT.replace('\n\n', '</p><p>').replace('\n', '<br>')
-    content = f'<p>{content}</p>'
+    content = PRIVACY_TEXT.replace("\n\n", "</p><p>").replace("\n", "<br>")
+    content = f"<p>{content}</p>"
     return render_template_string(LEGAL_HTML, title="Privacy Policy", content=content)
 
-@legal_bp.route('/terms')
+
+@legal_bp.route("/terms")
 def terms():
-    content = TERMS_TEXT.replace('\n\n', '</p><p>').replace('\n', '<br>')
-    content = f'<p>{content}</p>'
+    content = TERMS_TEXT.replace("\n\n", "</p><p>").replace("\n", "<br>")
+    content = f"<p>{content}</p>"
     return render_template_string(LEGAL_HTML, title="Terms of Service", content=content)

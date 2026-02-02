@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -412,15 +413,35 @@ def update_timestamp(mapper, connection, target):
 
 
 # Database initialization and migration helpers
-def init_db(app) -> None:
-    """Initialize database without running migrations"""
-    try:
-        db.create_all()
-        logger.info("Database tables verified (migrations disabled)")
-        # DISABLED: run_migrations(app) - causing startup timeouts
-    except Exception as e:
-        logger.error(f"Database initialization failed: {e}")
-        raise
+def init_db(app):
+    """Initialize database with error handling"""
+    with app.app_context():
+        try:
+            # Test connection first
+            db.session.execute(db.text("SELECT 1"))
+            logger.info("Database connection verified")
+
+            # Create tables if they don't exist
+            db.create_all()
+            logger.info("Database tables created/verified")
+
+            # Run any pending migrations
+            try:
+                from migrations import run_migrations
+
+                run_migrations(app)
+            except ImportError:
+                logger.info("No migrations module found")
+            except Exception as e:
+                logger.warning(f"Migration warning: {e}")
+
+        except Exception as e:
+            logger.error(f"Database initialization failed: {e}")
+            # Don't raise in production - let app start with limited functionality
+            if os.getenv("ENVIRONMENT") == "production":
+                logger.warning("Continuing with database issues in production")
+            else:
+                raise
 
 
 def _add_column(table: str, column: str, col_type: str) -> None:
