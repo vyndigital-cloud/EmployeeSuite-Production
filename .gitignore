@@ -18,3 +18,8 @@ __pycache__/
 *.pyo
 *.pyd
 .aider*
+
+
+# Added by cargo
+
+/target
