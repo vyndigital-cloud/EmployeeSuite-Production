@@ -37,16 +37,20 @@ def create_app():
     from shopify_oauth import oauth_bp
     from shopify_routes import shopify_bp
     from billing import billing_bp
-    from features_routes import features_bp
+    from features_pages import features_pages_bp
     from legal_routes import legal_bp
+    from gdpr_compliance import gdpr_bp
+    from webhook_shopify import webhook_shopify_bp
     
     app.register_blueprint(core_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(oauth_bp)
     app.register_blueprint(shopify_bp)
     app.register_blueprint(billing_bp)
-    app.register_blueprint(features_bp)
+    app.register_blueprint(features_pages_bp)
     app.register_blueprint(legal_bp)
+    app.register_blueprint(gdpr_bp)
+    app.register_blueprint(webhook_shopify_bp)
     
     return app
 

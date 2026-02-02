@@ -22,9 +22,9 @@ try:
 
     app = create_app()
     
-    # Register GDPR webhook handlers for Protected Customer Data compliance
-    from webhook_shopify import webhook_shopify_bp
-    app.register_blueprint(webhook_shopify_bp)
+    # Webhook blueprint is now registered in app_factory
+    # from webhook_shopify import webhook_shopify_bp
+    # app.register_blueprint(webhook_shopify_bp)
     
     # Add Protected Customer Data compliance headers
     @app.after_request
