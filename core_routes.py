@@ -142,6 +142,13 @@ def get_authenticated_user():
                     db.session.rollback()
                 except Exception:
                     pass
+                finally:
+                    # FIXED: Add proper session cleanup
+                    try:
+                        db.session.close()
+                    except Exception:
+                        pass
+
                 return None, (
                     jsonify(
                         {
@@ -526,13 +533,21 @@ def apple_touch_icon():
 
 @core_bp.route("/health")
 def health():
-    """Health check endpoint for monitoring"""
-    # Import only when needed to speed up startup
+    """Enhanced health check endpoint"""
     from models import db
 
     checks = {}
     overall_status = "healthy"
 
+    # Database check
+    try:
+        db.session.execute(db.text("SELECT 1"))
+        checks["database"] = {"status": "connected"}
+    except Exception as e:
+        checks["database"] = {"error": str(e), "status": "disconnected"}
+        overall_status = "unhealthy"
+
+    # Cache check
     try:
         from performance import get_cache_stats
 
@@ -545,36 +560,44 @@ def health():
         checks["cache"] = {"error": str(e), "status": "error"}
         overall_status = "unhealthy"
 
+    # Configuration check
     try:
-        db.session.execute(db.text("SELECT 1"))
-        checks["database"] = {"status": "connected"}
+        required_vars = ["SHOPIFY_API_KEY", "SHOPIFY_API_SECRET", "SECRET_KEY"]
+        missing = [var for var in required_vars if not os.getenv(var)]
+
+        checks["configuration"] = {
+            "status": "valid" if not missing else "invalid",
+            "missing_vars": missing,
+        }
+
+        if missing:
+            overall_status = "unhealthy"
+
     except Exception as e:
-        checks["database"] = {"error": str(e), "status": "disconnected"}
+        checks["configuration"] = {"error": str(e)}
         overall_status = "unhealthy"
 
+    # Memory check
     try:
-        import flask
+        import psutil
 
-        checks["environment"] = {
-            "environment": os.getenv("ENVIRONMENT", "unknown"),
-            "flask_version": flask.__version__,
-            "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+        memory_percent = psutil.virtual_memory().percent
+        checks["memory"] = {
+            "usage_percent": memory_percent,
+            "status": "ok" if memory_percent < 90 else "high",
         }
-    except Exception as e:
-        checks["environment"] = {"error": str(e)}
 
-    database_status = (
-        "connected"
-        if checks.get("database", {}).get("status") == "connected"
-        else "disconnected"
-    )
+        if memory_percent > 95:
+            overall_status = "unhealthy"
+
+    except Exception as e:
+        checks["memory"] = {"error": str(e)}
 
     return jsonify(
         {
             "status": overall_status,
             "service": "Employee Suite",
             "version": "2.7",
-            "database": database_status,
             "checks": checks,
             "timestamp": datetime.utcnow().isoformat(),
         }
@@ -979,17 +1002,18 @@ def api_generate_report():
         data = generate_report(user_id=user_id, shop_url=shop_url)
 
         if data.get("error") and data["error"] is not None:
-            return data["error"], 500
+            return jsonify({"success": False, "error": data["error"]}), 500
 
         if not data.get("message"):
-            return '<h3 class="error">No report data available</h3>', 500
+            return jsonify({"success": False, "error": "No report data available"}), 500
 
-        html = data.get("message", '<h3 class="error">No report data available</h3>')
+        html = data.get("message", "No report data available")
 
         if "report_data" in data:
             session["report_data"] = data["report_data"]
 
-        return html, 200
+        # FIXED: Return consistent JSON response
+        return jsonify({"success": True, "html": html, "message": "Report generated"})
 
     except MemoryError:
         from performance import clear_cache as clear_perf_cache
@@ -1001,9 +1025,7 @@ def api_generate_report():
     except SystemExit:
         raise
     except BaseException as e:
-        logger.error(
-            f"Critical error generating report for user {user_id}: {e}", exc_info=True
-        )
+        logger.error(f"Critical error generating report: {e}", exc_info=True)
         return jsonify(
             {"success": False, "error": f"Failed to generate report: {e}"}
         ), 500

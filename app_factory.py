@@ -207,67 +207,39 @@ def register_blueprints(app: Flask) -> None:
 
     try:
         # Import blueprints here to avoid circular imports
-        from routes.admin import admin_bp
-        from routes.api import api_bp
-        from routes.auth import auth_bp
-        from routes.billing import billing_bp
-        from routes.main import main_bp
-        from routes.shopify import shopify_bp
-        from routes.webhooks import webhooks_bp
+        # Import additional blueprints
+        from admin_routes import admin_bp
+        from auth import auth_bp
+        from billing import billing_bp
+        from core_routes import core_bp
+        from faq_routes import faq_bp
+        from gdpr_compliance import gdpr_bp
+        from legal_routes import legal_bp
+        from shopify_oauth import oauth_bp
+        from shopify_routes import shopify_bp
+        from webhook_shopify import webhook_shopify_bp
+        from webhook_stripe import webhook_bp
 
-        # Register blueprints
-        app.register_blueprint(main_bp)
-        app.register_blueprint(auth_bp, url_prefix="/auth")
-        app.register_blueprint(api_bp, url_prefix="/api")
-        app.register_blueprint(shopify_bp, url_prefix="/shopify")
-        app.register_blueprint(admin_bp, url_prefix="/admin")
-        app.register_blueprint(billing_bp, url_prefix="/billing")
-        app.register_blueprint(webhooks_bp, url_prefix="/webhooks")
+        # Register core blueprints first
+        app.register_blueprint(core_bp)
+        app.register_blueprint(auth_bp)
+        app.register_blueprint(oauth_bp)
+        app.register_blueprint(shopify_bp)
+        app.register_blueprint(billing_bp)
+
+        # Register additional blueprints
+        app.register_blueprint(admin_bp)
+        app.register_blueprint(legal_bp, url_prefix="/legal")
+        app.register_blueprint(faq_bp)
+        app.register_blueprint(webhook_bp)
+        app.register_blueprint(webhook_shopify_bp)
+        app.register_blueprint(gdpr_bp)
 
         logger.info("All blueprints registered successfully")
 
     except ImportError as e:
-        # Fall back to legacy imports if new route structure doesn't exist yet
-        logger.warning(f"New route structure not available, using legacy imports: {e}")
-
-        try:
-            # Legacy blueprint imports
-            from admin_routes import admin_bp
-            from auth import auth_bp
-            from billing import billing_bp
-            from faq_routes import faq_bp
-            from gdpr_compliance import gdpr_bp
-            from legal_routes import legal_bp
-            from shopify_oauth import oauth_bp
-            from shopify_routes import shopify_bp
-            from webhook_shopify import webhook_shopify_bp
-            from webhook_stripe import webhook_bp
-
-            # Register legacy blueprints
-            # Note: most blueprints already include full paths in their route
-            # decorators (e.g. @billing_bp.route('/billing/create-charge')),
-            # so they must NOT get an additional url_prefix here.
-            app.register_blueprint(auth_bp, url_prefix="/auth")
-            app.register_blueprint(oauth_bp)
-            app.register_blueprint(shopify_bp)
-            app.register_blueprint(billing_bp)
-            app.register_blueprint(admin_bp)  # has url_prefix='/admin' in Blueprint()
-            app.register_blueprint(legal_bp, url_prefix="/legal")
-            app.register_blueprint(faq_bp)
-            app.register_blueprint(webhook_bp)
-            app.register_blueprint(webhook_shopify_bp)
-            app.register_blueprint(gdpr_bp)
-
-            # Core routes (dashboard, API, cron, health, etc.)
-            from core_routes import core_bp
-
-            app.register_blueprint(core_bp)
-
-            logger.info("Legacy blueprints registered successfully")
-
-        except ImportError as e2:
-            logger.error(f"Failed to register blueprints: {e2}")
-            # Don't raise here - app might still work with main routes
+        logger.error(f"Failed to register blueprints: {e}")
+        # Don't raise here - app might still work with main routes
 
 
 def register_error_handlers(app: Flask) -> None:

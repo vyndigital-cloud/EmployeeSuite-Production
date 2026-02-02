@@ -16,9 +16,7 @@ SHOPIFY_API_SECRET = os.getenv("SHOPIFY_API_SECRET", "").strip()
 
 # Apply same normalization as OAuth flow
 if SHOPIFY_API_KEY and len(SHOPIFY_API_KEY) > 2:
-    if (
-        SHOPIFY_API_KEY.startswith('"') and SHOPIFY_API_KEY.endswith('"')
-    ) or (
+    if (SHOPIFY_API_KEY.startswith('"') and SHOPIFY_API_KEY.endswith('"')) or (
         SHOPIFY_API_KEY.startswith("'") and SHOPIFY_API_KEY.endswith("'")
     ):
         # Create a normalized version but keep original for comparison
@@ -117,16 +115,22 @@ def verify_session_token(f):
                 # Remove quotes if present (common environment variable issue)
                 if current_api_key and len(current_api_key) > 2:
                     if (
-                        current_api_key.startswith('"') and current_api_key.endswith('"')
+                        current_api_key.startswith('"')
+                        and current_api_key.endswith('"')
                     ) or (
-                        current_api_key.startswith("'") and current_api_key.endswith("'")
+                        current_api_key.startswith("'")
+                        and current_api_key.endswith("'")
                     ):
                         current_api_key = current_api_key[1:-1].strip()
 
                 # Validate API key is present
                 if not current_api_key:
-                    logger.error("SHOPIFY_API_KEY environment variable is NOT SET or empty")
-                    return jsonify({"error": "Server configuration error - missing API key"}), 500
+                    logger.error(
+                        "SHOPIFY_API_KEY environment variable is NOT SET or empty"
+                    )
+                    return jsonify(
+                        {"error": "Server configuration error - missing API key"}
+                    ), 500
 
                 # Validate audience matches API key
                 if not aud:
@@ -143,8 +147,12 @@ def verify_session_token(f):
                     logger.warning(f"  Received: {aud}")
                     logger.warning(f"  Expected: {current_api_key}")
                     logger.warning(f"  Also tried: {SHOPIFY_API_KEY_NORMALIZED}")
-                    logger.warning(f"  Lengths: received={len(aud)}, expected={len(current_api_key)}")
-                    return jsonify({"error": "Invalid token audience (API Key mismatch)"}), 401
+                    logger.warning(
+                        f"  Lengths: received={len(aud)}, expected={len(current_api_key)}"
+                    )
+                    return jsonify(
+                        {"error": "Invalid token audience (API Key mismatch)"}
+                    ), 401
 
                 # Verify destination (should match shop domain)
                 dest = payload.get("dest", "")
@@ -199,6 +207,14 @@ def verify_session_token(f):
             except jwt.InvalidTokenError as e:
                 logger.warning(f"Invalid JWT session token: {e}")
 
+                # Add detailed debugging context
+                logger.warning(f"Token validation failed - Details:")
+                logger.warning(f"  Token length: {len(token) if token else 0}")
+                logger.warning(
+                    f"  API Secret length: {len(SHOPIFY_API_SECRET) if SHOPIFY_API_SECRET else 0}"
+                )
+                logger.warning(f"  Expected audience: {SHOPIFY_API_KEY}")
+
                 # Try to decode without verification for debugging
                 try:
                     debug_payload = jwt.decode(
@@ -206,16 +222,18 @@ def verify_session_token(f):
                     )
                     debug_aud = debug_payload.get("aud", "MISSING")
                     debug_iss = debug_payload.get("iss", "MISSING")
-                    logger.warning(f"DEBUG - Token contents:")
-                    logger.warning(f"  Audience: {debug_aud}")
-                    logger.warning(f"  Issuer: {debug_iss}")
-                    logger.warning(
-                        f"  Expected API Key: {SHOPIFY_API_KEY[:8] + '****' if SHOPIFY_API_KEY else 'NOT_SET'}"
-                    )
+                    logger.warning(f"  Token audience: {debug_aud}")
+                    logger.warning(f"  Token issuer: {debug_iss}")
                 except Exception:
-                    logger.warning("Could not decode token for debugging")
+                    logger.warning("  Could not decode token for debugging")
 
-                return jsonify({"error": "Invalid session token format"}), 401
+                return jsonify(
+                    {
+                        "error": "Invalid session token format",
+                        "debug": str(e),
+                        "action": "refresh",
+                    }
+                ), 401
 
             except Exception as e:
                 logger.error(

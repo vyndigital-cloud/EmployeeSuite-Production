@@ -16,12 +16,86 @@ if str(project_dir) not in sys.path:
 # OPTIMIZATION: Set environment flag to skip heavy startup operations
 os.environ.setdefault("SKIP_STARTUP_MIGRATIONS", "true")
 
+
+# OPTIMIZATION: Defer heavy imports until needed
+def optimize_startup():
+    """Optimize startup by deferring heavy operations"""
+    # Skip heavy operations in production for faster startup
+    if os.getenv("ENVIRONMENT") == "production":
+        os.environ.setdefault("SKIP_HEAVY_IMPORTS", "true")
+        os.environ.setdefault("SKIP_STARTUP_MIGRATIONS", "true")
+
+    # Preload critical modules only
+    critical_modules = ["logging_config", "models", "config"]
+
+    for module in critical_modules:
+        try:
+            __import__(module)
+        except ImportError:
+            pass
+
+
+def validate_production_config():
+    """Validate critical production configuration"""
+    if os.getenv("ENVIRONMENT") == "production":
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Validate critical production settings
+        required_vars = [
+            "DATABASE_URL",
+            "SECRET_KEY",
+            "SHOPIFY_API_KEY",
+            "SHOPIFY_API_SECRET",
+            "ENCRYPTION_KEY",
+        ]
+
+        missing = [var for var in required_vars if not os.getenv(var)]
+        if missing:
+            logger.error(
+                f"❌ CRITICAL: Missing production environment variables: {missing}"
+            )
+            sys.exit(1)
+
+        # Validate database connection
+        try:
+            with app.app_context():
+                from models import db
+
+                db.session.execute(db.text("SELECT 1"))
+            logger.info("✅ Database connection validated")
+        except Exception as e:
+            logger.error(f"❌ Database connection failed: {e}")
+            sys.exit(1)
+
+        # Validate Shopify API credentials format
+        api_key = os.getenv("SHOPIFY_API_KEY")
+        api_secret = os.getenv("SHOPIFY_API_SECRET")
+
+        if len(api_key) < 20:
+            logger.error(f"❌ SHOPIFY_API_KEY seems too short ({len(api_key)} chars)")
+            sys.exit(1)
+
+        if len(api_secret) < 30:
+            logger.error(
+                f"❌ SHOPIFY_API_SECRET seems too short ({len(api_secret)} chars)"
+            )
+            sys.exit(1)
+
+        logger.info("✅ Production configuration validated")
+
+
+# Call before app creation
+optimize_startup()
+
 # Try to import app_factory, fallback to basic Flask app if not available
 try:
     from app_factory import create_app
 
     # For WSGI servers (Gunicorn, uWSGI, etc.)
     app = create_app()
+    validate_production_config()  # Add this line
 except ImportError as e:
     # Fallback: Create basic Flask app if app_factory is missing
     import logging

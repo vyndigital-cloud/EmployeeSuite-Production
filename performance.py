@@ -3,13 +3,15 @@ Performance Optimizations for Employee Suite
 Lightning-fast caching and response optimization
 """
 
-from functools import wraps
-from datetime import datetime, timedelta
-from collections import OrderedDict
 import hashlib
 import json
 import logging
 import sys
+from collections import OrderedDict
+from datetime import datetime, timedelta
+from functools import wraps
+
+import psutil
 
 logger = logging.getLogger(__name__)
 
@@ -24,20 +26,21 @@ MAX_CACHE_ENTRIES = 100  # Maximum number of cache entries per worker
 MAX_CACHE_SIZE_MB = 50  # Maximum cache size in MB (approximate)
 
 # Cache TTLs (in seconds) - Balanced for performance and memory
-CACHE_TTL_INVENTORY = 180  # 3 minutes for inventory (reduced from 5min to prevent memory issues)
+CACHE_TTL_INVENTORY = (
+    180  # 3 minutes for inventory (reduced from 5min to prevent memory issues)
+)
 CACHE_TTL_ORDERS = 120  # 2 minutes for orders (reduced from 3min)
 CACHE_TTL_REPORTS = 300  # 5 minutes for reports (reduced from 10min to prevent crashes)
 CACHE_TTL_STATS = 180  # 3 minutes for dashboard stats
 
+
 def get_cache_key(prefix, *args, **kwargs):
     """Generate cache key from function arguments"""
-    key_data = {
-        'args': args,
-        'kwargs': sorted(kwargs.items()) if kwargs else {}
-    }
+    key_data = {"args": args, "kwargs": sorted(kwargs.items()) if kwargs else {}}
     key_string = json.dumps(key_data, sort_keys=True, default=str)
     key_hash = hashlib.md5(key_string.encode()).hexdigest()
     return f"{prefix}:{key_hash}"
+
 
 def _get_cache_size_mb():
     """Estimate cache size in MB"""
@@ -55,6 +58,7 @@ def _get_cache_size_mb():
     except Exception as e:
         logger.warning(f"Failed to get cache size: {e}")
         return 0
+
 
 def _evict_lru():
     """Evict least recently used cache entries"""
@@ -85,19 +89,45 @@ def _evict_lru():
         _cache_timestamps.clear()
         _cache_access_times.clear()
 
+
+def _enforce_memory_limits():
+    """Enforce memory limits and clear cache if needed"""
+    try:
+        memory_percent = psutil.virtual_memory().percent
+        cache_size_mb = _get_cache_size_mb()
+
+        # Clear cache if memory usage > 85% OR cache size > 50MB
+        if memory_percent > 85 or cache_size_mb > MAX_CACHE_SIZE_MB:
+            entries_before = len(_cache)
+            clear_cache()
+            logger.warning(
+                f"Memory management: Cleared {entries_before} cache entries "
+                f"(Memory: {memory_percent}%, Cache: {cache_size_mb}MB)"
+            )
+    except Exception as e:
+        logger.error(f"Memory enforcement failed: {e}")
+
+
 def cache_result(ttl=CACHE_TTL_INVENTORY):
     """Decorator to cache function results with LRU eviction"""
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             try:
+                # Enforce memory limits before caching
+                _enforce_memory_limits()
+
                 # Generate cache key
                 cache_key = get_cache_key(func.__name__, *args, **kwargs)
 
                 # Check cache
                 if cache_key in _cache:
                     timestamp = _cache_timestamps.get(cache_key)
-                    if timestamp and (datetime.utcnow() - timestamp).total_seconds() < ttl:
+                    if (
+                        timestamp
+                        and (datetime.utcnow() - timestamp).total_seconds() < ttl
+                    ):
                         # Cache hit - move to end (most recently used)
                         _cache.move_to_end(cache_key)
                         _cache_access_times[cache_key] = datetime.utcnow()
@@ -136,27 +166,36 @@ def cache_result(ttl=CACHE_TTL_INVENTORY):
                 # Any other error - don't cache, just execute
                 logger.warning(f"Cache error for {func.__name__}: {e}")
                 return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
+
 
 # Cache clearing interval - prevent spam
 CACHE_CLEAR_INTERVAL = 300  # 5 minutes minimum between full cache clears
 _last_cache_clear_time = None
+
 
 def clear_cache(pattern=None):
     """Clear cache entries matching pattern"""
     global _last_cache_clear_time
     try:
         from datetime import datetime
+
         current_time = datetime.utcnow()
 
         # If clearing entire cache, check interval to prevent spam
         if pattern is None:
             if _last_cache_clear_time:
-                time_since_last_clear = (current_time - _last_cache_clear_time).total_seconds()
+                time_since_last_clear = (
+                    current_time - _last_cache_clear_time
+                ).total_seconds()
                 if time_since_last_clear < CACHE_CLEAR_INTERVAL:
                     # Too soon - skip clearing to prevent spam
-                    logger.debug(f"Cache clear skipped - only {time_since_last_clear:.1f}s since last clear (minimum {CACHE_CLEAR_INTERVAL}s)")
+                    logger.debug(
+                        f"Cache clear skipped - only {time_since_last_clear:.1f}s since last clear (minimum {CACHE_CLEAR_INTERVAL}s)"
+                    )
                     return
 
             _cache.clear()
@@ -171,7 +210,9 @@ def clear_cache(pattern=None):
                 _cache_timestamps.pop(key, None)
                 _cache_access_times.pop(key, None)
             if keys_to_remove:
-                logger.info(f"Cleared {len(keys_to_remove)} cache entries matching '{pattern}'")
+                logger.info(
+                    f"Cleared {len(keys_to_remove)} cache entries matching '{pattern}'"
+                )
             # Don't log if nothing to clear (prevent spam)
     except Exception as e:
         logger.error(f"Error clearing cache: {e}")
@@ -179,30 +220,33 @@ def clear_cache(pattern=None):
         _cache.clear()
         _cache_timestamps.clear()
         _cache_access_times.clear()
-        _last_cache_clear_time = datetime.utcnow() if 'datetime' in dir() else None
+        _last_cache_clear_time = datetime.utcnow() if "datetime" in dir() else None
+
 
 def get_cache_stats():
     """Get cache statistics"""
     try:
         return {
-            'entries': len(_cache),
-            'max_entries': MAX_CACHE_ENTRIES,
-            'size_mb': round(_get_cache_size_mb(), 2),
-            'max_size_mb': MAX_CACHE_SIZE_MB,
-            'keys': list(_cache.keys())[:10]  # First 10 keys
+            "entries": len(_cache),
+            "max_entries": MAX_CACHE_ENTRIES,
+            "size_mb": round(_get_cache_size_mb(), 2),
+            "max_size_mb": MAX_CACHE_SIZE_MB,
+            "keys": list(_cache.keys())[:10],  # First 10 keys
         }
     except Exception as e:
         logger.error(f"Error getting cache stats: {e}")
         return {
-            'entries': 0,
-            'max_entries': MAX_CACHE_ENTRIES,
-            'size_mb': 0,
-            'max_size_mb': MAX_CACHE_SIZE_MB,
-            'keys': []
+            "entries": 0,
+            "max_entries": MAX_CACHE_ENTRIES,
+            "size_mb": 0,
+            "max_size_mb": MAX_CACHE_SIZE_MB,
+            "keys": [],
         }
+
 
 # Response compression
 import gzip
+
 
 def compress_response(response):
     """Compress response if client supports it"""
@@ -211,14 +255,21 @@ def compress_response(response):
         from flask import request
 
         # Only compress if response is large enough and client accepts gzip
-        accept_encoding = request.headers.get('Accept-Encoding', '') if hasattr(request, 'headers') else ''
+        accept_encoding = (
+            request.headers.get("Accept-Encoding", "")
+            if hasattr(request, "headers")
+            else ""
+        )
 
-        if 'gzip' not in accept_encoding:
+        if "gzip" not in accept_encoding:
             return response
 
         # Only compress text-based responses
-        content_type = response.content_type or ''
-        if not any(x in content_type for x in ['text', 'json', 'html', 'javascript', 'css', 'xml']):
+        content_type = response.content_type or ""
+        if not any(
+            x in content_type
+            for x in ["text", "json", "html", "javascript", "css", "xml"]
+        ):
             return response
 
         # Only compress if response is > 1KB
@@ -229,15 +280,18 @@ def compress_response(response):
         # Compress
         compressed = gzip.compress(data, compresslevel=6)  # Level 6 = good balance
         response.set_data(compressed)
-        response.headers['Content-Encoding'] = 'gzip'
-        response.headers['Content-Length'] = len(compressed)
-        response.headers['Vary'] = 'Accept-Encoding'
-        logger.debug(f"Compressed response: {len(data)} -> {len(compressed)} bytes ({100*(1-len(compressed)/len(data)):.1f}% reduction)")
+        response.headers["Content-Encoding"] = "gzip"
+        response.headers["Content-Length"] = len(compressed)
+        response.headers["Vary"] = "Accept-Encoding"
+        logger.debug(
+            f"Compressed response: {len(data)} -> {len(compressed)} bytes ({100 * (1 - len(compressed) / len(data)):.1f}% reduction)"
+        )
     except Exception as e:
         # If compression fails, return original response
         logger.debug(f"Compression skipped: {e}")
 
     return response
+
 
 # Database query optimization
 def optimize_query(query):
@@ -245,12 +299,13 @@ def optimize_query(query):
     # SQLAlchemy already optimizes, but we can add hints
     return query
 
+
 # Connection pooling (handled by SQLAlchemy, but we can verify settings)
 def get_db_pool_settings():
     """Get optimal database pool settings"""
     return {
-        'pool_size': 5,
-        'max_overflow': 10,
-        'pool_pre_ping': True,  # Verify connections before using
-        'pool_recycle': 3600,  # Recycle connections after 1 hour
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_pre_ping": True,  # Verify connections before using
+        "pool_recycle": 3600,  # Recycle connections after 1 hour
     }

@@ -17,6 +17,7 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
+from flask_wtf import csrf
 
 from logging_config import logger
 from models import ShopifyStore, User, db
@@ -744,6 +745,7 @@ def subscribe():
 
 
 @billing_bp.route("/create-charge", methods=["POST"])
+@csrf.protect  # Add CSRF protection
 def create_charge():
     """Create a Shopify recurring charge"""
     shop = request.form.get("shop") or request.args.get("shop", "")
