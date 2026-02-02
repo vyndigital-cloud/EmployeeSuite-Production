@@ -56,7 +56,7 @@ def test_models():
 def test_blueprints():
     try:
         from app import app
-        required = ['auth', 'billing', 'shopify', 'oauth', 'gdpr', 'webhook_shopify']
+        required = ['auth', 'billing', 'shopify', 'oauth', 'gdpr_compliance', 'webhook_shopify']
         blueprint_names = [bp.name for bp in app.blueprints.values()]
         return all(name in blueprint_names for name in required)
     except Exception:
