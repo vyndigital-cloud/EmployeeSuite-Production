@@ -761,20 +761,100 @@ class ShopifyClient:
 
     @cache_result(ttl=CACHE_TTL_ORDERS)
     def get_orders(self, status="any", limit=50):
-        data = self._make_request(f"orders.json?status={status}&limit={limit}")
+        """
+        Get orders using GraphQL (migrated from legacy REST API)
+        Avoids "Protected Customer Data" 403 errors by using more granular GraphQL permissions
+        """
+        # Map REST status to GraphQL query filter
+        query_filter = ""
+        if status != "any":
+            # GraphQL uses specific query syntax
+            # financial_status:paid, etc.
+            if status == "paid":
+                query_filter = "query: \"financial_status:paid\""
+            elif status == "pending":
+                query_filter = "query: \"financial_status:pending\""
+            elif status == "refunded":
+                query_filter = "query: \"financial_status:refunded\""
+
+        query = """
+        query getOrders($first: Int!, $query: String) {
+            orders(first: $first, query: $query, sortKey: CREATED_AT, reverse: true) {
+                edges {
+                    node {
+                        name
+                        id
+                        displayFinancialStatus
+                        currentTotalPriceSet {
+                            shopMoney {
+                                amount
+                                currencyCode
+                            }
+                        }
+                        customer {
+                            email
+                            firstName
+                            lastName
+                        }
+                        lineItems(first: 5) {
+                            edges {
+                                node {
+                                    title
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        """
+        
+        variables = {
+            "first": min(limit, 50), # Max 50 for performance
+            "query": query_filter.replace("query: ", "").replace("\"", "") if query_filter else None
+        }
+
+        data = self._make_graphql_request(query, variables)
+        
         if "error" in data:
             return {"error": data["error"]}
+            
+        if "errors" in data:
+             return {"error": str(data["errors"])}
+
         orders = []
-        for order in data.get("orders", []):
+        orders_data = data.get("data", {}).get("orders", {}).get("edges", [])
+        
+        for edge in orders_data:
+            node = edge.get("node", {})
+            if not node:
+                continue
+                
+            # Safely extract customer info (might be null/redacted)
+            customer_email = "Guest"
+            if node.get("customer"):
+                customer_email = node.get("customer", {}).get("email") or "No Email"
+                
+            # Safely extract price
+            price = "0.00"
+            if node.get("currentTotalPriceSet") and node.get("currentTotalPriceSet").get("shopMoney"):
+                price = node.get("currentTotalPriceSet").get("shopMoney").get("amount", "0.00")
+            
+            # Count items
+            item_count = 0
+            if node.get("lineItems"):
+                item_count = len(node.get("lineItems", {}).get("edges", []))
+
             orders.append(
                 {
-                    "id": order["order_number"],
-                    "customer": order.get("customer", {}).get("email", "Guest"),
-                    "total": f"${order['total_price']}",
-                    "items": len(order["line_items"]),
-                    "status": order.get("financial_status", "N/A").upper(),
+                    "id": node.get("name", "Unknown"), # Use name (e.g. #1001) as ID for display
+                    "customer": customer_email,
+                    "total": f"${price}",
+                    "items": item_count,
+                    "status": node.get("displayFinancialStatus", "N/A"),
                 }
             )
+            
         return orders
 
     def get_low_stock(self, threshold=5):
