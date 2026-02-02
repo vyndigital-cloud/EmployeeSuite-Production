@@ -680,7 +680,7 @@ def api_docs():
 
 
 @core_bp.route("/debug/routes")
-def debug_routes():
+def system_debug_routes():
     if not _is_debug_enabled():
         return jsonify({"error": "Not available in production"}), 403
 

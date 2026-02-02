@@ -2383,3 +2383,31 @@
 
 # 2026-02-02 18:26:11.501667
 +y
+
+# 2026-02-02 18:31:19.544461
++"Aider, the deploy failed with an AssertionError. We have a duplicate endpoint name.
++
++Search the entire project for the function name debug_routes.
++
++Check core_routes.py and app_factory.py.
++
++Rename one of them. If there are two, keep the one in core_routes.py and delete or rename the other one to system_debug_routes.
++
++Crucial: Ensure that in register_blueprints, we aren't accidentally registering the same blueprint twice."
+
+# 2026-02-02 18:31:28.652578
++/clear
+
+# 2026-02-02 18:31:29.054604
++"Aider, the deploy failed with an AssertionError. We have a duplicate endpoint name.
++
++Search the entire project for the function name debug_routes.
++
++Check core_routes.py and app_factory.py.
++
++Rename one of them. If there are two, keep the one in core_routes.py and delete or rename the other one to system_debug_routes.
++
++Crucial: Ensure that in register_blueprints, we aren't accidentally registering the same blueprint twice."
+
+# 2026-02-02 18:33:59.077846
++continue
