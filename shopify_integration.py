@@ -660,7 +660,7 @@ class ShopifyClient:
             data = self._make_graphql_request(query, variables)
 
             if "error" in data:
-                return {"error": data["error"]}
+                return self._handle_protected_data_error(data)
 
             if "errors" in data:
                 return {"error": str(data["errors"])}
