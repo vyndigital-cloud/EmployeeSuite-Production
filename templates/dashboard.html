@@ -95,9 +95,536 @@
         // App Bridge CSS removed - it's optional and the file doesn't exist at the CDN URL
         // App Bridge JavaScript provides all necessary functionality without CSS
     </script>
-    <!-- Custom Global Styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family:
+                -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                "Helvetica Neue", Arial, sans-serif;
+            background: radial-gradient(circle at top right, rgba(0, 128, 96, 0.05), transparent 40%),
+                radial-gradient(circle at bottom left, rgba(0, 128, 96, 0.05), transparent 40%),
+                #f6f6f7;
+            background-attachment: fixed;
+            color: #202223;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            min-height: 100vh;
+            line-height: 1.5;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        /* Header - Hide in embedded mode (Shopify provides navigation) */
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid #e1e3e5;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        /* Hide header when embedded - Shopify admin has its own nav */
+        body.embedded .header {
+            display: none !important;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 16px;
+            font-weight: 600;
+            color: #202223;
+            text-decoration: none;
+            letter-spacing: -0.2px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            color: #6d7175;
+            transition: background 0.15s;
+            position: relative;
+        }
+
+        .nav-btn:hover {
+            background: #f6f6f7;
+            color: #202223;
+        }
+
+        .nav-btn-primary {
+            background: #008060;
+            color: #fff !important;
+            transition: background 0.2s ease;
+        }
+
+        .nav-btn-primary:hover {
+            background: #006e52;
+            color: #fff !important;
+        }
+
+        /* Quick Access Menu */
+        .quick-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        .quick-menu-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            background: #f6f6f7;
+            color: #202223;
+            border: 1px solid #e1e3e5;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .quick-menu-btn:hover {
+            background: #e1e3e5;
+        }
+
+        .quick-menu-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: #ffffff;
+            border: 1px solid #e1e3e5;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 220px;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .quick-menu-dropdown.show {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .quick-menu-item {
+            display: block;
+            padding: 12px 16px;
+            color: #202223;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.15s;
+            border-bottom: 1px solid #f6f6f7;
+        }
+
+        .quick-menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .quick-menu-item:hover {
+            background: #f6f6f7;
+        }
+
+        .quick-menu-item-icon {
+            display: inline-block;
+            width: 20px;
+            margin-right: 8px;
+            text-align: center;
+        }
+
+        .quick-menu-shortcut {
+            float: right;
+            color: #8c9196;
+            font-size: 12px;
+            font-family: "SF Mono", "Monaco", monospace;
+        }
+
+        /* Container - Shopify Spacing */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        /* Adjust container padding for embedded mode */
+        body.embedded .container {
+            padding: 20px 24px;
+        }
+
+        /* Remove footer in embedded mode */
+        body.embedded footer {
+            display: none !important;
+        }
+
+        /* Clean up body background for embedded */
+        body.embedded {
+            background: #ffffff;
+        }
+
+        .page-title {
+            font-size: 32px;
+            font-weight: 600;
+            color: #202223;
+            margin-bottom: 8px;
+            letter-spacing: -0.3px;
+        }
+
+        .page-subtitle {
+            font-size: 15px;
+            color: #6d7175;
+            margin-bottom: 32px;
+            font-weight: 400;
+            line-height: 1.5;
+            max-width: 600px;
+        }
+
+        /* Banner - Shopify Style */
+        .banner {
+            background: #ffffff;
+            border: 1px solid #e1e3e5;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .banner-warning {
+            background: #fffbf0;
+            border-color: #fef3c7;
+        }
+
+        .banner-info {
+            background: #f0f4ff;
+            border-color: #dbeafe;
+        }
+
+        .banner-content h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #202223;
+            margin-bottom: 4px;
+        }
+
+        .banner-content p {
+            font-size: 14px;
+            color: #6d7175;
+            font-weight: 400;
+        }
+
+        .banner-action {
+            background: #008060;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: background 0.15s;
+        }
+
+        .banner-action:hover {
+            background: #006e52;
+        }
+
+        /* Cards Grid - Shopify Style */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e1e3e5;
+            border-radius: 8px;
+            padding: 24px;
+            transition: box-shadow 0.15s;
+        }
+
+        .card:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .card-icon {
+            font-size: 32px;
+            margin-bottom: 16px;
+            line-height: 1;
+            display: inline-block;
+        }
+
+        .card-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #202223;
+            margin-bottom: 8px;
+            letter-spacing: -0.2px;
+        }
+
+        .card-description {
+            font-size: 14px;
+            color: #6d7175;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            font-weight: 400;
+        }
+
+        .card-btn {
+            width: 100%;
+            background: #008060;
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .card-btn:hover {
+            background: #006e52;
+        }
+
+        .card-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #6d7175;
+        }
+
+        /* Output - Shopify Style */
+        .output-container {
+            background: #ffffff;
+            border: 1px solid #e1e3e5;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .output-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e1e3e5;
+            font-size: 14px;
+            font-weight: 600;
+            color: #202223;
+            background: #f6f6f7;
+        }
+
+        #output {
+            padding: 20px;
+            min-height: 200px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #6d7175;
+            font-family: "SF Mono", "Monaco", "Menlo", monospace;
+        }
+
+        #output:empty:before {
+            content: "Click any button above to get started. Your results will appear here.";
+            color: #8c9196;
+            font-style: italic;
+            text-align: center;
+            padding: 40px 20px;
+            display: block;
+        }
+
+        #output:empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fafafa;
+        }
+
+        /* Loading - Shopify Style */
+        .loading {
+            text-align: center;
+            padding: 48px 40px;
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #e1e3e5;
+            border-top: 2px solid #008060;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        @keyframes success {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .loading-text {
+            font-size: 14px;
+            font-weight: 400;
+            color: #6d7175;
+        }
+
+        /* Status */
+        .success {
+            color: #008060;
+            font-weight: 500;
+        }
+
+        .error {
+            color: #d72c0d;
+            font-weight: 500;
+        }
+
+        /* Focus states */
+        button:focus-visible,
+        a:focus-visible {
+            outline: 2px solid #008060;
+            outline-offset: 2px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 24px 16px;
+            }
+
+            .page-title {
+                font-size: 24px;
+            }
+
+            .page-subtitle {
+                font-size: 14px;
+                margin-bottom: 24px;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .banner {
+                flex-direction: column;
+                gap: 16px;
+                padding: 16px;
+            }
+
+            .banner-action {
+                width: 100%;
+            }
+
+            .header-content {
+                padding: 0 16px;
+                height: 56px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            #output {
+                padding: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px 12px;
+            }
+
+            .page-title {
+                font-size: 20px;
+            }
+
+            .header-content {
+                padding: 0 12px;
+            }
+        }
+    </style>
 
     <!-- Consolidated App Bridge moved to top of head -->
 
@@ -160,63 +687,87 @@
 
 <body>
     <div class="header">
-        <div class="header-inner">
-            <a href="#" onclick="openPage('/dashboard'); return false;" class="logo">
-                <div
-                    style="display: flex; align-items: center; gap: 8px; background: white; padding: 6px 12px; border-radius: 20px; box-shadow: var(--shadow-sm);">
-                    <i class="ph-bold ph-rocket-launch" style="color: var(--primary);"></i>
-                    <span>Employee Suite</span>
-                </div>
+        <div class="header-content">
+            <a href="#" onclick="
+                        openPage('/dashboard');
+                        return false;
+                    " style="
+                        text-decoration: none;
+                        color: inherit;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        font-weight: 600;
+                    " class="logo">
+                <span>Employee Suite</span>
             </a>
-            <div class="header-nav" style="display: flex; gap: 0.5rem; align-items: center;">
-                <a href="#" onclick="openPage('/dashboard'); return false;" class="nav-link">
-                    <i class="ph ph-house"></i> Home
-                </a>
-
+            <div class="header-nav">
                 <div class="quick-menu">
                     <button class="quick-menu-btn" onclick="toggleQuickMenu(event)">
-                        <i class="ph ph-list"></i> Menu <i class="ph ph-caret-down"></i>
+                        ⚡ Quick Access
                     </button>
                     <div class="quick-menu-dropdown" id="quickMenu">
-                        <a href="#" onclick="openPage('/features/csv-exports'); return false;" class="quick-menu-item">
-                            <i class="ph ph-download-simple quick-menu-item-icon"></i>
+                        <a href="#" onclick="
+                                    openPage('/features/csv-exports');
+                                    return false;
+                                " class="quick-menu-item">
+                            <span class="quick-menu-item-icon">📥</span>
                             CSV Exports
                             <span class="quick-menu-shortcut">⌘E</span>
                         </a>
-                        <a href="#" onclick="openPage('/features/scheduled-reports'); return false;"
-                            class="quick-menu-item">
-                            <i class="ph ph-calendar-check quick-menu-item-icon"></i>
+                        <a href="#" onclick="
+                                    openPage('/features/scheduled-reports');
+                                    return false;
+                                " class="quick-menu-item">
+                            <span class="quick-menu-item-icon">📅</span>
                             Scheduled Reports
                             <span class="quick-menu-shortcut">⌘S</span>
                         </a>
-                        <a href="#" onclick="openPage('/features/dashboard'); return false;" class="quick-menu-item">
-                            <i class="ph ph-chart-bar quick-menu-item-icon"></i>
+                        <a href="#" onclick="
+                                    openPage('/features/dashboard');
+                                    return false;
+                                " class="quick-menu-item">
+                            <span class="quick-menu-item-icon">📊</span>
                             Comprehensive Dashboard
                             <span class="quick-menu-shortcut">⌘D</span>
                         </a>
-                        <a href="#" onclick="openPage('/features/welcome'); return false;" class="quick-menu-item">
-                            <i class="ph ph-confetti quick-menu-item-icon"></i>
+                        <a href="#" onclick="
+                                    openPage('/features/welcome');
+                                    return false;
+                                " class="quick-menu-item">
+                            <span class="quick-menu-item-icon">🎉</span>
                             New Features
                         </a>
-                        <div style="border-top: 1px solid var(--border); margin: 0.5rem 0;"></div>
-                        <a href="#" onclick="openPage('/settings/shopify'); return false;" class="quick-menu-item">
-                            <i class="ph ph-gear quick-menu-item-icon"></i>
+                        <div style="
+                                    border-top: 1px solid #e1e3e5;
+                                    margin: 8px 0;
+                                "></div>
+                        <a href="#" onclick="
+                                    openPage('/settings/shopify');
+                                    return false;
+                                " class="quick-menu-item">
+                            <span class="quick-menu-item-icon">⚙️</span>
                             Settings
                             <span class="quick-menu-shortcut">⌘,</span>
                         </a>
-                        <a href="#" onclick="openPage('/subscribe'); return false;" class="quick-menu-item">
-                            <i class="ph ph-star quick-menu-item-icon"></i>
+                        <a href="#" onclick="
+                                    openPage('/subscribe');
+                                    return false;
+                                " class="quick-menu-item">
+                            <span class="quick-menu-item-icon">💳</span>
                             Subscribe
                         </a>
                     </div>
                 </div>
-
-                <a href="#" onclick="openPage('/subscribe'); return false;" class="btn btn-primary">
-                    <i class="ph-bold ph-star"></i> Upgrade to Pro
-                </a>
-                <a href="/logout" class="nav-link">
-                    <i class="ph ph-sign-out"></i> Logout
-                </a>
+                <a href="#" onclick="
+                            openPage('/settings/shopify');
+                            return false;
+                        " class="nav-btn">Settings</a>
+                <a href="#" onclick="
+                            openPage('/subscribe');
+                            return false;
+                        " class="nav-btn nav-btn-primary">Subscribe</a>
+                <a href="/logout" class="nav-btn">Logout</a>
             </div>
         </div>
     </div>
@@ -535,7 +1086,8 @@
             // Fetch AI Forecast - Only if subscribed
             document.addEventListener('DOMContentLoaded', function () {
                 // Safety check for template variable
-                var isSubscribed = {{ 'true' if is_subscribed else 'false' }};
+                var isSubscribed = {{ 'true' if is_subscribed else 'false' }
+            };
             if (!isSubscribed) return;
 
             var shopParam = '{{ shop or "" }}';
@@ -588,222 +1140,402 @@
         </script>
         {% endif %} {% if has_shopify and quick_stats.has_data and
         is_subscribed %}
-        <div class="stats-grid animate-in delay-1">
-            <div class="stat-card">
-                <div class="stat-icon">📦</div>
-                <div>
-                    <div class="stat-label">Pending Orders</div>
-                    <div class="stat-value">{{ quick_stats.pending_orders or 0 }}</div>
-                    <div class="stat-label">Need your attention</div>
+        <div style="
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 16px;
+                    margin-bottom: 32px;
+                    animation: fadeIn 0.5s ease-in;
+                ">
+            <div style="
+                        background: linear-gradient(
+                            135deg,
+                            #fff 0%,
+                            #fafafa 100%
+                        );
+                        border: 1px solid #e5e5e5;
+                        border-radius: 16px;
+                        padding: 24px;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+                        transition: all 0.3s ease;
+                    ">
+                <div style="
+                            font-size: 13px;
+                            color: #737373;
+                            font-weight: 600;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                            margin-bottom: 12px;
+                            display: flex;
+                            align-items: center;
+                            gap: 6px;
+                        ">
+                    <span>📦</span>
+                    <span>Pending Orders</span>
+                </div>
+                <div style="
+                            font-size: 40px;
+                            font-weight: 800;
+                            color: #0a0a0a;
+                            line-height: 1;
+                            margin-bottom: 8px;
+                        ">
+                    {{ quick_stats.pending_orders or 0 }}
+                </div>
+                <div style="font-size: 13px; color: #737373">
+                    Need your attention
                 </div>
             </div>
-
-            <div class="stat-card">
-                <div class="stat-icon">📊</div>
-                <div>
-                    <div class="stat-label">Total Products</div>
-                    <div class="stat-value">{{ quick_stats.total_products or 0 }}</div>
-                    <div class="stat-label">Active inventory</div>
+            <div style="
+                        background: linear-gradient(
+                            135deg,
+                            #fff 0%,
+                            #fafafa 100%
+                        );
+                        border: 1px solid #e5e5e5;
+                        border-radius: 16px;
+                        padding: 24px;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+                        transition: all 0.3s ease;
+                    ">
+                <div style="
+                            font-size: 13px;
+                            color: #737373;
+                            font-weight: 600;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                            margin-bottom: 12px;
+                            display: flex;
+                            align-items: center;
+                            gap: 6px;
+                        ">
+                    <span>📊</span>
+                    <span>Total Products</span>
+                </div>
+                <div style="
+                            font-size: 40px;
+                            font-weight: 800;
+                            color: #0a0a0a;
+                            line-height: 1;
+                            margin-bottom: 8px;
+                        ">
+                    {{ quick_stats.total_products or 0 }}
+                </div>
+                <div style="font-size: 13px; color: #737373">
+                    In your store
                 </div>
             </div>
-
-            <div class="stat-card">
-                <div class="stat-icon">💰</div>
-                <div>
-                    <div class="stat-label">Revenue (MTD)</div>
-                    <div class="stat-value">${{ quick_stats.revenue_mtd or 0 }}</div>
-                    <div class="stat-label">Month to Date</div>
+            <div style="
+                        background: linear-gradient(
+                            135deg,
+                            #fff 0%,
+                            #fafafa 100%
+                        );
+                        border: 1px solid #e5e5e5;
+                        border-radius: 16px;
+                        padding: 24px;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+                        transition: all 0.3s ease;
+                    ">
+                <div style="
+                            font-size: 13px;
+                            color: #737373;
+                            font-weight: 600;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                            margin-bottom: 12px;
+                            display: flex;
+                            align-items: center;
+                            gap: 6px;
+                        ">
+                    <span>⚠️</span>
+                    <span>Low Stock</span>
                 </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon">
-                    {% if quick_stats.low_stock_items > 0 %}⚠️{% else %}✅{% endif %}
+                <div
+                    style="font-size: 40px; font-weight: 800; color: {% if quick_stats.low_stock_items > 0 %}#dc2626{% else %}#16a34a{% endif %}; line-height: 1; margin-bottom: 8px;">
+                    {{ quick_stats.low_stock_items or 0 }}
                 </div>
-                <div>
-                    <div class="stat-label">Low Stock</div>
-                    <div class="stat-value"
-                        style="color: {% if quick_stats.low_stock_items > 0 %}#d82c0d{% else %}#008060{% endif %}">
-                        {{ quick_stats.low_stock_items or 0 }}
-                    </div>
-                    <div class="stat-label">
-                        {% if quick_stats.low_stock_items > 0 %}Need restocking{% else %}All good{% endif %}
-                    </div>
+                <div style="font-size: 13px; color: #737373">
+                    {% if quick_stats.low_stock_items > 0 %}Need
+                    restocking{% else %}All good{% endif %}
                 </div>
             </div>
         </div>
         {% endif %} {% if not has_shopify %}
-        <div class="banner banner-info animate-in delay-2">
-            <div class="banner-content">
-                <h3>Connect your Shopify store</h3>
-                <p>Get started in 30 seconds. Connect your store to unlock order monitoring, inventory management, and
-                    revenue analytics.</p>
+        <div class="banner banner-info" style="
+                    background: #ffffff;
+                    border: 1px solid #e1e3e5;
+                    border-left: 3px solid #008060;
+                ">
+            <div class="banner-content" style="flex: 1">
+                <h3 style="
+                            margin-bottom: 8px;
+                            font-size: 16px;
+                            font-weight: 600;
+                            color: #202223;
+                        ">
+                    Connect your Shopify store
+                </h3>
+                <p style="
+                            margin-bottom: 0;
+                            font-size: 14px;
+                            color: #6d7175;
+                        ">
+                    Get started in 30 seconds. Connect your store to unlock
+                    order monitoring, inventory management, and revenue
+                    analytics.
+                </p>
             </div>
-            <a href="#" onclick="openPage('/settings/shopify'); return false;" class="banner-action">Connect Store →</a>
+            <a href="#" onclick="
+                        openPage('/settings/shopify');
+                        return false;
+                    " class="banner-action">Connect Store →</a>
         </div>
         {% endif %}
 
-        <div class="cards-grid animate-in delay-2">
-            <!-- Order Processing -->
+        <div class="cards-grid">
             <div class="card">
-                <div class="card-title">
-                    <i class="ph ph-package" style="font-size: 24px; color: var(--primary); margin-right: 8px;"></i>
-                    Order Processing
-                </div>
+                <div class="card-icon">📦</div>
+                <div class="card-title">Order Processing</div>
                 <div class="card-description">
-                    View pending and unfulfilled Shopify orders. Monitor order status and payment information.
+                    View pending and unfulfilled Shopify orders. Monitor
+                    order status and payment information.
                 </div>
                 {% if has_access %}
-                <button type="button" class="btn btn-primary" style="width: 100%; justify-content: space-between;"
-                    data-action="processOrders" onclick="if (window.processOrders) window.processOrders(this);"
-                    aria-label="View pending orders">
+                <button type="button" class="card-btn" data-action="processOrders" onclick="
+                            if (window.processOrders)
+                                window.processOrders(this);
+                        " aria-label="View pending orders">
                     <span>View Orders</span>
-                    <i class="ph ph-arrow-right"></i>
+                    <span style="font-size: 12px; opacity: 0.8">→</span>
                 </button>
                 {% else %}
-                <button type="button" class="btn btn-secondary"
-                    style="width: 100%; justify-content: space-between; opacity: 0.6; cursor: not-allowed"
-                    onclick="showSubscribePrompt()" disabled>
+                <button type="button" class="card-btn" onclick="showSubscribePrompt()"
+                    style="opacity: 0.6; cursor: not-allowed" disabled aria-label="Subscribe to view orders">
                     <span>View Orders</span>
-                    <i class="ph ph-lock-key"></i>
+                    <span style="font-size: 12px; opacity: 0.8">→</span>
                 </button>
                 {% endif %}
             </div>
 
-            <!-- Inventory Management -->
             <div class="card">
-                <div class="card-title">
-                    <i class="ph ph-chart-bar" style="font-size: 24px; color: var(--primary); margin-right: 8px;"></i>
-                    Inventory Management
-                </div>
+                <div class="card-icon">📊</div>
+                <div class="card-title">Inventory Management</div>
                 <div class="card-description">
-                    Monitor stock levels across all products. Get low-stock alerts and complete inventory visibility.
+                    Monitor stock levels across all products. Get low-stock
+                    alerts and complete inventory visibility.
                 </div>
                 {% if has_access %}
-                <button type="button" class="btn btn-primary" style="width: 100%; justify-content: space-between;"
-                    data-action="updateInventory" onclick="if (window.updateInventory) window.updateInventory(this);"
-                    aria-label="Check inventory levels">
+                <button type="button" class="card-btn" data-action="updateInventory" onclick="
+                            if (window.updateInventory)
+                                window.updateInventory(this);
+                        " aria-label="Check inventory levels">
                     <span>Check Inventory</span>
-                    <i class="ph ph-arrow-right"></i>
+                    <span style="font-size: 12px; opacity: 0.8">→</span>
                 </button>
                 {% else %}
-                <button type="button" class="btn btn-secondary"
-                    style="width: 100%; justify-content: space-between; opacity: 0.6; cursor: not-allowed"
-                    onclick="showSubscribePrompt()" disabled>
+                <button type="button" class="card-btn" onclick="showSubscribePrompt()"
+                    style="opacity: 0.6; cursor: not-allowed" disabled aria-label="Subscribe to check inventory">
                     <span>Check Inventory</span>
-                    <i class="ph ph-lock-key"></i>
+                    <span style="font-size: 12px; opacity: 0.8">→</span>
                 </button>
                 {% endif %}
             </div>
 
-            <!-- Revenue Analytics -->
             <div class="card">
-                <div class="card-title">
-                    <i class="ph ph-currency-dollar"
-                        style="font-size: 24px; color: var(--primary); margin-right: 8px;"></i>
-                    Revenue Analytics
-                </div>
+                <div class="card-icon">💰</div>
+                <div class="card-title">Revenue Analytics</div>
                 <div class="card-description">
-                    Generate revenue reports with product-level breakdown and insights.
+                    Generate revenue reports with product-level breakdown
+                    and insights.
                 </div>
                 {% if has_access %}
-                <button type="button" class="btn btn-primary" style="width: 100%; justify-content: space-between;"
-                    data-action="generateReport" onclick="if (window.generateReport) window.generateReport(this);"
-                    aria-label="Generate revenue report">
+                <button type="button" class="card-btn" data-action="generateReport" onclick="
+                            if (window.generateReport)
+                                window.generateReport(this);
+                        " aria-label="Generate revenue report">
                     <span>Generate Report</span>
-                    <i class="ph ph-arrow-right"></i>
+                    <span style="font-size: 12px; opacity: 0.8">→</span>
                 </button>
                 {% else %}
-                <button type="button" class="btn btn-secondary"
-                    style="width: 100%; justify-content: space-between; opacity: 0.6; cursor: not-allowed"
-                    onclick="showSubscribePrompt()" disabled>
+                <button type="button" class="card-btn" onclick="showSubscribePrompt()"
+                    style="opacity: 0.6; cursor: not-allowed" disabled aria-label="Subscribe to generate reports">
                     <span>Generate Report</span>
-                    <i class="ph ph-lock-key"></i>
+                    <span style="font-size: 12px; opacity: 0.8">→</span>
                 </button>
                 {% endif %}
             </div>
 
-            <!-- CSV Exports (Pro) -->
-            <div class="card card--pro">
-                <div class="card-title">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <i class="ph ph-download-simple" style="font-size: 24px; color: var(--primary);"></i>
-                        CSV Exports
-                        <span
-                            style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">NEW</span>
-                    </div>
+            <div class="card" style="
+                        border: 2px solid #008060;
+                        background: linear-gradient(
+                            135deg,
+                            #ffffff 0%,
+                            #f0fdf4 100%
+                        );
+                    ">
+                <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                            margin-bottom: 8px;
+                        ">
+                    <div class="card-icon">📥</div>
+                    <span style="
+                                background: #008060;
+                                color: white;
+                                padding: 2px 8px;
+                                border-radius: 4px;
+                                font-size: 11px;
+                                font-weight: 600;
+                            ">NEW</span>
                 </div>
+                <div class="card-title">CSV Exports</div>
                 <div class="card-description">
-                    Download Orders, Inventory, and Revenue reports as CSV with date filtering. Export your data
-                    anytime.
+                    Download Orders, Inventory, and Revenue reports as CSV
+                    with date filtering. Export your data anytime.
                 </div>
                 {% if has_access %}
                 <a href="/features/csv-exports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                    class="btn btn-primary" style="width: 100%; justify-content: space-between; text-decoration: none;">
+                    class="card-btn" style="
+                            text-decoration: none;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            background: #008060;
+                            color: white;
+                        ">
                     <span>Export Data</span>
-                    <i class="ph ph-arrow-right"></i>
+                    <span style="font-size: 12px; opacity: 0.9">→</span>
                 </a>
                 {% else %}
                 <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                    class="btn btn-primary" style="width: 100%; justify-content: space-between; text-decoration: none;">
+                    class="card-btn" style="
+                            text-decoration: none;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            background: #008060;
+                            color: white;
+                        ">
                     <span>Learn More</span>
-                    <i class="ph ph-arrow-right"></i>
+                    <span style="font-size: 12px; opacity: 0.9">→</span>
                 </a>
                 {% endif %}
             </div>
 
-            <!-- Scheduled Reports (Pro) -->
-            <div class="card card--pro">
-                <div class="card-title">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <i class="ph ph-calendar-check" style="font-size: 24px; color: var(--primary);"></i>
-                        Scheduled Reports
-                        <span
-                            style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">NEW</span>
-                    </div>
+            <div class="card" style="
+                        border: 2px solid #008060;
+                        background: linear-gradient(
+                            135deg,
+                            #ffffff 0%,
+                            #f0fdf4 100%
+                        );
+                    ">
+                <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                            margin-bottom: 8px;
+                        ">
+                    <div class="card-icon">📅</div>
+                    <span style="
+                                background: #008060;
+                                color: white;
+                                padding: 2px 8px;
+                                border-radius: 4px;
+                                font-size: 11px;
+                                font-weight: 600;
+                            ">NEW</span>
                 </div>
+                <div class="card-title">Scheduled Reports</div>
                 <div class="card-description">
-                    Automatically receive reports via Email or SMS at your preferred time. Set it and forget it.
+                    Automatically receive reports via Email or SMS at your
+                    preferred time. Set it and forget it.
                 </div>
                 {% if has_access %}
                 <a href="/features/scheduled-reports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                    class="btn btn-primary" style="width: 100%; justify-content: space-between; text-decoration: none;">
+                    class="card-btn" style="
+                            text-decoration: none;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            background: #008060;
+                            color: white;
+                        ">
                     <span>Schedule Reports</span>
-                    <i class="ph ph-arrow-right"></i>
+                    <span style="font-size: 12px; opacity: 0.9">→</span>
                 </a>
                 {% else %}
                 <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                    class="btn btn-primary" style="width: 100%; justify-content: space-between; text-decoration: none;">
+                    class="card-btn" style="
+                            text-decoration: none;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            background: #008060;
+                            color: white;
+                        ">
                     <span>Learn More</span>
-                    <i class="ph ph-arrow-right"></i>
+                    <span style="font-size: 12px; opacity: 0.9">→</span>
                 </a>
                 {% endif %}
             </div>
 
-            <!-- Comprehensive Dashboard (Pro) -->
-            <div class="card card--pro">
-                <div class="card-title">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <i class="ph ph-chart-line-up" style="font-size: 24px; color: var(--primary);"></i>
-                        Comprehensive Dashboard
-                        <span
-                            style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">NEW</span>
-                    </div>
+            <div class="card" style="
+                        border: 2px solid #008060;
+                        background: linear-gradient(
+                            135deg,
+                            #ffffff 0%,
+                            #f0fdf4 100%
+                        );
+                    ">
+                <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                            margin-bottom: 8px;
+                        ">
+                    <div class="card-icon">📊</div>
+                    <span style="
+                                background: #008060;
+                                color: white;
+                                padding: 2px 8px;
+                                border-radius: 4px;
+                                font-size: 11px;
+                                font-weight: 600;
+                            ">NEW</span>
                 </div>
+                <div class="card-title">Comprehensive Dashboard</div>
                 <div class="card-description">
-                    View all three reports (Orders, Inventory, Revenue) in one unified dashboard view.
+                    View all three reports (Orders, Inventory, Revenue) in
+                    one unified dashboard view.
                 </div>
                 {% if has_access %}
                 <a href="/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                    class="btn btn-primary" style="width: 100%; justify-content: space-between; text-decoration: none;">
+                    class="card-btn" style="
+                            text-decoration: none;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            background: #008060;
+                            color: white;
+                        ">
                     <span>View Dashboard</span>
-                    <i class="ph ph-arrow-right"></i>
+                    <span style="font-size: 12px; opacity: 0.9">→</span>
                 </a>
                 {% else %}
                 <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                    class="btn btn-primary" style="width: 100%; justify-content: space-between; text-decoration: none;">
+                    class="card-btn" style="
+                            text-decoration: none;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            background: #008060;
+                            color: white;
+                        ">
                     <span>Learn More</span>
-                    <i class="ph ph-arrow-right"></i>
+                    <span style="font-size: 12px; opacity: 0.9">→</span>
                 </a>
                 {% endif %}
             </div>
