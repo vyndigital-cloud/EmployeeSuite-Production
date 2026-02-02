@@ -3726,29 +3726,29 @@ def test_shopify_route():
     )
 
 
-@app.route("/debug-routes")
-def debug_routes():
-    """Debug endpoint - ONLY works in development"""
-    if not is_debug_enabled():
-        return jsonify({"error": "Not available in production"}), 403
-
-    all_routes = [
-        {
-            "rule": str(rule.rule),
-            "endpoint": rule.endpoint,
-            "methods": list(rule.methods),
-        }
-        for rule in app.url_map.iter_rules()
-    ]
-    shopify_routes = [r for r in all_routes if "shopify" in r["rule"].lower()]
-    return jsonify(
-        {
-            "total_routes": len(all_routes),
-            "shopify_routes": shopify_routes,
-            "shopify_routes_count": len(shopify_routes),
-            "all_routes": all_routes[:50],  # First 50 routes
-        }
-    )
+# @app.route("/debug-routes")  # COMMENTED OUT - duplicate route
+# def debug_routes():
+#     """Debug endpoint - ONLY works in development"""
+#     if not is_debug_enabled():
+#         return jsonify({"error": "Not available in production"}), 403
+#
+#     all_routes = [
+#         {
+#             "rule": str(rule.rule),
+#             "endpoint": rule.endpoint,
+#             "methods": list(rule.methods),
+#         }
+#         for rule in app.url_map.iter_rules()
+#     ]
+#     shopify_routes = [r for r in all_routes if "shopify" in r["rule"].lower()]
+#     return jsonify(
+#         {
+#             "total_routes": len(all_routes),
+#             "shopify_routes": shopify_routes,
+#             "shopify_routes_count": len(shopify_routes),
+#             "all_routes": all_routes[:50],  # First 50 routes
+#         }
+#     )
 
 
 @app.route("/health")
@@ -3814,20 +3814,20 @@ def health():
     ), 200
 
 
-@app.route("/debug/routes")
-def list_routes():
-    if os.getenv("ENVIRONMENT") != "production":
-        routes = []
-        for rule in app.url_map.iter_rules():
-            routes.append(
-                {
-                    "endpoint": rule.endpoint,
-                    "methods": list(rule.methods),
-                    "rule": rule.rule,
-                }
-            )
-        return jsonify(routes)
-    return "Not available in production", 403
+# @app.route("/debug/routes")  # COMMENTED OUT - duplicate route
+# def list_routes():
+#     if os.getenv("ENVIRONMENT") != "production":
+#         routes = []
+#         for rule in app.url_map.iter_rules():
+#             routes.append(
+#                 {
+#                     "endpoint": rule.endpoint,
+#                     "methods": list(rule.methods),
+#                     "rule": rule.rule,
+#                 }
+#             )
+#         return jsonify(routes)
+#     return "Not available in production", 403
 
 
 @app.route("/api/log_error", methods=["POST"])
