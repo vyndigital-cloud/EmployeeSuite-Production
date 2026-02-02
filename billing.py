@@ -107,79 +107,38 @@ SUBSCRIBE_HTML = """
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
-        .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
-        .card { background: white; border-radius: 16px; padding: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
-        .header { text-align: center; margin-bottom: 32px; }
-        .logo { font-size: 24px; font-weight: 700; color: #202223; margin-bottom: 8px; }
-        .tagline { color: #6d7175; font-size: 16px; }
-        .pricing { text-align: center; margin-bottom: 32px; }
-        .price { font-size: 48px; font-weight: 800; color: #008060; margin-bottom: 8px; }
-        .price span { font-size: 18px; color: #6d7175; }
-        .trial-badge { background: #e3fcef; color: #006e52; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; display: inline-block; margin-bottom: 24px; }
-        .features { margin-bottom: 32px; }
-        .feature { display: flex; align-items: center; padding: 12px 0; }
-        .feature-icon { color: #008060; font-size: 18px; margin-right: 12px; }
-        .feature-text { color: #374151; font-size: 15px; }
-        .cta-button { width: 100%; padding: 16px; background: linear-gradient(135deg, #008060 0%, #00a076 100%); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 16px; }
-        .cta-button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,128,96,0.3); }
-        .guarantee { text-align: center; font-size: 13px; color: #6d7175; }
-        .back-link { text-align: center; margin-top: 24px; }
-        .back-link a { color: #008060; text-decoration: none; font-weight: 500; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f6f6f7; }
+        .container { max-width: 500px; margin: 50px auto; padding: 20px; }
+        .card { background: white; padding: 40px; border-radius: 8px; border: 1px solid #e1e3e5; text-align: center; }
+        .price { font-size: 48px; font-weight: 700; color: #008060; margin: 20px 0; }
+        .features { text-align: left; margin: 30px 0; }
+        .feature { padding: 8px 0; color: #202223; }
+        .btn { width: 100%; background: #008060; color: white; padding: 16px; border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; margin: 20px 0; }
+        .btn:hover { background: #006e52; }
+        .back-link { margin-top: 20px; }
+        .back-link a { color: #008060; text-decoration: none; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="card">
-            <div class="header">
-                <div class="logo">Employee Suite</div>
-                <div class="tagline">Complete Shopify Management</div>
-            </div>
-
-            <div class="pricing">
-                <div class="price">$39<span>/month</span></div>
-                <div class="trial-badge">🎉 7-day free trial</div>
-            </div>
+            <h1>Employee Suite Pro</h1>
+            <div class="price">$39<span style="font-size: 18px; color: #6d7175;">/month</span></div>
 
             <div class="features">
-                <div class="feature">
-                    <div class="feature-icon">🤖</div>
-                    <div class="feature-text">AI-Powered Stockout Predictions</div>
-                </div>
-                <div class="feature">
-                    <div class="feature-icon">📊</div>
-                    <div class="feature-text">Real-Time Inventory Dashboard</div>
-                </div>
-                <div class="feature">
-                    <div class="feature-icon">📦</div>
-                    <div class="feature-text">Smart Order Management</div>
-                </div>
-                <div class="feature">
-                    <div class="feature-icon">💰</div>
-                    <div class="feature-text">Revenue Analytics & Forecasting</div>
-                </div>
-                <div class="feature">
-                    <div class="feature-icon">📥</div>
-                    <div class="feature-text">Unlimited CSV Exports</div>
-                </div>
-                <div class="feature">
-                    <div class="feature-icon">🔄</div>
-                    <div class="feature-text">Automated Reorder Alerts</div>
-                </div>
-                <div class="feature">
-                    <div class="feature-icon">💬</div>
-                    <div class="feature-text">Priority Email Support</div>
-                </div>
+                <div class="feature">✅ Order Management</div>
+                <div class="feature">✅ Inventory Tracking</div>
+                <div class="feature">✅ Revenue Reports</div>
+                <div class="feature">✅ CSV Exports</div>
+                <div class="feature">✅ Email Support</div>
             </div>
 
             <form method="POST" action="/billing/create-charge">
                 <input type="hidden" name="shop" value="{{ shop }}">
                 <input type="hidden" name="host" value="{{ host }}">
                 <input type="hidden" name="plan" value="pro">
-                <button type="submit" class="cta-button">Start Free Trial →</button>
+                <button type="submit" class="btn">Start 7-Day Free Trial</button>
             </form>
-
-            <div class="guarantee">🛡️ 30-day money-back guarantee • Cancel anytime</div>
 
             <div class="back-link">
                 <a href="/dashboard?shop={{ shop }}&host={{ host }}">← Back to Dashboard</a>

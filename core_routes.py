@@ -1,5 +1,5 @@
 """
-Core application routes - Bulletproof version
+Core application routes - Clean version
 """
 
 import csv
@@ -21,32 +21,15 @@ from flask import (
 )
 from flask_login import current_user, login_required, login_user
 
+from models import ShopifyStore, User, db
+from session_token_verification import verify_session_token
 
-# Simple fallback functions - no external dependencies
-def with_circuit_breaker(name):
-    def decorator(func):
-        return func
-
-    return decorator
+logger = logging.getLogger(__name__)
+core_bp = Blueprint("core", __name__)
 
 
-def with_graceful_degradation(name, fallback_data=None):
-    def decorator(func):
-        return func
-
-    return decorator
-
-
-def validate_request(schema_class, data):
-    return type("MockRequest", (), data)()
-
-
-def validate_response(data):
-    return type("MockResponse", (), {"dict": lambda: data})()
-
-
-# Simple access control
-def require_access_inline(f):
+def require_access(f):
+    """Simple access control"""
     from functools import wraps
 
     @wraps(f)
@@ -66,23 +49,10 @@ def require_access_inline(f):
     return decorated_function
 
 
-# Import session token verification with fallback
-try:
-    from session_token_verification import verify_session_token
-except ImportError:
-
-    def verify_session_token(f):
-        return f
-
-
-logger = logging.getLogger(__name__)
-
 # Deferred imports - moved inside functions to speed up startup
 # from models import ShopifyStore, User, db
-from session_token_verification import get_shop_from_session_token, verify_session_token
+from session_token_verification import get_shop_from_session_token
 from utils import safe_redirect
-
-core_bp = Blueprint("core", __name__)
 
 
 @core_bp.route("/admin/scaling-status")
