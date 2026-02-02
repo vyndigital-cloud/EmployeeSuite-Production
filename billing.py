@@ -3,22 +3,35 @@ Shopify Billing Integration
 MANDATORY: All Shopify App Store apps MUST use Shopify Billing API
 Stripe/external payment processors are NOT allowed for embedded apps
 """
-from flask import Blueprint, render_template_string, request, redirect, url_for, session, Response
-from flask_login import login_required, current_user
-import os
-from models import db, ShopifyStore, User
-from datetime import datetime
-from logging_config import logger
 
-billing_bp = Blueprint('billing', __name__)
+import os
+from datetime import datetime
+
+from flask import (
+    Blueprint,
+    Response,
+    redirect,
+    render_template_string,
+    request,
+    session,
+    url_for,
+)
+from flask_login import current_user, login_required
+
+from logging_config import logger
+from models import ShopifyStore, User, db
+
+billing_bp = Blueprint("billing", __name__)
 
 # Shopify Billing API configuration
 from config import SHOPIFY_API_VERSION
-APP_URL = os.getenv('SHOPIFY_APP_URL', 'https://employeesuite-production.onrender.com')
+
+APP_URL = os.getenv("SHOPIFY_APP_URL", "https://employeesuite-production.onrender.com")
+
 
 def safe_redirect(url, shop=None, host=None):
     """Safe redirect for embedded/standalone contexts - App Bridge compliant"""
-    is_embedded = bool(host) or bool(shop) or request.args.get('embedded') == '1'
+    is_embedded = bool(host) or bool(shop) or request.args.get("embedded") == "1"
     if is_embedded:
         redirect_html = f"""<!DOCTYPE html>
 <html>
@@ -45,34 +58,43 @@ def safe_redirect(url, shop=None, host=None):
     <p>Redirecting... <a href="{url}">Click here if not redirected</a></p>
 </body>
 </html>"""
-        return Response(redirect_html, mimetype='text/html')
+        return Response(redirect_html, mimetype="text/html")
     else:
         return redirect(url)
 
+
 # Plan configuration (Production Prices: $99 and $297)
 PLANS = {
-    'pro': {'name': 'Growth', 'price': 99.00, 'features': [
-        'Inventory Intelligence Dashboard',
-        'Smart Reorder Recommendations',
-        'Dead Stock Alerts',
-        '30-Day Sales Forecasting',
-        'CSV Export Capable',
-        'Up to 3 Store Connections',
-        'Email Support'
-    ]},
-    'business': {'name': 'Scale', 'price': 297.00, 'features': [
-        'Everything in Growth',
-        'Advanced Multi-Location Sync',
-        'Automated Supplier Emails',
-        'Custom Reporting Engine',
-        'Unlimited Data History',
-        'Priority 24/7 Support',
-        'Dedicated Success Manager',
-        'Early Access to Beta Features'
-    ]}
+    "pro": {
+        "name": "Growth",
+        "price": 99.00,
+        "features": [
+            "Inventory Intelligence Dashboard",
+            "Smart Reorder Recommendations",
+            "Dead Stock Alerts",
+            "30-Day Sales Forecasting",
+            "CSV Export Capable",
+            "Up to 3 Store Connections",
+            "Email Support",
+        ],
+    },
+    "business": {
+        "name": "Scale",
+        "price": 297.00,
+        "features": [
+            "Everything in Growth",
+            "Advanced Multi-Location Sync",
+            "Automated Supplier Emails",
+            "Custom Reporting Engine",
+            "Unlimited Data History",
+            "Priority 24/7 Support",
+            "Dedicated Success Manager",
+            "Early Access to Beta Features",
+        ],
+    },
 }
 
-SUBSCRIBE_HTML = '''
+SUBSCRIBE_HTML = """
 <!DOCTYPE html>
 <html>
 <head>
@@ -332,7 +354,7 @@ SUBSCRIBE_HTML = '''
                 </form>
             </div>
         </div>
-        
+
         {% if error %}
         <div style="max-width: 600px; margin: 32px auto 0; padding: 16px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px; color: #d72c0d; text-align: center;">
             <strong>Note:</strong> {{ error }}
@@ -341,9 +363,9 @@ SUBSCRIBE_HTML = '''
     </div>
 </body>
 </html>
-'''
+"""
 
-SUCCESS_HTML = '''
+SUCCESS_HTML = """
 <!DOCTYPE html>
 <html>
 <head>
@@ -398,7 +420,8 @@ SUCCESS_HTML = '''
     </div>
 </body>
 </html>
-'''
+"""
+
 
 def get_shop_and_token_for_user(user):
     """Get shop URL and access token for a user"""
@@ -412,8 +435,8 @@ def format_billing_error(error_msg):
     """Format billing error messages to be more user-friendly"""
     error_lower = error_msg.lower()
 
-    if '422' in error_msg or 'unprocessable' in error_lower:
-        if 'owned by a shop' in error_lower or 'must be migrated' in error_lower:
+    if "422" in error_msg or "unprocessable" in error_lower:
+        if "owned by a shop" in error_lower or "must be migrated" in error_lower:
             return """App Migration Required
 
 Your app needs to be migrated to the Shopify Partners area before billing can work.
@@ -424,29 +447,31 @@ To fix this:
 3. Look for "App ownership" section
 4. Migrate the app from Shop ownership to Partners ownership
 5. Once migrated, try subscribing again"""
-        elif 'managed pricing' in error_lower or 'pricing' in error_lower:
+        elif "managed pricing" in error_lower or "pricing" in error_lower:
             return "Billing setup issue: Please check your app's pricing settings in the Shopify Partners dashboard."
         else:
             return f"Unable to create subscription. Error: {error_msg[:100]}"
-    elif '403' in error_msg or 'forbidden' in error_lower:
+    elif "403" in error_msg or "forbidden" in error_lower:
         return "Permission denied: Your app may not have billing permissions."
-    elif '401' in error_msg or 'unauthorized' in error_lower:
+    elif "401" in error_msg or "unauthorized" in error_lower:
         return "Authentication error: Please try reconnecting your Shopify store."
     else:
         return f"Subscription error: {error_msg[:150]}"
 
 
-def create_recurring_charge(shop_url, access_token, return_url, plan_type='pro'):
+def create_recurring_charge(shop_url, access_token, return_url, plan_type="pro"):
     """Create a recurring application charge using Shopify GraphQL Admin API"""
     try:
         from shopify_graphql import ShopifyGraphQLClient
-        
-        plan = PLANS.get(plan_type, PLANS['pro'])
+
+        plan = PLANS.get(plan_type, PLANS["pro"])
         client = ShopifyGraphQLClient(shop_url, access_token)
-        
-        is_dev_store = '-dev' in shop_url.lower() or 'dev' in shop_url.lower()
-        test_mode = os.getenv('SHOPIFY_BILLING_TEST', 'false').lower() == 'true' or is_dev_store
-        
+
+        is_dev_store = "-dev" in shop_url.lower() or "dev" in shop_url.lower()
+        test_mode = (
+            os.getenv("SHOPIFY_BILLING_TEST", "false").lower() == "true" or is_dev_store
+        )
+
         mutation = """
         mutation AppSubscriptionCreate($name: String!, $lineItems: [AppSubscriptionLineItemInput!]!, $returnUrl: URL!, $test: Boolean, $trialDays: Int) {
             appSubscriptionCreate(name: $name, returnUrl: $returnUrl, lineItems: $lineItems, test: $test, trialDays: $trialDays) {
@@ -462,59 +487,59 @@ def create_recurring_charge(shop_url, access_token, return_url, plan_type='pro')
             }
         }
         """
-        
+
         variables = {
             "name": f"Employee Suite {plan['name']}",
             "returnUrl": return_url,
             "test": test_mode,
             "trialDays": 7,  # Standard 7-day free trial
-            "lineItems": [{
-                "plan": {
-                    "appRecurringPricingDetails": {
-                        "price": {
-                            "amount": plan['price'],
-                            "currencyCode": "USD"
-                        },
-                        "interval": "EVERY_30_DAYS"
+            "lineItems": [
+                {
+                    "plan": {
+                        "appRecurringPricingDetails": {
+                            "price": {"amount": plan["price"], "currencyCode": "USD"},
+                            "interval": "EVERY_30_DAYS",
+                        }
                     }
                 }
-            }]
+            ],
         }
-        
+
         logger.info(f"Creating {plan_type} plan charge (GraphQL) for {shop_url}")
-        
+
         result = client.execute_query(mutation, variables)
-        
-        if 'error' in result:
-             return {'success': False, 'error': result['error']}
-             
-        data = result.get('appSubscriptionCreate', {})
-        user_errors = data.get('userErrors', [])
-        
+
+        if "error" in result:
+            return {"success": False, "error": result["error"]}
+
+        data = result.get("appSubscriptionCreate", {})
+        user_errors = data.get("userErrors", [])
+
         if user_errors:
-            error_msg = "; ".join([e['message'] for e in user_errors])
+            error_msg = "; ".join([e["message"] for e in user_errors])
             logger.error(f"GraphQL Billing error: {error_msg}")
-            return {'success': False, 'error': error_msg}
-            
-        subscription = data.get('appSubscription', {})
-        # Extract numeric ID from GID if possible for backward compatibility, 
+            return {"success": False, "error": error_msg}
+
+        subscription = data.get("appSubscription", {})
+        # Extract numeric ID from GID if possible for backward compatibility,
         # but technically should store GID. The DB probably handles string.
         # GID format: gid://shopify/AppSubscription/123456
-        
+
         from shopify_utils import parse_gid
-        gid = subscription.get('id')
+
+        gid = subscription.get("id")
         charge_id = parse_gid(gid)
-        
+
         return {
-            'success': True,
-            'charge_id': charge_id, 
-            'confirmation_url': data.get('confirmationUrl'),
-            'status': subscription.get('status')
+            "success": True,
+            "charge_id": charge_id,
+            "confirmation_url": data.get("confirmationUrl"),
+            "status": subscription.get("status"),
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to create Shopify charge (GraphQL): {e}", exc_info=True)
-        return {'success': False, 'error': str(e)}
+        return {"success": False, "error": str(e)}
 
 
 def activate_recurring_charge(shop_url, access_token, charge_id):
@@ -530,19 +555,20 @@ def get_charge_status(shop_url, access_token, charge_id):
     """Get the status of a recurring charge using GraphQL"""
     try:
         from shopify_graphql import ShopifyGraphQLClient
+
         client = ShopifyGraphQLClient(shop_url, access_token)
-        
+
         # Format ID as GID
         from shopify_utils import format_gid, parse_gid
-        
+
         # Ensure we have a clean numeric ID first, then format as GID
         numeric_id = parse_gid(charge_id)
         if numeric_id:
-             gid = format_gid(numeric_id, 'AppSubscription')
+            gid = format_gid(numeric_id, "AppSubscription")
         else:
-             # Fallback to original if parsing failed (maybe it's a malformed string but we want to try)
-             gid = charge_id
-             
+            # Fallback to original if parsing failed (maybe it's a malformed string but we want to try)
+            gid = charge_id
+
         query = """
         query GetSubscription($id: ID!) {
             node(id: $id) {
@@ -553,40 +579,44 @@ def get_charge_status(shop_url, access_token, charge_id):
             }
         }
         """
-        
+
         variables = {"id": gid}
         result = client.execute_query(query, variables)
-        
-        if 'error' in result:
-            return {'success': False, 'error': result['error']}
-            
-        node = result.get('node', {})
+
+        if "error" in result:
+            return {"success": False, "error": result["error"]}
+
+        node = result.get("node", {})
         if not node:
-             return {'success': False, 'error': 'Subscription not found'}
-             
+            return {"success": False, "error": "Subscription not found"}
+
         return {
-            'success': True,
-            'status': node.get('status', 'UNKNOWN').lower(), # REST used lowercase, GraphQL uses UPPERCASE usually
-            'charge_id': charge_id
+            "success": True,
+            "status": node.get(
+                "status", "UNKNOWN"
+            ).lower(),  # REST used lowercase, GraphQL uses UPPERCASE usually
+            "charge_id": charge_id,
         }
     except Exception as e:
         logger.error(f"Failed to get Shopify charge status (GraphQL): {e}")
-        return {'success': False, 'error': str(e)}
+        return {"success": False, "error": str(e)}
 
 
 def cancel_app_subscription(shop_url, access_token, charge_id):
     """Cancel a recurring application charge using GraphQL"""
     try:
         from shopify_graphql import ShopifyGraphQLClient
+
         client = ShopifyGraphQLClient(shop_url, access_token)
-        
+
         from shopify_utils import format_gid, parse_gid
+
         numeric_id = parse_gid(charge_id)
         if not numeric_id:
-            return {'success': False, 'error': 'Invalid charge ID'}
-            
-        gid = format_gid(numeric_id, 'AppSubscription')
-        
+            return {"success": False, "error": "Invalid charge ID"}
+
+        gid = format_gid(numeric_id, "AppSubscription")
+
         mutation = """
         mutation appSubscriptionCancel($id: ID!) {
           appSubscriptionCancel(id: $id) {
@@ -601,46 +631,52 @@ def cancel_app_subscription(shop_url, access_token, charge_id):
           }
         }
         """
-        
+
         variables = {"id": gid}
         logger.info(f"Cancelling subscription {gid} for {shop_url}")
-        
+
         result = client.execute_query(mutation, variables)
-        
-        if 'error' in result:
-            return {'success': False, 'error': result['error']}
-            
-        data = result.get('appSubscriptionCancel', {})
-        user_errors = data.get('userErrors', [])
-        
+
+        if "error" in result:
+            return {"success": False, "error": result["error"]}
+
+        data = result.get("appSubscriptionCancel", {})
+        user_errors = data.get("userErrors", [])
+
         if user_errors:
-            error_msg = "; ".join([e['message'] for e in user_errors])
+            error_msg = "; ".join([e["message"] for e in user_errors])
             logger.error(f"GraphQL Cancel error: {error_msg}")
-            return {'success': False, 'error': error_msg}
-            
-        return {'success': True}
-        
+            return {"success": False, "error": error_msg}
+
+        return {"success": True}
+
     except Exception as e:
         logger.error(f"Failed to cancel Shopify subscription (GraphQL): {e}")
-        return {'success': False, 'error': str(e)}
+        return {"success": False, "error": str(e)}
 
 
-@billing_bp.route('/subscribe')
+@billing_bp.route("/subscribe")
 def subscribe():
     """Subscribe page - uses Shopify Billing API"""
-    shop = request.args.get('shop', '')
+    shop = request.args.get("shop", "")
     if shop:
-        shop = shop.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
-        if not shop.endswith('.myshopify.com') and '.' not in shop:
+        shop = (
+            shop.lower()
+            .replace("https://", "")
+            .replace("http://", "")
+            .replace("www.", "")
+            .strip()
+        )
+        if not shop.endswith(".myshopify.com") and "." not in shop:
             shop = f"{shop}.myshopify.com"
-            
-    host = request.args.get('host', '')
 
-    plan_type = request.args.get('plan', 'pro')
+    host = request.args.get("host", "")
+
+    plan_type = request.args.get("plan", "pro")
 
     # Validate plan type
     if plan_type not in PLANS:
-        plan_type = 'pro'
+        plan_type = "pro"
 
     plan = PLANS[plan_type]
 
@@ -659,12 +695,21 @@ def subscribe():
         pass
 
     if not user:
-        return render_template_string(SUBSCRIBE_HTML,
-            trial_active=False, has_access=False, days_left=0,
-            is_subscribed=False, shop=shop, host=host, has_store=False,
-            plan=plan_type, plan_name=plan['name'], price=int(plan['price']),
-            features=plan['features'],
-            error='Please connect your Shopify store first.')
+        return render_template_string(
+            SUBSCRIBE_HTML,
+            trial_active=False,
+            has_access=False,
+            days_left=0,
+            is_subscribed=False,
+            shop=shop,
+            host=host,
+            has_store=False,
+            plan=plan_type,
+            plan_name=plan["name"],
+            price=int(plan["price"]),
+            features=plan["features"],
+            error="Please connect your Shopify store first.",
+        )
 
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     has_store = store is not None and store.is_connected()
@@ -676,30 +721,46 @@ def subscribe():
     has_access = user.has_access()
     days_left = (user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
 
-    error = request.args.get('error')
+    error = request.args.get("error")
     if not has_store and not error:
-        error = 'No Shopify store connected'
+        error = "No Shopify store connected"
 
-    return render_template_string(SUBSCRIBE_HTML,
-        trial_active=trial_active, has_access=has_access, days_left=days_left,
-        is_subscribed=user.is_subscribed, shop=shop, host=host, has_store=has_store,
-        plan=plan_type, plan_name=plan['name'], price=int(plan['price']),
-        features=plan['features'], error=error,
-        config_api_key=os.getenv('SHOPIFY_API_KEY'))
+    return render_template_string(
+        SUBSCRIBE_HTML,
+        trial_active=trial_active,
+        has_access=has_access,
+        days_left=days_left,
+        is_subscribed=user.is_subscribed,
+        shop=shop,
+        host=host,
+        has_store=has_store,
+        plan=plan_type,
+        plan_name=plan["name"],
+        price=int(plan["price"]),
+        features=plan["features"],
+        error=error,
+        config_api_key=os.getenv("SHOPIFY_API_KEY"),
+    )
 
 
-@billing_bp.route('/billing/create-charge', methods=['POST'])
+@billing_bp.route("/create-charge", methods=["POST"])
 def create_charge():
     """Create a Shopify recurring charge"""
-    shop = request.form.get('shop') or request.args.get('shop', '')
+    shop = request.form.get("shop") or request.args.get("shop", "")
     if shop:
-        shop = shop.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
-        if not shop.endswith('.myshopify.com') and '.' not in shop:
+        shop = (
+            shop.lower()
+            .replace("https://", "")
+            .replace("http://", "")
+            .replace("www.", "")
+            .strip()
+        )
+        if not shop.endswith(".myshopify.com") and "." not in shop:
             shop = f"{shop}.myshopify.com"
-            
-    host = request.form.get('host') or request.args.get('host', '')
 
-    plan_type = request.form.get('plan') or request.args.get('plan', 'pro')
+    host = request.form.get("host") or request.args.get("host", "")
+
+    plan_type = request.form.get("plan") or request.args.get("plan", "pro")
 
     # Find user
     user = None
@@ -716,40 +777,62 @@ def create_charge():
         pass
 
     if not user:
-        subscribe_url = url_for('billing.subscribe', error='Please connect your Shopify store first.', shop=shop, host=host, plan=plan_type)
+        subscribe_url = url_for(
+            "billing.subscribe",
+            error="Please connect your Shopify store first.",
+            shop=shop,
+            host=host,
+            plan=plan_type,
+        )
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if not store:
         logger.error(f"No active store found for user {user.id}")
-        subscribe_url = url_for('billing.subscribe', error='No Shopify store connected', shop=shop, host=host, plan=plan_type)
+        subscribe_url = url_for(
+            "billing.subscribe",
+            error="No Shopify store connected",
+            shop=shop,
+            host=host,
+            plan=plan_type,
+        )
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
     shop_url = store.shop_url
 
     if not store.is_connected():
         logger.error(f"Store {shop_url} not connected")
-        settings_url = url_for('shopify.shopify_settings', error='Store not connected. Please reconnect.', shop=shop_url, host=host)
+        settings_url = url_for(
+            "shopify.shopify_settings",
+            error="Store not connected. Please reconnect.",
+            shop=shop_url,
+            host=host,
+        )
         return safe_redirect(settings_url, shop=shop_url, host=host)
 
     access_token = store.get_access_token()
 
     if user.is_subscribed:
-        dashboard_url = f'/dashboard?shop={shop_url}&host={host}'
+        dashboard_url = f"/dashboard?shop={shop_url}&host={host}"
         return safe_redirect(dashboard_url, shop=shop_url, host=host)
 
-    return_url = f"{APP_URL}/billing/confirm?shop={shop_url}&host={host}&plan={plan_type}"
+    return_url = (
+        f"{APP_URL}/billing/confirm?shop={shop_url}&host={host}&plan={plan_type}"
+    )
 
     result = create_recurring_charge(shop_url, access_token, return_url, plan_type)
 
-    if not result.get('success'):
-        error_msg = result.get('error', 'Failed to create subscription')
+    if not result.get("success"):
+        error_msg = result.get("error", "Failed to create subscription")
         logger.error(f"Billing error for {shop_url}: {error_msg}")
 
-        if 'owned by a shop' in error_msg.lower() or 'must be migrated' in error_msg.lower():
+        if (
+            "owned by a shop" in error_msg.lower()
+            or "must be migrated" in error_msg.lower()
+        ):
             store.disconnect()
             db.session.commit()
-            install_url = url_for('oauth.install', shop=shop_url, host=host)
+            install_url = url_for("oauth.install", shop=shop_url, host=host)
             return render_template_string(f"""
             <!DOCTYPE html>
             <html><head><meta charset="utf-8"><title>Redirecting...</title>
@@ -758,39 +841,59 @@ def create_charge():
             """)
 
         formatted_error = format_billing_error(error_msg)
-        return redirect(url_for('billing.subscribe', error=formatted_error, shop=shop_url, host=host, plan=plan_type))
+        return redirect(
+            url_for(
+                "billing.subscribe",
+                error=formatted_error,
+                shop=shop_url,
+                host=host,
+                plan=plan_type,
+            )
+        )
 
-    store.charge_id = str(result['charge_id'])
+    store.charge_id = str(result["charge_id"])
     db.session.commit()
 
     logger.info(f"Created Shopify charge {result['charge_id']} for {shop_url}")
 
-    confirmation_url = result['confirmation_url']
+    confirmation_url = result["confirmation_url"]
     if host:
         return safe_redirect(confirmation_url, shop=shop_url, host=host)
     else:
         return redirect(confirmation_url)
 
 
-@billing_bp.route('/billing/confirm')
+@billing_bp.route("/billing/confirm")
 def confirm_charge():
     """Handle return from Shopify after merchant approves/declines charge"""
-    from enhanced_models import SubscriptionPlan, PLAN_PRICES
+    from enhanced_models import PLAN_PRICES, SubscriptionPlan
 
-    shop = request.args.get('shop', '')
+    shop = request.args.get("shop", "")
     if shop:
-        shop = shop.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
-        if not shop.endswith('.myshopify.com') and '.' not in shop:
+        shop = (
+            shop.lower()
+            .replace("https://", "")
+            .replace("http://", "")
+            .replace("www.", "")
+            .strip()
+        )
+        if not shop.endswith(".myshopify.com") and "." not in shop:
             shop = f"{shop}.myshopify.com"
-            
-    host = request.args.get('host', '')
 
-    charge_id = request.args.get('charge_id')
-    plan_type = request.args.get('plan', 'pro')
+    host = request.args.get("host", "")
+
+    charge_id = request.args.get("charge_id")
+    plan_type = request.args.get("plan", "pro")
 
     if not charge_id:
         logger.warning("No charge_id in billing confirm callback")
-        subscribe_url = url_for('billing.subscribe', error='Missing charge information', shop=shop, host=host, plan=plan_type)
+        subscribe_url = url_for(
+            "billing.subscribe",
+            error="Missing charge information",
+            shop=shop,
+            host=host,
+            plan=plan_type,
+        )
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
     # Find user
@@ -808,72 +911,116 @@ def confirm_charge():
         pass
 
     if not user:
-        subscribe_url = url_for('billing.subscribe', error='Please connect your Shopify store first.', shop=shop, host=host, plan=plan_type)
+        subscribe_url = url_for(
+            "billing.subscribe",
+            error="Please connect your Shopify store first.",
+            shop=shop,
+            host=host,
+            plan=plan_type,
+        )
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if not store:
-        subscribe_url = url_for('billing.subscribe', error='Store not found', shop=shop, host=host, plan=plan_type)
+        subscribe_url = url_for(
+            "billing.subscribe",
+            error="Store not found",
+            shop=shop,
+            host=host,
+            plan=plan_type,
+        )
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
     shop_url = store.shop_url
     access_token = store.get_access_token()
     if not access_token:
-        subscribe_url = url_for('billing.subscribe', error='Store not properly connected.', shop=shop, host=host, plan=plan_type)
+        subscribe_url = url_for(
+            "billing.subscribe",
+            error="Store not properly connected.",
+            shop=shop,
+            host=host,
+            plan=plan_type,
+        )
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
     status_result = get_charge_status(shop_url, access_token, charge_id)
 
-    if not status_result.get('success'):
+    if not status_result.get("success"):
         store.charge_id = None
         db.session.commit()
-        subscribe_url = url_for('billing.subscribe', error='Could not verify subscription.', shop=shop, host=host, plan=plan_type)
+        subscribe_url = url_for(
+            "billing.subscribe",
+            error="Could not verify subscription.",
+            shop=shop,
+            host=host,
+            plan=plan_type,
+        )
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
-    status = status_result.get('status', '')
+    status = status_result.get("status", "")
 
-    if status == 'accepted':
+    if status == "accepted":
         try:
-            store = ShopifyStore.query.with_for_update().filter_by(shop_url=shop_url, user_id=user.id).first()
+            store = (
+                ShopifyStore.query.with_for_update()
+                .filter_by(shop_url=shop_url, user_id=user.id)
+                .first()
+            )
             if not store:
                 db.session.rollback()
-                subscribe_url = url_for('billing.subscribe', error='Store not found', shop=shop, host=host, plan=plan_type)
+                subscribe_url = url_for(
+                    "billing.subscribe",
+                    error="Store not found",
+                    shop=shop,
+                    host=host,
+                    plan=plan_type,
+                )
                 return safe_redirect(subscribe_url, shop=shop, host=host)
 
             locked_access_token = store.get_access_token()
             if not locked_access_token:
                 db.session.rollback()
-                subscribe_url = url_for('billing.subscribe', error='Store not properly connected', shop=shop, host=host, plan=plan_type)
+                subscribe_url = url_for(
+                    "billing.subscribe",
+                    error="Store not properly connected",
+                    shop=shop,
+                    host=host,
+                    plan=plan_type,
+                )
                 return safe_redirect(subscribe_url, shop=shop, host=host)
 
-            activate_result = activate_recurring_charge(shop_url, locked_access_token, charge_id)
+            activate_result = activate_recurring_charge(
+                shop_url, locked_access_token, charge_id
+            )
 
-            if activate_result.get('success'):
+            if activate_result.get("success"):
                 user.is_subscribed = True
                 store.charge_id = str(charge_id)
 
                 # Create/update SubscriptionPlan
                 plan_price = PLAN_PRICES.get(plan_type, 29.00)
-                existing_plan = SubscriptionPlan.query.filter_by(user_id=user.id).first()
+                existing_plan = SubscriptionPlan.query.filter_by(
+                    user_id=user.id
+                ).first()
                 if existing_plan:
                     existing_plan.plan_type = plan_type
                     existing_plan.price_usd = plan_price
                     existing_plan.charge_id = str(charge_id)
-                    existing_plan.status = 'active'
+                    existing_plan.status = "active"
                     existing_plan.cancelled_at = None
-                    existing_plan.multi_store_enabled = (plan_type == 'business')
-                    existing_plan.automated_reports_enabled = (plan_type == 'business')
-                    existing_plan.scheduled_delivery_enabled = (plan_type == 'business')
+                    existing_plan.multi_store_enabled = plan_type == "business"
+                    existing_plan.automated_reports_enabled = plan_type == "business"
+                    existing_plan.scheduled_delivery_enabled = plan_type == "business"
                 else:
                     new_plan = SubscriptionPlan(
                         user_id=user.id,
                         plan_type=plan_type,
                         price_usd=plan_price,
                         charge_id=str(charge_id),
-                        status='active',
-                        multi_store_enabled=(plan_type == 'business'),
-                        automated_reports_enabled=(plan_type == 'business'),
-                        scheduled_delivery_enabled=(plan_type == 'business'),
+                        status="active",
+                        multi_store_enabled=(plan_type == "business"),
+                        automated_reports_enabled=(plan_type == "business"),
+                        scheduled_delivery_enabled=(plan_type == "business"),
                     )
                     db.session.add(new_plan)
 
@@ -883,39 +1030,65 @@ def confirm_charge():
                 return render_template_string(SUCCESS_HTML, shop=shop_url, host=host)
             else:
                 db.session.rollback()
-                logger.error(f"Failed to activate charge: {activate_result.get('error')}")
-                subscribe_url = url_for('billing.subscribe', error='Failed to activate subscription', shop=shop, host=host, plan=plan_type)
+                logger.error(
+                    f"Failed to activate charge: {activate_result.get('error')}"
+                )
+                subscribe_url = url_for(
+                    "billing.subscribe",
+                    error="Failed to activate subscription",
+                    shop=shop,
+                    host=host,
+                    plan=plan_type,
+                )
                 return safe_redirect(subscribe_url, shop=shop, host=host)
         except Exception as e:
             db.session.rollback()
             logger.error(f"Error in charge activation: {e}")
-            subscribe_url = url_for('billing.subscribe', error='Error processing subscription', shop=shop, host=host, plan=plan_type)
+            subscribe_url = url_for(
+                "billing.subscribe",
+                error="Error processing subscription",
+                shop=shop,
+                host=host,
+                plan=plan_type,
+            )
             return safe_redirect(subscribe_url, shop=shop, host=host)
 
-    elif status == 'active':
+    elif status == "active":
         user.is_subscribed = True
         store.charge_id = str(charge_id)
         db.session.commit()
         return render_template_string(SUCCESS_HTML, shop=shop_url, host=host)
 
-    elif status == 'declined':
+    elif status == "declined":
         logger.info(f"Merchant declined subscription for {shop_url}")
-        subscribe_url = url_for('billing.subscribe', error='Subscription was declined', shop=shop, host=host, plan=plan_type)
+        subscribe_url = url_for(
+            "billing.subscribe",
+            error="Subscription was declined",
+            shop=shop,
+            host=host,
+            plan=plan_type,
+        )
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
     else:
         logger.warning(f"Unexpected charge status '{status}' for {shop_url}")
-        subscribe_url = url_for('billing.subscribe', error=f'Subscription status: {status}', shop=shop, host=host, plan=plan_type)
+        subscribe_url = url_for(
+            "billing.subscribe",
+            error=f"Subscription status: {status}",
+            shop=shop,
+            host=host,
+            plan=plan_type,
+        )
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
 
-@billing_bp.route('/billing/cancel', methods=['POST'])
+@billing_bp.route("/billing/cancel", methods=["POST"])
 def cancel_subscription():
     """Cancel Shopify subscription"""
     import requests
 
-    shop = request.form.get('shop') or request.args.get('shop', '')
-    host = request.form.get('host') or request.args.get('host', '')
+    shop = request.form.get("shop") or request.args.get("shop", "")
+    host = request.form.get("host") or request.args.get("host", "")
 
     user = None
     try:
@@ -931,18 +1104,28 @@ def cancel_subscription():
         pass
 
     if not user:
-        settings_url = url_for('shopify.shopify_settings', error='Authentication required', shop=shop, host=host)
+        settings_url = url_for(
+            "shopify.shopify_settings",
+            error="Authentication required",
+            shop=shop,
+            host=host,
+        )
         return safe_redirect(settings_url, shop=shop, host=host)
 
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if not store or not store.charge_id:
-        settings_url = url_for('shopify.shopify_settings', error='No active subscription found', shop=shop, host=host)
+        settings_url = url_for(
+            "shopify.shopify_settings",
+            error="No active subscription found",
+            shop=shop,
+            host=host,
+        )
         return safe_redirect(settings_url, shop=shop, host=host)
 
     url = f"https://{store.shop_url}/admin/api/{SHOPIFY_API_VERSION}/recurring_application_charges/{store.charge_id}.json"
     headers = {
-        'X-Shopify-Access-Token': store.get_access_token() or '',
-        'Content-Type': 'application/json'
+        "X-Shopify-Access-Token": store.get_access_token() or "",
+        "Content-Type": "application/json",
     }
 
     try:
@@ -952,27 +1135,37 @@ def cancel_subscription():
             store.charge_id = None
             db.session.commit()
             logger.info(f"Subscription cancelled for {store.shop_url}")
-            settings_url = url_for('shopify.shopify_settings', success='Subscription cancelled', shop=shop, host=host)
+            settings_url = url_for(
+                "shopify.shopify_settings",
+                success="Subscription cancelled",
+                shop=shop,
+                host=host,
+            )
             return safe_redirect(settings_url, shop=shop, host=host)
         else:
             logger.error(f"Failed to cancel subscription: {response.status_code}")
-            settings_url = url_for('shopify.shopify_settings', error='Failed to cancel subscription', shop=shop, host=host)
+            settings_url = url_for(
+                "shopify.shopify_settings",
+                error="Failed to cancel subscription",
+                shop=shop,
+                host=host,
+            )
             return safe_redirect(settings_url, shop=shop, host=host)
     except Exception as e:
         logger.error(f"Error cancelling subscription: {e}")
-        settings_url = url_for('shopify.shopify_settings', error=str(e), shop=shop, host=host)
+        settings_url = url_for(
+            "shopify.shopify_settings", error=str(e), shop=shop, host=host
+        )
         return safe_redirect(settings_url, shop=shop, host=host)
-
-
 
 
 # Billing status formatting utilities
 def format_billing_error(error_msg):
     """Format common Shopify billing errors into user-friendly messages"""
     error_lower = error_msg.lower()
-    
-    if '422' in error_msg or 'unprocessable' in error_lower:
-        if 'owned by a shop' in error_lower or 'must be migrated' in error_lower:
+
+    if "422" in error_msg or "unprocessable" in error_lower:
+        if "owned by a shop" in error_lower or "must be migrated" in error_lower:
             return "App ownership migration required in Shopify Partners dashboard."
         return f"Shopify could not process this subscription: {error_msg[:100]}"
     return f"Billing error: {error_msg[:150]}"
