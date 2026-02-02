@@ -2050,3 +2050,14 @@
 +
 + • shop_param vs shop_domain vs shop_url - pick one convention                     
 + • is_embedded vs embedded - inconsistent boolean naming
+
+# 2026-02-02 14:28:36.271930
++"Aider, the app is stuck in a recursive error logging loop. The frontend is hitting a TypeError: Load failed when calling /api/log_error.
++
++Check CORS/Security: In security_enhancements.py or your middleware, ensure that the /api/log_error and /api/update_inventory endpoints explicitly allow requests from your production domain and Shopify domains. The logs show shop=none during these hits, which might be triggering a block.
++
++Fix the Frontend Fetch: In your dashboard or csv-exports template, find the JavaScript fetch call for /api/log_error. Wrap it in a check to prevent it from calling itself if it's already handling a network error.
++
++Add CSRF Exemption: If you are using Flask-WTF, ensure /api/log_error is decorated with @csrf.exempt.
++
++Validate the Path: The log shows the error happening on /features/csv-exports. Ensure this route is correctly defined and that the JavaScript on this page is using a relative path (/api/log_error) rather than a hardcoded absolute URL that might be triggering a cross-origin error."
