@@ -2507,3 +2507,72 @@
 
 # 2026-02-02 19:54:25.517765
 +Alright bro, we need to stop playing around. FIX MY APP
+
+# 2026-02-02 20:01:24.507621
++/clean
+
+# 2026-02-02 20:01:29.083888
++/clear
+
+# 2026-02-02 20:05:21.449055
++https://employeesuite-production.onrender.com/billing/create-charge leads to "not found" "Export Data" leads to CSV Exports
++
++CSV export functionality coming soon.
++
++Back to Dashboard. "Comprehensive dashboard" oddly leads to: 📊 Comprehensive Dashboard
++
++📦 Orders Overview
++
++Click "Load Orders" to view your order data...
++Load Orders
++📊 Inventory Status
++
++Click "Load Inventory" to view your inventory data...
++Load Inventory
++💰 Revenue Report
++
++Click "Load Revenue" to view your revenue data...
++Load Revenue. Order processsing button shows: [API] This app is not approved to access REST endpoints with protected customer data. See https://shopify.dev/docs/apps/launch/protected-customer-data for more details. - Check your app permissions. Check Inventory leads to ✅
++Inventory Updated
++Found 26 products
++Gift Card: 0 units at $10.00
++Gift Card: 0 units at $25.00
++Gift Card: 0 units at $50.00
++Gift Card: 0 units at $100.00
++The Inventory Not Tracked Snowboard: 0 units at $949.95
++The Archived Snowboard: 50 units at $629.95
++The Draft Snowboard: 20 units at $2629.95
++The Videographer Snowboard: 50 units at $885.95
++The Complete Snowboard: 10 units at $699.95
++The Complete Snowboard: 10 units at $699.95. Generate report fucking leads to [API] This app is not approved to access REST endpoints with protected customer data. See https://shopify.dev/docs/apps/launch/protected-customer-data for more details. - Check your app permissions. CSV exprots leads to CSV Exports
++
++CSV export functionality coming soon.
++
++Back to Dashboard. Schedule reports somehow.. leads to? 📅 Scheduled Reports
++
++🚀 Coming Soon
++
++Automated report delivery via email and SMS is in development. You'll be able to schedule daily, weekly, or monthly reports to stay updated on your store performance. - hmm I wonder what else leads to what? That's what I meant by "fix"
+
+# 2026-02-02 20:05:23.603104
++A
+
+# 2026-02-02 20:06:49.127594
++/CLEAR
+
+# 2026-02-02 20:07:40.299801
++/clear
+
+# 2026-02-02 20:07:41.628976
++ CSV export functionality coming soon. 
++architect>  
++architect> Back to Dashboard. Schedule reports somehow.. leads to? 📅 Scheduled Rep
++architect> orts 
++architect>  
++architect> 🚀 Coming Soon 
++architect>  
++architect> Automated report delivery via email and SMS is in development. You'll be
++architect>  able to schedule daily, weekly, or monthly reports to stay updated on y
++architect> our store performance. - hmm I wonder what else leads to what? That's wh
++architect> at I meant by "fix" 
++
