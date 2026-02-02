@@ -2081,3 +2081,12 @@
 
 # 2026-02-02 14:57:54.944660
 +A
+
+# 2026-02-02 15:08:50.144694
++"Aider, we have an UnboundLocalError: cannot access local variable 'host' in shopify_oauth.py at line 598 inside _handle_oauth_callback.
++
++Fix the Variable Scope: Ensure host = request.args.get('host') is defined at the very beginning of the _handle_oauth_callback function so it's available for the redirect logic.
++
++Clean up the Redirect: After the token is saved, make sure the redirect back to the dashboard includes the host parameter in the URL, otherwise the Shopify App Bridge will break.
++
++Check for 'shop' too: While you're at it, make sure shop is also properly defined and handled in that same block."
