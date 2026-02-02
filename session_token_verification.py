@@ -17,29 +17,39 @@ except ImportError:
 
     logger = logging.getLogger(__name__)
 
+
 def normalize_api_key(api_key):
     """Normalize API key by removing surrounding quotes if present"""
     if not api_key:
         return api_key
-    
-    api_key = api_key.strip()
-    
-    # Remove surrounding quotes (single or double)
+
+    # Convert to string and strip whitespace
+    api_key = str(api_key).strip()
+
+    # Remove surrounding quotes (single or double) - but only if they wrap the entire string
     if len(api_key) >= 2:
-        if (api_key.startswith('"') and api_key.endswith('"')) or \
-           (api_key.startswith("'") and api_key.endswith("'")):
+        if (api_key.startswith('"') and api_key.endswith('"')) or (
+            api_key.startswith("'") and api_key.endswith("'")
+        ):
             api_key = api_key[1:-1].strip()
-    
+
     return api_key
 
-SHOPIFY_API_KEY = normalize_api_key(os.getenv("SHOPIFY_API_KEY", ""))
-SHOPIFY_API_SECRET = os.getenv("SHOPIFY_API_SECRET", "").strip()
+
+def get_normalized_api_key():
+    """Get normalized API key - called when needed to avoid startup issues"""
+    return normalize_api_key(os.getenv("SHOPIFY_API_KEY", ""))
+
+
+def get_api_secret():
+    """Get API secret - called when needed"""
+    return os.getenv("SHOPIFY_API_SECRET", "").strip()
 
 
 def validate_shopify_config():
     """Validate Shopify configuration on module load"""
-    api_key = normalize_api_key(os.getenv("SHOPIFY_API_KEY", ""))
-    api_secret = os.getenv("SHOPIFY_API_SECRET", "").strip()
+    api_key = get_normalized_api_key()
+    api_secret = get_api_secret()
 
     issues = []
 
@@ -97,9 +107,16 @@ def verify_session_token(f):
             try:
                 # Decode and verify the JWT token
                 # Shopify signs session tokens with SHOPIFY_API_SECRET
+                api_secret = get_api_secret()
+                if not api_secret:
+                    logger.error("SHOPIFY_API_SECRET is not set!")
+                    return jsonify(
+                        {"error": "Server configuration error - missing API secret"}
+                    ), 500
+
                 payload = jwt.decode(
                     token,
-                    SHOPIFY_API_SECRET,
+                    api_secret,
                     algorithms=["HS256"],
                     options={
                         "verify_signature": True,
@@ -121,16 +138,24 @@ def verify_session_token(f):
                     return jsonify({"error": "Invalid token - missing audience"}), 401
 
                 # Get and normalize the current API key
-                current_api_key = normalize_api_key(os.getenv("SHOPIFY_API_KEY", ""))
+                current_api_key = get_normalized_api_key()
 
                 if not current_api_key:
-                    logger.error("SHOPIFY_API_KEY environment variable is NOT SET or empty")
-                    return jsonify({"error": "Server configuration error - missing API key"}), 500
+                    logger.error(
+                        "SHOPIFY_API_KEY environment variable is NOT SET or empty"
+                    )
+                    return jsonify(
+                        {"error": "Server configuration error - missing API key"}
+                    ), 500
 
                 # Simple comparison - both should be normalized the same way
                 if aud != current_api_key:
-                    logger.warning(f"JWT audience mismatch: received='{aud}', expected='{current_api_key}'")
-                    return jsonify({"error": "Invalid token audience (API Key mismatch)"}), 401
+                    logger.warning(
+                        f"JWT audience mismatch: received='{aud}', expected='{current_api_key}'"
+                    )
+                    return jsonify(
+                        {"error": "Invalid token audience (API Key mismatch)"}
+                    ), 401
 
                 # Verify destination (should match shop domain)
                 dest = payload.get("dest", "")
@@ -172,7 +197,7 @@ def verify_session_token(f):
             except jwt.InvalidSignatureError:
                 logger.warning("JWT session token has invalid signature")
                 # Check if API secret is correct
-                api_secret = os.getenv("SHOPIFY_API_SECRET", "").strip()
+                api_secret = get_api_secret()
                 if not api_secret:
                     logger.error(
                         "SHOPIFY_API_SECRET is missing - cannot verify JWT signature"
@@ -188,10 +213,12 @@ def verify_session_token(f):
                 # Add detailed debugging context
                 logger.warning(f"Token validation failed - Details:")
                 logger.warning(f"  Token length: {len(token) if token else 0}")
+                api_secret = get_api_secret()
+                current_api_key = get_normalized_api_key()
                 logger.warning(
-                    f"  API Secret length: {len(SHOPIFY_API_SECRET) if SHOPIFY_API_SECRET else 0}"
+                    f"  API Secret length: {len(api_secret) if api_secret else 0}"
                 )
-                logger.warning(f"  Expected audience: {SHOPIFY_API_KEY}")
+                logger.warning(f"  Expected audience: {current_api_key}")
 
                 # Try to decode without verification for debugging
                 try:
