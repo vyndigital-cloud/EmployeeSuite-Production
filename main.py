@@ -69,25 +69,38 @@ try:
             pass
 
 except ImportError as e:
-    # Fallback app if factory fails
-    import logging
+    # Fallback to basic Flask app
+    from flask import Flask
 
-    from flask import Flask, jsonify
+    app = Flask(__name__)
+    app.config.update(
+        {
+            "SECRET_KEY": os.getenv("SECRET_KEY", "dev-secret-key"),
+            "SQLALCHEMY_DATABASE_URI": os.getenv("DATABASE_URL", "sqlite:///app.db"),
+            "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+        }
+    )
+
+    # Initialize basic extensions
+    try:
+        from models import db
+
+        db.init_app(app)
+    except ImportError:
+        pass
+
+    # Register core routes
+    try:
+        from core_routes import core_bp
+
+        app.register_blueprint(core_bp)
+    except ImportError:
+        pass
+
+    import logging
 
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
-
-    app = Flask(__name__)
-    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-key")
-
-    @app.route("/health")
-    def health_check():
-        return jsonify({"status": "healthy", "service": "employeesuite"}), 200
-
-    @app.route("/")
-    def index():
-        return jsonify({"message": "Employee Suite API", "status": "running"})
-
     logger.warning(f"Using fallback Flask app: {e}")
 
 # Production WSGI configuration

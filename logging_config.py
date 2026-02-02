@@ -6,7 +6,7 @@ import traceback
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from config import config
+from config import get_config_safe
 
 
 class SecurityFilter(logging.Filter):
@@ -170,7 +170,8 @@ def setup_logging(app=None) -> logging.Logger:
     """Configure comprehensive logging for the application"""
 
     # Create logs directory
-    log_dir = Path(config.UPLOAD_FOLDER) / "logs"
+    upload_folder = get_config_safe("UPLOAD_FOLDER", "uploads")
+    log_dir = Path(upload_folder) / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
 
     # Clear any existing handlers to avoid duplicates
@@ -178,13 +179,15 @@ def setup_logging(app=None) -> logging.Logger:
     root_logger.handlers.clear()
 
     # Set root logger level
-    root_logger.setLevel(config.get_log_level())
+    log_level = get_config_safe("LOG_LEVEL", "INFO").upper()
+    root_logger.setLevel(getattr(logging, log_level, logging.INFO))
 
     # Console handler with colors
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(config.get_log_level())
+    console_handler.setLevel(getattr(logging, log_level, logging.INFO))
 
-    if config.is_production():
+    environment = get_config_safe("ENVIRONMENT", "development")
+    if environment == "production":
         # Production: structured JSON logs
         console_formatter = StructuredFormatter()
     else:
@@ -199,7 +202,8 @@ def setup_logging(app=None) -> logging.Logger:
     root_logger.addHandler(console_handler)
 
     # File handler for persistent logs
-    if not config.is_testing():
+    testing = get_config_safe("TESTING", False)
+    if not testing:
         file_handler = logging.handlers.RotatingFileHandler(
             log_dir / "app.log",
             maxBytes=10 * 1024 * 1024,  # 10MB
@@ -229,21 +233,22 @@ def setup_logging(app=None) -> logging.Logger:
 
     # Flask request logging
     werkzeug_logger = logging.getLogger("werkzeug")
-    if config.is_production():
+    if environment == "production":
         werkzeug_logger.setLevel(logging.WARNING)
     else:
-        werkzeug_logger.setLevel(logging.INFO)
+        werkzeug_logger.setLevel(logging.DEBUG)
 
     # SQLAlchemy logging
     sqlalchemy_logger = logging.getLogger("sqlalchemy.engine")
-    if config.DEBUG and not config.is_testing():
+    debug_mode = get_config_safe("DEBUG", False)
+    if debug_mode and not testing:
         sqlalchemy_logger.setLevel(logging.INFO)
     else:
         sqlalchemy_logger.setLevel(logging.WARNING)
 
     # Application logger
     app_logger = logging.getLogger("missioncontrol")
-    app_logger.setLevel(config.get_log_level())
+    app_logger.setLevel(getattr(logging, log_level, logging.INFO))
 
     # Configure Flask app logging if provided
     if app:
@@ -258,8 +263,8 @@ def setup_logging(app=None) -> logging.Logger:
     # Log startup message
     logger = logging.getLogger("missioncontrol.startup")
     logger.info(
-        f"Logging configured - Environment: {config.ENVIRONMENT}, "
-        f"Level: {config.LOG_LEVEL}, Production: {config.is_production()}"
+        f"Logging configured - Environment: {environment}, "
+        f"Level: {log_level}, Production: {environment == 'production'}"
     )
 
     return app_logger

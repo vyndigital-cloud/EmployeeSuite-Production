@@ -577,7 +577,7 @@ def validate_csrf_token():
 
 
 @billing_bp.route("/subscribe")
-def subscribe():
+def subscribe_shortcut():
     """Subscribe page - uses Shopify Billing API"""
     shop = request.args.get("shop", "")
     if shop:

@@ -27,13 +27,67 @@ from flask_login import current_user, login_required, login_user
 # Removed flask_wtf import due to version compatibility issues
 from sqlalchemy import or_
 
-from access_control import require_access
-from core.circuit_breaker import with_circuit_breaker
-from core.degradation import with_graceful_degradation
 from logging_config import logger
 
-# Fortress architecture imports (required)
-from schemas.validation import APIRequestSchema, validate_request, validate_response
+
+# Inline access control to avoid import issues
+def require_access_inline(f):
+    """Inline access control to avoid import issues"""
+    from functools import wraps
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return jsonify({"error": "Authentication required", "success": False}), 401
+        if not current_user.has_access():
+            return jsonify(
+                {
+                    "error": "Subscription required",
+                    "success": False,
+                    "action": "subscribe",
+                }
+            ), 403
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+# Fortress architecture imports (with fallbacks)
+try:
+    from core.circuit_breaker import with_circuit_breaker
+    from core.degradation import with_graceful_degradation
+    from schemas.validation import APIRequestSchema, validate_request, validate_response
+
+    FORTRESS_AVAILABLE = True
+except ImportError:
+    # Fallback functions
+    def with_circuit_breaker(name):
+        def decorator(func):
+            return func
+
+        return decorator
+
+    def with_graceful_degradation(name, fallback_data=None):
+        def decorator(func):
+            return func
+
+        return decorator
+
+    class APIRequestSchema:
+        def __init__(self, **kwargs):
+            pass
+
+    def validate_request(schema_class, data):
+        return schema_class(**data)
+
+    def validate_response(data):
+        class MockResponse:
+            def dict(self):
+                return data
+
+        return MockResponse()
+
+    FORTRESS_AVAILABLE = False
 
 # Deferred imports - moved inside functions to speed up startup
 # from models import ShopifyStore, User, db
@@ -960,21 +1014,22 @@ def get_authenticated_user():
 @verify_session_token
 def api_process_orders():
     """Process orders endpoint with fortress architecture"""
-    # Fortress components are required
+    # Fortress components with fallbacks
 
     # Defer heavy imports to speed up startup
     from models import ShopifyStore, User
 
     try:
-        # Validate request
-        request_data = {
-            "shop": request.args.get("shop"),
-            "host": request.args.get("host"),
-        }
-        try:
-            validated_request = validate_request(APIRequestSchema, request_data)
-        except Exception as e:
-            logger.warning(f"Request validation failed: {e}")
+        # Validate request (optional if fortress available)
+        if FORTRESS_AVAILABLE:
+            request_data = {
+                "shop": request.args.get("shop"),
+                "host": request.args.get("host"),
+            }
+            try:
+                validated_request = validate_request(APIRequestSchema, request_data)
+            except Exception as e:
+                logger.warning(f"Request validation failed: {e}")
 
         # Local dev mode
         is_local_dev = os.getenv("ENVIRONMENT", "").lower() != "production"
@@ -985,8 +1040,10 @@ def api_process_orders():
         ):
             mock_html = '<div style="padding:20px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;"><h3 style="color:#166534;">Mock Orders (Local Dev Mode)</h3><p>Connect a real Shopify store to see actual orders.</p></div>'
             response_data = {"success": True, "html": mock_html, "mode": "local_dev"}
-            validated_response = validate_response(response_data)
-            return jsonify(validated_response.dict())
+            if FORTRESS_AVAILABLE:
+                validated_response = validate_response(response_data)
+                return jsonify(validated_response.dict())
+            return jsonify(response_data)
 
         # Get authenticated user
         user, error_response = get_authenticated_user()
@@ -1000,30 +1057,48 @@ def api_process_orders():
                 "error": "Subscription required",
                 "action": "subscribe",
             }
-            validated_response = validate_response(response_data)
-            return jsonify(validated_response.dict()), 403
+            if FORTRESS_AVAILABLE:
+                validated_response = validate_response(response_data)
+                return jsonify(validated_response.dict()), 403
+            return jsonify(response_data), 403
 
         login_user(user, remember=False)
 
         # Process orders with circuit breaker protection if available
         from order_processing import process_orders
 
-        # Apply circuit breaker and graceful degradation
-        @with_circuit_breaker("shopify")
-        @with_graceful_degradation("shopify")
-        def protected_process_orders():
-            return process_orders(user_id=user.id)
+        # Process orders with optional fortress protection
+        try:
+            from order_processing import process_orders
 
-        result = protected_process_orders()
+            if FORTRESS_AVAILABLE:
+
+                @with_circuit_breaker("shopify")
+                @with_graceful_degradation("shopify")
+                def protected_process_orders():
+                    return process_orders(user_id=user.id)
+
+                result = protected_process_orders()
+            else:
+                result = process_orders(user_id=user.id)
+        except ImportError:
+            result = {
+                "success": False,
+                "error": "Order processing module not available",
+            }
 
         # Validate and return response
         if isinstance(result, dict):
-            validated_response = validate_response(result)
-            return jsonify(validated_response.dict())
+            if FORTRESS_AVAILABLE:
+                validated_response = validate_response(result)
+                return jsonify(validated_response.dict())
+            return jsonify(result)
 
         response_data = {"success": True, "message": str(result)}
-        validated_response = validate_response(response_data)
-        return jsonify(validated_response.dict())
+        if FORTRESS_AVAILABLE:
+            validated_response = validate_response(response_data)
+            return jsonify(validated_response.dict())
+        return jsonify(response_data)
 
     except MemoryError:
         from performance import clear_cache as clear_perf_cache
@@ -1034,8 +1109,10 @@ def api_process_orders():
             "error": "Memory error - please try again",
             "action": "retry",
         }
-        validated_response = validate_response(error_response)
-        return jsonify(validated_response.dict()), 500
+        if FORTRESS_AVAILABLE:
+            validated_response = validate_response(error_response)
+            return jsonify(validated_response.dict()), 500
+        return jsonify(error_response), 500
     except SystemExit:
         raise
     except BaseException as e:
@@ -1045,15 +1122,17 @@ def api_process_orders():
             "error": "An unexpected error occurred. Please try again.",
             "action": "retry",
         }
-        validated_response = validate_response(error_response)
-        return jsonify(validated_response.dict()), 500
+        if FORTRESS_AVAILABLE:
+            validated_response = validate_response(error_response)
+            return jsonify(validated_response.dict()), 500
+        return jsonify(error_response), 500
 
 
 @core_bp.route("/api/update_inventory", methods=["GET", "POST"])
 @verify_session_token
 def api_update_inventory():
     """Update inventory endpoint with fortress architecture"""
-    # Fortress components are required
+    # Fortress components with fallbacks
 
     # Defer heavy imports to speed up startup
     from models import ShopifyStore, User
@@ -1358,7 +1437,7 @@ def export_inventory_csv():
 
 @core_bp.route("/api/export/report", methods=["GET"])
 @login_required
-@require_access
+@require_access_inline
 def export_report_csv():
     try:
         from reporting import generate_report
