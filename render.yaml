@@ -17,6 +17,11 @@ services:
           type: web
           name: employeesuite-production
           property: url
+      - key: APP_URL
+        fromService:
+          type: web
+          name: employeesuite-production
+          property: url
       - key: SCOPES
         value: read_orders,read_products,read_inventory
       - key: SECRET_KEY
@@ -45,6 +50,7 @@ databases:
     user: employeesuite_user
     plan: starter
 
+services:
   - name: employeesuite-redis
-    databaseName: employeesuite-redis
+    type: redis
     plan: starter

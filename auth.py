@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from flask import (
     Blueprint,
     current_app,
+    jsonify,  # Add this import
     redirect,
     render_template_string,
     request,

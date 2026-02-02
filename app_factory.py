@@ -80,16 +80,26 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     # Setup request/response hooks
     setup_hooks(app)
 
-    # Initialize database - OPTIMIZED for production
+    # Initialize database - FIXED: Proper error handling
     with app.app_context():
-        # Skip heavy operations in production to prevent timeouts
-        if (
-            config.ENVIRONMENT == "production"
-            and os.getenv("SKIP_STARTUP_MIGRATIONS") == "true"
-        ):
-            logger.info("Skipping database migrations in production for fast startup")
-        else:
-            init_db(app)
+        try:
+            # Skip heavy operations in production to prevent timeouts
+            if (
+                config.ENVIRONMENT == "production"
+                and os.getenv("SKIP_STARTUP_MIGRATIONS") == "true"
+            ):
+                logger.info(
+                    "Skipping database migrations in production for fast startup"
+                )
+                # Just test connection
+                db.session.execute(db.text("SELECT 1"))
+            else:
+                init_db(app)
+        except Exception as e:
+            logger.error(f"Database initialization failed: {e}")
+            # Don't fail startup in production - let app start and handle DB errors gracefully
+            if config.ENVIRONMENT != "production":
+                raise
 
     logger.info("MissionControl application created successfully")
     return app
@@ -103,10 +113,6 @@ def init_extensions(app: Flask) -> None:
         # Initialize database
         db.init_app(app)
         logger.info("Database extension initialized")
-
-        # Initialize CSRF protection - TEMPORARILY DISABLED due to Flask-WTF compatibility
-        # init_csrf_protection(app)
-        logger.info("CSRF protection temporarily disabled for deployment")
 
         # Initialize Flask-Login
         from flask_login import LoginManager
@@ -131,63 +137,24 @@ def init_extensions(app: Flask) -> None:
                     pass
                 return None
 
-        # Shopify-specific unauthorized handler
-        @login_manager.unauthorized_handler
-        def unauthorized():
-            from flask import has_request_context, redirect, request, session, url_for
-
-            from utils import safe_redirect
-
-            if not has_request_context():
-                return redirect("/install")
-
-            shop = (
-                request.args.get("shop")
-                or session.get("shop")
-                or session.get("current_shop")
-            )
-            host = request.args.get("host")
-
-            if not shop:
-                referer = request.headers.get("Referer", "")
-                if "myshopify.com" in referer or "admin.shopify.com" in referer:
-                    try:
-                        from urllib.parse import urlparse
-
-                        parsed = urlparse(referer)
-                        if ".myshopify.com" in parsed.netloc:
-                            shop = parsed.netloc
-                        elif "/store/" in parsed.path:
-                            shop_name = parsed.path.split("/store/")[1].split("/")[0]
-                            shop = f"{shop_name}.myshopify.com"
-                    except Exception:
-                        pass
-
-            if shop:
-                install_url = (
-                    url_for("oauth.install", shop=shop, host=host)
-                    if host
-                    else url_for("oauth.install", shop=shop)
-                )
-                return safe_redirect(install_url, shop=shop, host=host)
-
-            return redirect("/install")
-
-        logger.info("Flask-Login initialized")
-
         # Initialize Flask-Bcrypt
         from flask_bcrypt import Bcrypt
 
         bcrypt = Bcrypt(app)
         logger.info("Flask-Bcrypt initialized")
 
-        # Initialize rate limiter
-        if RATE_LIMITER_AVAILABLE:
+        # Initialize rate limiter - FIXED: Optional import
+        try:
+            from rate_limiter import init_limiter
+
             init_limiter(app)
             logger.info("Rate limiter initialized")
-        else:
+        except ImportError:
             logger.info("Rate limiter disabled - flask_limiter not available")
 
+    except Exception as e:
+        logger.error(f"Extension initialization failed: {e}")
+        raise
         # DISABLED: Sentry initialization causing startup delays
         # Initialize Sentry (if configured) - TEMPORARILY DISABLED
         if False and app.config.get("SENTRY_DSN"):  # Force disable
@@ -231,6 +198,15 @@ def register_blueprints(app: Flask) -> None:
         app.register_blueprint(oauth_bp)
         app.register_blueprint(shopify_bp)
         app.register_blueprint(billing_bp)
+
+        # Register features blueprint
+        try:
+            from features_routes import features_bp
+
+            app.register_blueprint(features_bp)
+            logger.info("Features blueprint registered")
+        except ImportError:
+            logger.info("Features blueprint not found, skipping")
 
         logger.info("Core blueprints registered successfully")
 

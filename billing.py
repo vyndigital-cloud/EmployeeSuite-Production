@@ -12,6 +12,7 @@ from datetime import datetime
 from flask import (
     Blueprint,
     Response,
+    jsonify,  # Add this import
     redirect,
     render_template_string,
     request,

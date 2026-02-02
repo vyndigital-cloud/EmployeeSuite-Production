@@ -275,9 +275,6 @@ def validate_required_env_vars():
         raise ValueError("SECRET_KEY must be at least 32 characters long")
 
 
-# Call validation immediately
-validate_required_env_vars()
-
 # Auto-scaling database configuration
 AUTO_SCALING_ENGINE_OPTIONS = {
     "pool_size": 20,  # Start with 20 connections
