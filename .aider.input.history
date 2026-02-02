@@ -1383,3 +1383,49 @@
 
 # 2026-02-02 12:23:48.339977
 +what's the push command 
+
+# 2026-02-02 12:31:40.171148
++
++2026-02-02 04:27:40,381 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-02 04:27:40,382 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/, referer=False, route=True
++2026-02-02 04:27:40,382 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/, shop=none, host=False, domains=5
++127.0.0.1 - - [02/Feb/2026:04:27:40 +0000] "HEAD / HTTP/1.1" 200 0 "-" "Go-http-client/1.1"
++2026-02-02 04:28:13,475 - missioncontrol.config - INFO - Making request to: /settings/shopify, Method: GET
++2026-02-02 04:28:14,339 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/settings/shopify, shop=employee-suite.myshopify.com, host=True, domains=6
++127.0.0.1 - - [02/Feb/2026:04:28:14 +0000] "GET /settings/shopify?error=Store+not+connected.+Please+reconnect.&shop=employee-suite.myshopify.com&host= HTTP/1.1" 200 1958 "https://employeesuite-production.onrender.com/billing/create-charge" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++[2026-02-02 04:28:21 +0000] [56] [INFO] Handling signal: term
++[2026-02-02 04:28:21 +0000] [58] [INFO] Worker exiting (pid: 58)
++[2026-02-02 04:28:24 +0000] [56] [INFO] Shutting down: Master
++2026-02-02 04:29:40,500 - missioncontrol.config - INFO - Making request to: /health, Method: HEAD
++2026-02-02 04:29:41,264 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (production default): path=/health
++2026-02-02 04:29:41,264 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/health, shop=none, host=False, domains=5
++127.0.0.1 - - [02/Feb/2026:04:29:41 +0000] "HEAD /health HTTP/1.1" 200 0 "https://employeesuite-production.onrender.com/health" "Mozilla/5.0+(compatible; UptimeRobot/2.0; http://www.uptimerobot.com/)"
++2026-02-02 04:29:41,573 - missioncontrol.config - INFO - Making request to: /, Method: GET
++2026-02-02 04:29:41,575 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/, referer=False, route=True
++2026-02-02 04:29:41,575 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/, shop=none, host=False, domains=5
++127.0.0.1 - - [02/Feb/2026:04:29:41 +0000] "GET / HTTP/1.1" 200 816 "-" "python-requests/2.32.5"
++2026-02-02 04:31:02,965 - missioncontrol.config - INFO - Making request to: /dashboard, Method: GET
++2026-02-02 04:31:02,965 - missioncontrol.config - INFO - Extracted shop from Referer query: employee-suite.myshopify.com
++2026-02-02 04:31:04,188 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/dashboard, shop=none, host=False, domains=5
++127.0.0.1 - - [02/Feb/2026:04:31:04 +0000] "GET /dashboard HTTP/1.1" 200 18231 "https://employeesuite-production.onrender.com/settings/shopify?error=Store+not+connected.+Please+reconnect.&shop=employee-suite.myshopify.com&host=" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02 04:31:16,325 - missioncontrol.config - INFO - Making request to: /, Method: GET
++2026-02-02 04:31:17,683 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/, shop=employee-suite.myshopify.com, host=True, domains=6
++127.0.0.1 - - [02/Feb/2026:04:31:17 +0000] "GET /?embedded=1&hmac=ce58c47697a6d43b9463231a80e7cd947145e81cbbc13454db805b00a0692667&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&id_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczpcL1wvZW1wbG95ZWUtc3VpdGUubXlzaG9waWZ5LmNvbVwvYWRtaW4iLCJkZXN0IjoiaHR0cHM6XC9cL2VtcGxveWVlLXN1aXRlLm15c2hvcGlmeS5jb20iLCJhdWQiOiI4YzgxYWMzY2U1OWY3MjBhMTM5YjUyZjBjN2IyZWMzMiIsInN1YiI6Ijg0MzQxNTg4MDcxIiwiZXhwIjoxNzcwMDA2NzM1LCJuYmYiOjE3NzAwMDY2NzUsImlhdCI6MTc3MDAwNjY3NSwianRpIjoiMmQyM2VmNDMtZmRjMi00OWI3LWJkYjMtMWU3MWZiNmIwYzNlIiwic2lkIjoiODc4ZmEyZjQtNDU2NC00NTYyLWJmNzUtMjdmNDIyODk1YmI0Iiwic2lnIjoiMmIzYTJiZDc5NzkxYzhiYjU4MjZkM2JmYmU2NjNlNGEyOTg0NTA2MDRiODI4MzI0ZDQyMTU0MjY1M2U5MzQ3OCJ9.fP_5OlPesTCoohCNA7hbz3MfXFlkNWXy1hhjvnysaRM&locale=en-AU&session=c2d5b776447344b5e77fdcd3b18059982acf2209215c5880bd0cbf733584b39f&shop=employee-suite.myshopify.com&timestamp=1770006675 HTTP/1.1" 200 18351 "https://admin.shopify.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++Menu
++2026-02-02 04:31:19,546 - missioncontrol.config - INFO - Making request to: /subscribe, Method: GET
++2026-02-02 04:31:20,563 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/subscribe, shop=employee-suite.myshopify.com, host=True, domains=6
++127.0.0.1 - - [02/Feb/2026:04:31:20 +0000] "GET /subscribe?shop=employee-suite.myshopify.com&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&embedded=1 HTTP/1.1" 200 2387 "https://employeesuite-production.onrender.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02 04:31:23,906 - missioncontrol.config - INFO - Making request to: /billing/create-charge, Method: POST
++2026-02-02 04:31:24,919 - missioncontrol.config - ERROR - Store employee-suite.myshopify.com not connected
++2026-02-02 04:31:24,921 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/billing/create-charge, referer=False, route=True
++2026-02-02 04:31:24,921 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/billing/create-charge, shop=none, host=False, domains=5
++127.0.0.1 - - [02/Feb/2026:04:31:25 +0000] "POST /billing/create-charge HTTP/1.1" 200 470 "https://employeesuite-production.onrender.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02 04:31:25,382 - missioncontrol.config - INFO - Making request to: /settings/shopify, Method: GET
++2026-02-02 04:31:26,408 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/settings/shopify, shop=employee-suite.myshopify.com, host=True, domains=6
++127.0.0.1 - - [02/Feb/2026:04:31:26 +0000] "GET /settings/shopify?error=Store+not+connected.+Please+reconnect.&shop=employee-suite.myshopify.com&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU HTTP/1.1" 200 2014 "https://employeesuite-production.onrender.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
+
+# 2026-02-02 12:31:41.790262
++y
+
+# 2026-02-02 12:31:46.123696
++A
