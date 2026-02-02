@@ -2340,3 +2340,12 @@
 +Fix the Import: Add the correct import statement to the top of core_routes.py.
 +
 +Check for Circularity: If require_access needs core_routes and vice versa, move the import inside the functions or ensure they are imported in a way that doesn't choke Gunicorn."
+
+# 2026-02-02 17:35:51.430413
++"Aider, we have a ModuleNotFoundError: No module named 'psutil' in production.
++
++Update Requirements: Add psutil to requirements.txt.
++
++Make Imports Defensive: In performance.py, wrap the import psutil in a try/except block so the app doesn't crash if the module fails to load.
++
++Fix the API Routes: Ensure /api/process_orders, /api/update_inventory, and /api/generate_report can run even if psutil isn't available (just skip the performance logging if needed)."

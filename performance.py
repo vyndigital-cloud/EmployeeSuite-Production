@@ -12,7 +12,15 @@ from datetime import datetime, timedelta
 from functools import wraps
 from typing import Any, Dict
 
-import psutil
+# Optional psutil import for memory monitoring
+try:
+    import psutil
+
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+    logger.warning("psutil not available - memory monitoring disabled")
 
 logger = logging.getLogger(__name__)
 
@@ -95,8 +103,12 @@ def _evict_lru():
 
 
 def _enforce_memory_limits():
-    """Enforce memory limits and clear cache if needed"""
+    """Enforce memory limits with LRU eviction"""
+    if not PSUTIL_AVAILABLE:
+        return  # Skip memory monitoring if psutil not available
+
     try:
+        # Get current memory usage
         memory_percent = psutil.virtual_memory().percent
         cache_size_mb = _get_cache_size_mb()
 

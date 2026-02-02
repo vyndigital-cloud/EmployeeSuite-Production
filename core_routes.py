@@ -618,6 +618,8 @@ def health():
         if memory_percent > 95:
             overall_status = "unhealthy"
 
+    except ImportError:
+        checks["memory"] = {"status": "unavailable", "message": "psutil not installed"}
     except Exception as e:
         checks["memory"] = {"error": str(e)}
 
