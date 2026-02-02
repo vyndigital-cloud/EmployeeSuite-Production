@@ -655,7 +655,7 @@ def cancel_app_subscription(shop_url, access_token, charge_id):
         return {"success": False, "error": str(e)}
 
 
-@billing_bp.route("/subscribe")
+@billing_bp.route("/billing/subscribe")
 def subscribe():
     """Subscribe page - uses Shopify Billing API"""
     shop = request.args.get("shop", "")

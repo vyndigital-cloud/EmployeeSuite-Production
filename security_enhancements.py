@@ -18,12 +18,49 @@ logger = logging.getLogger(__name__)
 # Security headers middleware
 def add_security_headers(response):
     """Add comprehensive security headers to all responses"""
-    from flask import request
+    from flask import request, session
     
     # CRITICAL: Use unified embedded detection (Safari-compatible)
     # This single function handles all detection logic consistently
     # Safari blocks Referer headers, so we check URL params FIRST
     is_embedded = is_embedded_request()
+    
+    # Get shop from multiple sources with proper fallback
+    shop = None
+    
+    # 1. Try URL parameters first (most reliable)
+    shop = request.args.get('shop') or request.args.get('shop_domain')
+    
+    # 2. Try session if not in URL
+    if not shop:
+        shop = session.get('shop') or session.get('current_shop') or session.get('shop_domain')
+        if shop:
+            logger.debug(f"Security: Got shop from session: {shop}")
+    
+    # 3. Try form data for POST requests
+    if not shop and request.method == 'POST':
+        shop = request.form.get('shop') or request.form.get('shop_domain')
+        if shop:
+            logger.debug(f"Security: Got shop from form: {shop}")
+    
+    # 4. Try Referer header as last resort
+    if not shop:
+        referer = request.headers.get('Referer', '').lower()
+        if 'myshopify.com' in referer:
+            try:
+                from urllib.parse import urlparse
+                parsed = urlparse(referer)
+                if '.myshopify.com' in parsed.netloc:
+                    shop = parsed.netloc
+                    logger.debug(f"Security: Got shop from Referer: {shop}")
+            except Exception:
+                pass
+    
+    # Clean shop domain
+    if shop:
+        shop = shop.replace('https://', '').replace('http://', '').split('/')[0].split('?')[0]
+        if not shop.endswith('.myshopify.com') and '.' not in shop:
+            shop = f"{shop}.myshopify.com"
     
     # For CSP headers, also check if this is a Shopify route (fallback for security)
     # This ensures CSP allows iframe even if params aren't detected
@@ -101,15 +138,9 @@ def add_security_headers(response):
         
         # Add specific shop domain if we have it (most reliable)
         if shop:
-            # Ensure shop domain is in correct format (shop.myshopify.com)
-            shop_clean = shop.replace('https://', '').replace('http://', '').split('/')[0].split('?')[0]
-            if shop_clean.endswith('.myshopify.com'):
-                frame_ancestors_parts.insert(1, f"https://{shop_clean}")  # Insert early for priority
-            elif '.myshopify.com' not in shop_clean and shop_clean:
-                # If shop param doesn't include .myshopify.com, add it
-                shop_with_domain = f"{shop_clean}.myshopify.com"
-                frame_ancestors_parts.insert(1, f"https://{shop_with_domain}")
-                shop_clean = shop_with_domain
+            # Shop is already cleaned above
+            if shop.endswith('.myshopify.com'):
+                frame_ancestors_parts.insert(1, f"https://{shop}")  # Insert early for priority
         
         # Remove duplicates while preserving order
         seen = set()
@@ -124,7 +155,8 @@ def add_security_headers(response):
         # Log for debugging
         has_shop_param = 'shop' in request.args
         has_host_param = 'host' in request.args
-        logger.info(f"🔓 ALLOWING IFRAME: path={request.path}, shop={shop_clean if shop_clean else 'none'}, host={has_host_param}, domains={len(unique_parts)}")
+        shop_display = shop if shop else 'none'
+        logger.info(f"🔓 ALLOWING IFRAME: path={request.path}, shop={shop_display}, host={has_host_param}, domains={len(unique_parts)}")
     else:
         # Regular pages - prevent ALL iframe embedding via CSP only
         frame_ancestors = "frame-ancestors 'none'; "

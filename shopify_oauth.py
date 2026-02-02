@@ -576,6 +576,27 @@ def _handle_oauth_callback():
 
     db.session.commit()
 
+    # CRITICAL: Persist shop and host in session for subsequent requests
+    session.permanent = True
+    session.modified = True
+    
+    # Store shop context in session
+    session['shop'] = shop
+    session['current_shop'] = shop  # Backup key
+    session['user_id'] = user.id
+    session['_authenticated'] = True
+    
+    # Store host if available (for embedded apps)
+    if host:
+        session['host'] = host
+        session['embedded'] = True
+    
+    # Store shop domain without protocol for easy access
+    shop_domain = shop.replace('https://', '').replace('http://', '')
+    session['shop_domain'] = shop_domain
+    
+    logger.info(f"Session persisted: shop={shop}, user_id={user.id}, host={bool(host)}")
+
     # Register mandatory compliance webhooks (Shopify requirement)
     register_compliance_webhooks(shop, access_token)
 
