@@ -2685,21 +2685,28 @@
                                     debounceTimers.generateReport = null;
                                 }
 
-                                // Check if the HTML contains an error message (from backend)
-                                if (html.includes('Error Loading revenue') || html.includes('No Shopify store connected')) {
-                                    // Backend already formatted the error, display directly
-                                    document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${html}</div>`;
-                                } else {
-                                    // Success - display with title
+                                // Check if the response contains an error message (from backend)
+                                if (d.success) {
+                                    const html = d.html || d.message || "Report generated successfully";
                                     document.getElementById('output').innerHTML = `
                                         <div style="animation: fadeIn 0.3s ease-in;">
                                             <h3 class="success" style="display: flex; align-items: center; gap: 8px;">
                                                 <span>✅</span>
                                                 <span>Revenue Report Generated</span>
                                             </h3>
-                                            <div style="margin-top: 12px; line-height: 1.6;">${d.html || d.message || d.error || 'No details available'}</div>
+                                            <div style="margin-top: 12px; line-height: 1.6;">${html}</div>
                                         </div>
                                     `;
+                                } else {
+                                    // Handle error case
+                                    const error_message = d.error || "Failed to generate report";
+                                    if (error_message.includes('Error Loading revenue') || error_message.includes('No Shopify store connected')) {
+                                        // Backend already formatted the error, display directly
+                                        document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${error_message}</div>`;
+                                    } else {
+                                        // Show generic error
+                                        document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in; color: #dc2626;">${error_message}</div>`;
+                                    }
                                 }
                             })
                             .catch(err => {

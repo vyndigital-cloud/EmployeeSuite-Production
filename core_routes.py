@@ -1153,3 +1153,41 @@ def csv_exports():
         shop=shop,
         host=host,
     )
+
+
+@core_bp.route("/install")
+def install_redirect():
+    """Redirect to OAuth install"""
+    shop = request.args.get("shop", "")
+    host = request.args.get("host", "")
+
+    if shop:
+        return redirect(url_for("oauth.install", shop=shop, host=host))
+
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Install Employee Suite</title>
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; padding: 50px; }
+            .container { max-width: 400px; margin: 0 auto; }
+            h1 { color: #202223; margin-bottom: 16px; }
+            p { color: #6d7175; margin-bottom: 24px; }
+            input { width: 100%; padding: 12px; border: 1px solid #e1e3e5; border-radius: 6px; margin-bottom: 16px; }
+            .btn { background: #008060; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Install Employee Suite</h1>
+            <p>Enter your shop domain to get started:</p>
+            <form action="/install" method="get">
+                <input type="text" name="shop" placeholder="your-shop.myshopify.com" required>
+                <br>
+                <button type="submit" class="btn">Install App</button>
+            </form>
+        </div>
+    </body>
+    </html>
+    """)

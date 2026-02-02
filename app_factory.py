@@ -206,19 +206,12 @@ def register_blueprints(app: Flask) -> None:
     logger = logging.getLogger("missioncontrol.factory")
 
     try:
-        # Import blueprints here to avoid circular imports
-        # Import additional blueprints
-        from admin_routes import admin_bp
+        # Import core blueprints (these exist)
         from auth import auth_bp
         from billing import billing_bp
         from core_routes import core_bp
-        from faq_routes import faq_bp
-        from gdpr_compliance import gdpr_bp
-        from legal_routes import legal_bp
         from shopify_oauth import oauth_bp
         from shopify_routes import shopify_bp
-        from webhook_shopify import webhook_shopify_bp
-        from webhook_stripe import webhook_bp
 
         # Register core blueprints first
         app.register_blueprint(core_bp)
@@ -227,19 +220,35 @@ def register_blueprints(app: Flask) -> None:
         app.register_blueprint(shopify_bp)
         app.register_blueprint(billing_bp)
 
-        # Register additional blueprints
-        app.register_blueprint(admin_bp)
-        app.register_blueprint(legal_bp, url_prefix="/legal")
-        app.register_blueprint(faq_bp)
-        app.register_blueprint(webhook_bp)
-        app.register_blueprint(webhook_shopify_bp)
-        app.register_blueprint(gdpr_bp)
+        logger.info("Core blueprints registered successfully")
 
-        logger.info("All blueprints registered successfully")
+        # Try to import optional blueprints (may not exist)
+        optional_blueprints = [
+            ("admin_routes", "admin_bp", None),
+            ("faq_routes", "faq_bp", None),
+            ("gdpr_compliance", "gdpr_bp", None),
+            ("legal_routes", "legal_bp", "/legal"),
+            ("webhook_shopify", "webhook_shopify_bp", None),
+            ("webhook_stripe", "webhook_bp", None),
+        ]
+
+        for module_name, blueprint_name, url_prefix in optional_blueprints:
+            try:
+                module = __import__(module_name)
+                blueprint = getattr(module, blueprint_name)
+                if url_prefix:
+                    app.register_blueprint(blueprint, url_prefix=url_prefix)
+                else:
+                    app.register_blueprint(blueprint)
+                logger.info(f"Optional blueprint {blueprint_name} registered")
+            except ImportError:
+                logger.info(f"Optional blueprint {module_name} not found, skipping")
+            except AttributeError:
+                logger.warning(f"Blueprint {blueprint_name} not found in {module_name}")
 
     except ImportError as e:
-        logger.error(f"Failed to register blueprints: {e}")
-        # Don't raise here - app might still work with main routes
+        logger.error(f"Failed to register core blueprints: {e}")
+        raise  # Core blueprints are required
 
 
 def register_error_handlers(app: Flask) -> None:
