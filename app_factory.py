@@ -14,6 +14,17 @@ from csrf_protection import init_csrf_protection
 from logging_config import setup_logging
 from models import db, init_db
 
+# Optional rate limiter import with fallback
+try:
+    from rate_limiter import init_limiter
+
+    RATE_LIMITER_AVAILABLE = True
+except ImportError:
+    RATE_LIMITER_AVAILABLE = False
+
+    def init_limiter(app):
+        pass  # No-op function
+
 
 def create_app(config_name: Optional[str] = None) -> Flask:
     """
@@ -171,10 +182,11 @@ def init_extensions(app: Flask) -> None:
         logger.info("Flask-Bcrypt initialized")
 
         # Initialize rate limiter
-        from rate_limiter import init_limiter
-
-        init_limiter(app)
-        logger.info("Rate limiter initialized")
+        if RATE_LIMITER_AVAILABLE:
+            init_limiter(app)
+            logger.info("Rate limiter initialized")
+        else:
+            logger.info("Rate limiter disabled - flask_limiter not available")
 
         # DISABLED: Sentry initialization causing startup delays
         # Initialize Sentry (if configured) - TEMPORARILY DISABLED

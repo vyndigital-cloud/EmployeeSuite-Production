@@ -114,7 +114,18 @@ from logging_config import logger
 from models import ShopifyStore, User, db
 from order_processing import process_orders
 from performance import compress_response
-from rate_limiter import init_limiter
+
+try:
+    from rate_limiter import init_limiter
+
+    RATE_LIMITER_AVAILABLE = True
+except ImportError:
+    RATE_LIMITER_AVAILABLE = False
+
+    def init_limiter(app):
+        pass
+
+
 from reporting import generate_report
 from security_enhancements import (
     MAX_REQUEST_SIZE,
@@ -742,7 +753,8 @@ app.register_blueprint(features_pages_bp)
 app.register_blueprint(analytics_bp)
 
 # Initialize rate limiter with global 1000 req/hour (increased from 200 to allow legitimate usage)
-limiter = init_limiter(app)
+if RATE_LIMITER_AVAILABLE:
+    limiter = init_limiter(app)
 
 
 # Apply security headers and compression to all responses
