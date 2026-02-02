@@ -1695,3 +1695,20 @@
 
 # 2026-02-02 13:10:21.718442
 +A
+
+# 2026-02-02 13:20:34.295697
++"Aider, we are in the home stretch. The inventory update is working perfectly! Now we just need to fix the final navigation and session persistence:
++
++Fix the 404 on Subscribe: The app is trying to redirect to /subscribe, but it doesn't exist.
++
++Search app.py for a route that handles 'billing' or 'plans'.
++
++If it exists, update the redirect in your logic to use that correct path.
++
++If we don't have a billing page yet, change the redirect to just go back to /dashboard?shop={shop}.
++
++Bulletproof the Session: In shopify_oauth.py and your API routes, ensure that session['shop'] is being set and persisted. When the app redirects to /dashboard, it should not show shop=none in the security logs.
++
++Clean Up app.py: Make sure the log_comprehensive_error function is no longer causing that TypeError we saw earlier, just in case we hit another 404.
++
++Add Shop to API Returns: Ensure the /api/update_inventory response includes the shop name so the frontend knows who it is talking to."
