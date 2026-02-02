@@ -2148,3 +2148,58 @@
 
 # 2026-02-02 16:30:52.307940
 +ngl bro i don't even think those advances features even FUCKING applied
+
+# 2026-02-02 16:46:52.897438
++2026-02-02T08:45:41.102726227Z ==> Deploying...
++2026-02-02T08:46:13.044895762Z ==> Running 'gunicorn app:app'
++2026-02-02T08:46:15.931764819Z 2026-02-02 08:46:15,931 - config - WARNING - Configuration warning: Production should use HTTPS (https://)
++2026-02-02T08:46:23.431540726Z Traceback (most recent call last):
++2026-02-02T08:46:23.431560007Z   File "/opt/render/project/src/.venv/bin/gunicorn", line 6, in <module>
++2026-02-02T08:46:23.431635368Z     sys.exit(run())
++2026-02-02T08:46:23.431646988Z              ^^^^^
++2026-02-02T08:46:23.431653669Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 67, in run
++2026-02-02T08:46:23.43220546Z     WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]").run()
++2026-02-02T08:46:23.43221505Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 236, in run
++2026-02-02T08:46:23.43222058Z     super().run()
++2026-02-02T08:46:23.43222523Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 72, in run
++2026-02-02T08:46:23.43222986Z     Arbiter(self).run()
++2026-02-02T08:46:23.43223457Z     ^^^^^^^^^^^^^
++2026-02-02T08:46:23.43223908Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 58, in __init__
++2026-02-02T08:46:23.43224348Z     self.setup(app)
++2026-02-02T08:46:23.43224749Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 118, in setup
++2026-02-02T08:46:23.432257141Z     self.app.wsgi()
++2026-02-02T08:46:23.432262031Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 67, in wsgi
++2026-02-02T08:46:23.432390373Z     self.callable = self.load()
++2026-02-02T08:46:23.432400284Z                     ^^^^^^^^^^^
++2026-02-02T08:46:23.432404814Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
++2026-02-02T08:46:23.432504606Z     return self.load_wsgiapp()
++2026-02-02T08:46:23.432512166Z            ^^^^^^^^^^^^^^^^^^^
++2026-02-02T08:46:23.432517436Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
++2026-02-02T08:46:23.432617438Z     return util.import_app(self.app_uri)
++2026-02-02T08:46:23.432629208Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++2026-02-02T08:46:23.432671729Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/util.py", line 371, in import_app
++2026-02-02T08:46:23.432836192Z     mod = importlib.import_module(module)
++2026-02-02T08:46:23.433082777Z           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++2026-02-02T08:46:23.433088917Z   File "/opt/render/project/python/Python-3.11.14/lib/python3.11/importlib/__init__.py", line 126, in import_module
++2026-02-02T08:46:23.433092867Z     return _bootstrap._gcd_import(name[level:], package, level)
++2026-02-02T08:46:23.433096787Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++2026-02-02T08:46:23.433100447Z   File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
++2026-02-02T08:46:23.433103978Z   File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
++2026-02-02T08:46:23.433107548Z   File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
++2026-02-02T08:46:23.433111208Z   File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
++2026-02-02T08:46:23.433115358Z   File "<frozen importlib._bootstrap_external>", line 940, in exec_module
++2026-02-02T08:46:23.433118828Z   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
++2026-02-02T08:46:23.433122588Z   File "/opt/render/project/src/app.py", line 100, in <module>
++2026-02-02T08:46:23.433149268Z     from auth import auth_bp
++2026-02-02T08:46:23.433178769Z   File "/opt/render/project/src/auth.py", line 16, in <module>
++2026-02-02T08:46:23.433271401Z     from email_service import send_password_reset_email, send_welcome_email
++2026-02-02T08:46:23.433276421Z   File "/opt/render/project/src/email_service.py", line 2, in <module>
++2026-02-02T08:46:23.433393504Z     from sendgrid import SendGridAPIClient
++2026-02-02T08:46:23.433400564Z ModuleNotFoundError: No module named 'sendgrid'
++2026-02-02T08:46:26.365164162Z ==> Exited with status 1
++2026-02-02T08:46:26.367769323Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
++2026-02-02T08:46:31.623135293Z ==> Running 'gunicorn app:app'
++2026-02-02T08:46:35.029361994Z 2026-02-02 08:46:35,029 - config - WARNING - Configuration warning: Production should use HTTPS (https://)
+
+# 2026-02-02 16:46:54.896558
++A
