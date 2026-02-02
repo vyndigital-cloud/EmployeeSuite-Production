@@ -199,14 +199,11 @@ def register_blueprints(app: Flask) -> None:
         app.register_blueprint(shopify_bp)
         app.register_blueprint(billing_bp)
 
-        # Register features blueprint
-        try:
-            from features_routes import features_bp
+        # Register features blueprint (required)
+        from features_routes import features_bp
 
-            app.register_blueprint(features_bp)
-            logger.info("Features blueprint registered")
-        except ImportError:
-            logger.info("Features blueprint not found, skipping")
+        app.register_blueprint(features_bp)
+        logger.info("Features blueprint registered")
 
         logger.info("Core blueprints registered successfully")
 

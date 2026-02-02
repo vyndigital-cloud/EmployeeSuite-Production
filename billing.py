@@ -97,244 +97,84 @@ SUBSCRIBE_HTML = """
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f6f6f7;
-            color: #202223;
-            line-height: 1.5;
-        }
-        .header {
-            background: #ffffff;
-            border-bottom: 1px solid #e1e3e5;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
-            height: 64px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo { font-size: 16px; font-weight: 600; color: #202223; text-decoration: none; }
-        .nav-btn { padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none; color: #6d7175; }
-        .nav-btn:hover { background: #f6f6f7; color: #202223; }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 48px 24px;
-        }
-        .hero {
-            text-align: center;
-            margin-bottom: 48px;
-        }
-        .hero-title {
-            font-size: 48px;
-            font-weight: 700;
-            color: #202223;
-            margin-bottom: 16px;
-            letter-spacing: -1px;
-        }
-        .hero-subtitle {
-            font-size: 20px;
-            color: #6d7175;
-            margin-bottom: 24px;
-        }
-        .hero-price {
-            font-size: 64px;
-            font-weight: 800;
-            color: #008060;
-            margin-bottom: 8px;
-        }
-        .hero-price span {
-            font-size: 24px;
-            color: #6d7175;
-        }
-        .trial-badge {
-            display: inline-block;
-            background: #e3fcef;
-            color: #006e52;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 32px;
-        }
-        .pricing-card {
-            background: #ffffff;
-            border: 2px solid #008060;
-            border-radius: 16px;
-            padding: 40px;
-            text-align: center;
-            box-shadow: 0 8px 32px rgba(0, 128, 96, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-        .pricing-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #008060, #00a076);
-        }
-        .popular-badge {
-            position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #008060;
-            color: white;
-            padding: 6px 20px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .plan-features {
-            list-style: none;
-            margin: 32px 0;
-            text-align: left;
-        }
-        .plan-features li {
-            padding: 12px 0;
-            font-size: 16px;
-            color: #374151;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .plan-features li::before {
-            content: "✅";
-            font-size: 18px;
-            flex-shrink: 0;
-        }
-        .cta-button {
-            width: 100%;
-            padding: 20px;
-            background: linear-gradient(135deg, #008060 0%, #00a076 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 16px rgba(0, 128, 96, 0.3);
-        }
-        .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0, 128, 96, 0.4);
-        }
-        .guarantee {
-            text-align: center;
-            margin-top: 24px;
-            font-size: 14px;
-            color: #6d7175;
-        }
-        .value-props {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 24px;
-            margin-top: 48px;
-        }
-        .value-prop {
-            text-align: center;
-            padding: 24px;
-        }
-        .value-prop-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
-        .value-prop-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #202223;
-            margin-bottom: 8px;
-        }
-        .value-prop-desc {
-            font-size: 14px;
-            color: #6d7175;
-            line-height: 1.6;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
+        .card { background: white; border-radius: 16px; padding: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 32px; }
+        .logo { font-size: 24px; font-weight: 700; color: #202223; margin-bottom: 8px; }
+        .tagline { color: #6d7175; font-size: 16px; }
+        .pricing { text-align: center; margin-bottom: 32px; }
+        .price { font-size: 48px; font-weight: 800; color: #008060; margin-bottom: 8px; }
+        .price span { font-size: 18px; color: #6d7175; }
+        .trial-badge { background: #e3fcef; color: #006e52; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; display: inline-block; margin-bottom: 24px; }
+        .features { margin-bottom: 32px; }
+        .feature { display: flex; align-items: center; padding: 12px 0; }
+        .feature-icon { color: #008060; font-size: 18px; margin-right: 12px; }
+        .feature-text { color: #374151; font-size: 15px; }
+        .cta-button { width: 100%; padding: 16px; background: linear-gradient(135deg, #008060 0%, #00a076 100%); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 16px; }
+        .cta-button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,128,96,0.3); }
+        .guarantee { text-align: center; font-size: 13px; color: #6d7175; }
+        .back-link { text-align: center; margin-top: 24px; }
+        .back-link a { color: #008060; text-decoration: none; font-weight: 500; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="logo">Employee Suite</a>
-            <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="nav-btn">Back to Dashboard</a>
-        </div>
-    </div>
-
     <div class="container">
-        <div class="hero">
-            <h1 class="hero-title">Everything You Need</h1>
-            <p class="hero-subtitle">Complete inventory management with AI-powered insights</p>
-            <div class="hero-price">$39<span>/month</span></div>
-            <div class="trial-badge">🎉 7-day free trial • Cancel anytime</div>
-        </div>
+        <div class="card">
+            <div class="header">
+                <div class="logo">Employee Suite</div>
+                <div class="tagline">Complete Shopify Management</div>
+            </div>
 
-        <div class="pricing-card">
-            <div class="popular-badge">Most Popular</div>
+            <div class="pricing">
+                <div class="price">$39<span>/month</span></div>
+                <div class="trial-badge">🎉 7-day free trial</div>
+            </div>
 
-            <ul class="plan-features">
-                <li>🤖 AI-Powered Stockout Predictions</li>
-                <li>📊 Real-Time Inventory Dashboard</li>
-                <li>📦 Smart Order Management</li>
-                <li>💰 Revenue Analytics & Forecasting</li>
-                <li>📥 Unlimited CSV Exports</li>
-                <li>🔄 Automated Reorder Alerts</li>
-                <li>📱 Mobile-Responsive Interface</li>
-                <li>⚡ Real-Time Sync with Shopify</li>
-                <li>🎯 Low Stock Notifications</li>
-                <li>📈 Sales Velocity Analysis</li>
-                <li>🛡️ Enterprise Security</li>
-                <li>💬 Priority Email Support</li>
-            </ul>
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">🤖</div>
+                    <div class="feature-text">AI-Powered Stockout Predictions</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-text">Real-Time Inventory Dashboard</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📦</div>
+                    <div class="feature-text">Smart Order Management</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">💰</div>
+                    <div class="feature-text">Revenue Analytics & Forecasting</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📥</div>
+                    <div class="feature-text">Unlimited CSV Exports</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔄</div>
+                    <div class="feature-text">Automated Reorder Alerts</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">💬</div>
+                    <div class="feature-text">Priority Email Support</div>
+                </div>
+            </div>
 
-            <form method="POST" action="/billing/create-charge" style="margin:0;">
+            <form method="POST" action="/billing/create-charge">
                 <input type="hidden" name="shop" value="{{ shop }}">
                 <input type="hidden" name="host" value="{{ host }}">
                 <input type="hidden" name="plan" value="pro">
-                <button type="submit" class="cta-button">Start Free Trial</button>
+                <button type="submit" class="cta-button">Start Free Trial →</button>
             </form>
 
-            <div class="guarantee">
-                🛡️ 30-day money-back guarantee • No setup fees • Cancel anytime
-            </div>
-        </div>
+            <div class="guarantee">🛡️ 30-day money-back guarantee • Cancel anytime</div>
 
-        <div class="value-props">
-            <div class="value-prop">
-                <div class="value-prop-icon">⚡</div>
-                <div class="value-prop-title">Instant Setup</div>
-                <div class="value-prop-desc">Connect your store in 30 seconds. No technical knowledge required.</div>
-            </div>
-            <div class="value-prop">
-                <div class="value-prop-icon">🤖</div>
-                <div class="value-prop-title">AI-Powered</div>
-                <div class="value-prop-desc">Smart predictions prevent stockouts and maximize profits.</div>
-            </div>
-            <div class="value-prop">
-                <div class="value-prop-icon">📈</div>
-                <div class="value-prop-title">Grow Revenue</div>
-                <div class="value-prop-desc">Merchants see 15-30% revenue increase within 60 days.</div>
+            <div class="back-link">
+                <a href="/dashboard?shop={{ shop }}&host={{ host }}">← Back to Dashboard</a>
             </div>
         </div>
-
-        {% if error %}
-        <div style="max-width: 600px; margin: 32px auto 0; padding: 16px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px; color: #d72c0d; text-align: center;">
-            <strong>Note:</strong> {{ error }}
-        </div>
-        {% endif %}
     </div>
 </body>
 </html>
