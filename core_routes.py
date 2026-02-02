@@ -980,35 +980,39 @@ def api_process_orders():
 
         # Check access
         if not user.has_access():
-            return jsonify({
-                "success": False,
-                "error": "Subscription required",
-                "action": "subscribe"
-            }), 403
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "Subscription required",
+                    "action": "subscribe",
+                }
+            ), 403
 
         # Process orders
         try:
             from order_processing import process_orders
+
             result = process_orders(user_id=user.id)
-            
+
             if isinstance(result, dict):
                 return jsonify(result)
             else:
                 return jsonify({"success": True, "message": str(result)})
-                
+
         except ImportError:
-            return jsonify({
-                "success": False,
-                "error": "Order processing not available"
-            }), 500
+            return jsonify(
+                {"success": False, "error": "Order processing not available"}
+            ), 500
 
     except Exception as e:
         logger.error(f"Error processing orders: {e}")
-        return jsonify({
-            "success": False,
-            "error": "An error occurred. Please try again.",
-            "action": "retry"
-        }), 500
+        return jsonify(
+            {
+                "success": False,
+                "error": "An error occurred. Please try again.",
+                "action": "retry",
+            }
+        ), 500
 
 
 @core_bp.route("/api/update_inventory", methods=["GET", "POST"])
@@ -1023,35 +1027,39 @@ def api_update_inventory():
 
         # Check access
         if not user.has_access():
-            return jsonify({
-                "success": False,
-                "error": "Subscription required",
-                "action": "subscribe"
-            }), 403
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "Subscription required",
+                    "action": "subscribe",
+                }
+            ), 403
 
         # Update inventory
         try:
             from inventory import update_inventory
+
             result = update_inventory(user_id=user.id)
-            
+
             if isinstance(result, dict):
                 return jsonify(result)
             else:
                 return jsonify({"success": True, "message": str(result)})
-                
+
         except ImportError:
-            return jsonify({
-                "success": False,
-                "error": "Inventory module not available"
-            }), 500
+            return jsonify(
+                {"success": False, "error": "Inventory module not available"}
+            ), 500
 
     except Exception as e:
         logger.error(f"Error updating inventory: {e}")
-        return jsonify({
-            "success": False,
-            "error": "An error occurred. Please try again.",
-            "action": "retry"
-        }), 500
+        return jsonify(
+            {
+                "success": False,
+                "error": "An error occurred. Please try again.",
+                "action": "retry",
+            }
+        ), 500
 
 
 @core_bp.route("/api/generate_report", methods=["GET", "POST"])
@@ -1066,35 +1074,39 @@ def api_generate_report():
 
         # Check access
         if not user.has_access():
-            return jsonify({
-                "success": False,
-                "error": "Subscription required",
-                "action": "subscribe"
-            }), 403
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "Subscription required",
+                    "action": "subscribe",
+                }
+            ), 403
 
         # Generate report
         try:
             from reporting import generate_report
+
             result = generate_report(user_id=user.id)
-            
+
             if isinstance(result, dict):
                 return jsonify(result)
             else:
                 return jsonify({"success": True, "message": str(result)})
-                
+
         except ImportError:
-            return jsonify({
-                "success": False,
-                "error": "Reporting module not available"
-            }), 500
+            return jsonify(
+                {"success": False, "error": "Reporting module not available"}
+            ), 500
 
     except Exception as e:
         logger.error(f"Error generating report: {e}")
-        return jsonify({
-            "success": False,
-            "error": "An error occurred. Please try again.",
-            "action": "retry"
-        }), 500
+        return jsonify(
+            {
+                "success": False,
+                "error": "An error occurred. Please try again.",
+                "action": "retry",
+            }
+        ), 500
 
 
 @core_bp.route("/api/analytics/forecast", methods=["GET"])
@@ -1192,7 +1204,7 @@ def export_inventory_csv():
 
 @core_bp.route("/api/export/report", methods=["GET"])
 @login_required
-@require_access_inline
+@require_access
 def export_report_csv():
     try:
         from reporting import generate_report

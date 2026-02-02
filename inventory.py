@@ -1,191 +1,14 @@
-from flask_login import current_user
-from models import ShopifyStore, db
-from shopify_integration import ShopifyClient
-from logging_config import logger
-import requests
-
-def check_inventory(user_id=None):
-    """Check inventory levels and return low stock alerts"""
-    # CRITICAL: Accept user_id as parameter to prevent recursion from accessing current_user
-    # Get user_id - either from parameter or safely from current_user
-    if user_id is None:
-        try:
-            if not hasattr(current_user, 'is_authenticated') or not current_user.is_authenticated:
-                return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Authentication required</div><div style='margin-bottom: 12px;'>Please log in to access this feature.</div><a href='/login' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Log In →</a></div></div>"}
-            # Store user_id immediately to prevent recursion
-            user_id = getattr(current_user, 'id', None)
-        except (RuntimeError, AttributeError, RecursionError) as e:
-            return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Authentication error</div><div style='margin-bottom: 12px;'>Please refresh the page and try again.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
-    
-    if not user_id:
-        return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Authentication required</div><div style='margin-bottom: 12px;'>Please log in to access this feature.</div><a href='/login' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Log In →</a></div></div>"}
-    store = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first()
-    
-    if not store:
-        return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>No Shopify store connected</div><div style='margin-bottom: 12px;'>Connect your store to check inventory levels and get low-stock alerts.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Connect Store →</a></div></div>"}
-    
-    # Get decrypted access token
-    access_token = store.get_access_token()
-    if not access_token:
-        return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Store not properly connected</div><div style='margin-bottom: 12px;'>Missing or invalid access token. Please reconnect your store.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Reconnect Store →</a></div></div>"}
-    
-    try:
-        # Use GraphQL to bypass protected customer data restrictions
-        from shopify_graphql import ShopifyGraphQLClient
-        graphql_client = ShopifyGraphQLClient(store.shop_url, access_token)
-        
-        # Get products with error handling
-        try:
-            products_result = graphql_client.get_all_products()
-            
-            if isinstance(products_result, dict) and 'error' in products_result:
-                error_msg = products_result['error']
-                # If authentication failed, mark store as inactive
-                if 'authentication' in error_msg.lower() or '401' in error_msg:
-                    logger.warning(f"Authentication failed for store {store.shop_url} (user {user_id}) - marking as inactive")
-                    try:
-                        store.is_active = False
-                        db.session.commit()
-                    except Exception as db_error:
-                        logger.error(f"Failed to update store status: {db_error}")
-                        db.session.rollback()
-                    return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>Authentication failed - Please reconnect your store</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
-                return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify error</div><div style='margin-bottom: 12px;'>{error_msg}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
-            
-            # Convert GraphQL products to expected format
-            products = []
-            for product_node in products_result:
-                # Get variants for detailed inventory
-                variants = product_node.get('variants', {}).get('edges', [])
-                for variant_edge in variants:
-                    variant = variant_edge['node']
-                    products.append({
-                        'product': product_node.get('title', 'Unknown'),
-                        'variant_title': variant.get('title', ''),
-                        'sku': variant.get('sku', 'N/A'),
-                        'price': variant.get('price', 'N/A'),
-                        'stock': variant.get('inventoryQuantity', 0)
-                    })
-                    
-        except requests.exceptions.Timeout:
-            return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Connection timeout</div><div style='margin-bottom: 12px;'>Shopify API is taking too long to respond. Please try again in a moment.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
-        except requests.exceptions.ConnectionError:
-            return {"success": False, "error": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Connection error</div><div style='margin-bottom: 12px;'>Cannot connect to Shopify. Check your internet connection and verify your store is connected.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
-        except Exception as e:
-            return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Shopify API error</div><div style='margin-bottom: 12px;'>{str(e)}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
-        
-        if not products or len(products) == 0:
-            return {"success": True, "message": "<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 8px 12px; background: #f0fdf4; border-left: 2px solid #16a34a; border-radius: 4px; font-size: 12px; color: #166534;'>✅ No products found in your store.</div>"}
-        
-        # Sort products by stock level (lowest first = highest priority)
-        sorted_products = sorted(products, key=lambda x: x.get('stock', 0))
-        
-        threshold = 10
-        low_stock_count = sum(1 for p in products if p.get('stock', 0) < threshold)
-        
-        # Store inventory data in session for CSV export
-        try:
-            from flask import session
-            session['inventory_data'] = products
-        except Exception:
-            pass  # Session might not be available, continue anyway
-        
-        # Build minimalistic inventory report with unified style
-        from datetime import datetime
-        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-        
-        # Unified minimalistic style
-        message = f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'>"
-        
-        # Title row - Match Gen Report structure (Flex container)
-        message += f"<div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; width: 100%;'>"
-        message += f"<div style='font-size: 13px; font-weight: 600; color: #171717; flex: 1;'>Inventory ({len(products)} products)</div>"
-        message += f"</div>"
-        
-        # Summary box - Match Gen Report structure (Nested divs, 2 lines)
-        if low_stock_count > 0:
-            message += f"<div style='padding: 8px 12px; background: #fef2f2; border-left: 2px solid #dc2626; border-radius: 4px; margin-bottom: 12px;'>"
-            message += f"<div style='font-weight: 600; color: #991b1b; font-size: 12px;'>Low Stock Alert</div>"
-            message += f"<div style='color: #991b1b; font-size: 11px; margin-top: 2px;'>{low_stock_count} products below {threshold} units</div>"
-            message += f"</div>"
-        else:
-            message += f"<div style='padding: 8px 12px; background: #f0fdf4; border-left: 2px solid #16a34a; border-radius: 4px; margin-bottom: 12px;'>"
-            message += f"<div style='font-weight: 600; color: #166534; font-size: 12px;'>All products in stock</div>"
-            message += f"<div style='color: #166534; font-size: 11px; margin-top: 2px;'>Inventory levels are healthy</div>"
-            message += f"</div>"
-        
-        # Show all products - lowest stock first (highest priority)
-        for product in sorted_products:
-            inventory = product.get('stock', 0)
-            product_name = product.get('product', 'Unknown Product')
-            sku = product.get('sku', 'N/A')
-            price = product.get('price', 'N/A')
-            
-            # Determine color based on stock level
-            # Negative stock (oversold) = RED (critical)
-            # 0 stock = RED (critical, out of stock)
-            # 1-9 stock (below threshold) = ORANGE (warning, low stock)
-            # 10+ stock = GREEN (good, in stock)
-            if inventory < 0:
-                # Negative stock = oversold, critical
-                alert_color = '#dc2626'
-                border_color = '#dc2626'
-            elif inventory == 0:
-                # Zero stock = out of stock, critical
-                alert_color = '#dc2626'
-                border_color = '#dc2626'
-            elif inventory < threshold:
-                # Low stock (1-9) = warning
-                alert_color = '#f59e0b'
-                border_color = '#f59e0b'
-            else:
-                # Good stock (10+) = healthy
-                alert_color = '#16a34a'
-                border_color = '#16a34a'
-            
-            # Minimalistic compact style - EXACT match to orders/revenue
-            message += f"<div style='padding: 10px 12px; margin: 6px 0; background: #fff; border-left: 2px solid {border_color}; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;'><div style='flex: 1;'><div style='font-weight: 500; color: #171717; font-size: 13px;'>{product_name}</div><div style='color: #737373; margin-top: 2px; font-size: 11px;'>{sku} • {price}</div></div><div style='text-align: right; margin-left: 16px;'><div style='font-weight: 600; color: {alert_color}; font-size: 13px;'>{inventory}</div></div></div>"
-        
-        message += f"<div style='color: #a3a3a3; font-size: 10px; margin-top: 12px; text-align: right;'>Updated: {timestamp}</div>"
-        message += "</div>"
-        
-        # Store inventory data in session for CSV export
-        try:
-            from flask import session
-            session['inventory_data'] = products
-        except Exception:
-            pass  # Session might not be available, continue anyway
-        
-        return {"success": True, "message": message, "inventory_data": products}
-    
-    except Exception as e:
-        return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading inventory</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Unexpected error</div><div style='margin-bottom: 12px;'>{str(e)}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
-
-def update_inventory(user_id=None):
-    """Update inventory - wrapper for check_inventory"""
-    # CRITICAL: Accept user_id as parameter to prevent recursion
-    try:
-        # Try to use Flask application context if available
-        from flask import has_app_context, current_app
-        if has_app_context():
-            return check_inventory(user_id=user_id)
-        else:
-            # If no app context, return a helpful error message
-            return {"success": False, "error": "This function requires a Flask application context. Please call it from within a Flask route or with app.app_context()."}
-    except ImportError:
-        # If Flask is not available, try without context (will fail gracefully)
-        try:
-            return check_inventory(user_id=user_id)
-        except Exception as e:
-            return {"success": False, "error": f"Function requires Flask application context: {str(e)}"}
 """
 Simple inventory management
 """
+
 import logging
-from shopify_integration import ShopifyClient
+
 from models import ShopifyStore
+from shopify_integration import ShopifyClient
 
 logger = logging.getLogger(__name__)
+
 
 def update_inventory(user_id=None):
     """Update inventory for user"""
@@ -198,7 +21,7 @@ def update_inventory(user_id=None):
         # Get inventory from Shopify
         client = ShopifyClient(store.shop_url, store.get_access_token())
         inventory = client.get_products()
-        
+
         if isinstance(inventory, dict) and "error" in inventory:
             return {"success": False, "error": inventory["error"]}
 
