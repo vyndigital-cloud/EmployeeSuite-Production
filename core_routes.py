@@ -23,12 +23,12 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required, login_user
+from sqlalchemy import or_
 
 from access_control import require_access
 from logging_config import logger
 from models import ShopifyStore, User, db
 from session_token_verification import get_shop_from_session_token, verify_session_token
-from sqlalchemy import or_
 from utils import safe_redirect
 
 core_bp = Blueprint("core", __name__)
@@ -247,14 +247,29 @@ def home():
     # Get shop from URL params first, then session
     shop = request.args.get("shop")
     if not shop:
-        shop = session.get('shop') or session.get('current_shop')
+        shop = session.get("shop") or session.get("current_shop")
         if shop:
             logger.info(f"Dashboard: Got shop from session: {shop}")
-    
+
     embedded = request.args.get("embedded")
     host = request.args.get("host")
     if not host:
-        host = session.get('host')
+        host = session.get("host")
+
+    # CRITICAL: If we have shop/host in URL, store in session
+    if shop:
+        session["shop"] = shop
+        session["current_shop"] = shop
+        session.permanent = True
+        session.modified = True
+        logger.info(f"✅ Stored shop in session: {shop}")
+
+    if host:
+        session["host"] = host
+        session["embedded"] = True
+        session.permanent = True
+        session.modified = True
+        logger.info(f"✅ Stored host in session")
 
     is_local_dev = (
         os.getenv("ENVIRONMENT", "").lower() != "production" and not shop and not host
@@ -358,7 +373,11 @@ def home():
             try:
                 has_shopify = (
                     ShopifyStore.query.filter(
-                        ShopifyStore.user_id == user_id, or_(ShopifyStore.is_active == True, ShopifyStore.is_active.is_(None))
+                        ShopifyStore.user_id == user_id,
+                        or_(
+                            ShopifyStore.is_active == True,
+                            ShopifyStore.is_active.is_(None),
+                        ),
                     ).first()
                     is not None
                 )
@@ -369,7 +388,11 @@ def home():
             try:
                 has_shopify = (
                     ShopifyStore.query.filter(
-                        ShopifyStore.shop_url == shop, or_(ShopifyStore.is_active == True, ShopifyStore.is_active.is_(None))
+                        ShopifyStore.shop_url == shop,
+                        or_(
+                            ShopifyStore.is_active == True,
+                            ShopifyStore.is_active.is_(None),
+                        ),
                     ).first()
                     is not None
                 )
@@ -389,7 +412,11 @@ def home():
             try:
                 store = (
                     ShopifyStore.query.filter(
-                        ShopifyStore.user_id == user_id, or_(ShopifyStore.is_active == True, ShopifyStore.is_active.is_(None))
+                        ShopifyStore.user_id == user_id,
+                        or_(
+                            ShopifyStore.is_active == True,
+                            ShopifyStore.is_active.is_(None),
+                        ),
                     )
                     .order_by(ShopifyStore.created_at.desc())
                     .first()
@@ -404,7 +431,11 @@ def home():
             try:
                 store = (
                     ShopifyStore.query.filter(
-                        ShopifyStore.shop_url == shop, or_(ShopifyStore.is_active == True, ShopifyStore.is_active.is_(None))
+                        ShopifyStore.shop_url == shop,
+                        or_(
+                            ShopifyStore.is_active == True,
+                            ShopifyStore.is_active.is_(None),
+                        ),
                     )
                     .order_by(ShopifyStore.created_at.desc())
                     .first()
@@ -651,15 +682,19 @@ def debug_routes():
         }
         for rule in current_app.url_map.iter_rules()
     ]
-    
+
     # Filter for billing/subscribe routes
-    billing_routes = [r for r in all_routes if 'billing' in r['rule'] or 'subscribe' in r['rule']]
-    
-    return jsonify({
-        "total_routes": len(all_routes), 
-        "all_routes": all_routes[:50],
-        "billing_routes": billing_routes
-    })
+    billing_routes = [
+        r for r in all_routes if "billing" in r["rule"] or "subscribe" in r["rule"]
+    ]
+
+    return jsonify(
+        {
+            "total_routes": len(all_routes),
+            "all_routes": all_routes[:50],
+            "billing_routes": billing_routes,
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -685,7 +720,7 @@ def log_error():
             f"JS Error - Type: {error_data.get('error_type', 'UnknownError')}, "
             f"Message: {error_data.get('error_message', 'Unknown error')}, "
             f"Location: {error_data.get('error_location', 'unknown')}",
-            extra={"error_data": full_error_data}
+            extra={"error_data": full_error_data},
         )
         return jsonify({"success": True, "message": "Error logged"}), 200
     except Exception as e:

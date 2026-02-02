@@ -35,10 +35,15 @@ SCOPES = "read_orders,read_products,read_inventory"  # GraphQL API doesn't need 
 # We MUST always use the production URL: https://employeesuite-production.onrender.com/auth/callback
 # Even when running locally, OAuth callbacks will go to production, then you can test locally after OAuth completes
 # This is the standard approach since Shopify doesn't support multiple redirect URIs
-REDIRECT_URI = os.getenv(
-    "SHOPIFY_REDIRECT_URI",
-    "https://employeesuite-production.onrender.com/auth/callback",
-).strip().strip('"').strip("'")
+REDIRECT_URI = (
+    os.getenv(
+        "SHOPIFY_REDIRECT_URI",
+        "https://employeesuite-production.onrender.com/auth/callback",
+    )
+    .strip()
+    .strip('"')
+    .strip("'")
+)
 # Access mode: offline = persistent token, online = session-based token
 # Use offline for background operations (webhooks, cron jobs)
 ACCESS_MODE = "offline"
@@ -342,7 +347,7 @@ def callback():
 
     # Log all received parameters for debugging
     logger.info(f"OAuth callback received parameters: {dict(request.args)}")
-    
+
     try:
         return _handle_oauth_callback()
     except Exception as e:
@@ -362,7 +367,7 @@ def _handle_oauth_callback():
     # Log all parameters for debugging
     all_params = dict(request.args)
     logger.info(f"OAuth callback parameters: {all_params}")
-    
+
     shop = request.args.get("shop")
     code = request.args.get("code")
     state = request.args.get("state")
@@ -553,7 +558,9 @@ def _handle_oauth_callback():
         store.is_active = True  # CRITICAL: Set store as active
         store.uninstalled_at = None  # CRITICAL: Clear uninstalled timestamp
         store.user_id = user.id
-        logger.info(f"Updated existing store {shop} - set is_active=True, cleared uninstalled_at")
+        logger.info(
+            f"Updated existing store {shop} - set is_active=True, cleared uninstalled_at"
+        )
     else:
         # Create new store
         from data_encryption import encrypt_access_token
@@ -576,26 +583,37 @@ def _handle_oauth_callback():
 
     db.session.commit()
 
-    # CRITICAL: Persist shop and host in session for subsequent requests
+    # BULLETPROOF: Persist shop and host in session for subsequent requests
     session.permanent = True
     session.modified = True
-    
-    # Store shop context in session
-    session['shop'] = shop
-    session['current_shop'] = shop  # Backup key
-    session['user_id'] = user.id
-    session['_authenticated'] = True
-    
+
+    # Store shop context in session with multiple keys for reliability
+    session["shop"] = shop
+    session["current_shop"] = shop  # Backup key
+    session["shop_domain"] = shop.replace("https://", "").replace("http://", "")
+    session["user_id"] = user.id
+    session["_authenticated"] = True
+
     # Store host if available (for embedded apps)
     if host:
-        session['host'] = host
-        session['embedded'] = True
-    
-    # Store shop domain without protocol for easy access
-    shop_domain = shop.replace('https://', '').replace('http://', '')
-    session['shop_domain'] = shop_domain
-    
-    logger.info(f"Session persisted: shop={shop}, user_id={user.id}, host={bool(host)}")
+        session["host"] = host
+        session["embedded"] = True
+        session["is_embedded"] = True  # Additional flag
+
+    # Force session save immediately
+    try:
+        session.permanent = True
+        session.modified = True
+        # Additional session data for debugging
+        session["oauth_completed"] = True
+        session["last_oauth"] = datetime.utcnow().isoformat()
+    except Exception as session_error:
+        logger.error(f"Session save error: {session_error}")
+
+    logger.info(
+        f"✅ Session bulletproofed: shop={shop}, user_id={user.id}, host={bool(host)}"
+    )
+    logger.info(f"✅ Session keys stored: {list(session.keys())}")
 
     # Register mandatory compliance webhooks (Shopify requirement)
     register_compliance_webhooks(shop, access_token)
@@ -694,7 +712,7 @@ def verify_hmac(params):
 def exchange_code_for_token(shop, code):
     """Exchange authorization code for access token"""
     url = f"https://{shop}/admin/oauth/access_token"
-    
+
     payload = {
         "client_id": SHOPIFY_API_KEY,
         "client_secret": SHOPIFY_API_SECRET,

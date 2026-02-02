@@ -1712,3 +1712,61 @@
 +Clean Up app.py: Make sure the log_comprehensive_error function is no longer causing that TypeError we saw earlier, just in case we hit another 404.
 +
 +Add Shop to API Returns: Ensure the /api/update_inventory response includes the shop name so the frontend knows who it is talking to."
+
+# 2026-02-02 13:27:15.588939
++2026-02-02T05:26:16.680510332Z 2026-02-02 05:26:16,680 - missioncontrol.config - ERROR - Location: unknown:GET
++2026-02-02T05:26:16.682087103Z 2026-02-02 05:26:16,681 - missioncontrol.config - ERROR - Context: {'url': 'https://employeesuite-production.onrender.com/subscribe?shop=employee-suite.myshopify.com&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&embedded=1', 'path': '/subscribe', 'full_path': '/subscribe?shop=employee-suite.myshopify.com&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&embedded=1', 'method': 'GET', 'endpoint': 'unknown', 'referer': 'https://employeesuite-production.onrender.com/', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15', 'remote_addr': '127.0.0.1', 'args': {'shop': 'employee-suite.myshopify.com', 'host': 'YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU', 'embedded': '1'}, 'form_data': None, 'is_api_request': False, 'is_static': False}
++2026-02-02T05:26:16.68314821Z 2026-02-02 05:26:16,683 - missioncontrol.config - ERROR - 404 error occurred: GET /subscribe
++2026-02-02T05:26:16.684254169Z 2026-02-02 05:26:16,684 - missioncontrol.config - ERROR - Full URL: https://employeesuite-production.onrender.com/subscribe?shop=employee-suite.myshopify.com&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&embedded=1
++2026-02-02T05:26:16.685503121Z 2026-02-02 05:26:16,685 - missioncontrol.config - ERROR - Referer: https://employeesuite-production.onrender.com/
++2026-02-02T05:26:16.68662542Z 2026-02-02 05:26:16,686 - missioncontrol.config - ERROR - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15
++2026-02-02T05:26:16.687777469Z 2026-02-02 05:26:16,687 - missioncontrol.config - ERROR - Requested endpoint: unknown
++2026-02-02T05:26:16.690502349Z 2026-02-02 05:26:16,690 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/subscribe, shop=employee-suite.myshopify.com, host=True, domains=6
++2026-02-02T05:26:16.692240724Z 2026-02-02 05:26:16,692 - missioncontrol.config - ERROR - COMPREHENSIVE ERROR: HTTP_404 - HTTP 404 response
++2026-02-02T05:26:16.751380764Z 2026-02-02 05:26:16,751 - missioncontrol.config - ERROR - Location: unknown:GET
++2026-02-02T05:26:16.752658567Z 2026-02-02 05:26:16,752 - missioncontrol.config - ERROR - Context: {'status_code': 404, 'url': 'https://employeesuite-production.onrender.com/subscribe?shop=employee-suite.myshopify.com&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&embedded=1', 'method': 'GET', 'response_size': 599}
++2026-02-02T05:26:16.754621537Z 127.0.0.1 - - [02/Feb/2026:05:26:16 +0000] "GET /subscribe?shop=employee-suite.myshopify.com&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&embedded=1 HTTP/1.1" 404 599 "https://employeesuite-production.onrender.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02T05:26:16.755716436Z 2026-02-02 05:26:16,755 - missioncontrol.config - INFO - Making request to: /subscribe, Method: GET
++2026-02-02T05:26:16.756073335Z 2026-02-02 05:26:16,755 - missioncontrol.config - ERROR - COMPREHENSIVE ERROR: HTTP_404 - 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
++2026-02-02T05:26:16.756964938Z 2026-02-02 05:26:16,756 - missioncontrol.config - ERROR - Location: unknown:GET
++2026-02-02T05:26:16.758630551Z 2026-02-02 05:26:16,757 - missioncontrol.config - ERROR - Context: {'url': 'https://employeesuite-production.onrender.com/subscribe?shop=employee-suite.myshopify.com&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&embedded=1', 'path': '/subscribe', 'full_path': '/subscribe?shop=employee-suite.myshopify.com&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&embedded=1', 'method': 'GET', 'endpoint': 'unknown', 'referer': 'https://employeesuite-production.onrender.com/', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15', 'remote_addr': '127.0.0.1', 'args': {'shop': 'employee-suite.myshopify.com', 'host': 'YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU', 'embedded': '1'}, 'form_data': None, 'is_api_request': False, 'is_static': False}
++2026-02-02T05:26:16.759492013Z 2026-02-02 05:26:16,759 - missioncontrol.config - ERROR - 404 error occurred: GET /subscribe
++2026-02-02T05:26:16.760375616Z 2026-02-02 05:26:16,760 - missioncontrol.config - ERROR - Full URL: https://employeesuite-production.onrender.com/subscribe?shop=employee-suite.myshopify.com&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&embedded=1
++2026-02-02T05:26:16.76170377Z 2026-02-02 05:26:16,761 - missioncontrol.config - ERROR - Referer: https://employeesuite-production.onrender.com/
++2026-02-02T05:26:16.762741236Z 2026-02-02 05:26:16,762 - missioncontrol.config - ERROR - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15
++2026-02-02T05:26:16.850917113Z 2026-02-02 05:26:16,850 - missioncontrol.config - ERROR - Requested endpoint: unknown
++2026-02-02T05:26:16.852958165Z 2026-02-02 05:26:16,852 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/subscribe, shop=employee-suite.myshopify.com, host=True, domains=6
++2026-02-02T05:26:16.853312884Z 2026-02-02 05:26:16,853 - missioncontrol.config - ERROR - COMPREHENSIVE ERROR: HTTP_404 - HTTP 404 response
++2026-02-02T05:26:16.854410463Z 2026-02-02 05:26:16,854 - missioncontrol.config - ERROR - Location: unknown:GET
++2026-02-02T05:26:16.85546565Z 2026-02-02 05:26:16,855 - missioncontrol.config - ERROR - Context: {'status_code': 404, 'url': 'https://employeesuite-production.onrender.com/subscribe?shop=employee-suite.myshopify.com&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&embedded=1', 'method': 'GET', 'response_size': 599}
++2026-02-02T05:26:16.857276036Z 127.0.0.1 - - [02/Feb/2026:05:26:16 +0000] "GET /subscribe?shop=employee-suite.myshopify.com&host=YWRtaW4uc2hvcGlmeS5jb20vc3RvcmUvZW1wbG95ZWUtc3VpdGU&embedded=1 HTTP/1.1" 404 599 "https://employeesuite-production.onrender.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02T05:26:19.003077146Z 2026-02-02 05:26:19,002 - missioncontrol.config - INFO - Making request to: /dashboard, Method: GET
++2026-02-02T05:26:19.004424281Z 2026-02-02 05:26:19,004 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/dashboard, referer=False, route=True
++2026-02-02T05:26:19.004536634Z 2026-02-02 05:26:19,004 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/dashboard, shop=none, host=False, domains=5
++2026-02-02T05:26:19.005598111Z 127.0.0.1 - - [02/Feb/2026:05:26:19 +0000] "GET /dashboard HTTP/1.1" 200 816 "https://employeesuite-production.onrender.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02T05:26:20.133976417Z 2026-02-02 05:26:20,133 - missioncontrol.config - INFO - Making request to: /settings/shopify, Method: GET
++2026-02-02T05:26:20.134450759Z 2026-02-02 05:26:20,134 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/settings/shopify, referer=False, route=True
++2026-02-02T05:26:20.134563972Z 2026-02-02 05:26:20,134 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/settings/shopify, shop=none, host=False, domains=5
++2026-02-02T05:26:20.135437875Z 127.0.0.1 - - [02/Feb/2026:05:26:20 +0000] "GET /settings/shopify HTTP/1.1" 302 199 "https://employeesuite-production.onrender.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02T05:26:20.779808079Z 2026-02-02 05:26:20,779 - missioncontrol.config - INFO - Making request to: /login, Method: GET
++2026-02-02T05:26:20.783659607Z 2026-02-02 05:26:20,783 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/login, referer=False, route=True
++2026-02-02T05:26:20.783782641Z 2026-02-02 05:26:20,783 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/login, shop=none, host=False, domains=5
++2026-02-02T05:26:20.784755906Z 127.0.0.1 - - [02/Feb/2026:05:26:20 +0000] "GET /login HTTP/1.1" 200 1564 "https://employeesuite-production.onrender.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02T05:26:27.984115939Z 2026-02-02 05:26:27,983 - missioncontrol.config - INFO - Making request to: /, Method: GET
++2026-02-02T05:26:27.985276419Z 2026-02-02 05:26:27,985 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/, referer=False, route=True
++2026-02-02T05:26:27.985354641Z 2026-02-02 05:26:27,985 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/, shop=none, host=False, domains=5
++2026-02-02T05:26:27.986247214Z 127.0.0.1 - - [02/Feb/2026:05:26:27 +0000] "GET / HTTP/1.1" 200 816 "https://employeesuite-production.onrender.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02T05:26:29.990775111Z 2026-02-02 05:26:29,990 - missioncontrol.config - INFO - Making request to: /settings/shopify, Method: GET
++2026-02-02T05:26:29.991238272Z 2026-02-02 05:26:29,991 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/settings/shopify, referer=False, route=True
++2026-02-02T05:26:29.991372956Z 2026-02-02 05:26:29,991 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/settings/shopify, shop=none, host=False, domains=5
++2026-02-02T05:26:29.992226578Z 127.0.0.1 - - [02/Feb/2026:05:26:29 +0000] "GET /settings/shopify HTTP/1.1" 302 199 "https://employeesuite-production.onrender.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02T05:26:30.249398139Z 2026-02-02 05:26:30,249 - missioncontrol.config - INFO - Making request to: /login, Method: GET
++2026-02-02T05:26:30.253760761Z 2026-02-02 05:26:30,253 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/login, referer=False, route=True
++2026-02-02T05:26:30.253858603Z 2026-02-02 05:26:30,253 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/login, shop=none, host=False, domains=5
++2026-02-02T05:26:30.25490594Z 127.0.0.1 - - [02/Feb/2026:05:26:30 +0000] "GET /login HTTP/1.1" 200 1564 "https://employeesuite-production.onrender.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
+
+# 2026-02-02 13:27:18.831399
++A
+
+# 2026-02-02 13:29:53.418628
++is it done?

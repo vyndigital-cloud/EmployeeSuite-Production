@@ -3223,6 +3223,73 @@ def apple_touch_icon():
     return Response(status=204)
 
 
+@app.route("/subscribe")
+def handle_subscribe():
+    """Handle subscribe requests - store in session and redirect to billing"""
+    shop = request.args.get("shop")
+    host = request.args.get("host")
+    embedded = request.args.get("embedded")
+
+    # Store in session
+    if shop:
+        session["shop"] = shop
+        session["current_shop"] = shop  # Backup key
+        session.permanent = True
+        session.modified = True
+
+    if host:
+        session["host"] = host
+        session["embedded"] = True
+        session.permanent = True
+        session.modified = True
+
+    # Build the correct billing URL
+    params = []
+    if shop:
+        params.append(f"shop={shop}")
+    if host:
+        params.append(f"host={host}")
+    if embedded:
+        params.append(f"embedded={embedded}")
+
+    query_string = "&".join(params)
+    billing_url = (
+        f"/billing/subscribe?{query_string}" if query_string else "/billing/subscribe"
+    )
+
+    logger.info(f"Subscribe route hit, redirecting to: {billing_url}")
+    return redirect(billing_url)
+
+
+@app.route("/debug/routes")
+def debug_routes():
+    if os.getenv("ENVIRONMENT") != "production":
+        routes = []
+        for rule in app.url_map.iter_rules():
+            routes.append(
+                {
+                    "rule": rule.rule,
+                    "endpoint": rule.endpoint,
+                    "methods": list(rule.methods),
+                }
+            )
+
+        # Filter for subscribe/billing routes
+        relevant_routes = [
+            r for r in routes if "subscribe" in r["rule"] or "billing" in r["rule"]
+        ]
+
+        return jsonify(
+            {
+                "subscribe_routes": relevant_routes,
+                "total_routes": len(routes),
+                "session_shop": session.get("shop"),
+                "session_keys": list(session.keys()),
+            }
+        )
+    return "Not available", 403
+
+
 @app.route("/")
 @app.route("/dashboard", endpoint="dashboard")
 def home():
