@@ -1429,3 +1429,52 @@
 
 # 2026-02-02 12:31:46.123696
 +A
+
+# 2026-02-02 12:38:20.347198
++
++2026-02-02 04:35:45,074 - missioncontrol.config - INFO - Making request to: /, Method: HEAD
++2026-02-02 04:35:45,076 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/, referer=False, route=True
++2026-02-02 04:35:45,076 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/, shop=none, host=False, domains=5
++127.0.0.1 - - [02/Feb/2026:04:35:45 +0000] "HEAD / HTTP/1.1" 200 0 "-" "Go-http-client/1.1"
++[2026-02-02 04:36:28 +0000] [55] [INFO] Handling signal: term
++[2026-02-02 04:36:28 +0000] [57] [INFO] Worker exiting (pid: 57)
++[2026-02-02 04:36:30 +0000] [55] [INFO] Shutting down: Master
++2026-02-02 04:37:08,257 - missioncontrol.config - INFO - Making request to: /, Method: GET
++2026-02-02 04:37:09,471 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/, referer=False, route=True
++2026-02-02 04:37:09,471 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/, shop=none, host=False, domains=5
++127.0.0.1 - - [02/Feb/2026:04:37:09 +0000] "GET / HTTP/1.1" 200 18231 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02 04:37:13,623 - missioncontrol.config - INFO - Making request to: /subscribe, Method: GET
++2026-02-02 04:37:14,472 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/subscribe, referer=False, route=True
++2026-02-02 04:37:14,472 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/subscribe, shop=none, host=False, domains=5
++127.0.0.1 - - [02/Feb/2026:04:37:14 +0000] "GET /subscribe HTTP/1.1" 200 2334 "https://employeesuite-production.onrender.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02 04:37:17,012 - missioncontrol.config - INFO - Making request to: /billing/create-charge, Method: POST
++2026-02-02 04:37:17,855 - missioncontrol.config - ERROR - Store employee-suite.myshopify.com not connected
++2026-02-02 04:37:17,857 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/billing/create-charge, referer=False, route=True
++2026-02-02 04:37:17,857 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/billing/create-charge, shop=none, host=False, domains=5
++127.0.0.1 - - [02/Feb/2026:04:37:18 +0000] "POST /billing/create-charge HTTP/1.1" 200 1012 "https://employeesuite-production.onrender.com/subscribe" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02 04:37:18,322 - missioncontrol.config - INFO - Making request to: /settings/shopify, Method: GET
++2026-02-02 04:37:19,172 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/settings/shopify, shop=employee-suite.myshopify.com, host=True, domains=6
++127.0.0.1 - - [02/Feb/2026:04:37:19 +0000] "GET /settings/shopify?error=Store+not+connected.+Please+reconnect.&shop=employee-suite.myshopify.com&host= HTTP/1.1" 200 1958 "https://employeesuite-production.onrender.com/billing/create-charge" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++Menu
++2026-02-02 04:37:21,859 - missioncontrol.config - INFO - Making request to: /dashboard, Method: GET
++2026-02-02 04:37:21,860 - missioncontrol.config - INFO - Extracted shop from Referer query: employee-suite.myshopify.com
++2026-02-02 04:37:23,080 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/dashboard, shop=none, host=False, domains=5
++127.0.0.1 - - [02/Feb/2026:04:37:23 +0000] "GET /dashboard HTTP/1.1" 200 18231 "https://employeesuite-production.onrender.com/settings/shopify?error=Store+not+connected.+Please+reconnect.&shop=employee-suite.myshopify.com&host=" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02 04:37:24,577 - missioncontrol.config - INFO - Making request to: /api/update_inventory, Method: GET
++2026-02-02 04:37:24,577 - missioncontrol.config - INFO - === UPDATE INVENTORY REQUEST START ===
++2026-02-02 04:37:24,577 - missioncontrol.config - INFO - Request method: GET
+
+# 2026-02-02 12:38:22.743231
++A
+
+# 2026-02-02 12:47:32.758356
++/clear
+
+# 2026-02-02 12:48:48.525990
++1. Fix the Logging Function: > In app.py, find log_comprehensive_error. It is missing the exc_info argument when called by handle_404 and other error handlers. Update the function signature or the calls to ensure exc_info is always provided (default it to None if necessary). This will stop the TypeError.
++
++2. Debug Billing 500: > The logs show a POST /billing/create-charge resulting in a 500 error. Check the billing logic. Now that the store is 'active' (from our previous fix), ensure the billing route is correctly pulling the shop and access_token from the database.
++
++3. Fix the 404 Trigger: > Why is the app even triggering a 404 during a billing request? Check if there's a malformed redirect or a missing route for /billing/create-charge.
++
++4. Check Session/Shop context: > The logs show shop=none during the billing post. This means the billing route isn't receiving the shop parameter or the session cookie is missing. Ensure the billing route is properly decorated with your shop-validation logic."
