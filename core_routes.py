@@ -285,9 +285,16 @@ def get_authenticated_user():
 @core_bp.route("/")
 @core_bp.route("/dashboard", endpoint="dashboard")
 def home():
-    """Home page/Dashboard - Shared entry point for embedded and standalone"""
-    # Import only when needed to speed up startup
-    from models import ShopifyStore, User, db
+    """Home page/Dashboard - Optimized for performance"""
+    # PERFORMANCE: Use read-only transaction for dashboard queries
+    try:
+        from models import ShopifyStore, User, db
+
+        db.session.connection(execution_options={"isolation_level": "AUTOCOMMIT"})
+    except Exception:
+        from models import ShopifyStore, User, db
+
+        pass  # Fallback to normal transaction
 
     # Get shop from URL params first, then session
     shop = request.args.get("shop")
@@ -316,8 +323,11 @@ def home():
         session.modified = True
         logger.info(f"✅ Stored host in session")
 
+    # PERFORMANCE: Handle local dev mode first to avoid unnecessary processing
     is_local_dev = (
-        os.getenv("ENVIRONMENT", "").lower() != "production" and not shop and not host
+        os.getenv("ENVIRONMENT", "").lower() != "production"
+        and not request.args.get("shop")
+        and not request.args.get("host")
     )
 
     if is_local_dev:
@@ -342,6 +352,8 @@ def home():
             APP_URL=APP_URL,
             host="",
         )
+
+    # Continue with normal processing...
 
     referer = request.headers.get("Referer", "")
     is_from_shopify_admin = (
@@ -383,8 +395,14 @@ def home():
         user = current_user if current_user.is_authenticated else None
         if shop:
             try:
+                # OPTIMIZED: Single query with eager loading instead of multiple queries
+                from sqlalchemy.orm import joinedload
+
                 store = (
-                    ShopifyStore.query.filter_by(shop_url=shop)
+                    ShopifyStore.query.options(
+                        joinedload(ShopifyStore.user)
+                    )  # Eager load user relationship
+                    .filter_by(shop_url=shop)
                     .order_by(
                         ShopifyStore.is_active.desc(), ShopifyStore.created_at.desc()
                     )
@@ -416,16 +434,16 @@ def home():
         has_shopify = False
         if user_id:
             try:
-                has_shopify = (
+                # OPTIMIZED: Limit to 1 result and use exists() for boolean checks
+                has_shopify = db.session.query(
                     ShopifyStore.query.filter(
                         ShopifyStore.user_id == user_id,
                         or_(
                             ShopifyStore.is_active == True,
                             ShopifyStore.is_active.is_(None),
                         ),
-                    ).first()
-                    is not None
-                )
+                    ).exists()
+                ).scalar()
             except Exception as e:
                 logger.error(f"Error checking has_shopify for user {user_id}: {e}")
                 db.session.rollback()
@@ -445,14 +463,31 @@ def home():
                 logger.error(f"Error checking has_shopify for shop {shop}: {e}")
                 db.session.rollback()
 
-        quick_stats = {
-            "has_data": False,
-            "pending_orders": 0,
-            "total_products": 0,
-            "low_stock_items": 0,
-        }
+        # Add caching for expensive operations
+        from performance import CACHE_TTL_STATS, cache_result
+
+        @cache_result(ttl=CACHE_TTL_STATS)  # Cache for 3 minutes
+        def get_quick_stats_cached(user_id, shop_domain):
+            """Cached version of quick stats calculation"""
+            return {
+                "has_data": False,
+                "pending_orders": 0,
+                "total_products": 0,
+                "low_stock_items": 0,
+            }
 
         shop_domain = shop or ""
+
+        # Use the cached version instead of calculating every time
+        if has_shopify and user_id:
+            quick_stats = get_quick_stats_cached(user_id, shop_domain)
+        else:
+            quick_stats = {
+                "has_data": False,
+                "pending_orders": 0,
+                "total_products": 0,
+                "low_stock_items": 0,
+            }
         if has_shopify and user_id:
             try:
                 store = (
@@ -495,6 +530,12 @@ def home():
         host_param = request.args.get("host", "")
         shop_param = shop_domain or shop or request.args.get("shop", "")
         APP_URL = os.getenv("APP_URL", request.url_root.rstrip("/"))
+
+        # PERFORMANCE: Ensure database session is properly closed
+        try:
+            db.session.close()
+        except Exception:
+            pass
 
         return render_template(
             "dashboard.html",

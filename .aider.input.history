@@ -2361,3 +2361,9 @@
 +Check for missing files: If the template calls for dashboard.js or style.css, make sure those files actually exist in the /static folder.
 +
 +Silence the Noise: If these errors are coming from an external Shopify script we don't control, add a filter to our log_error route to ignore 'Unknown error' from external targets."
+
+# 2026-02-02 17:51:45.743077
++/clear
+
+# 2026-02-02 17:55:42.596467
++{"timestamp": "2026-02-02T09:55:15.044306Z", "level": "WARNING", "logger": "missioncontrol.performance", "message": "Operation completed: GET core.home (Duration: 1.014s)", "module": "logging_config", "function": "__exit__", "line": 338}
