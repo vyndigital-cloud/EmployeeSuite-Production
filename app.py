@@ -456,7 +456,7 @@ def handle_404(e):
 
     # Log to both comprehensive error system and standard logging
     location = f"{request.endpoint or 'unknown'}:{request.method}"
-    log_comprehensive_error("HTTP_404", str(e), location, error_data)
+    log_comprehensive_error("HTTP_404", str(e), location, error_data, exc_info=None)
 
     # Also log to standard logger with full details (per external feedback)
     logger.error(f"404 error occurred: {request.method} {request.path}")
@@ -714,7 +714,7 @@ def unauthorized():
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(shopify_bp)
-app.register_blueprint(billing_bp)
+app.register_blueprint(billing_bp, url_prefix="/billing")
 app.register_blueprint(admin_bp)
 app.register_blueprint(legal_bp)
 app.register_blueprint(oauth_bp)
@@ -3747,6 +3747,22 @@ def health():
     ), 200
 
 
+@app.route("/debug/routes")
+def list_routes():
+    if os.getenv("ENVIRONMENT") != "production":
+        routes = []
+        for rule in app.url_map.iter_rules():
+            routes.append(
+                {
+                    "endpoint": rule.endpoint,
+                    "methods": list(rule.methods),
+                    "rule": rule.rule,
+                }
+            )
+        return jsonify(routes)
+    return "Not available in production", 403
+
+
 @app.route("/api/log_error", methods=["POST"])
 def log_error():
     """API endpoint to receive JavaScript errors from frontend"""
@@ -5281,7 +5297,7 @@ def create_standard_error_response(
 
 
 def log_comprehensive_error(
-    error_type, error_message, error_location, error_data, exc_info
+    error_type, error_message, error_location, error_data=None, exc_info=None
 ):
     """Log comprehensive error information"""
     logger.error(f"COMPREHENSIVE ERROR: {error_type} - {error_message}")

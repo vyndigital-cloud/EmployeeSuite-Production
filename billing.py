@@ -1159,6 +1159,18 @@ def cancel_subscription():
         return safe_redirect(settings_url, shop=shop, host=host)
 
 
+@billing_bp.route("/test-billing", methods=["GET", "POST"])
+def test_billing():
+    return jsonify(
+        {
+            "message": "Billing blueprint is working",
+            "method": request.method,
+            "args": dict(request.args),
+            "form": dict(request.form),
+        }
+    )
+
+
 # Billing status formatting utilities
 def format_billing_error(error_msg):
     """Format common Shopify billing errors into user-friendly messages"""
