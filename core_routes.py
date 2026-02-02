@@ -28,7 +28,9 @@ from sqlalchemy import or_
 
 from access_control import require_access
 from logging_config import logger
-from models import ShopifyStore, User, db
+
+# Deferred imports - moved inside functions to speed up startup
+# from models import ShopifyStore, User, db
 from session_token_verification import get_shop_from_session_token, verify_session_token
 from utils import safe_redirect
 
@@ -41,6 +43,10 @@ core_bp = Blueprint("core", __name__)
 
 
 def get_authenticated_user():
+    """Get authenticated user - with deferred imports"""
+    # Import only when needed to speed up startup
+    from models import ShopifyStore, User, db
+
     """
     Get authenticated user from either Flask-Login or Shopify session token.
     Returns (user, error_response) tuple. If user is None, error_response contains the error.
@@ -245,6 +251,9 @@ def get_authenticated_user():
 @core_bp.route("/dashboard", endpoint="dashboard")
 def home():
     """Home page/Dashboard - Shared entry point for embedded and standalone"""
+    # Import only when needed to speed up startup
+    from models import ShopifyStore, User, db
+
     # Get shop from URL params first, then session
     shop = request.args.get("shop")
     if not shop:
@@ -518,6 +527,9 @@ def apple_touch_icon():
 @core_bp.route("/health")
 def health():
     """Health check endpoint for monitoring"""
+    # Import only when needed to speed up startup
+    from models import db
+
     checks = {}
     overall_status = "healthy"
 
@@ -764,6 +776,10 @@ def api_docs():
 @core_bp.route("/api/process_orders", methods=["GET", "POST"])
 @verify_session_token
 def api_process_orders():
+    """Process orders endpoint - with deferred imports"""
+    # Defer heavy imports to speed up startup
+    from models import ShopifyStore, User
+
     """Process orders endpoint"""
     is_local_dev = os.getenv("ENVIRONMENT", "").lower() != "production"
     shop_param = request.args.get("shop", "")
@@ -837,6 +853,10 @@ def api_process_orders():
 @core_bp.route("/api/update_inventory", methods=["GET", "POST"])
 @verify_session_token
 def api_update_inventory():
+    """Update inventory endpoint - with deferred imports"""
+    # Defer heavy imports to speed up startup
+    from models import ShopifyStore, User
+
     """Update inventory endpoint"""
     is_local_dev = os.getenv("ENVIRONMENT", "").lower() != "production"
     shop_param = request.args.get("shop", "")
@@ -898,6 +918,10 @@ def api_update_inventory():
 @core_bp.route("/api/generate_report", methods=["GET", "POST"])
 @verify_session_token
 def api_generate_report():
+    """Generate report endpoint - with deferred imports"""
+    # Defer heavy imports to speed up startup
+    from models import ShopifyStore, User
+
     """Generate revenue report endpoint"""
     is_local_dev = os.getenv("ENVIRONMENT", "").lower() != "production"
     shop_param = request.args.get("shop", "")

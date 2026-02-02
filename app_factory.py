@@ -69,9 +69,16 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     # Setup request/response hooks
     setup_hooks(app)
 
-    # Initialize database
+    # Initialize database - OPTIMIZED for production
     with app.app_context():
-        init_db(app)
+        # Skip heavy operations in production to prevent timeouts
+        if (
+            config.ENVIRONMENT == "production"
+            and os.getenv("SKIP_STARTUP_MIGRATIONS") == "true"
+        ):
+            logger.info("Skipping database migrations in production for fast startup")
+        else:
+            init_db(app)
 
     logger.info("MissionControl application created successfully")
     return app
@@ -169,8 +176,9 @@ def init_extensions(app: Flask) -> None:
         init_limiter(app)
         logger.info("Rate limiter initialized")
 
-        # Initialize Sentry (if configured)
-        if app.config.get("SENTRY_DSN"):
+        # DISABLED: Sentry initialization causing startup delays
+        # Initialize Sentry (if configured) - TEMPORARILY DISABLED
+        if False and app.config.get("SENTRY_DSN"):  # Force disable
             import sentry_sdk
             from sentry_sdk.integrations.flask import FlaskIntegration
             from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
@@ -185,6 +193,8 @@ def init_extensions(app: Flask) -> None:
                 environment=app.config.get("ENVIRONMENT", "development"),
             )
             logger.info("Sentry error tracking initialized")
+        else:
+            logger.info("Sentry disabled to prevent startup delays")
 
     except Exception as e:
         logger.error(f"Extension initialization failed: {e}")

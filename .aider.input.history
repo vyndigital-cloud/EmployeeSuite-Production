@@ -2064,3 +2064,20 @@
 
 # 2026-02-02 14:34:21.785871
 +confirm you applied those changes, I'm running out of time mfer
+
+# 2026-02-02 14:54:07.408498
++/clear
+
+# 2026-02-02 14:57:53.179620
++"Aider, the app is dying because of Gunicorn Worker Timeouts. The database migration checks at startup are taking too long and causing a SIGKILL.
++
++Silence the Migrations: In app.py or config.py, find the code that runs Checking for reset_token columns.... Disable or comment out these automatic migration checks at startup. We know the columns exist now.
++
++Increase the Timeout: In your render.yaml or wherever you start Gunicorn, change the start command to: gunicorn --timeout 120 --workers 2 app:app. We need to give it more than the default 30 seconds to boot.
++
++Defer Imports: Move any heavy model or database imports inside the route functions instead of at the top of the file to speed up the initial boot time.
++
++Kill Sentry Noise: Temporarily disable Sentry (Sentry is attempting to send 3 pending events) as the crash-reporting is actually slowing down the crash-recovery."
+
+# 2026-02-02 14:57:54.944660
++A
