@@ -12,8 +12,9 @@ from datetime import datetime
 from flask import (
     Blueprint,
     Response,
-    jsonify,  # Add this import
+    jsonify,
     redirect,
+    render_template,  # Changed from render_template_string
     render_template_string,
     request,
     session,
@@ -98,56 +99,6 @@ PLANS = {
     },
     # Remove the $297 tier - single $39 plan for maximum conversions
 }
-
-SUBSCRIBE_HTML = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Subscribe - Employee Suite</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f6f6f7; }
-        .container { max-width: 500px; margin: 50px auto; padding: 20px; }
-        .card { background: white; padding: 40px; border-radius: 8px; border: 1px solid #e1e3e5; text-align: center; }
-        .price { font-size: 48px; font-weight: 700; color: #008060; margin: 20px 0; }
-        .features { text-align: left; margin: 30px 0; }
-        .feature { padding: 8px 0; color: #202223; }
-        .btn { width: 100%; background: #008060; color: white; padding: 16px; border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; margin: 20px 0; }
-        .btn:hover { background: #006e52; }
-        .back-link { margin-top: 20px; }
-        .back-link a { color: #008060; text-decoration: none; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="card">
-            <h1>Employee Suite Pro</h1>
-            <div class="price">$39<span style="font-size: 18px; color: #6d7175;">/month</span></div>
-
-            <div class="features">
-                <div class="feature">✅ Order Management</div>
-                <div class="feature">✅ Inventory Tracking</div>
-                <div class="feature">✅ Revenue Reports</div>
-                <div class="feature">✅ CSV Exports</div>
-                <div class="feature">✅ Email Support</div>
-            </div>
-
-            <form method="POST" action="/billing/create-charge">
-                <input type="hidden" name="shop" value="{{ shop }}">
-                <input type="hidden" name="host" value="{{ host }}">
-                <input type="hidden" name="plan" value="pro">
-                <button type="submit" class="btn">Start 7-Day Free Trial</button>
-            </form>
-
-            <div class="back-link">
-                <a href="/dashboard?shop={{ shop }}&host={{ host }}">← Back to Dashboard</a>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
-"""
 
 SUCCESS_HTML = """
 <!DOCTYPE html>
@@ -308,7 +259,7 @@ def create_recurring_charge(shop_url, access_token, return_url, plan_type="pro")
         # Extract numeric ID from GID if possible for backward compatibility,
         # but technically should store GID. The DB probably handles string.
         # GID format: gid://shopify/AppSubscription/123456
-
+        
         from shopify_utils import parse_gid
 
         gid = subscription.get("id")
@@ -392,13 +343,13 @@ def cancel_app_subscription(shop_url, access_token, charge_id):
         from shopify_graphql import ShopifyGraphQLClient
 
         client = ShopifyGraphQLClient(shop_url, access_token)
-
+        
         from shopify_utils import format_gid, parse_gid
 
         numeric_id = parse_gid(charge_id)
         if not numeric_id:
             return {"success": False, "error": "Invalid charge ID"}
-
+            
         gid = format_gid(numeric_id, "AppSubscription")
 
         mutation = """
@@ -457,11 +408,11 @@ def subscribe():
     host = request.args.get("host", "")
 
     plan_type = request.args.get("plan", "pro")
-
+    
     # Validate plan type
     if plan_type not in PLANS:
         plan_type = "pro"
-
+    
     plan = PLANS[plan_type]
 
     # Find user
@@ -479,8 +430,8 @@ def subscribe():
         pass
 
     if not user:
-        return render_template_string(
-            SUBSCRIBE_HTML,
+        return render_template(
+            "subscribe.html",
             trial_active=False,
             has_access=False,
             days_left=0,
@@ -493,24 +444,25 @@ def subscribe():
             price=int(plan["price"]),
             features=plan["features"],
             error="Please connect your Shopify store first.",
+            config_api_key=os.getenv("SHOPIFY_API_KEY"),
         )
-
+            
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     has_store = store is not None and store.is_connected()
-
+    
     if not shop and store:
         shop = store.shop_url
 
     trial_active = user.is_trial_active()
     has_access = user.has_access()
     days_left = (user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
-
+    
     error = request.args.get("error")
     if not has_store and not error:
         error = "No Shopify store connected"
 
-    return render_template_string(
-        SUBSCRIBE_HTML,
+    return render_template(
+        "subscribe.html",
         trial_active=trial_active,
         has_access=has_access,
         days_left=days_left,
@@ -562,21 +514,22 @@ def subscribe_shortcut():
 
     host = request.args.get("host", "")
     plan_type = request.args.get("plan", "pro")
-
+    
     # Validate plan type
     if plan_type not in PLANS:
         plan_type = "pro"
-
+    
     plan = PLANS[plan_type]
 
-    return render_template_string(
-        SUBSCRIBE_HTML,
+    return render_template(
+        "subscribe.html",
         shop=shop,
         host=host,
         plan=plan_type,
         plan_name=plan["name"],
         price=int(plan["price"]),
         features=plan["features"],
+        config_api_key=os.getenv("SHOPIFY_API_KEY"),
     )
 
 
