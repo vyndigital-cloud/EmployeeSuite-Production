@@ -17,25 +17,28 @@ except ImportError:
 
     logger = logging.getLogger(__name__)
 
-SHOPIFY_API_KEY = os.getenv("SHOPIFY_API_KEY", "").strip()
-SHOPIFY_API_SECRET = os.getenv("SHOPIFY_API_SECRET", "").strip()
+def normalize_api_key(api_key):
+    """Normalize API key by removing surrounding quotes if present"""
+    if not api_key:
+        return api_key
+    
+    api_key = api_key.strip()
+    
+    # Remove surrounding quotes (single or double)
+    if len(api_key) >= 2:
+        if (api_key.startswith('"') and api_key.endswith('"')) or \
+           (api_key.startswith("'") and api_key.endswith("'")):
+            api_key = api_key[1:-1].strip()
+    
+    return api_key
 
-# Apply same normalization as OAuth flow
-if SHOPIFY_API_KEY and len(SHOPIFY_API_KEY) > 2:
-    if (SHOPIFY_API_KEY.startswith('"') and SHOPIFY_API_KEY.endswith('"')) or (
-        SHOPIFY_API_KEY.startswith("'") and SHOPIFY_API_KEY.endswith("'")
-    ):
-        # Create a normalized version but keep original for comparison
-        SHOPIFY_API_KEY_NORMALIZED = SHOPIFY_API_KEY[1:-1].strip()
-    else:
-        SHOPIFY_API_KEY_NORMALIZED = SHOPIFY_API_KEY
-else:
-    SHOPIFY_API_KEY_NORMALIZED = SHOPIFY_API_KEY
+SHOPIFY_API_KEY = normalize_api_key(os.getenv("SHOPIFY_API_KEY", ""))
+SHOPIFY_API_SECRET = os.getenv("SHOPIFY_API_SECRET", "").strip()
 
 
 def validate_shopify_config():
     """Validate Shopify configuration on module load"""
-    api_key = os.getenv("SHOPIFY_API_KEY", "").strip()
+    api_key = normalize_api_key(os.getenv("SHOPIFY_API_KEY", ""))
     api_secret = os.getenv("SHOPIFY_API_SECRET", "").strip()
 
     issues = []
@@ -111,54 +114,23 @@ def verify_session_token(f):
                     f"JWT payload decoded successfully: {list(payload.keys())}"
                 )
 
-                # Verify audience (should be API key)
+                # Verify audience (should match normalized API key)
                 aud = payload.get("aud")
-
-                # CRITICAL: Use the exact same API key normalization as OAuth
-                current_api_key = os.getenv("SHOPIFY_API_KEY", "").strip()
-
-                # Apply the EXACT same normalization as in shopify_oauth.py
-                # Remove quotes if present (common environment variable issue)
-                if current_api_key and len(current_api_key) > 2:
-                    if (
-                        current_api_key.startswith('"')
-                        and current_api_key.endswith('"')
-                    ) or (
-                        current_api_key.startswith("'")
-                        and current_api_key.endswith("'")
-                    ):
-                        current_api_key = current_api_key[1:-1].strip()
-
-                # Validate API key is present
-                if not current_api_key:
-                    logger.error(
-                        "SHOPIFY_API_KEY environment variable is NOT SET or empty"
-                    )
-                    return jsonify(
-                        {"error": "Server configuration error - missing API key"}
-                    ), 500
-
-                # Validate audience matches API key
                 if not aud:
                     logger.warning("JWT token missing audience field")
                     return jsonify({"error": "Invalid token - missing audience"}), 401
 
-                # ENHANCED: Log both values for debugging
-                logger.debug(f"JWT audience validation:")
-                logger.debug(f"  Received audience: {aud}")
-                logger.debug(f"  Expected API key: {current_api_key}")
+                # Get and normalize the current API key
+                current_api_key = normalize_api_key(os.getenv("SHOPIFY_API_KEY", ""))
 
-                if aud != current_api_key and aud != SHOPIFY_API_KEY_NORMALIZED:
-                    logger.warning(f"JWT audience mismatch:")
-                    logger.warning(f"  Received: {aud}")
-                    logger.warning(f"  Expected: {current_api_key}")
-                    logger.warning(f"  Also tried: {SHOPIFY_API_KEY_NORMALIZED}")
-                    logger.warning(
-                        f"  Lengths: received={len(aud)}, expected={len(current_api_key)}"
-                    )
-                    return jsonify(
-                        {"error": "Invalid token audience (API Key mismatch)"}
-                    ), 401
+                if not current_api_key:
+                    logger.error("SHOPIFY_API_KEY environment variable is NOT SET or empty")
+                    return jsonify({"error": "Server configuration error - missing API key"}), 500
+
+                # Simple comparison - both should be normalized the same way
+                if aud != current_api_key:
+                    logger.warning(f"JWT audience mismatch: received='{aud}', expected='{current_api_key}'")
+                    return jsonify({"error": "Invalid token audience (API Key mismatch)"}), 401
 
                 # Verify destination (should match shop domain)
                 dest = payload.get("dest", "")
