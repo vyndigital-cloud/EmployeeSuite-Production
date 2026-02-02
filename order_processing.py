@@ -151,3 +151,40 @@ def process_orders(creds_path='creds.json', user_id=None):
 
     except Exception as e:
         return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading orders</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Unexpected error</div><div style='margin-bottom: 12px;'>{str(e)}</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
+"""
+Simple order processing
+"""
+import logging
+from shopify_integration import ShopifyClient
+from models import ShopifyStore
+
+logger = logging.getLogger(__name__)
+
+def process_orders(user_id=None):
+    """Process orders for user"""
+    try:
+        # Get user's store
+        store = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first()
+        if not store:
+            return {"success": False, "error": "No store connected"}
+
+        # Get orders from Shopify
+        client = ShopifyClient(store.shop_url, store.get_access_token())
+        orders = client.get_orders()
+        
+        if isinstance(orders, dict) and "error" in orders:
+            return {"success": False, "error": orders["error"]}
+
+        # Format response
+        if orders:
+            html = f"<h3>Found {len(orders)} orders</h3>"
+            for order in orders[:10]:  # Show first 10
+                html += f"<div>Order #{order['id']}: {order['customer']} - {order['total']}</div>"
+        else:
+            html = "<p>No orders found</p>"
+
+        return {"success": True, "html": html}
+
+    except Exception as e:
+        logger.error(f"Error processing orders: {e}")
+        return {"success": False, "error": str(e)}

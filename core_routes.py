@@ -971,333 +971,130 @@ def get_authenticated_user():
 @core_bp.route("/api/process_orders", methods=["GET", "POST"])
 @verify_session_token
 def api_process_orders():
-    """Process orders endpoint with fortress architecture"""
-    # Fortress components with fallbacks
-
-    # Defer heavy imports to speed up startup
-    from models import ShopifyStore, User
-
+    """Process orders - simple version"""
     try:
-        # Validate request (optional if fortress available)
-        if FORTRESS_AVAILABLE:
-            request_data = {
-                "shop": request.args.get("shop"),
-                "host": request.args.get("host"),
-            }
-            try:
-                validated_request = validate_request(APIRequestSchema, request_data)
-            except Exception as e:
-                logger.warning(f"Request validation failed: {e}")
-
-        # Local dev mode
-        is_local_dev = os.getenv("ENVIRONMENT", "").lower() != "production"
-        shop_param = request.args.get("shop", "")
-
-        if is_local_dev and (
-            not shop_param or shop_param == "demo-store.myshopify.com"
-        ):
-            mock_html = '<div style="padding:20px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;"><h3 style="color:#166534;">Mock Orders (Local Dev Mode)</h3><p>Connect a real Shopify store to see actual orders.</p></div>'
-            response_data = {"success": True, "html": mock_html, "mode": "local_dev"}
-            if FORTRESS_AVAILABLE:
-                validated_response = validate_response(response_data)
-                return jsonify(validated_response.dict())
-            return jsonify(response_data)
-
-        # Get authenticated user
+        # Get user
         user, error_response = get_authenticated_user()
         if error_response:
             return error_response
 
         # Check access
         if not user.has_access():
-            response_data = {
+            return jsonify({
                 "success": False,
                 "error": "Subscription required",
-                "action": "subscribe",
-            }
-            if FORTRESS_AVAILABLE:
-                validated_response = validate_response(response_data)
-                return jsonify(validated_response.dict()), 403
-            return jsonify(response_data), 403
+                "action": "subscribe"
+            }), 403
 
-        login_user(user, remember=False)
-
-        # Process orders with circuit breaker protection if available
-        from order_processing import process_orders
-
-        # Process orders with optional fortress protection
+        # Process orders
         try:
             from order_processing import process_orders
-
-            if FORTRESS_AVAILABLE:
-
-                @with_circuit_breaker("shopify")
-                @with_graceful_degradation("shopify")
-                def protected_process_orders():
-                    return process_orders(user_id=user.id)
-
-                result = protected_process_orders()
+            result = process_orders(user_id=user.id)
+            
+            if isinstance(result, dict):
+                return jsonify(result)
             else:
-                result = process_orders(user_id=user.id)
+                return jsonify({"success": True, "message": str(result)})
+                
         except ImportError:
-            result = {
+            return jsonify({
                 "success": False,
-                "error": "Order processing module not available",
-            }
+                "error": "Order processing not available"
+            }), 500
 
-        # Validate and return response
-        if isinstance(result, dict):
-            if FORTRESS_AVAILABLE:
-                validated_response = validate_response(result)
-                return jsonify(validated_response.dict())
-            return jsonify(result)
-
-        response_data = {"success": True, "message": str(result)}
-        if FORTRESS_AVAILABLE:
-            validated_response = validate_response(response_data)
-            return jsonify(validated_response.dict())
-        return jsonify(response_data)
-
-    except MemoryError:
-        from performance import clear_cache as clear_perf_cache
-
-        clear_perf_cache()
-        error_response = {
+    except Exception as e:
+        logger.error(f"Error processing orders: {e}")
+        return jsonify({
             "success": False,
-            "error": "Memory error - please try again",
-            "action": "retry",
-        }
-        if FORTRESS_AVAILABLE:
-            validated_response = validate_response(error_response)
-            return jsonify(validated_response.dict()), 500
-        return jsonify(error_response), 500
-    except SystemExit:
-        raise
-    except BaseException as e:
-        logger.error(f"Critical error processing orders: {e}", exc_info=True)
-        error_response = {
-            "success": False,
-            "error": "An unexpected error occurred. Please try again.",
-            "action": "retry",
-        }
-        if FORTRESS_AVAILABLE:
-            validated_response = validate_response(error_response)
-            return jsonify(validated_response.dict()), 500
-        return jsonify(error_response), 500
+            "error": "An error occurred. Please try again.",
+            "action": "retry"
+        }), 500
 
 
 @core_bp.route("/api/update_inventory", methods=["GET", "POST"])
 @verify_session_token
 def api_update_inventory():
-    """Update inventory endpoint with fortress architecture"""
-    # Fortress components with fallbacks
-
-    # Defer heavy imports to speed up startup
-    from models import ShopifyStore, User
-
+    """Update inventory - simple version"""
     try:
-        # Validate request
-        request_data = {
-            "shop": request.args.get("shop"),
-            "host": request.args.get("host"),
-        }
-        try:
-            validated_request = validate_request(APIRequestSchema, request_data)
-        except Exception as e:
-            logger.warning(f"Request validation failed: {e}")
-
-        # Local dev mode
-        is_local_dev = os.getenv("ENVIRONMENT", "").lower() != "production"
-        shop_param = request.args.get("shop", "")
-
-        if is_local_dev and (
-            not shop_param or shop_param == "demo-store.myshopify.com"
-        ):
-            mock_html = '<div style="padding:20px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;"><h3 style="color:#1e40af;">Mock Inventory (Local Dev Mode)</h3><p>Connect a real Shopify store to see actual inventory.</p></div>'
-            response_data = {"success": True, "html": mock_html, "mode": "local_dev"}
-            validated_response = validate_response(response_data)
-            return jsonify(validated_response.dict())
-
-        # Get authenticated user
+        # Get user
         user, error_response = get_authenticated_user()
         if error_response:
             return error_response
 
         # Check access
         if not user.has_access():
-            response_data = {
+            return jsonify({
                 "success": False,
                 "error": "Subscription required",
-                "action": "subscribe",
-            }
-            validated_response = validate_response(response_data)
-            return jsonify(validated_response.dict()), 403
+                "action": "subscribe"
+            }), 403
 
-        login_user(user, remember=False)
+        # Update inventory
+        try:
+            from inventory import update_inventory
+            result = update_inventory(user_id=user.id)
+            
+            if isinstance(result, dict):
+                return jsonify(result)
+            else:
+                return jsonify({"success": True, "message": str(result)})
+                
+        except ImportError:
+            return jsonify({
+                "success": False,
+                "error": "Inventory module not available"
+            }), 500
 
-        # Clear cache
-        from performance import clear_cache as clear_perf_cache
-
-        clear_perf_cache("get_products")
-
-        # Update inventory with circuit breaker protection if available
-        from inventory import update_inventory
-
-        # Apply circuit breaker and graceful degradation
-        @with_circuit_breaker("shopify")
-        @with_graceful_degradation("shopify")
-        def protected_update_inventory():
-            return update_inventory(user_id=user.id)
-
-        result = protected_update_inventory()
-
-        # Handle result
-        if isinstance(result, dict):
-            if result.get("success") and "inventory_data" in result:
-                session["inventory_data"] = result["inventory_data"]
-            validated_response = validate_response(result)
-            return jsonify(validated_response.dict())
-
-        error_response = {"success": False, "error": str(result)}
-        validated_response = validate_response(error_response)
-        return jsonify(validated_response.dict())
-
-    except MemoryError:
-        from performance import clear_cache as clear_perf_cache
-
-        clear_perf_cache()
-        error_response = {
+    except Exception as e:
+        logger.error(f"Error updating inventory: {e}")
+        return jsonify({
             "success": False,
-            "error": "Memory error - please try again",
-            "action": "retry",
-        }
-        validated_response = validate_response(error_response)
-        return jsonify(validated_response.dict()), 500
-    except SystemExit:
-        raise
-    except BaseException as e:
-        logger.error(f"Critical error updating inventory: {e}", exc_info=True)
-        error_response = {
-            "success": False,
-            "error": "An unexpected error occurred. Please try again.",
-            "action": "retry",
-        }
-        validated_response = validate_response(error_response)
-        return jsonify(validated_response.dict()), 500
+            "error": "An error occurred. Please try again.",
+            "action": "retry"
+        }), 500
 
 
 @core_bp.route("/api/generate_report", methods=["GET", "POST"])
 @verify_session_token
 def api_generate_report():
-    """Generate report endpoint with fortress architecture"""
-    # Fortress components are required
-
-    # Defer heavy imports to speed up startup
-    from models import ShopifyStore, User
-
+    """Generate report - simple version"""
     try:
-        # Validate request
-        request_data = {
-            "shop": request.args.get("shop"),
-            "host": request.args.get("host"),
-        }
-        try:
-            validated_request = validate_request(APIRequestSchema, request_data)
-        except Exception as e:
-            logger.warning(f"Request validation failed: {e}")
-
-        # Local dev mode
-        is_local_dev = os.getenv("ENVIRONMENT", "").lower() != "production"
-        shop_param = request.args.get("shop", "")
-
-        if is_local_dev and (
-            not shop_param or shop_param == "demo-store.myshopify.com"
-        ):
-            mock_html = '<div style="padding:20px;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;"><h3 style="color:#92400e;">Mock Revenue Report (Local Dev Mode)</h3><p>Connect a real Shopify store to see actual revenue.</p></div>'
-            response_data = {"success": True, "html": mock_html, "mode": "local_dev"}
-            validated_response = validate_response(response_data)
-            return jsonify(validated_response.dict())
-
-        # Get authenticated user
+        # Get user
         user, error_response = get_authenticated_user()
         if error_response:
             return error_response
 
         # Check access
         if not user.has_access():
-            response_data = {
+            return jsonify({
                 "success": False,
                 "error": "Subscription required",
-                "action": "subscribe",
-            }
-            validated_response = validate_response(response_data)
-            return jsonify(validated_response.dict()), 403
+                "action": "subscribe"
+            }), 403
 
-        login_user(user, remember=False)
+        # Generate report
+        try:
+            from reporting import generate_report
+            result = generate_report(user_id=user.id)
+            
+            if isinstance(result, dict):
+                return jsonify(result)
+            else:
+                return jsonify({"success": True, "message": str(result)})
+                
+        except ImportError:
+            return jsonify({
+                "success": False,
+                "error": "Reporting module not available"
+            }), 500
 
-        # Get shop URL
-        shop_url = request.args.get("shop")
-        if not shop_url and hasattr(user, "shopify_stores"):
-            active_store = next((s for s in user.shopify_stores if s.is_active), None)
-            if active_store:
-                shop_url = active_store.shop_url
-
-        # Generate report with circuit breaker protection if available
-        from reporting import generate_report
-
-        # Apply circuit breaker and graceful degradation
-        @with_circuit_breaker("shopify")
-        @with_graceful_degradation("shopify")
-        def protected_generate_report():
-            return generate_report(user_id=user.id, shop_url=shop_url)
-
-        data = protected_generate_report()
-
-        # Handle result
-        if data.get("error") and data["error"] is not None:
-            error_response = {"success": False, "error": data["error"]}
-            validated_response = validate_response(error_response)
-            return jsonify(validated_response.dict()), 500
-
-        if not data.get("message"):
-            if data.get("data") and not data["data"]:
-                error_response = {"success": False, "error": "No report data available"}
-                validated_response = validate_response(error_response)
-                return jsonify(validated_response.dict()), 500
-
-        html = data.get("message", "No report data available")
-
-        if "report_data" in data:
-            session["report_data"] = data["report_data"]
-
-        # Return successful response
-        response_data = {"success": True, "html": html, "message": "Report generated"}
-        response_data = {"success": True, "html": html, "data": data.get("data", {})}
-        validated_response = validate_response(response_data)
-        return jsonify(validated_response.dict())
-
-    except MemoryError:
-        from performance import clear_cache as clear_perf_cache
-
-        clear_perf_cache()
-        error_response = {
+    except Exception as e:
+        logger.error(f"Error generating report: {e}")
+        return jsonify({
             "success": False,
-            "error": "Memory error - please try again",
-            "action": "retry",
-        }
-        validated_response = validate_response(error_response)
-        return jsonify(validated_response.dict()), 500
-    except SystemExit:
-        raise
-    except BaseException as e:
-        logger.error(f"Critical error generating report: {e}", exc_info=True)
-        error_response = {
-            "success": False,
-            "error": "Failed to generate report",
-            "action": "retry",
-        }
-        validated_response = validate_response(error_response)
-        return jsonify(validated_response.dict()), 500
+            "error": "An error occurred. Please try again.",
+            "action": "retry"
+        }), 500
 
 
 @core_bp.route("/api/analytics/forecast", methods=["GET"])

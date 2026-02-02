@@ -216,3 +216,48 @@ def generate_report(user_id=None, shop_url=None):
             except Exception:
                 pass
         return {"success": False, "error": f"<div style='font-family: -apple-system, BlinkMacSystemFont, sans-serif;'><div style='font-size: 13px; font-weight: 600; color: #171717; margin-bottom: 8px;'>Error Loading revenue</div><div style='padding: 16px; background: #f6f6f7; border-radius: 8px; border-left: 3px solid #c9cccf; color: #6d7175; font-size: 14px; line-height: 1.6;'><div style='font-weight: 600; color: #202223; margin-bottom: 8px;'>Unexpected error</div><div style='margin-bottom: 12px;'>Please try again in a moment.</div><a href='/settings/shopify' style='display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px;'>Check Settings →</a></div></div>"}
+"""
+Simple reporting
+"""
+import logging
+from shopify_integration import ShopifyClient
+from models import ShopifyStore
+
+logger = logging.getLogger(__name__)
+
+def generate_report(user_id=None, shop_url=None):
+    """Generate revenue report for user"""
+    try:
+        # Get user's store
+        store = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first()
+        if not store:
+            return {"success": False, "error": "No store connected"}
+
+        # Get orders from Shopify for revenue calculation
+        client = ShopifyClient(store.shop_url, store.get_access_token())
+        orders = client.get_orders()
+        
+        if isinstance(orders, dict) and "error" in orders:
+            return {"success": False, "error": orders["error"]}
+
+        # Calculate revenue
+        total_revenue = 0
+        if orders:
+            for order in orders:
+                try:
+                    # Extract numeric value from total (remove $ and convert)
+                    total_str = order.get('total', '$0').replace('$', '').replace(',', '')
+                    total_revenue += float(total_str)
+                except (ValueError, TypeError):
+                    continue
+
+        # Format response
+        html = f"<h3>Revenue Report</h3>"
+        html += f"<p>Total Orders: {len(orders) if orders else 0}</p>"
+        html += f"<p>Total Revenue: ${total_revenue:,.2f}</p>"
+
+        return {"success": True, "html": html}
+
+    except Exception as e:
+        logger.error(f"Error generating report: {e}")
+        return {"success": False, "error": str(e)}
