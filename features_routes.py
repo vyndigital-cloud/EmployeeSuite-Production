@@ -19,7 +19,7 @@ def welcome():
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f6f6f7; }
             .container { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
-            .header { background: white; border-bottom: 1px solid #e1e3e5; padding: 16px 24px; margin-bottom: 32px; }
+            .header { background: white; border-bottom: 1px solid #e1e3e5; padding: 16px 24px; margin-bottom: 32px; border-radius: 8px; }
             .back-btn { color: #008060; text-decoration: none; font-weight: 500; }
             .hero { text-align: center; margin-bottom: 48px; }
             .hero h1 { font-size: 32px; font-weight: 700; color: #202223; margin-bottom: 16px; }
@@ -28,7 +28,7 @@ def welcome():
             .feature { background: white; padding: 24px; border-radius: 8px; border: 1px solid #e1e3e5; }
             .feature h3 { font-size: 18px; font-weight: 600; color: #202223; margin-bottom: 12px; }
             .feature p { color: #6d7175; line-height: 1.6; }
-            .badge { background: #008060; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+            .badge { background: #008060; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-right: 8px; }
         </style>
     </head>
     <body>
@@ -42,15 +42,15 @@ def welcome():
             </div>
             <div class="features">
                 <div class="feature">
-                    <h3><span class="badge">NEW</span> CSV Exports</h3>
+                    <h3><span class="badge">NEW</span>CSV Exports</h3>
                     <p>Download your Orders, Inventory, and Revenue data as CSV files with date filtering. Perfect for accounting and analysis.</p>
                 </div>
                 <div class="feature">
-                    <h3><span class="badge">NEW</span> Scheduled Reports</h3>
+                    <h3><span class="badge">NEW</span>Scheduled Reports</h3>
                     <p>Get automated reports delivered to your email or SMS at your preferred schedule. Never miss important updates.</p>
                 </div>
                 <div class="feature">
-                    <h3><span class="badge">NEW</span> Comprehensive Dashboard</h3>
+                    <h3><span class="badge">NEW</span>Comprehensive Dashboard</h3>
                     <p>View all three reports (Orders, Inventory, Revenue) in one unified dashboard with real-time updates.</p>
                 </div>
             </div>
@@ -79,7 +79,7 @@ def csv_exports():
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f6f6f7; }
             .container { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
-            .header { background: white; border-bottom: 1px solid #e1e3e5; padding: 16px 24px; margin-bottom: 32px; }
+            .header { background: white; border-bottom: 1px solid #e1e3e5; padding: 16px 24px; margin-bottom: 32px; border-radius: 8px; }
             .back-btn { color: #008060; text-decoration: none; font-weight: 500; }
             .card { background: white; padding: 24px; border-radius: 8px; border: 1px solid #e1e3e5; margin-bottom: 24px; }
             .card h3 { font-size: 18px; font-weight: 600; color: #202223; margin-bottom: 12px; }
@@ -97,19 +97,19 @@ def csv_exports():
             <div class="card">
                 <h3>📦 Orders Export</h3>
                 <p style="color: #6d7175; margin-bottom: 16px;">Download all your orders with customer details, amounts, and status.</p>
-                <a href="/api/export/orders" class="btn">Download Orders CSV</a>
+                <a href="/api/export/orders?shop={{ shop }}" class="btn">Download Orders CSV</a>
             </div>
 
             <div class="card">
                 <h3>📊 Inventory Export</h3>
                 <p style="color: #6d7175; margin-bottom: 16px;">Export product inventory with stock levels, SKUs, and pricing.</p>
-                <a href="/api/export/inventory-simple" class="btn">Download Inventory CSV</a>
+                <a href="/api/export/inventory-simple?shop={{ shop }}" class="btn">Download Inventory CSV</a>
             </div>
 
             <div class="card">
                 <h3>💰 Revenue Export</h3>
                 <p style="color: #6d7175; margin-bottom: 16px;">Get detailed revenue breakdown by product and time period.</p>
-                <a href="/api/export/report" class="btn">Download Revenue CSV</a>
+                <a href="/api/export/report?shop={{ shop }}" class="btn">Download Revenue CSV</a>
             </div>
         </div>
     </body>
@@ -136,7 +136,7 @@ def scheduled_reports():
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f6f6f7; }
             .container { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
-            .header { background: white; border-bottom: 1px solid #e1e3e5; padding: 16px 24px; margin-bottom: 32px; }
+            .header { background: white; border-bottom: 1px solid #e1e3e5; padding: 16px 24px; margin-bottom: 32px; border-radius: 8px; }
             .back-btn { color: #008060; text-decoration: none; font-weight: 500; }
             .card { background: white; padding: 24px; border-radius: 8px; border: 1px solid #e1e3e5; }
             .coming-soon { text-align: center; padding: 48px 24px; }
@@ -182,12 +182,13 @@ def comprehensive_dashboard():
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f6f6f7; }
             .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
-            .header { background: white; border-bottom: 1px solid #e1e3e5; padding: 16px 24px; margin-bottom: 32px; }
+            .header { background: white; border-bottom: 1px solid #e1e3e5; padding: 16px 24px; margin-bottom: 32px; border-radius: 8px; }
             .back-btn { color: #008060; text-decoration: none; font-weight: 500; }
-            .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+            .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px; }
             .card { background: white; padding: 24px; border-radius: 8px; border: 1px solid #e1e3e5; }
             .card h3 { font-size: 18px; font-weight: 600; color: #202223; margin-bottom: 16px; }
-            .btn { background: #008060; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; }
+            .btn { background: #008060; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; margin-top: 12px; }
+            .content { min-height: 200px; padding: 16px; background: #f9f9f9; border-radius: 6px; margin-bottom: 12px; font-family: monospace; font-size: 13px; }
         </style>
     </head>
     <body>
@@ -200,65 +201,72 @@ def comprehensive_dashboard():
             <div class="grid">
                 <div class="card">
                     <h3>📦 Orders Overview</h3>
-                    <div id="orders-content">Loading orders...</div>
-                    <button class="btn" onclick="loadOrders()">Refresh Orders</button>
+                    <div class="content" id="orders-content">Click "Load Orders" to view your order data...</div>
+                    <button class="btn" onclick="loadOrders()">Load Orders</button>
                 </div>
 
                 <div class="card">
                     <h3>📊 Inventory Status</h3>
-                    <div id="inventory-content">Loading inventory...</div>
-                    <button class="btn" onclick="loadInventory()">Refresh Inventory</button>
+                    <div class="content" id="inventory-content">Click "Load Inventory" to view your inventory data...</div>
+                    <button class="btn" onclick="loadInventory()">Load Inventory</button>
                 </div>
 
                 <div class="card">
                     <h3>💰 Revenue Report</h3>
-                    <div id="revenue-content">Loading revenue...</div>
-                    <button class="btn" onclick="loadRevenue()">Refresh Revenue</button>
+                    <div class="content" id="revenue-content">Click "Load Revenue" to view your revenue data...</div>
+                    <button class="btn" onclick="loadRevenue()">Load Revenue</button>
                 </div>
             </div>
         </div>
 
         <script>
             function loadOrders() {
-                document.getElementById('orders-content').innerHTML = 'Loading...';
+                document.getElementById('orders-content').innerHTML = 'Loading orders...';
                 fetch('/api/process_orders?shop={{ shop }}')
                     .then(r => r.json())
                     .then(d => {
-                        document.getElementById('orders-content').innerHTML = d.html || d.message || 'No data';
+                        if (d.success) {
+                            document.getElementById('orders-content').innerHTML = d.html || d.message || 'Orders loaded successfully';
+                        } else {
+                            document.getElementById('orders-content').innerHTML = 'Error: ' + (d.error || 'Failed to load orders');
+                        }
                     })
                     .catch(e => {
-                        document.getElementById('orders-content').innerHTML = 'Error loading orders';
+                        document.getElementById('orders-content').innerHTML = 'Network error loading orders';
                     });
             }
 
             function loadInventory() {
-                document.getElementById('inventory-content').innerHTML = 'Loading...';
+                document.getElementById('inventory-content').innerHTML = 'Loading inventory...';
                 fetch('/api/update_inventory?shop={{ shop }}')
                     .then(r => r.json())
                     .then(d => {
-                        document.getElementById('inventory-content').innerHTML = d.html || d.message || 'No data';
+                        if (d.success) {
+                            document.getElementById('inventory-content').innerHTML = d.html || d.message || 'Inventory loaded successfully';
+                        } else {
+                            document.getElementById('inventory-content').innerHTML = 'Error: ' + (d.error || 'Failed to load inventory');
+                        }
                     })
                     .catch(e => {
-                        document.getElementById('inventory-content').innerHTML = 'Error loading inventory';
+                        document.getElementById('inventory-content').innerHTML = 'Network error loading inventory';
                     });
             }
 
             function loadRevenue() {
-                document.getElementById('revenue-content').innerHTML = 'Loading...';
+                document.getElementById('revenue-content').innerHTML = 'Loading revenue...';
                 fetch('/api/generate_report?shop={{ shop }}')
                     .then(r => r.json())
                     .then(d => {
-                        document.getElementById('revenue-content').innerHTML = d.html || d.message || 'No data';
+                        if (d.success) {
+                            document.getElementById('revenue-content').innerHTML = d.html || d.message || 'Revenue loaded successfully';
+                        } else {
+                            document.getElementById('revenue-content').innerHTML = 'Error: ' + (d.error || 'Failed to load revenue');
+                        }
                     })
                     .catch(e => {
-                        document.getElementById('revenue-content').innerHTML = 'Error loading revenue';
+                        document.getElementById('revenue-content').innerHTML = 'Network error loading revenue';
                     });
             }
-
-            // Auto-load on page load
-            loadOrders();
-            loadInventory();
-            loadRevenue();
         </script>
     </body>
     </html>

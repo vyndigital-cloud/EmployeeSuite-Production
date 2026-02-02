@@ -576,6 +576,41 @@ def validate_csrf_token():
         return False
 
 
+@billing_bp.route("/subscribe")
+def subscribe():
+    """Subscribe page - uses Shopify Billing API"""
+    shop = request.args.get("shop", "")
+    if shop:
+        shop = (
+            shop.lower()
+            .replace("https://", "")
+            .replace("http://", "")
+            .replace("www.", "")
+            .strip()
+        )
+        if not shop.endswith(".myshopify.com") and "." not in shop:
+            shop = f"{shop}.myshopify.com"
+
+    host = request.args.get("host", "")
+    plan_type = request.args.get("plan", "pro")
+
+    # Validate plan type
+    if plan_type not in PLANS:
+        plan_type = "pro"
+
+    plan = PLANS[plan_type]
+
+    return render_template_string(
+        SUBSCRIBE_HTML,
+        shop=shop,
+        host=host,
+        plan=plan_type,
+        plan_name=plan["name"],
+        price=int(plan["price"]),
+        features=plan["features"],
+    )
+
+
 @billing_bp.route("/create-charge", methods=["POST"])
 def create_charge():
     """Create a Shopify recurring charge"""

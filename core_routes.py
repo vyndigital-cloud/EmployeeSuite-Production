@@ -679,6 +679,44 @@ def api_docs():
     )
 
 
+@core_bp.route("/debug/routes")
+def debug_routes():
+    if not _is_debug_enabled():
+        return jsonify({"error": "Not available in production"}), 403
+
+    from flask import current_app
+
+    routes = []
+    for rule in current_app.url_map.iter_rules():
+        routes.append(
+            {
+                "rule": str(rule.rule),
+                "endpoint": rule.endpoint,
+                "methods": list(rule.methods),
+            }
+        )
+
+    return jsonify(
+        {"total_routes": len(routes), "routes": sorted(routes, key=lambda x: x["rule"])}
+    )
+
+
+@core_bp.route("/subscribe")
+def subscribe_redirect():
+    """Redirect to billing subscribe"""
+    shop = request.args.get("shop", "")
+    host = request.args.get("host", "")
+    return redirect(url_for("billing.subscribe", shop=shop, host=host))
+
+
+@core_bp.route("/settings")
+def settings_redirect():
+    """Redirect to Shopify settings"""
+    shop = request.args.get("shop", "")
+    host = request.args.get("host", "")
+    return redirect(url_for("shopify.shopify_settings", shop=shop, host=host))
+
+
 def get_authenticated_user():
     """Get authenticated user with optimized queries"""
     from sqlalchemy.orm import joinedload
