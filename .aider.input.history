@@ -2061,3 +2061,6 @@
 +Add CSRF Exemption: If you are using Flask-WTF, ensure /api/log_error is decorated with @csrf.exempt.
 +
 +Validate the Path: The log shows the error happening on /features/csv-exports. Ensure this route is correctly defined and that the JavaScript on this page is using a relative path (/api/log_error) rather than a hardcoded absolute URL that might be triggering a cross-origin error."
+
+# 2026-02-02 14:34:21.785871
++confirm you applied those changes, I'm running out of time mfer

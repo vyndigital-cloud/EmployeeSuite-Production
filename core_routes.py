@@ -23,6 +23,7 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required, login_user
+from flask_wtf import csrf
 from sqlalchemy import or_
 
 from access_control import require_access
@@ -703,11 +704,31 @@ def debug_routes():
 
 
 @core_bp.route("/api/log_error", methods=["POST"])
+@csrf.exempt  # CRITICAL: Exempt from CSRF for JS error logging
 def log_error():
+    """Frontend JS error logging with recursion prevention"""
     try:
+        # CRITICAL: Prevent recursive logging loops
+        if (
+            request.path == "/api/log_error"
+            and request.headers.get("Referer")
+            and "log_error" in request.headers.get("Referer")
+        ):
+            return jsonify(
+                {"success": False, "error": "Recursive logging prevented"}
+            ), 400
+
         error_data = request.get_json()
         if not error_data:
             return jsonify({"success": False, "error": "No error data provided"}), 400
+
+        # Skip logging errors about logging errors (prevent recursion)
+        error_message = error_data.get("error_message", "")
+        if (
+            "log_error" in error_message.lower()
+            or "failed to log error" in error_message.lower()
+        ):
+            return jsonify({"success": True, "message": "Recursive error ignored"}), 200
 
         full_error_data = {
             **error_data,
@@ -724,6 +745,7 @@ def log_error():
         )
         return jsonify({"success": True, "message": "Error logged"}), 200
     except Exception as e:
+        # CRITICAL: Don't log this error to prevent infinite recursion
         return jsonify({"success": False, "error": "Failed to log error"}), 500
 
 
@@ -1057,3 +1079,30 @@ def export_report_csv():
     except Exception as e:
         logger.error(f"Error exporting report CSV: {e}", exc_info=True)
         return f"Error exporting CSV: {e}", 500
+
+
+@core_bp.route("/features/csv-exports")
+@login_required
+def csv_exports():
+    """CSV exports feature page"""
+    shop = request.args.get("shop", "")
+    host = request.args.get("host", "")
+
+    return render_template_string(
+        """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>CSV Exports - Employee Suite</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+    </head>
+    <body>
+        <h1>CSV Exports</h1>
+        <p>CSV export functionality coming soon.</p>
+        <a href="/dashboard?shop={{ shop }}&host={{ host }}">Back to Dashboard</a>
+    </body>
+    </html>
+    """,
+        shop=shop,
+        host=host,
+    )

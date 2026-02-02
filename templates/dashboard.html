@@ -1748,15 +1748,27 @@
                     var isLoggingError = false;
 
                     // Function to log JavaScript errors to backend
+                    // CRITICAL: Prevent recursive error logging
+                    var isLoggingError = false;
+                    var logErrorAttempts = 0;
+                    var maxLogAttempts = 3;
+
                     function logJavaScriptError(errorType, errorMessage, errorLocation, errorData, stackTrace) {
                         // Prevent infinite recursion
-                        if (isLoggingError) {
-                            // If we're already logging an error, use original console.error to break the cycle
-                            originalConsoleError.call(console, '[ERROR LOGGED]', errorType, ':', errorMessage);
+                        if (isLoggingError || logErrorAttempts >= maxLogAttempts) {
+                            originalConsoleError.call(console, '[ERROR LOGGING BLOCKED]', errorType, ':', errorMessage);
+                            return;
+                        }
+
+                        // Skip logging errors about logging
+                        if (errorMessage && (errorMessage.includes('log_error') || errorMessage.includes('Failed to log error'))) {
+                            originalConsoleError.call(console, '[RECURSIVE ERROR IGNORED]', errorMessage);
                             return;
                         }
 
                         isLoggingError = true;
+                        logErrorAttempts++;
+
                         try {
                             var errorLog = {
                                 timestamp: new Date().toISOString(),
@@ -1768,36 +1780,29 @@
                                 user_agent: navigator.userAgent,
                                 url: window.location.href,
                                 referer: document.referrer,
-                                viewport: {
-                                    width: window.innerWidth,
-                                    height: window.innerHeight
-                                },
                                 session_id: 'js-session-' + Date.now()
                             };
 
-                            // Send to backend error logging endpoint
+                            // Use relative URL to avoid CORS issues
                             fetch('/api/log_error', {
                                 method: 'POST',
-                                headers: {'Content-Type': 'application/json'},
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest'  // CSRF bypass
+                                },
                                 body: JSON.stringify(errorLog),
                                 credentials: 'include'
                             }).catch(function(err) {
-                                // If logging fails, use original console.error to prevent recursion
-                                originalConsoleError.call(console, 'Failed to log error to backend:', err);
-                                originalConsoleError.call(console, 'Original error:', errorLog);
+                                // CRITICAL: Don't log fetch errors to prevent recursion
+                                originalConsoleError.call(console, 'Error logging failed (ignored to prevent recursion)');
+                            }).finally(function() {
+                                isLoggingError = false;
                             });
 
-                            // Also log to console for immediate visibility - use originalConsoleError to prevent recursion
                             originalConsoleError.call(console, '[ERROR LOGGED]', errorType, ':', errorMessage);
-                            originalConsoleError.call(console, 'Location:', errorLocation);
-                            originalConsoleError.call(console, 'Stack:', stackTrace);
-                            if (errorData) originalConsoleError.call(console, 'Data:', errorData);
                         } catch (e) {
-                            // Last resort - use original console.error to prevent recursion
                             originalConsoleError.call(console, 'Error logging system failed:', e);
-                            originalConsoleError.call(console, 'Original error:', errorMessage);
                         } finally {
-                            // Always reset the flag
                             isLoggingError = false;
                         }
                     }
