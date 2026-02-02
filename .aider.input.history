@@ -1326,3 +1326,60 @@
 
 # 2026-02-02 05:33:30.327733
 +A
+
+# 2026-02-02 12:14:43.944457
++/clear
+
+# 2026-02-02 12:14:48.220656
++2026-02-02 04:13:07,774 - missioncontrol.config - ERROR - Context: {'status_code': 403, 'url': 'https://employeesuite-production.onrender.com/api/scheduled-reports', 'method': 'POST', 'response_size': 58}
++127.0.0.1 - - [02/Feb/2026:04:13:07 +0000] "POST /api/scheduled-reports HTTP/1.1" 403 58 "https://employeesuite-production.onrender.com/features/scheduled-reports" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02 04:13:11,424 - missioncontrol.config - INFO - Making request to: /dashboard, Method: GET
++2026-02-02 04:13:12,531 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/dashboard, referer=False, route=True
++2026-02-02 04:13:12,531 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/dashboard, shop=none, host=False, domains=5
++127.0.0.1 - - [02/Feb/2026:04:13:12 +0000] "GET /dashboard HTTP/1.1" 200 18231 "https://employeesuite-production.onrender.com/features/scheduled-reports" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02 04:13:16,624 - missioncontrol.config - INFO - Making request to: /features/dashboard, Method: GET
++2026-02-02 04:13:17,436 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (production default): path=/features/dashboard
++2026-02-02 04:13:17,436 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/features/dashboard, shop=none, host=False, domains=5
++127.0.0.1 - - [02/Feb/2026:04:13:17 +0000] "GET /features/dashboard HTTP/1.1" 200 3360 "https://employeesuite-production.onrender.com/dashboard" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02 04:13:20,521 - missioncontrol.config - INFO - Making request to: /dashboard, Method: GET
++2026-02-02 04:13:21,539 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/dashboard, referer=False, route=True
++2026-02-02 04:13:21,539 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/dashboard, shop=none, host=False, domains=5
++127.0.0.1 - - [02/Feb/2026:04:13:21 +0000] "GET /dashboard HTTP/1.1" 200 18231 "https://employeesuite-production.onrender.com/features/dashboard" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02 04:13:23,696 - missioncontrol.config - INFO - Making request to: /features/welcome, Method: GET
++2026-02-02 04:13:24,515 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (production default): path=/features/welcome
++2026-02-02 04:13:24,515 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/features/welcome, shop=none, host=False, domains=5
++127.0.0.1 - - [02/Feb/2026:04:13:24 +0000] "GET /features/welcome HTTP/1.1" 200 3310 "https://employeesuite-production.onrender.com/dashboard" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02 04:13:28,891 - missioncontrol.config - INFO - Making request to: /subscribe, Method: GET
++2026-02-02 04:13:29,706 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/subscribe, referer=False, route=True
++2026-02-02 04:13:29,706 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/subscribe, shop=none, host=False, domains=5
++127.0.0.1 - - [02/Feb/2026:04:13:29 +0000] "GET /subscribe HTTP/1.1" 200 2334 "https://employeesuite-production.onrender.com/features/welcome" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02 04:13:32,400 - missioncontrol.config - INFO - Making request to: /billing/create-charge, Method: POST
++2026-02-02 04:13:33,210 - missioncontrol.config - ERROR - Store employee-suite.myshopify.com not connected
++Menu
++2026-02-02 04:13:33,213 - security_enhancements - INFO - 🔓 IFRAME ALLOWED (fallback): path=/billing/create-charge, referer=False, route=True
++2026-02-02 04:13:33,214 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/billing/create-charge, shop=none, host=False, domains=5
++127.0.0.1 - - [02/Feb/2026:04:13:33 +0000] "POST /billing/create-charge HTTP/1.1" 200 1012 "https://employeesuite-production.onrender.com/subscribe" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
++2026-02-02 04:13:33,680 - missioncontrol.config - INFO - Making request to: /settings/shopify, Method: GET
++2026-02-02 04:13:34,498 - security_enhancements - INFO - 🔓 ALLOWING IFRAME: path=/settings/shopify, shop=employee-suite.myshopify.com, host=True, domains=6
++127.0.0.1 - - [02/Feb/2026:04:13:34 +0000] "GET /settings/shopify?error=Store+not+connected.+Please+reconnect.&shop=employee-suite.myshopify.com&host= HTTP/1.1" 200 1958 "https://employeesuite-production.onrender.com/billing/create-charge" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"
+
+# 2026-02-02 12:14:50.172246
++y
+
+# 2026-02-02 12:15:08.680881
++A
+
+# 2026-02-02 12:15:47.804381
++y
+
+# 2026-02-02 12:16:09.481663
++A
+
+# 2026-02-02 12:20:13.480048
++continue
+
+# 2026-02-02 12:20:52.665052
++A
+
+# 2026-02-02 12:23:48.339977
++what's the push command 
