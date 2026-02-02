@@ -759,7 +759,7 @@ class ShopifyClient:
 
         return inventory
 
-    @cache_result(ttl=CACHE_TTL_ORDERS)
+    @cache_result(ttl=60)  # Reduced to 1 minute for customer data compliance
     def get_orders(self, status="any", limit=50):
         """
         Get orders using GraphQL (migrated from legacy REST API)
@@ -817,7 +817,7 @@ class ShopifyClient:
         data = self._make_graphql_request(query, variables)
         
         if "error" in data:
-            return {"error": data["error"]}
+            return self._handle_protected_data_error(data)
             
         if "errors" in data:
              return {"error": str(data["errors"])}
@@ -830,10 +830,16 @@ class ShopifyClient:
             if not node:
                 continue
                 
-            # Safely extract customer info (might be null/redacted)
-            customer_email = "Guest"
+            # GDPR-compliant customer display - no email exposure
+            customer_display = "Guest"
             if node.get("customer"):
-                customer_email = node.get("customer", {}).get("email") or "No Email"
+                customer = node.get("customer", {})
+                first_name = customer.get("firstName", "")
+                last_name = customer.get("lastName", "")
+                if first_name or last_name:
+                    customer_display = f"{first_name} {last_name}".strip()
+                else:
+                    customer_display = "Customer"
                 
             # Safely extract price
             price = "0.00"
@@ -848,7 +854,7 @@ class ShopifyClient:
             orders.append(
                 {
                     "id": node.get("name", "Unknown"), # Use name (e.g. #1001) as ID for display
-                    "customer": customer_email,
+                    "customer": customer_display,
                     "total": f"${price}",
                     "items": item_count,
                     "status": node.get("displayFinancialStatus", "N/A"),
@@ -856,6 +862,18 @@ class ShopifyClient:
             )
             
         return orders
+
+    def _handle_protected_data_error(self, error_response):
+        """Handle Protected Customer Data program errors"""
+        if isinstance(error_response, dict) and "error" in error_response:
+            error_msg = error_response["error"].lower()
+            if "protected customer data" in error_msg or "customer data access" in error_msg:
+                return {
+                    "error": "Customer data access restricted by Shopify's Protected Customer Data program",
+                    "protected_data_error": True,
+                    "suggestion": "This app complies with data protection policies. Some customer details may be limited."
+                }
+        return error_response
 
     def get_low_stock(self, threshold=5):
         inventory = self.get_products()

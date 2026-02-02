@@ -31,6 +31,8 @@ try:
     def add_gdpr_headers(response):
         """Add Shopify Protected Customer Data compliance headers"""
         response.headers['X-Shopify-Data-Protection'] = 'compliant'
+        response.headers['X-Data-Minimization'] = 'enabled'
+        response.headers['X-Customer-Privacy'] = 'protected'
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
@@ -62,6 +64,8 @@ except ImportError:
     def add_gdpr_headers(response):
         """Add Shopify Protected Customer Data compliance headers"""
         response.headers['X-Shopify-Data-Protection'] = 'compliant'
+        response.headers['X-Data-Minimization'] = 'enabled'
+        response.headers['X-Customer-Privacy'] = 'protected'
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
