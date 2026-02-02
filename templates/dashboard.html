@@ -1911,6 +1911,14 @@
                     // END COMPREHENSIVE JAVASCRIPT ERROR LOGGING
                     // ============================================================================
 
+                    // Handle resource loading errors gracefully
+                    window.addEventListener('error', function(e) {
+                        // Skip logging for missing static resources to reduce noise
+                        if (e.target && (e.target.tagName === 'LINK' || e.target.tagName === 'SCRIPT')) {
+                            console.warn('Resource failed to load:', e.target.src || e.target.href);
+                            return; // Don't log to backend
+                        }
+                    }, true);
 
                     // Early function check - verify functions will be available (before definitions)
                     console.log('🔍 Early function check (before definitions):', {

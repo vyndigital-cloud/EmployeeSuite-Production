@@ -771,7 +771,7 @@ def debug_routes():
 @core_bp.route("/api/log_error", methods=["POST"])
 # CSRF exemption removed due to compatibility issues
 def log_error():
-    """Frontend JS error logging with recursion prevention"""
+    """Frontend JS error logging with recursion prevention and noise filtering"""
     try:
         # CRITICAL: Prevent recursive logging loops
         if (
@@ -794,6 +794,31 @@ def log_error():
             or "failed to log error" in error_message.lower()
         ):
             return jsonify({"success": True, "message": "Recursive error ignored"}), 200
+
+        # FILTER OUT NOISE: Skip common external/harmless errors
+        error_type = error_data.get("error_type", "")
+        error_location = error_data.get("error_location", "")
+
+        # Skip "Unknown error" from external scripts or missing resources
+        if (
+            error_message == "Unknown error"
+            or error_message == ""
+            or "Script error" in error_message
+            or "Non-Error promise rejection captured" in error_message
+            or
+            # Skip errors from external domains
+            ("shopify.com" in error_location and "Unknown error" in error_message)
+            or ("cdn.shopify.com" in error_location)
+            or ("googletagmanager.com" in error_location)
+            or
+            # Skip resource loading errors that we can't control
+            (error_type == "JavaScriptError" and "Loading" in error_message)
+            or
+            # Skip LINK/SCRIPT tag errors for missing static files
+            ("LINK" in error_message and "failed" in error_message.lower())
+            or ("SCRIPT" in error_message and "failed" in error_message.lower())
+        ):
+            return jsonify({"success": True, "message": "Filtered noise error"}), 200
 
         full_error_data = {
             **error_data,

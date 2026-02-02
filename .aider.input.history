@@ -2349,3 +2349,15 @@
 +Make Imports Defensive: In performance.py, wrap the import psutil in a try/except block so the app doesn't crash if the module fails to load.
 +
 +Fix the API Routes: Ensure /api/process_orders, /api/update_inventory, and /api/generate_report can run even if psutil isn't available (just skip the performance logging if needed)."
+
+# 2026-02-02 17:44:45.622049
++n
+
+# 2026-02-02 17:44:49.151880
++"Aider, the backend is 100% functional. We are seeing some client-side JavaScript errors in the logs where LINK and SCRIPT tags are failing (causing 'Unknown error' JS logs).
++
++Check the base HTML template: Ensure all CSS and JS paths are using url_for('static', filename='...') correctly.
++
++Check for missing files: If the template calls for dashboard.js or style.css, make sure those files actually exist in the /static folder.
++
++Silence the Noise: If these errors are coming from an external Shopify script we don't control, add a filter to our log_error route to ignore 'Unknown error' from external targets."
