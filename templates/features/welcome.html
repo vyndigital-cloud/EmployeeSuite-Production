@@ -75,55 +75,68 @@
             </div>
 
             <!-- Features Grid -->
-            <div class="cards-grid">
+            <div class="cards-grid" style="grid-template-columns: 1fr; gap: 24px;">
                 <!-- CSV Exports -->
                 <div class="card">
-                    <div class="card-icon"><i class="ph-bold ph-download-simple"></i></div>
-                    <div class="card-title">CSV Exports <span class="success"
-                            style="font-size: 10px; padding: 2px 6px; margin-left: 6px; vertical-align: middle;">NEW</span>
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                        <div class="card-icon"><i class="ph-bold ph-download-simple"></i></div>
+                        <h3 class="card-title" style="margin: 0;">CSV Exports <span class="success"
+                                style="font-size: 10px; padding: 2px 6px; margin-left: 6px; vertical-align: middle;">NEW</span>
+                        </h3>
                     </div>
-                    <div class="card-description">
+                    <div class="card-description" style="margin-bottom: 20px;">
                         Download your data. Filters available.
                     </div>
-                    <a href="#" onclick="openPage('/features/csv-exports'); return false;" class="card-btn">Export Data
-                        <i class="ph-bold ph-arrow-right"></i></a>
+                    <a href="#" onclick="openPage('/features/csv-exports'); return false;" class="card-btn"
+                        style="width: auto; display: inline-flex;">
+                        Export Data <i class="ph-bold ph-arrow-right"></i>
+                    </a>
                 </div>
 
                 <!-- Scheduled Reports -->
                 <div class="card">
-                    <div class="card-icon"><i class="ph-bold ph-calendar-check"></i></div>
-                    <div class="card-title">Scheduled Reports <span class="success"
-                            style="font-size: 10px; padding: 2px 6px; margin-left: 6px; vertical-align: middle;">NEW</span>
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                        <div class="card-icon"><i class="ph-bold ph-calendar-check"></i></div>
+                        <h3 class="card-title" style="margin: 0;">Scheduled Reports <span class="success"
+                                style="font-size: 10px; padding: 2px 6px; margin-left: 6px; vertical-align: middle;">NEW</span>
+                        </h3>
                     </div>
-                    <div class="card-description">
+                    <div class="card-description" style="margin-bottom: 20px;">
                         Daily, weekly, or monthly email reports.
                     </div>
-                    <a href="#" onclick="openPage('/features/scheduled-reports'); return false;"
-                        class="card-btn">Schedule Reports <i class="ph-bold ph-arrow-right"></i></a>
+                    <a href="#" onclick="openPage('/features/scheduled-reports'); return false;" class="card-btn"
+                        style="width: auto; display: inline-flex;">
+                        Schedule Reports <i class="ph-bold ph-arrow-right"></i>
+                    </a>
                 </div>
 
                 <!-- Comprehensive Dashboard -->
                 <div class="card">
-                    <div class="card-icon"><i class="ph-bold ph-squares-four"></i></div>
-                    <div class="card-title">Unified Dashboard <span class="success"
-                            style="font-size: 10px; padding: 2px 6px; margin-left: 6px; vertical-align: middle;">NEW</span>
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                        <div class="card-icon"><i class="ph-bold ph-squares-four"></i></div>
+                        <h3 class="card-title" style="margin: 0;">Unified Dashboard <span class="success"
+                                style="font-size: 10px; padding: 2px 6px; margin-left: 6px; vertical-align: middle;">NEW</span>
+                        </h3>
                     </div>
-                    <div class="card-description">
+                    <div class="card-description" style="margin-bottom: 20px;">
                         All metrics in one place.
                     </div>
-                    <a href="#" onclick="openPage('/features/dashboard'); return false;" class="card-btn">View Dashboard
-                        <i class="ph-bold ph-arrow-right"></i></a>
+                    <a href="#" onclick="openPage('/features/dashboard'); return false;" class="card-btn"
+                        style="width: auto; display: inline-flex;">
+                        View Dashboard <i class="ph-bold ph-arrow-right"></i>
+                    </a>
                 </div>
 
                 <!-- Secure Data -->
                 <div class="card">
-                    <div class="card-icon"><i class="ph-bold ph-shield-check"></i></div>
-                    <div class="card-title">Data Encryption</div>
-                    <div class="card-description">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                        <div class="card-icon"><i class="ph-bold ph-shield-check"></i></div>
+                        <h3 class="card-title" style="margin: 0;">Data Encryption</h3>
+                    </div>
+                    <div class="card-description" style="margin-bottom: 20px;">
                         Your data is safe. Encrypted at rest.
                     </div>
-                    <div
-                        style="color: var(--primary); font-weight: 600; margin-top: auto; display: flex; align-items: center; gap: 6px;">
+                    <div style="color: var(--primary); font-weight: 600; display: flex; align-items: center; gap: 6px;">
                         <i class="ph-bold ph-check-circle"></i> Always Active
                     </div>
                 </div>
