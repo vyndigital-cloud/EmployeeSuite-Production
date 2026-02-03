@@ -17,6 +17,7 @@ from input_validation import sanitize_input, validate_url
 from logging_config import logger
 from models import ShopifyStore, db
 from session_token_verification import verify_session_token
+from shopify_utils import normalize_shop_url
 
 shopify_bp = Blueprint("shopify", __name__)
 

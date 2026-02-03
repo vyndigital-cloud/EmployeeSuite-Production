@@ -50,6 +50,7 @@ except ImportError as e:
 
 from logging_config import logger
 from models import ShopifyStore, User, db
+from shopify_utils import normalize_shop_url
 
 billing_bp = Blueprint("billing", __name__)
 
@@ -528,8 +529,55 @@ def subscribe():
             "config_api_key": os.getenv("SHOPIFY_API_KEY", ""),
         }
 
-        # Use existing template (don't change design)
-        return render_template("subscribe.html", **template_vars)
+        # Use template string since subscribe.html template is not provided
+        return render_template_string("""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Subscribe - Employee Suite</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; background: #f6f6f7; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; }
+        .plan-title { font-size: 24px; font-weight: 600; margin-bottom: 16px; }
+        .price { font-size: 32px; font-weight: 700; color: #008060; margin-bottom: 24px; }
+        .features { list-style: none; padding: 0; margin-bottom: 32px; }
+        .features li { padding: 8px 0; display: flex; align-items: center; }
+        .btn { background: #008060; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
+        .error { background: #fff4f4; border: 1px solid #fecaca; padding: 12px; border-radius: 6px; color: #d72c0d; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="plan-title">{{ plan_name }}</h1>
+        <div class="price">${{ price }}/month</div>
+        
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+        
+        {% if not has_store %}
+        <div class="error">Please connect your Shopify store first in Settings.</div>
+        {% endif %}
+        
+        <ul class="features">
+        {% for feature in features %}
+            <li>{{ feature }}</li>
+        {% endfor %}
+        </ul>
+        
+        {% if has_store and not error %}
+        <form method="POST" action="/billing/create-charge">
+            <input type="hidden" name="shop" value="{{ shop }}">
+            <input type="hidden" name="host" value="{{ host }}">
+            <input type="hidden" name="plan" value="{{ plan }}">
+            <button type="submit" class="btn">Subscribe Now</button>
+        </form>
+        {% endif %}
+    </div>
+</body>
+</html>
+        """, **template_vars)
             
     except Exception as e:
         logger.error(f"Critical error in subscribe route: {e}", exc_info=True)

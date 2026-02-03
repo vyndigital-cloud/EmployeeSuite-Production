@@ -50,7 +50,6 @@ def require_access(f):
 
 
 # Deferred imports moved inside functions for faster startup
-from session_token_verification import get_shop_from_session_token
 from utils import safe_redirect
 
 
