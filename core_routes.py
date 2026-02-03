@@ -1549,31 +1549,6 @@ def export_revenue_csv():
         return jsonify({"error": f"Failed to export revenue: {e}"}), 500
 
 
-@core_bp.route("/features/csv-exports")
-@login_required
-def csv_exports():
-    """CSV exports feature page"""
-    shop = request.args.get("shop", "")
-    host = request.args.get("host", "")
-
-    return render_template_string(
-        """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>CSV Exports - Employee Suite</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-    </head>
-    <body>
-        <h1>CSV Exports</h1>
-        <p>CSV export functionality coming soon.</p>
-        <a href="/dashboard?shop={{ shop }}&host={{ host }}">Back to Dashboard</a>
-    </body>
-    </html>
-    """,
-        shop=shop,
-        host=host,
-    )
 
 
 @core_bp.route("/api/scheduled-reports/create", methods=["POST"])
