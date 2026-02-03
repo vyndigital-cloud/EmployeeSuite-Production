@@ -1,103 +1,84 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "layout_polaris.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }} - Employee Suite</title>
+{% block extra_head %}
+<style>
+    .legal-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
 
-    <!-- Shopify App Bridge -->
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-    <script>
-        var host = "{{ host }}";
-        var shop = "{{ shop }}";
-        if (host) {
-            var AppBridge = window['app-bridge'];
-            var createApp = AppBridge.default;
-            var app = createApp({
-                apiKey: "{{ config_api_key }}",
-                host: host,
-                forceRedirect: true
-            });
-        }
-    </script>
+    .legal-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    .legal-header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 8px;
+    }
 
-    <style>
-        .legal-container {
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 0 24px;
-        }
+    .legal-content-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 40px;
+        line-height: 1.8;
+        color: var(--text-main);
+        font-size: 15px;
+    }
 
-        .legal-header {
-            text-align: center;
-            margin-bottom: 48px;
-        }
+    .legal-content-card h2 {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text-main);
+        margin: 32px 0 16px;
+    }
 
-        .legal-header h1 {
-            font-size: 32px;
-            font-weight: 700;
-            color: #1a1a1a;
-            margin-bottom: 12px;
-            letter-spacing: -0.5px;
-        }
+    .legal-content-card h2:first-child {
+        margin-top: 0;
+    }
 
-        .legal-content {
-            background: #fff;
-            border-radius: 12px;
-            padding: 40px;
-            border: 1px solid #e1e3e5;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-            line-height: 1.8;
-            color: #4b5563;
-        }
+    .legal-content-card p {
+        margin-bottom: 16px;
+        color: var(--text-sub);
+    }
 
-        .legal-content h2 {
-            font-size: 20px;
-            font-weight: 600;
-            color: #111;
-            margin: 32px 0 16px;
-        }
+    .legal-content-card ul,
+    .legal-content-card ol {
+        margin-bottom: 16px;
+        padding-left: 24px;
+        color: var(--text-sub);
+    }
 
-        .legal-content p {
-            margin-bottom: 16px;
-        }
+    .legal-content-card li {
+        margin-bottom: 8px;
+    }
 
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: #666;
-            text-decoration: none;
-            margin-top: 40px;
-            font-size: 14px;
-            transition: color 0.2s;
-        }
+    .legal-footer {
+        margin-top: 40px;
+        text-align: center;
+        border-top: 1px solid var(--border);
+        padding-top: 24px;
+        color: var(--text-sub);
+        font-size: 14px;
+    }
+</style>
+{% endblock %}
 
-        .back-link:hover {
-            color: #1a1a1a;
-        }
-    </style>
-</head>
+{% block content %}
+<div class="legal-container">
+    <header class="legal-header">
+        <h1>{{ title }}</h1>
+    </header>
 
-<body>
-    <div class="legal-container">
-        <header class="legal-header">
-            <h1>{{ title }}</h1>
-        </header>
-
-        <div class="legal-content">
-            {{ content|safe }}
-        </div>
-
-        <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="back-link">
-            <i class="ph-bold ph-arrow-left"></i>
-            Back to Dashboard
-        </a>
+    <div class="legal-content-card">
+        {{ content|safe }}
     </div>
-</body>
 
-</html>
+    <div class="legal-footer">
+        <p>Last updated: February 2026</p>
+    </div>
+</div>
+{% endblock %}
