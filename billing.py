@@ -596,41 +596,6 @@ def validate_csrf_token():
     return validate_csrf(request, session)
 
 
-@billing_bp.route("/subscribe")
-def subscribe_shortcut():
-    """Subscribe page - uses Shopify Billing API"""
-    from shopify_utils import normalize_shop_url
-    
-    shop = request.args.get("shop", "")
-    if shop:
-        shop = normalize_shop_url(shop)
-
-    host = request.args.get("host", "")
-    plan_type = request.args.get("plan", "pro")
-    
-    # Validate plan type
-    if plan_type not in PLANS:
-        plan_type = "pro"
-    
-    plan = PLANS[plan_type]
-
-    return render_template(
-        "subscribe.html",
-        shop=shop,
-        host=host,
-        plan=plan_type,
-        plan_name=plan["name"],
-        price=int(plan["price"]),
-        features=plan["features"],
-        config_api_key=SHOPIFY_API_KEY,
-        error=None,
-        trial_active=False,
-        has_access=False,
-        days_left=0,
-        is_subscribed=False,
-        has_store=True,
-    )
-
 
 @billing_bp.route("/create-charge", methods=["GET", "POST"])
 @billing_bp.route("/billing/create-charge", methods=["GET", "POST"])
