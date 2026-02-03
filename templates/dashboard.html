@@ -530,10 +530,8 @@
             <script>
                 // Fetch AI Forecast - Only if subscribed
                 document.addEventListener('DOMContentLoaded', function () {
-                    // Safety check for template variable
                     var isSubscribed = {{ "true" if is_subscribed else "false" }
                 };
-                });
                 if (!isSubscribed) return;
 
                 var shopParam = '{{ shop or "" }}';
@@ -1772,257 +1770,300 @@
                                                 <span>Inventory Updated</span>
                                             </h3>
                                             <div style="margin-top: 12px; white-space: pre-wrap; line-height: 1.6;">${d.html || d.message || d.error || 'No details available'}</div>
-                                        </div>
-                                    `;
-                            } else {
-                                // Professional error display with actionable buttons
-                                var errorHtml = '<div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">';
-                                errorHtml += '<div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">' + (d.error || 'Something went wrong') + '</div>';
-                                if (d.message) {
-                                    errorHtml += '<div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">' + d.message + '</div>';
-                                }
-                                if (d.action === 'refresh') {
-                                    errorHtml += '<button onclick="window.location.reload()" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh Page</button>';
-                                } else if (d.action === 'subscribe' && d.subscribe_url) {
-                                    errorHtml += '<a href="' + d.subscribe_url + '" style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Subscribe Now</a>';
-                                } else if (d.action === 'install') {
-                                    errorHtml += '<a href="/settings/shopify" style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Connect Store</a>';
-                                } else if (d.action === 'retry') {
-                                    errorHtml += '<button onclick="updateInventory(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>';
-                                } else {
-                                    // Fallback: try to display HTML error if it's HTML
-                                    if (d.error && d.error.includes('<')) {
-                                        errorHtml = '<div style="animation: fadeIn 0.3s ease-in;">' + d.error + '</div>';
-                                    }
-                                }
-                                if (!errorHtml.includes('</div>')) errorHtml += '</div>';
-                                document.getElementById('output').innerHTML = errorHtml;
-                            }
-                        })
-                        .catch(err => {
-                            // Don't show error if request was cancelled
-                            if (err.name === 'AbortError') {
-                                return;
-                            }
+                                            <script>
+                                                // Trigger stock bar animations after content is injected
+                                                setTimeout(function() {
+                                                    var bars = document.querySelectorAll('.stock-bar-fill');
+                                                    bars.forEach(function(bar) {
+                                                        var targetWidth = bar.getAttribute('data-target-width');
+                                                        if (targetWidth) {
+                                                            bar.style.width = targetWidth;
+                                                        }
+                                                    });
+                                                }, 50);
+        </script>
+    </div>
+    `;
+    } else {
+    // Professional error display with actionable buttons
+    var errorHtml = '<div
+        style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+        ';
+        errorHtml += '<div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">' + (d.error
+            || 'Something went wrong') + '</div>';
+        if (d.message) {
+        errorHtml += '<div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">' + d.message
+            + '</div>';
+        }
+        if (d.action === 'refresh') {
+        errorHtml += '<button onclick="window.location.reload()"
+            style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh
+            Page</button>';
+        } else if (d.action === 'subscribe' && d.subscribe_url) {
+        errorHtml += '<a href="' + d.subscribe_url + '"
+            style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Subscribe
+            Now</a>';
+        } else if (d.action === 'install') {
+        errorHtml += '<a href="/settings/shopify"
+            style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Connect
+            Store</a>';
+        } else if (d.action === 'retry') {
+        errorHtml += '<button onclick="updateInventory(this)"
+            style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try
+            Again</button>';
+        } else {
+        // Fallback: try to display HTML error if it's HTML
+        if (d.error && d.error.includes('<')) { errorHtml='<div style="animation: fadeIn 0.3s ease-in;">' + d.error
+            + '</div>' ; } } if (!errorHtml.includes('</div>')) errorHtml += '</div>';
+    document.getElementById('output').innerHTML = errorHtml;
+    }
+    })
+    .catch(err => {
+    // Don't show error if request was cancelled
+    if (err.name === 'AbortError') {
+    return;
+    }
 
-                            setButtonLoading(button, false);
-                            activeRequests.updateInventory = null;
-                            if (debounceTimers.updateInventory) {
-                                clearTimeout(debounceTimers.updateInventory);
-                                debounceTimers.updateInventory = null;
-                            }
+    setButtonLoading(button, false);
+    activeRequests.updateInventory = null;
+    if (debounceTimers.updateInventory) {
+    clearTimeout(debounceTimers.updateInventory);
+    debounceTimers.updateInventory = null;
+    }
 
-                            var errorMessage = 'Unable to connect to server. Please check your internet connection and try again.';
-                            if (!isOnline) {
-                                errorMessage = 'No internet connection. Please check your network and try again.';
-                            }
+    var errorMessage = 'Unable to connect to server. Please check your internet connection and try again.';
+    if (!isOnline) {
+    errorMessage = 'No internet connection. Please check your network and try again.';
+    }
 
-                            document.getElementById('output').innerHTML = `
-                                    <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
-                                        <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Connection Error</div>
-                                        <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${errorMessage}</div>
-                                        <button onclick="updateInventory(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; margin-right: 8px;">Try Again</button>
-                                        <a href="/settings/shopify" style="display: inline-block; padding: 8px 16px; background: #f6f6f7; color: #202223; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Check Settings</a>
-                                    </div>
-                                `;
-                        });
-                } // Close proceedWithApiCall function
+    document.getElementById('output').innerHTML = `
+    <div
+        style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+        <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Connection Error</div>
+        <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${errorMessage}</div>
+        <button onclick="updateInventory(this)"
+            style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; margin-right: 8px;">Try
+            Again</button>
+        <a href="/settings/shopify"
+            style="display: inline-block; padding: 8px 16px; background: #f6f6f7; color: #202223; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Check
+            Settings</a>
+    </div>
+    `;
+    });
+    } // Close proceedWithApiCall function
+    }
+    window.updateInventory = updateInventory; // Ensure global availability immediately
+
+    // Ensure function is in global scope
+    window.updateInventory = updateInventory;
+
+    function generateReport(button) {
+    // Debug logging removed for performance - only log errors if needed
+    // Prevent rapid clicks (debounce)
+    if (debounceTimers.generateReport) {
+    return; // Already processing
+    }
+
+    // Cancel previous request if exists
+    cancelPreviousRequest('generateReport');
+
+    // Check network status
+    if (!isOnline) {
+    document.getElementById('output').innerHTML = `
+    <div
+        style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+        <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">No Internet Connection</div>
+        <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please check your internet
+            connection and try again.</div>
+        <button onclick="generateReport(this)"
+            style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try
+            Again</button>
+    </div>
+    `;
+    return;
+    }
+
+    setButtonLoading(button, true);
+    showSkeletonLoading(); // Show skeleton immediately for better UX
+    setTimeout(function () {
+    showLoading('Generating report...');
+    }, 100);
+
+    // Create AbortController for request cancellation
+    var controller = new AbortController();
+    activeRequests.generateReport = controller;
+
+    // Get session token if in embedded mode - seamless integration
+    var fetchPromise;
+    var isEmbedded = window.isEmbedded; // Use global flag
+
+    // Wait for App Bridge if available, but fall back to cookie auth if not
+    if (isEmbedded && window.waitForAppBridge && typeof window.waitForAppBridge === 'function' &&
+    !window.appBridgeReady) {
+    window.waitForAppBridge().then(function (bridgeState) {
+    if (bridgeState && bridgeState.ready && bridgeState.app) {
+    window.shopifyApp = bridgeState.app;
+    window.appBridgeReady = true;
+    }
+    proceedWithApiCall();
+    }).catch(function (error) {
+    console.warn('App Bridge not available, using cookie auth fallback:', error.message);
+    proceedWithApiCall();
+    });
+    return;
+    }
+    proceedWithApiCall();
+
+    // Extract API call logic into function
+    function proceedWithApiCall() {
+    // Build report URL with shop param
+    var reportUrl = '/api/generate_report';
+    if (window.SHOP_PARAM) {
+    reportUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
+    }
+    if (isEmbedded) {
+    reportUrl = APP_URL + reportUrl;
+    }
+
+    // Use id_token from URL if available
+    if (window.ID_TOKEN) {
+    fetchPromise = fetch(reportUrl, {
+    headers: { 'Authorization': 'Bearer ' + window.ID_TOKEN },
+    signal: controller.signal,
+    credentials: 'include'
+    });
+    } else if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
+    // Try App Bridge token
+    fetchPromise = window.shopifyApp.getSessionToken().then(function (token) {
+    var headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+    return fetch(reportUrl, {
+    headers: headers,
+    signal: controller.signal,
+    credentials: 'include'
+    });
+    }).catch(function (err) {
+    if (err.name === 'AbortError') return;
+    return fetch(reportUrl, {
+    signal: controller.signal,
+    credentials: 'include'
+    });
+    });
+    } else {
+    // No token - use shop param in URL
+    fetchPromise = fetch(reportUrl, {
+    signal: controller.signal,
+    credentials: 'include'
+    });
+    }
+
+    // Execute the Promise chain inside proceedWithApiCall so it runs in all code paths
+    fetchPromise
+    .then(r => r.json())
+    .then(d => {
+    // Check if request was cancelled
+    if (!d) return;
+
+    setButtonLoading(button, false);
+    activeRequests.generateReport = null;
+    if (debounceTimers.generateReport) {
+    clearTimeout(debounceTimers.generateReport);
+    debounceTimers.generateReport = null;
+    }
+
+    // Check if the response contains an error message (from backend)
+    if (d.success) {
+    const html = d.html || d.message || "Report generated successfully";
+    document.getElementById('output').innerHTML = `
+    <div style="animation: fadeIn 0.3s ease-in;">
+        <h3 class="success" style="display: flex; align-items: center; gap: 8px;">
+            <span>✅</span>
+            <span>Revenue Report Generated</span>
+        </h3>
+        <div style="margin-top: 12px; line-height: 1.6;">${html}</div>
+    </div>
+    `;
+    } else {
+    // Handle error case
+    const error_message = d.error || "Failed to generate report";
+    if (error_message.includes('Error Loading revenue') || error_message.includes('No Shopify store connected')) {
+    // Backend already formatted the error, display directly
+    document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${error_message}</div>`;
+    } else {
+    // Show generic error
+    document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in; color: #dc2626;">
+        ${error_message}</div>`;
+    }
+    }
+    })
+    .catch(err => {
+    // Don't show error if request was cancelled
+    if (err.name === 'AbortError') {
+    return;
+    }
+
+    setButtonLoading(button, false);
+    activeRequests.generateReport = null;
+    if (debounceTimers.generateReport) {
+    clearTimeout(debounceTimers.generateReport);
+    debounceTimers.generateReport = null;
+    }
+
+    // Try to parse JSON error message if it looks like one
+    let errorDisplayMessage = err.message;
+    let isJsonError = false;
+    try {
+    const jsonError = JSON.parse(err.message);
+    if (jsonError.error) {
+    errorDisplayMessage = jsonError.error;
+    isJsonError = true;
+    }
+    } catch (e) {
+    // Not JSON
+    }
+
+    // Check if error message is HTML (from backend)
+    if (err.message && (err.message.includes('Error Loading revenue') || err.message.includes('<div'))) { // Backend
+        error HTML - display as is document.getElementById('output').innerHTML=`<div
+        style="animation: fadeIn 0.3s ease-in;">${err.message}</div>`;
+        } else if (isJsonError || (errorDisplayMessage && errorDisplayMessage.length < 200 &&
+            !errorDisplayMessage.includes('Unable to generate'))) { // JSON error or short text error (likely from
+            backend middleware) document.getElementById('output').innerHTML=` <div
+            style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+            <div style="font-size: 15px; font-weight: 600; color: #b45309; margin-bottom: 8px;">Request Failed</div>
+            <div style="font-size: 14px; color: #92400e; margin-bottom: 16px; line-height: 1.5;">${errorDisplayMessage}
+            </div>
+            <button onclick="generateReport(this)"
+                style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try
+                Again</button>
+            </div>
+            `;
+            } else {
+            // Network error or unknown long error
+            var errorMessage = 'Unable to generate report. Please check your internet connection and try again.';
+            if (!isOnline) {
+            errorMessage = 'No internet connection. Please check your network and try again.';
             }
-            window.updateInventory = updateInventory; // Ensure global availability immediately
 
-            // Ensure function is in global scope
-            window.updateInventory = updateInventory;
-
-            function generateReport(button) {
-                // Debug logging removed for performance - only log errors if needed
-                // Prevent rapid clicks (debounce)
-                if (debounceTimers.generateReport) {
-                    return; // Already processing
-                }
-
-                // Cancel previous request if exists
-                cancelPreviousRequest('generateReport');
-
-                // Check network status
-                if (!isOnline) {
-                    document.getElementById('output').innerHTML = `
-                                <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
-                                    <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">No Internet Connection</div>
-                                    <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">Please check your internet connection and try again.</div>
-                                    <button onclick="generateReport(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
-                                </div>
-                            `;
-                    return;
-                }
-
-                setButtonLoading(button, true);
-                showSkeletonLoading(); // Show skeleton immediately for better UX
-                setTimeout(function () {
-                    showLoading('Generating report...');
-                }, 100);
-
-                // Create AbortController for request cancellation
-                var controller = new AbortController();
-                activeRequests.generateReport = controller;
-
-                // Get session token if in embedded mode - seamless integration
-                var fetchPromise;
-                var isEmbedded = window.isEmbedded; // Use global flag
-
-                // Wait for App Bridge if available, but fall back to cookie auth if not
-                if (isEmbedded && window.waitForAppBridge && typeof window.waitForAppBridge === 'function' && !window.appBridgeReady) {
-                    window.waitForAppBridge().then(function (bridgeState) {
-                        if (bridgeState && bridgeState.ready && bridgeState.app) {
-                            window.shopifyApp = bridgeState.app;
-                            window.appBridgeReady = true;
-                        }
-                        proceedWithApiCall();
-                    }).catch(function (error) {
-                        console.warn('App Bridge not available, using cookie auth fallback:', error.message);
-                        proceedWithApiCall();
-                    });
-                    return;
-                }
-                proceedWithApiCall();
-
-                // Extract API call logic into function
-                function proceedWithApiCall() {
-                    // Build report URL with shop param
-                    var reportUrl = '/api/generate_report';
-                    if (window.SHOP_PARAM) {
-                        reportUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
-                    }
-                    if (isEmbedded) {
-                        reportUrl = APP_URL + reportUrl;
-                    }
-
-                    // Use id_token from URL if available
-                    if (window.ID_TOKEN) {
-                        fetchPromise = fetch(reportUrl, {
-                            headers: { 'Authorization': 'Bearer ' + window.ID_TOKEN },
-                            signal: controller.signal,
-                            credentials: 'include'
-                        });
-                    } else if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
-                        // Try App Bridge token
-                        fetchPromise = window.shopifyApp.getSessionToken().then(function (token) {
-                            var headers = token ? { 'Authorization': 'Bearer ' + token } : {};
-                            return fetch(reportUrl, {
-                                headers: headers,
-                                signal: controller.signal,
-                                credentials: 'include'
-                            });
-                        }).catch(function (err) {
-                            if (err.name === 'AbortError') return;
-                            return fetch(reportUrl, {
-                                signal: controller.signal,
-                                credentials: 'include'
-                            });
-                        });
-                    } else {
-                        // No token - use shop param in URL
-                        fetchPromise = fetch(reportUrl, {
-                            signal: controller.signal,
-                            credentials: 'include'
-                        });
-                    }
-
-                    // Execute the Promise chain inside proceedWithApiCall so it runs in all code paths
-                    fetchPromise
-                        .then(r => r.json())
-                        .then(d => {
-                            // Check if request was cancelled
-                            if (!d) return;
-
-                            setButtonLoading(button, false);
-                            activeRequests.generateReport = null;
-                            if (debounceTimers.generateReport) {
-                                clearTimeout(debounceTimers.generateReport);
-                                debounceTimers.generateReport = null;
-                            }
-
-                            // Check if the response contains an error message (from backend)
-                            if (d.success) {
-                                const html = d.html || d.message || "Report generated successfully";
-                                document.getElementById('output').innerHTML = `
-                                        <div style="animation: fadeIn 0.3s ease-in;">
-                                            <h3 class="success" style="display: flex; align-items: center; gap: 8px;">
-                                                <span>✅</span>
-                                                <span>Revenue Report Generated</span>
-                                            </h3>
-                                            <div style="margin-top: 12px; line-height: 1.6;">${html}</div>
-                                        </div>
-                                    `;
-                            } else {
-                                // Handle error case
-                                const error_message = d.error || "Failed to generate report";
-                                if (error_message.includes('Error Loading revenue') || error_message.includes('No Shopify store connected')) {
-                                    // Backend already formatted the error, display directly
-                                    document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${error_message}</div>`;
-                                } else {
-                                    // Show generic error
-                                    document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in; color: #dc2626;">${error_message}</div>`;
-                                }
-                            }
-                        })
-                        .catch(err => {
-                            // Don't show error if request was cancelled
-                            if (err.name === 'AbortError') {
-                                return;
-                            }
-
-                            setButtonLoading(button, false);
-                            activeRequests.generateReport = null;
-                            if (debounceTimers.generateReport) {
-                                clearTimeout(debounceTimers.generateReport);
-                                debounceTimers.generateReport = null;
-                            }
-
-                            // Try to parse JSON error message if it looks like one
-                            let errorDisplayMessage = err.message;
-                            let isJsonError = false;
-                            try {
-                                const jsonError = JSON.parse(err.message);
-                                if (jsonError.error) {
-                                    errorDisplayMessage = jsonError.error;
-                                    isJsonError = true;
-                                }
-                            } catch (e) {
-                                // Not JSON
-                            }
-
-                            // Check if error message is HTML (from backend)
-                            if (err.message && (err.message.includes('Error Loading revenue') || err.message.includes('<div'))) {
-                                // Backend error HTML - display as is
-                                document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${err.message}</div>`;
-                            } else if (isJsonError || (errorDisplayMessage && errorDisplayMessage.length < 200 && !errorDisplayMessage.includes('Unable to generate'))) {
-                                // JSON error or short text error (likely from backend middleware)
-                                document.getElementById('output').innerHTML = `
-                                        <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
-                                            <div style="font-size: 15px; font-weight: 600; color: #b45309; margin-bottom: 8px;">Request Failed</div>
-                                            <div style="font-size: 14px; color: #92400e; margin-bottom: 16px; line-height: 1.5;">${errorDisplayMessage}</div>
-                                            <button onclick="generateReport(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try Again</button>
-                                        </div>
-                                    `;
-                            } else {
-                                // Network error or unknown long error
-                                var errorMessage = 'Unable to generate report. Please check your internet connection and try again.';
-                                if (!isOnline) {
-                                    errorMessage = 'No internet connection. Please check your network and try again.';
-                                }
-
-                                document.getElementById('output').innerHTML = `
-                                        <div style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
-                                            <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Connection Error</div>
-                                            <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${errorMessage}</div>
-                                            <div style="font-size: 12px; color: #9ca3af; margin-bottom: 12px; font-family: monospace;">Details: ${err.message.substring(0, 100)}</div>
-                                            <button onclick="generateReport(this)" style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; margin-right: 8px;">Try Again</button>
-                                            <a href="/settings/shopify" style="display: inline-block; padding: 8px 16px; background: #f6f6f7; color: #202223; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Check Settings</a>
-                                        </div>
-                                    `;
-                            }
-                        });
-                } // end proceedWithApiCall
+            document.getElementById('output').innerHTML = `
+            <div
+                style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
+                <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Connection Error
+                </div>
+                <div style="font-size: 14px; color: #6d7175; margin-bottom: 16px; line-height: 1.5;">${errorMessage}
+                </div>
+                <div style="font-size: 12px; color: #9ca3af; margin-bottom: 12px; font-family: monospace;">Details:
+                    ${err.message.substring(0, 100)}</div>
+                <button onclick="generateReport(this)"
+                    style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; margin-right: 8px;">Try
+                    Again</button>
+                <a href="/settings/shopify"
+                    style="display: inline-block; padding: 8px 16px; background: #f6f6f7; color: #202223; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Check
+                    Settings</a>
+            </div>
+            `;
+            }
+            });
+            } // end proceedWithApiCall
             }
             window.generateReport = generateReport; // Ensure global availability immediately
 
@@ -2034,30 +2075,30 @@
             // ============================================================================
             // Log function availability immediately after all assignments
             console.log('Function check:', {
-                processOrders: typeof window.processOrders,
-                updateInventory: typeof window.updateInventory,
-                generateReport: typeof window.generateReport
+            processOrders: typeof window.processOrders,
+            updateInventory: typeof window.updateInventory,
+            generateReport: typeof window.generateReport
             });
 
             // Immediate function check after all assignments
             console.log('✅ Function check (after all assignments):', {
-                processOrders: typeof window.processOrders,
-                updateInventory: typeof window.updateInventory,
-                generateReport: typeof window.generateReport
+            processOrders: typeof window.processOrders,
+            updateInventory: typeof window.updateInventory,
+            generateReport: typeof window.generateReport
             });
 
             // Verify all functions are properly assigned
             if (typeof window.processOrders !== 'function' ||
-                typeof window.updateInventory !== 'function' ||
-                typeof window.generateReport !== 'function') {
-                console.error('❌ CRITICAL: Functions not properly assigned to window!');
-                console.error('Missing functions:', {
-                    processOrders: typeof window.processOrders !== 'function',
-                    updateInventory: typeof window.updateInventory !== 'function',
-                    generateReport: typeof window.generateReport !== 'function'
-                });
+            typeof window.updateInventory !== 'function' ||
+            typeof window.generateReport !== 'function') {
+            console.error('❌ CRITICAL: Functions not properly assigned to window!');
+            console.error('Missing functions:', {
+            processOrders: typeof window.processOrders !== 'function',
+            updateInventory: typeof window.updateInventory !== 'function',
+            generateReport: typeof window.generateReport !== 'function'
+            });
             } else {
-                console.log('✅ All functions successfully assigned to window object');
+            console.log('✅ All functions successfully assigned to window object');
             }
 
 
@@ -2068,66 +2109,66 @@
             // Intercept fetch requests to log network activity
             // CRITICAL: Skip debug endpoint to prevent infinite loops and performance issues
             (function () {
-                var originalFetch = window.fetch;
-                window.fetch = function () {
-                    var args = Array.prototype.slice.call(arguments);
-                    var url = args[0];
-                    var options = args[1] || {};
-                    var method = options.method || 'GET';
+            var originalFetch = window.fetch;
+            window.fetch = function () {
+            var args = Array.prototype.slice.call(arguments);
+            var url = args[0];
+            var options = args[1] || {};
+            var method = options.method || 'GET';
 
-                    var startTime = Date.now();
+            var startTime = Date.now();
 
-                    // Only log API requests, not all requests (reduces noise)
-                    if (typeof url === 'string' && (url.includes('/api/') || url.startsWith('http'))) {
-                        console.log('🌐 Network Request:', {
-                            url: url,
-                            method: method,
-                            timestamp: new Date().toISOString()
-                        });
-                    }
+            // Only log API requests, not all requests (reduces noise)
+            if (typeof url === 'string' && (url.includes('/api/') || url.startsWith('http'))) {
+            console.log('🌐 Network Request:', {
+            url: url,
+            method: method,
+            timestamp: new Date().toISOString()
+            });
+            }
 
-                    // Call original fetch
-                    return originalFetch.apply(this, args)
-                        .then(function (response) {
-                            var endTime = Date.now();
-                            var duration = endTime - startTime;
+            // Call original fetch
+            return originalFetch.apply(this, args)
+            .then(function (response) {
+            var endTime = Date.now();
+            var duration = endTime - startTime;
 
-                            // Only log API responses, and only if there's an error or slow response
-                            if (typeof url === 'string' && (url.includes('/api/') || url.startsWith('http'))) {
-                                if (!response.ok || duration > 1000) {
-                                    console.log('🌐 Network Response:', {
-                                        url: url,
-                                        method: method,
-                                        status: response.status,
-                                        statusText: response.statusText,
-                                        ok: response.ok,
-                                        duration: duration + 'ms',
-                                        timestamp: new Date().toISOString()
-                                    });
-                                }
-                            }
+            // Only log API responses, and only if there's an error or slow response
+            if (typeof url === 'string' && (url.includes('/api/') || url.startsWith('http'))) {
+            if (!response.ok || duration > 1000) {
+            console.log('🌐 Network Response:', {
+            url: url,
+            method: method,
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+            duration: duration + 'ms',
+            timestamp: new Date().toISOString()
+            });
+            }
+            }
 
-                            return response;
-                        })
-                        .catch(function (error) {
-                            var endTime = Date.now();
-                            var duration = endTime - startTime;
+            return response;
+            })
+            .catch(function (error) {
+            var endTime = Date.now();
+            var duration = endTime - startTime;
 
-                            // Only log errors for API requests
-                            if (typeof url === 'string' && (url.includes('/api/') || url.startsWith('http'))) {
-                                console.error('🌐 Network Error:', {
-                                    url: url,
-                                    method: method,
-                                    error: error.message || 'Unknown error',
-                                    errorName: error.name || 'Unknown',
-                                    duration: duration + 'ms',
-                                    timestamp: new Date().toISOString()
-                                });
-                            }
+            // Only log errors for API requests
+            if (typeof url === 'string' && (url.includes('/api/') || url.startsWith('http'))) {
+            console.error('🌐 Network Error:', {
+            url: url,
+            method: method,
+            error: error.message || 'Unknown error',
+            errorName: error.name || 'Unknown',
+            duration: duration + 'ms',
+            timestamp: new Date().toISOString()
+            });
+            }
 
-                            throw error;
-                        });
-                };
+            throw error;
+            });
+            };
             })();
 
             // ============================================================================
@@ -2138,150 +2179,156 @@
             // FIXED: Always wait for DOMContentLoaded to ensure DOM and dependencies are ready
             // FIXED: Verify functions exist before setting up listener (per external feedback)
             document.addEventListener('DOMContentLoaded', function setupEventDelegation() {
-                console.log('✅ DOMContentLoaded fired');
+            console.log('✅ DOMContentLoaded fired');
 
-                // Verify functions are assigned to window before setting up listener
-                var functionsReady = typeof window.processOrders === 'function' &&
-                    typeof window.updateInventory === 'function' &&
-                    typeof window.generateReport === 'function';
+            // Verify functions are assigned to window before setting up listener
+            var functionsReady = typeof window.processOrders === 'function' &&
+            typeof window.updateInventory === 'function' &&
+            typeof window.generateReport === 'function';
 
-                if (!functionsReady) {
-                    console.error('❌ Functions not ready yet. Retrying in 100ms...');
-                    console.log('Function status:', {
-                        processOrders: typeof window.processOrders,
-                        updateInventory: typeof window.updateInventory,
-                        generateReport: typeof window.generateReport
-                    });
-                    // Retry after short delay
-                    setTimeout(setupEventDelegation, 100);
-                    return;
-                }
+            if (!functionsReady) {
+            console.error('❌ Functions not ready yet. Retrying in 100ms...');
+            console.log('Function status:', {
+            processOrders: typeof window.processOrders,
+            updateInventory: typeof window.updateInventory,
+            generateReport: typeof window.generateReport
+            });
+            // Retry after short delay
+            setTimeout(setupEventDelegation, 100);
+            return;
+            }
 
-                console.log('✅ All functions ready:', {
-                    processOrders: typeof window.processOrders,
-                    updateInventory: typeof window.updateInventory,
-                    generateReport: typeof window.generateReport
-                });
+            console.log('✅ All functions ready:', {
+            processOrders: typeof window.processOrders,
+            updateInventory: typeof window.updateInventory,
+            generateReport: typeof window.generateReport
+            });
 
-                var buttonsFound = document.querySelectorAll('.card-btn[data-action]').length;
-                console.log('✅ Buttons found:', buttonsFound);
-
-
-                // CRITICAL: Add EARLY click listener to catch ALL clicks before anything else
-                // OPTIMIZED: Only log button clicks to reduce performance impact
-                document.addEventListener('click', function (e) {
-                    // Only log if it's actually a button click (reduces noise)
-                    var closestBtn = e.target.closest('.card-btn[data-action]');
-                    if (!closestBtn) return; // Skip non-button clicks
-
-                }, true); // Capture phase - fires FIRST
-
-                // Attach click listener to document for event delegation (per external feedback)
-                document.addEventListener('click', function (e) {
-                    // Find the closest button with data-action attribute
-                    var btn = e.target.closest('.card-btn[data-action]');
-                    if (!btn) {
-                        return; // Exit if clicked element is not a button (no logging to reduce noise)
-                    }
-
-                    // ENHANCED LOGGING: Capture state before action (OPTIMIZED - minimal logging)
-                    var action = btn.getAttribute('data-action');
-                    console.log('✅ Button clicked:', action);
-
-                    // Check CSS/pointer-events issues (only log if there's a problem)
-                    var computedStyle = window.getComputedStyle(btn);
-                    var pointerEvents = computedStyle.pointerEvents;
-                    var display = computedStyle.display;
-                    var visibility = computedStyle.visibility;
-
-                    if (pointerEvents === 'none' || display === 'none' || visibility === 'hidden') {
-                        console.warn('⚠️ Button CSS issue:', {
-                            pointerEvents: pointerEvents,
-                            display: display,
-                            visibility: visibility
-                        });
-                    }
+            var buttonsFound = document.querySelectorAll('.card-btn[data-action]').length;
+            console.log('✅ Buttons found:', buttonsFound);
 
 
-                    e.preventDefault(); // Prevent any default behavior
-                    e.stopPropagation();
+            // CRITICAL: Add EARLY click listener to catch ALL clicks before anything else
+            // OPTIMIZED: Only log button clicks to reduce performance impact
+            document.addEventListener('click', function (e) {
+            // Only log if it's actually a button click (reduces noise)
+            var closestBtn = e.target.closest('.card-btn[data-action]');
+            if (!closestBtn) return; // Skip non-button clicks
 
-                    if (!action) {
-                        console.warn('⚠️ Button has no data-action attribute');
-                        return; // No action specified
-                    }
+            }, true); // Capture phase - fires FIRST
 
-                    // Check if button is disabled
-                    if (btn.disabled) {
-                        console.warn('⚠️ Button is disabled, ignoring click');
-                        return;
-                    }
+            // Attach click listener to document for event delegation (per external feedback)
+            document.addEventListener('click', function (e) {
+            // Find the closest button with data-action attribute
+            var btn = e.target.closest('.card-btn[data-action]');
+            if (!btn) {
+            return; // Exit if clicked element is not a button (no logging to reduce noise)
+            }
 
-                    // Route to appropriate function based on data-action (per external feedback)
-                    // Enhanced error handling to prevent application freezing
-                    if (window[action] && typeof window[action] === 'function') {
-                        try {
-                            console.log('✅ Calling function:', action);
-                            window[action](btn); // Call the corresponding function
-                        } catch (err) {
-                            // Catch synchronous errors to prevent freezing
-                            console.error('❌ Error executing function:', action, err);
-                            console.error('Error details:', {
-                                message: err.message,
-                                name: err.name,
-                                stack: err.stack ? err.stack.substring(0, 300) : 'no stack',
-                                buttonState: {
-                                    disabled: btn.disabled,
-                                    innerHTML: btn.innerHTML.substring(0, 50)
-                                }
-                            });
-                            // Show user-friendly error message
-                            var outputEl = document.getElementById('output');
-                            if (outputEl) {
-                                outputEl.innerHTML = '<div style="padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;"><div style="font-size: 15px; font-weight: 600; color: #d72c0d; margin-bottom: 8px;">❌ Error</div><div style="font-size: 14px; color: #6d7175;">An error occurred: ' + (err.message || 'Unknown error') + '</div></div>';
-                            }
-                            // Re-enable button
-                            btn.disabled = false;
-                            if (btn.dataset.originalText) {
-                                btn.innerHTML = btn.dataset.originalText;
-                            }
-                        }
-                    } else {
-                        console.error('❌ Function not found for action:', action); // Log error for missing function (per external feedback)
-                        console.error('Available functions:', {
-                            processOrders: typeof window.processOrders,
-                            updateInventory: typeof window.updateInventory,
-                            generateReport: typeof window.generateReport,
-                            requestedAction: typeof window[action]
-                        });
-                    }
-                }, true); // Use capture phase to catch early
+            // ENHANCED LOGGING: Capture state before action (OPTIMIZED - minimal logging)
+            var action = btn.getAttribute('data-action');
+            console.log('✅ Button clicked:', action);
 
-                console.log('✅ Event delegation listener attached successfully');
+            // Check CSS/pointer-events issues (only log if there's a problem)
+            var computedStyle = window.getComputedStyle(btn);
+            var pointerEvents = computedStyle.pointerEvents;
+            var display = computedStyle.display;
+            var visibility = computedStyle.visibility;
 
-                // CRITICAL: Add direct button test listeners as backup
-                // This will help us verify if buttons are clickable at all
-                var testButtons = document.querySelectorAll('.card-btn[data-action]');
-                console.log('🔍 Found buttons for direct testing:', testButtons.length);
-                testButtons.forEach(function (btn, index) {
-                    var action = btn.getAttribute('data-action');
-                    console.log('🔍 Button ' + index + ':', {
-                        action: action,
-                        disabled: btn.disabled,
-                        className: btn.className
-                    });
+            if (pointerEvents === 'none' || display === 'none' || visibility === 'hidden') {
+            console.warn('⚠️ Button CSS issue:', {
+            pointerEvents: pointerEvents,
+            display: display,
+            visibility: visibility
+            });
+            }
 
-                    // Add direct click listener as backup test
-                    btn.addEventListener('click', function (e) {
-                        console.log('🔍 DIRECT BUTTON LISTENER FIRED for:', action);
-                        console.log('🔍 Direct listener details:', {
-                            action: action,
-                            disabled: btn.disabled,
-                            defaultPrevented: e.defaultPrevented,
-                            propagationStopped: false
-                        });
-                    }, true); // Capture phase
-                });
+
+            e.preventDefault(); // Prevent any default behavior
+            e.stopPropagation();
+
+            if (!action) {
+            console.warn('⚠️ Button has no data-action attribute');
+            return; // No action specified
+            }
+
+            // Check if button is disabled
+            if (btn.disabled) {
+            console.warn('⚠️ Button is disabled, ignoring click');
+            return;
+            }
+
+            // Route to appropriate function based on data-action (per external feedback)
+            // Enhanced error handling to prevent application freezing
+            if (window[action] && typeof window[action] === 'function') {
+            try {
+            console.log('✅ Calling function:', action);
+            window[action](btn); // Call the corresponding function
+            } catch (err) {
+            // Catch synchronous errors to prevent freezing
+            console.error('❌ Error executing function:', action, err);
+            console.error('Error details:', {
+            message: err.message,
+            name: err.name,
+            stack: err.stack ? err.stack.substring(0, 300) : 'no stack',
+            buttonState: {
+            disabled: btn.disabled,
+            innerHTML: btn.innerHTML.substring(0, 50)
+            }
+            });
+            // Show user-friendly error message
+            var outputEl = document.getElementById('output');
+            if (outputEl) {
+            outputEl.innerHTML = '<div
+                style="padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;">
+                <div style="font-size: 15px; font-weight: 600; color: #d72c0d; margin-bottom: 8px;">❌ Error</div>
+                <div style="font-size: 14px; color: #6d7175;">An error occurred: ' + (err.message || 'Unknown error') +
+                    '</div>
+            </div>';
+            }
+            // Re-enable button
+            btn.disabled = false;
+            if (btn.dataset.originalText) {
+            btn.innerHTML = btn.dataset.originalText;
+            }
+            }
+            } else {
+            console.error('❌ Function not found for action:', action); // Log error for missing function (per external
+            feedback)
+            console.error('Available functions:', {
+            processOrders: typeof window.processOrders,
+            updateInventory: typeof window.updateInventory,
+            generateReport: typeof window.generateReport,
+            requestedAction: typeof window[action]
+            });
+            }
+            }, true); // Use capture phase to catch early
+
+            console.log('✅ Event delegation listener attached successfully');
+
+            // CRITICAL: Add direct button test listeners as backup
+            // This will help us verify if buttons are clickable at all
+            var testButtons = document.querySelectorAll('.card-btn[data-action]');
+            console.log('🔍 Found buttons for direct testing:', testButtons.length);
+            testButtons.forEach(function (btn, index) {
+            var action = btn.getAttribute('data-action');
+            console.log('🔍 Button ' + index + ':', {
+            action: action,
+            disabled: btn.disabled,
+            className: btn.className
+            });
+
+            // Add direct click listener as backup test
+            btn.addEventListener('click', function (e) {
+            console.log('🔍 DIRECT BUTTON LISTENER FIRED for:', action);
+            console.log('🔍 Direct listener details:', {
+            action: action,
+            disabled: btn.disabled,
+            defaultPrevented: e.defaultPrevented,
+            propagationStopped: false
+            });
+            }, true); // Capture phase
+            });
 
             });
             // ============================================================================
@@ -2290,186 +2337,194 @@
 
             // Quick Menu Toggle
             function toggleQuickMenu(event) {
-                event.stopPropagation();
-                var menu = document.getElementById('quickMenu');
-                if (menu) {
-                    menu.classList.toggle('show');
-                }
+            event.stopPropagation();
+            var menu = document.getElementById('quickMenu');
+            if (menu) {
+            menu.classList.toggle('show');
+            }
             }
             // Close quick menu when clicking outside
             document.addEventListener('click', function (e) {
-                var menu = document.getElementById('quickMenu');
-                var btn = e.target.closest('.quick-menu-btn');
-                if (menu && !btn && !e.target.closest('.quick-menu-dropdown')) {
-                    menu.classList.remove('show');
-                }
+            var menu = document.getElementById('quickMenu');
+            var btn = e.target.closest('.quick-menu-btn');
+            if (menu && !btn && !e.target.closest('.quick-menu-dropdown')) {
+            menu.classList.remove('show');
+            }
             });
 
             // Keyboard shortcuts for power users
             document.addEventListener('keydown', function (e) {
-                // Don't trigger shortcuts when typing in inputs
-                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
-                    return;
-                }
+            // Don't trigger shortcuts when typing in inputs
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+            return;
+            }
 
-                // Ctrl/Cmd + 1 = Process Orders
-                if ((e.ctrlKey || e.metaKey) && e.key === '1') {
-                    e.preventDefault();
-                    {% if has_access %}
-                    var btn = document.querySelector('.card-btn[data-action="processOrders"]');
-                    if (btn) processOrders(btn);
-                    {% else %}
-                    showSubscribePrompt();
-                    {% endif %}
-                }
-                // Ctrl/Cmd + 2 = Check Inventory
-                if ((e.ctrlKey || e.metaKey) && e.key === '2') {
-                    e.preventDefault();
-                    {% if has_access %}
-                    var btn = document.querySelector('.card-btn[data-action="updateInventory"]');
-                    if (btn) updateInventory(btn);
-                    {% else %}
-                    showSubscribePrompt();
-                    {% endif %}
-                }
-                // Ctrl/Cmd + 3 = Generate Report
-                if ((e.ctrlKey || e.metaKey) && e.key === '3') {
-                    e.preventDefault();
-                    {% if has_access %}
-                    var btn = document.querySelector('.card-btn[data-action="generateReport"]');
-                    if (btn) generateReport(btn);
-                    {% else %}
-                    showSubscribePrompt();
-                    {% endif %}
-                }
-                // Ctrl/Cmd + E = CSV Exports
-                if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
-                    e.preventDefault();
-                    window.location.href = '/features/csv-exports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}';
-                }
-                // Ctrl/Cmd + S = Scheduled Reports
-                if ((e.ctrlKey || e.metaKey) && e.key === 's' && !e.shiftKey) {
-                    e.preventDefault();
-                    window.location.href = '/features/scheduled-reports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}';
-                }
-                // Ctrl/Cmd + D = Comprehensive Dashboard
-                if ((e.ctrlKey || e.metaKey) && e.key === 'd' && !e.shiftKey) {
-                    e.preventDefault();
-                    window.location.href = '/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}';
-                }
-                // Ctrl/Cmd + , = Settings
-                if ((e.ctrlKey || e.metaKey) && e.key === ',') {
-                    e.preventDefault();
-                    window.location.href = '/settings/shopify{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}';
-                }
-                // Escape = Close quick menu
-                if (e.key === 'Escape') {
-                    var menu = document.getElementById('quickMenu');
-                    if (menu) menu.classList.remove('show');
-                }
+            // Ctrl/Cmd + 1 = Process Orders
+            if ((e.ctrlKey || e.metaKey) && e.key === '1') {
+            e.preventDefault();
+            {% if has_access %}
+            var btn = document.querySelector('.card-btn[data-action="processOrders"]');
+            if (btn) processOrders(btn);
+            {% else %}
+            showSubscribePrompt();
+            {% endif %}
+            }
+            // Ctrl/Cmd + 2 = Check Inventory
+            if ((e.ctrlKey || e.metaKey) && e.key === '2') {
+            e.preventDefault();
+            {% if has_access %}
+            var btn = document.querySelector('.card-btn[data-action="updateInventory"]');
+            if (btn) updateInventory(btn);
+            {% else %}
+            showSubscribePrompt();
+            {% endif %}
+            }
+            // Ctrl/Cmd + 3 = Generate Report
+            if ((e.ctrlKey || e.metaKey) && e.key === '3') {
+            e.preventDefault();
+            {% if has_access %}
+            var btn = document.querySelector('.card-btn[data-action="generateReport"]');
+            if (btn) generateReport(btn);
+            {% else %}
+            showSubscribePrompt();
+            {% endif %}
+            }
+            // Ctrl/Cmd + E = CSV Exports
+            if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+            e.preventDefault();
+            window.location.href = '/features/csv-exports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{%
+            endif %}{% endif %}';
+            }
+            // Ctrl/Cmd + S = Scheduled Reports
+            if ((e.ctrlKey || e.metaKey) && e.key === 's' && !e.shiftKey) {
+            e.preventDefault();
+            window.location.href = '/features/scheduled-reports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host
+            }}{% endif %}{% endif %}';
+            }
+            // Ctrl/Cmd + D = Comprehensive Dashboard
+            if ((e.ctrlKey || e.metaKey) && e.key === 'd' && !e.shiftKey) {
+            e.preventDefault();
+            window.location.href = '/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{%
+            endif %}{% endif %}';
+            }
+            // Ctrl/Cmd + , = Settings
+            if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+            e.preventDefault();
+            window.location.href = '/settings/shopify{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif
+            %}{% endif %}';
+            }
+            // Escape = Close quick menu
+            if (e.key === 'Escape') {
+            var menu = document.getElementById('quickMenu');
+            if (menu) menu.classList.remove('show');
+            }
             });
 
             // Track page views (if analytics is set up)
             if (typeof gtag !== 'undefined') {
-                gtag('event', 'page_view', {
-                    'page_title': 'Dashboard',
-                    'page_location': window.location.href
-                });
+            gtag('event', 'page_view', {
+            'page_title': 'Dashboard',
+            'page_location': window.location.href
+            });
             }
 
             // CRITICAL: Preserve shop and host parameters when clicking links in embedded mode
             // This ensures navigation doesn't lose the embedded context
             (function () {
-                if (window.isEmbedded) {
-                    var urlParams = new URLSearchParams(window.location.search);
-                    var shop = urlParams.get('shop');
-                    var host = urlParams.get('host');
+            if (window.isEmbedded) {
+            var urlParams = new URLSearchParams(window.location.search);
+            var shop = urlParams.get('shop');
+            var host = urlParams.get('host');
 
-                    // Intercept all link clicks and preserve shop/host parameters
-                    document.addEventListener('click', function (e) {
-                        var target = e.target;
-                        // Find the closest anchor tag
-                        while (target && target.tagName !== 'A') {
-                            target = target.parentElement;
-                        }
+            // Intercept all link clicks and preserve shop/host parameters
+            document.addEventListener('click', function (e) {
+            var target = e.target;
+            // Find the closest anchor tag
+            while (target && target.tagName !== 'A') {
+            target = target.parentElement;
+            }
 
-                        if (target && target.tagName === 'A' && target.href) {
-                            var href = target.href;
-                            // CRITICAL: For embedded mode, convert relative URLs to absolute URLs
-                            // This prevents Shopify from interpreting them as admin paths (404 errors)
-                            if (href.startsWith('/') && !href.startsWith('//')) {
-                                // Relative URL - convert to absolute using APP_URL or current origin
-                                var appUrl = '{{ APP_URL or "" }}' || window.location.origin;
-                                href = appUrl + href;
-                                target.href = href; // Update immediately
-                            }
-                            // Only process internal links (absolute URLs to our app)
-                            if (href.startsWith(window.location.origin) || (href.startsWith('https://') && href.includes('employeesuite-production.onrender.com'))) {
-                                try {
-                                    var url = new URL(href);
-                                    // Preserve shop and host if they exist in current URL
-                                    if (shop && !url.searchParams.has('shop')) {
-                                        url.searchParams.set('shop', shop);
-                                    }
-                                    if (host && !url.searchParams.has('host')) {
-                                        url.searchParams.set('host', host);
-                                    }
-                                    // Update the href with full absolute URL
-                                    target.href = url.toString();
-                                } catch (err) {
-                                    // If URL parsing fails, try simple string manipulation
-                                    if (shop || host) {
-                                        var separator = href.includes('?') ? '&' : '?';
-                                        var params = [];
-                                        if (shop && !href.includes('shop=')) {
-                                            params.push('shop=' + encodeURIComponent(shop));
-                                        }
-                                        if (host && !href.includes('host=')) {
-                                            params.push('host=' + encodeURIComponent(host));
-                                        }
-                                        if (params.length > 0) {
-                                            target.href = href + separator + params.join('&');
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }, true); // Use capture phase to catch all clicks
-                }
+            if (target && target.tagName === 'A' && target.href) {
+            var href = target.href;
+            // CRITICAL: For embedded mode, convert relative URLs to absolute URLs
+            // This prevents Shopify from interpreting them as admin paths (404 errors)
+            if (href.startsWith('/') && !href.startsWith('//')) {
+            // Relative URL - convert to absolute using APP_URL or current origin
+            var appUrl = '{{ APP_URL or "" }}' || window.location.origin;
+            href = appUrl + href;
+            target.href = href; // Update immediately
+            }
+            // Only process internal links (absolute URLs to our app)
+            if (href.startsWith(window.location.origin) || (href.startsWith('https://') &&
+            href.includes('employeesuite-production.onrender.com'))) {
+            try {
+            var url = new URL(href);
+            // Preserve shop and host if they exist in current URL
+            if (shop && !url.searchParams.has('shop')) {
+            url.searchParams.set('shop', shop);
+            }
+            if (host && !url.searchParams.has('host')) {
+            url.searchParams.set('host', host);
+            }
+            // Update the href with full absolute URL
+            target.href = url.toString();
+            } catch (err) {
+            // If URL parsing fails, try simple string manipulation
+            if (shop || host) {
+            var separator = href.includes('?') ? '&' : '?';
+            var params = [];
+            if (shop && !href.includes('shop=')) {
+            params.push('shop=' + encodeURIComponent(shop));
+            }
+            if (host && !href.includes('host=')) {
+            params.push('host=' + encodeURIComponent(host));
+            }
+            if (params.length > 0) {
+            target.href = href + separator + params.join('&');
+            }
+            }
+            }
+            }
+            }
+            }, true); // Use capture phase to catch all clicks
+            }
             })();
 
             // Add this function to verify function availability
             function callFunctionSafely(functionName, button) {
-                if (typeof window[functionName] === 'function') {
-                    try {
-                        window[functionName](button);
-                    } catch (error) {
-                        console.error('Function call failed:', functionName, error);
-                        showErrorMessage('An error occurred. Please refresh the page and try again.');
-                    }
-                } else {
-                    console.error('Function not available:', functionName);
-                    showErrorMessage('Feature not available. Please refresh the page.');
-                }
+            if (typeof window[functionName] === 'function') {
+            try {
+            window[functionName](button);
+            } catch (error) {
+            console.error('Function call failed:', functionName, error);
+            showErrorMessage('An error occurred. Please refresh the page and try again.');
+            }
+            } else {
+            console.error('Function not available:', functionName);
+            showErrorMessage('Feature not available. Please refresh the page.');
+            }
             }
 
             function showErrorMessage(message) {
-                var outputEl = document.getElementById('output');
-                if (outputEl) {
-                    outputEl.innerHTML = '<div style="padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;"><div style="color: #d72c0d; font-weight: 600;">' + message + '</div></div>';
-                }
+            var outputEl = document.getElementById('output');
+            if (outputEl) {
+            outputEl.innerHTML = '<div
+                style="padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;">
+                <div style="color: #d72c0d; font-weight: 600;">' + message + '</div>
+            </div>';
             }
-        </script>
+            }
+            </script>
 
-        <footer style="
+            <footer style="
                 margin-top: 64px;
                 padding: 32px 24px;
                 border-top: 1px solid #e1e3e5;
                 text-align: center;
                 background: #ffffff;
             ">
-            <div style="max-width: 1200px; margin: 0 auto">
-                <div style="
+                <div style="max-width: 1200px; margin: 0 auto">
+                    <div style="
                         display: flex;
                         justify-content: center;
                         gap: 20px;
@@ -2477,37 +2532,37 @@
                         font-size: 14px;
                         margin-bottom: 16px;
                     ">
-                    <a href="/faq" style="
+                        <a href="/faq" style="
                             color: #6d7175;
                             text-decoration: none;
                             font-weight: 400;
                             transition: color 0.15s;
                         ">FAQ</a>
-                    <span style="color: #e1e3e5">|</span>
-                    <a href="/privacy" style="
+                        <span style="color: #e1e3e5">|</span>
+                        <a href="/privacy" style="
                             color: #6d7175;
                             text-decoration: none;
                             font-weight: 400;
                             transition: color 0.15s;
                         ">Privacy Policy</a>
-                    <span style="color: #e1e3e5">|</span>
-                    <a href="/terms" style="
+                        <span style="color: #e1e3e5">|</span>
+                        <a href="/terms" style="
                             color: #6d7175;
                             text-decoration: none;
                             font-weight: 400;
                             transition: color 0.15s;
                         ">Terms of Service</a>
+                    </div>
+                    <div style="color: #8c9196; font-size: 13px; font-weight: 400">
+                        © 2026 Employee Suite. All rights reserved.
+                    </div>
                 </div>
-                <div style="color: #8c9196; font-size: 13px; font-weight: 400">
-                    © 2026 Employee Suite. All rights reserved.
-                </div>
-            </div>
-        </footer>
-        <script>
+            </footer>
+            <script>
             // Ensure any critical closing scripts are here
-        </script>
-    </div> <!-- End .container -->
-    </div> <!-- End .page-wrapper -->
+            </script>
+            </div> <!-- End .container -->
+            </div> <!-- End .page-wrapper -->
 </body>
 
 </html>
