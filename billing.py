@@ -589,18 +589,33 @@ def create_charge():
 
     plan_type = request.form.get("plan") or request.args.get("plan", "pro")
 
-    # Find user
+    # Find user - improved logic for embedded apps
     user = None
     try:
+        # First try current_user (for standalone mode)
         if current_user.is_authenticated:
             user_id = current_user.get_id()
             if user_id:
                 user = User.query.get(int(user_id))
+        
+        # For embedded apps, also try finding by shop URL
         if not user and shop:
             store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
             if store and store.user:
                 user = store.user
-    except Exception:
+                logger.info(f"Found user {user.id} via shop lookup for {shop}")
+        
+        # Additional fallback: try to find any active store for the shop
+        if not user and shop:
+            all_stores = ShopifyStore.query.filter_by(shop_url=shop).all()
+            for store in all_stores:
+                if store.user and store.is_connected():
+                    user = store.user
+                    logger.info(f"Found user {user.id} via connected store fallback for {shop}")
+                    break
+                    
+    except Exception as e:
+        logger.error(f"Error finding user in create_charge: {e}")
         pass
 
     if not user:
@@ -613,7 +628,14 @@ def create_charge():
         )
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
-    store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
+    # Try to find the specific store for this shop first
+    store = ShopifyStore.query.filter_by(user_id=user.id, shop_url=shop, is_active=True).first()
+
+    # Fallback to any active store for the user
+    if not store:
+        store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
+        logger.info(f"Using fallback store {store.shop_url if store else 'None'} for user {user.id}")
+    
     if not store:
         logger.error(f"No active store found for user {user.id}")
         subscribe_url = url_for(
