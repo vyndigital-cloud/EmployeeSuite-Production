@@ -204,7 +204,7 @@ def get_authenticated_user():
                 finally:
                     # FIXED: Add proper session cleanup
                     try:
-                        db.session.close()
+                        db.session.remove()
                     except Exception:
                         pass
 
@@ -812,8 +812,10 @@ def get_authenticated_user():
                 logger.warning(
                     f"Invalid audience in session token: got '{token_aud}', expected '{api_key}'"
                 )
-                # TEMPORARY: Allow mismatch for debugging - remove after fix
-                logger.warning(f"Proceeding despite audience mismatch for debugging")
+                return None, (
+                    jsonify({"error": "Invalid token audience", "success": False}),
+                    401,
+                )
 
             # Extract shop domain
             dest = payload.get("dest", "")
