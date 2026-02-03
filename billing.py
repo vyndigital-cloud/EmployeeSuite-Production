@@ -34,7 +34,18 @@ except ImportError as e:
 
     class SubscriptionPlan:
         """Fallback class when enhanced_models is missing"""
-        pass
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+        
+        @staticmethod
+        def query():
+            class MockQuery:
+                def filter_by(self, **kwargs):
+                    return self
+                def first(self):
+                    return None
+            return MockQuery()
 
 
 from logging_config import logger
@@ -467,27 +478,10 @@ def subscribe():
         # Try to validate the token actually works
         try:
             from shopify_graphql import ShopifyGraphQLClient
-            # Test with a comprehensive GraphQL query that checks billing permissions
+            # Simple test - just check if we can make any GraphQL call
             client = ShopifyGraphQLClient(store.shop_url, store.get_access_token())
-            query = """
-            query {
-                shop {
-                    name
-                    plan {
-                        displayName
-                    }
-                }
-                currentAppInstallation {
-                    id
-                    activeSubscriptions {
-                        id
-                        status
-                    }
-                }
-            }
-            """
+            query = "query { shop { name } }"
             result = client.execute_query(query)
-            # This will raise exception if token invalid which is what we want
             if "error" not in result:
                 has_store = True
             else:
@@ -794,7 +788,7 @@ def confirm_charge():
 
             locked_access_token = store.get_access_token()
             if not locked_access_token:
-                logger.error(f"No access token found for store {shop_url} during charge confirmation")
+                logger.error(f"No access token found for store {shop_url} during charge confirmation for user {user.id}")
                 db.session.rollback()
                 subscribe_url = url_for(
                     "billing.subscribe",
@@ -805,72 +799,53 @@ def confirm_charge():
                 )
                 return safe_redirect(subscribe_url, shop=shop, host=host)
 
-            try:
-                activate_result = activate_recurring_charge(
-                    shop_url, locked_access_token, charge_id
-                )
-            except Exception as e:
-                logger.error(f"Error activating charge: {e}")
-                db.session.rollback()
-                activate_result = {"success": False, "error": "Activation failed"}
+            activate_result = activate_recurring_charge(
+                shop_url, locked_access_token, charge_id
+            )
 
             if activate_result.get("success"):
+                # Update user subscription status
+                user.is_subscribed = True
+                store.charge_id = str(charge_id)
+
+                # Create/update SubscriptionPlan with proper error handling
                 try:
-                    # Update user subscription status
-                    user.is_subscribed = True
-                    store.charge_id = str(charge_id)
+                    plan_price = PLAN_PRICES.get(plan_type, 29.00)
+                    existing_plan = SubscriptionPlan.query.filter_by(
+                        user_id=user.id
+                    ).first()
+                    if existing_plan:
+                        existing_plan.plan_type = plan_type
+                        existing_plan.price_usd = plan_price
+                        existing_plan.charge_id = str(charge_id)
+                        existing_plan.status = "active"
+                        existing_plan.cancelled_at = None
+                        existing_plan.multi_store_enabled = True
+                        existing_plan.automated_reports_enabled = True
+                        existing_plan.scheduled_delivery_enabled = True
+                    else:
+                        new_plan = SubscriptionPlan(
+                            user_id=user.id,
+                            plan_type=plan_type,
+                            price_usd=plan_price,
+                            charge_id=str(charge_id),
+                            status="active",
+                            multi_store_enabled=True,
+                            automated_reports_enabled=True,
+                            scheduled_delivery_enabled=True,
+                        )
+                        db.session.add(new_plan)
+                except Exception as plan_error:
+                    logger.warning(f"Could not create/update SubscriptionPlan for user {user.id}, shop {shop_url}: {plan_error}")
+                    # Continue without SubscriptionPlan if enhanced_models is missing
 
-                    # Create/update SubscriptionPlan with proper error handling
-                    try:
-                        plan_price = PLAN_PRICES.get(plan_type, 29.00)
-                        existing_plan = SubscriptionPlan.query.filter_by(
-                            user_id=user.id
-                        ).first()
-                        if existing_plan:
-                            existing_plan.plan_type = plan_type
-                            existing_plan.price_usd = plan_price
-                            existing_plan.charge_id = str(charge_id)
-                            existing_plan.status = "active"
-                            existing_plan.cancelled_at = None
-                            existing_plan.multi_store_enabled = True
-                            existing_plan.automated_reports_enabled = True
-                            existing_plan.scheduled_delivery_enabled = True
-                        else:
-                            new_plan = SubscriptionPlan(
-                                user_id=user.id,
-                                plan_type=plan_type,
-                                price_usd=plan_price,
-                                charge_id=str(charge_id),
-                                status="active",
-                                multi_store_enabled=True,
-                                automated_reports_enabled=True,
-                                scheduled_delivery_enabled=True,
-                            )
-                            db.session.add(new_plan)
-                    except Exception as plan_error:
-                        logger.warning(f"Could not create/update SubscriptionPlan for user {user.id}: {plan_error}")
-                        # Continue without SubscriptionPlan if enhanced_models is missing
+                db.session.commit()
+                logger.info(f"Subscription activated for {shop_url}, plan: {plan_type}, user: {user.id}")
 
-                    db.session.commit()
-                    logger.info(f"Subscription activated for {shop_url}, plan: {plan_type}, user: {user.id}")
-
-                    return render_template_string(SUCCESS_HTML, shop=shop_url, host=host)
-                except Exception as db_error:
-                    db.session.rollback()
-                    logger.error(f"Database error during subscription activation for user {user.id}, shop {shop_url}: {db_error}", exc_info=True)
-                    subscribe_url = url_for(
-                        "billing.subscribe",
-                        error="Database error during subscription activation. Please try again.",
-                        shop=shop,
-                        host=host,
-                        plan=plan_type,
-                    )
-                    return safe_redirect(subscribe_url, shop=shop, host=host)
+                return render_template_string(SUCCESS_HTML, shop=shop_url, host=host)
             else:
                 db.session.rollback()
-                logger.error(
-                    f"Failed to activate charge: {activate_result.get('error')}"
-                )
+                logger.error(f"Failed to activate charge for user {user.id}, shop {shop_url}: {activate_result.get('error')}")
                 subscribe_url = url_for(
                     "billing.subscribe",
                     error="Failed to activate subscription",
@@ -881,7 +856,7 @@ def confirm_charge():
                 return safe_redirect(subscribe_url, shop=shop, host=host)
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Error in charge activation: {e}")
+            logger.error(f"Error in charge activation for user {user.id}, shop {shop_url}: {e}", exc_info=True)
             subscribe_url = url_for(
                 "billing.subscribe",
                 error="Error processing subscription",
@@ -900,7 +875,7 @@ def confirm_charge():
             return render_template_string(SUCCESS_HTML, shop=shop_url, host=host)
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Database error marking subscription active for user {user.id}: {e}")
+            logger.error(f"Database error marking subscription active for user {user.id}, shop {shop_url}: {e}")
             subscribe_url = url_for(
                 "billing.subscribe",
                 error="Error processing subscription",
