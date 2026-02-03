@@ -624,12 +624,9 @@ class ShopifyClient:
     @cache_result(ttl=CACHE_TTL_INVENTORY)
     def get_products(self):
         """
-        Get products using GraphQL (migrated from deprecated REST API)
-        Returns same format as before for backward compatibility
+        Get products using GraphQL with proper inventory data
+        Returns format expected by inventory.py
         """
-        # GraphQL query to fetch products with variants and inventory
-        # Migrated from deprecated REST API /products.json endpoint
-        # Using GraphQL Admin API as required by Shopify (deadline: 2025-04-01)
         query = """
         query getProducts($first: Int!, $after: String) {
             products(first: $first, after: $after) {
@@ -641,10 +638,12 @@ class ShopifyClient:
                     node {
                         id
                         title
-                        variants(first: 250) {
+                        handle
+                        variants(first: 10) {
                             edges {
                                 node {
                                     id
+                                    title
                                     sku
                                     price
                                     inventoryItem {
@@ -668,19 +667,20 @@ class ShopifyClient:
         }
         """
 
-        inventory = []
+        products = []
         cursor = None
         has_next_page = True
 
         # Paginate through all products
         while has_next_page:
-            variables = {"first": 250}  # Max 250 products per request
+            variables = {"first": 50}  # Smaller batches for better performance
             if cursor:
                 variables["after"] = cursor
+                
             data = self._make_graphql_request(query, variables)
 
             if "error" in data:
-                return self._handle_protected_data_error(data)
+                return data  # Return error as-is
 
             if "errors" in data:
                 return {"error": str(data["errors"])}
@@ -690,32 +690,31 @@ class ShopifyClient:
             has_next_page = page_info.get("hasNextPage", False)
             cursor = page_info.get("endCursor")
 
-            # Process products
+            # Process products into format expected by inventory.py
             for edge in products_data.get("edges", []):
                 try:
                     product = edge.get("node", {})
                     if not product:
                         continue
 
-                    product_title = product.get("title", "Untitled")
+                    product_title = product.get("title", "Untitled Product")
+                    product_handle = product.get("handle", "")
 
-                    # Process variants - handle cases where variants might be None or missing
+                    # Process variants
                     variants_data = product.get("variants", {})
                     if not isinstance(variants_data, dict):
-                        # If no variants, skip this product
                         continue
 
                     variant_edges = variants_data.get("edges", [])
                     if not variant_edges:
-                        # Product with no variants - still add it with default values
-                        inventory.append(
-                            {
-                                "product": product_title,
-                                "sku": "N/A",
-                                "stock": 0,
-                                "price": "N/A",
-                            }
-                        )
+                        # Product with no variants
+                        products.append({
+                            "product": product_title,
+                            "sku": "N/A",
+                            "stock": 0,
+                            "price": "$0.00",
+                            "handle": product_handle
+                        })
                         continue
 
                     # Process each variant
@@ -725,64 +724,59 @@ class ShopifyClient:
                             if not variant:
                                 continue
 
-                            # Handle None values - Shopify can return None for SKU
+                            # Get basic variant info
                             sku = variant.get("sku") or "N/A"
-                            price_value = variant.get("price") or "0"
-                            price = f"${price_value}" if price_value != "0" else "N/A"
+                            price_value = variant.get("price") or "0.00"
+                            price = f"${price_value}"
+                            variant_title = variant.get("title", "Default")
 
-                            # Get inventory quantity from GraphQL structure
-                            # CRITICAL: Shopify changed to quantities array structure
-                            # quantities(names: ["available"]) returns array with {name, quantity}
+                            # Get inventory quantity from new GraphQL structure
                             stock = 0
                             inventory_item = variant.get("inventoryItem")
                             if inventory_item and isinstance(inventory_item, dict):
-                                inventory_levels = inventory_item.get(
-                                    "inventoryLevels", {}
-                                )
-                                if inventory_levels and isinstance(
-                                    inventory_levels, dict
-                                ):
+                                inventory_levels = inventory_item.get("inventoryLevels", {})
+                                if inventory_levels and isinstance(inventory_levels, dict):
                                     edges = inventory_levels.get("edges", [])
                                     if edges and len(edges) > 0:
                                         node = edges[0].get("node", {})
                                         if node and isinstance(node, dict):
-                                            # Parse quantities array: [{"name": "available", "quantity": 10}]
                                             quantities = node.get("quantities", [])
-                                            if quantities and isinstance(
-                                                quantities, list
-                                            ):
-                                                # Find the "available" quantity
+                                            if quantities and isinstance(quantities, list):
                                                 for q in quantities:
-                                                    if (
-                                                        isinstance(q, dict)
-                                                        and q.get("name") == "available"
-                                                    ):
-                                                        stock = (
-                                                            q.get("quantity", 0) or 0
-                                                        )
+                                                    if (isinstance(q, dict) and 
+                                                        q.get("name") == "available"):
+                                                        stock = q.get("quantity", 0) or 0
                                                         break
 
-                            inventory.append(
-                                {
-                                    "product": product_title,
-                                    "sku": sku,
-                                    "stock": stock,
-                                    "price": price,
-                                }
-                            )
+                            # Create product entry in format expected by inventory.py
+                            product_name = product_title
+                            if variant_title != "Default" and variant_title != product_title:
+                                product_name = f"{product_title} - {variant_title}"
+
+                            products.append({
+                                "product": product_name,
+                                "sku": sku,
+                                "stock": stock,
+                                "price": price,
+                                "handle": product_handle,
+                                "variant_id": variant.get("id", "").replace("gid://shopify/ProductVariant/", "")
+                            })
+                            
                         except Exception as e:
-                            # Skip this variant if there's an error, continue with others
+                            logger.warning(f"Error processing variant: {e}")
                             continue
+                            
                 except Exception as e:
-                    # Skip this product if there's an error, continue with others
+                    logger.warning(f"Error processing product: {e}")
                     continue
 
-        return inventory
+        return products
 
-    @cache_result(ttl=60)  # Reduced to 1 minute for customer data compliance
+    @cache_result(ttl=CACHE_TTL_ORDERS)
     def get_orders(self, status="any", limit=50, start_date=None, end_date=None):
         """
-        Get orders using GraphQL with date filtering
+        Get orders using GraphQL with proper data structure
+        Returns consistent format for order_processing.py
         """
         # Build query filters
         query_filters = []
@@ -797,7 +791,6 @@ class ShopifyClient:
         
         # Add date filters if provided
         if start_date:
-            # Convert to Shopify's expected format if needed
             if isinstance(start_date, str):
                 query_filters.append(f"created_at:>={start_date}")
             else:
@@ -817,27 +810,44 @@ class ShopifyClient:
             orders(first: $first, query: $query, sortKey: CREATED_AT, reverse: true) {
                 edges {
                     node {
-                        name
                         id
+                        name
+                        email
                         displayFinancialStatus
-                        currentTotalPriceSet {
+                        displayFulfillmentStatus
+                        createdAt
+                        totalPriceSet {
                             shopMoney {
                                 amount
                                 currencyCode
                             }
                         }
                         customer {
-                            email
                             firstName
                             lastName
+                            email
                         }
-                        lineItems(first: 5) {
+                        shippingAddress {
+                            city
+                            country
+                            address1
+                            zip
+                        }
+                        lineItems(first: 10) {
                             edges {
                                 node {
                                     title
+                                    quantity
+                                    originalUnitPriceSet {
+                                        shopMoney {
+                                            amount
+                                        }
+                                    }
                                 }
                             }
                         }
+                        tags
+                        gateway
                     }
                 }
             }
@@ -845,18 +855,19 @@ class ShopifyClient:
         """
         
         variables = {
-            "first": min(limit, 50),
+            "first": min(limit, 250),
             "query": query_string if query_string else None
         }
 
         data = self._make_graphql_request(query, variables)
         
         if "error" in data:
-            return self._handle_protected_data_error(data)
+            return data  # Return error as-is
             
         if "errors" in data:
-             return {"error": str(data["errors"])}
+            return {"error": str(data["errors"])}
 
+        # Transform GraphQL response to format expected by order_processing.py
         orders = []
         orders_data = data.get("data", {}).get("orders", {}).get("edges", [])
         
@@ -865,34 +876,67 @@ class ShopifyClient:
             if not node:
                 continue
                 
-            # GDPR-compliant customer display
-            customer_display = "Guest"
-            if node.get("customer"):
-                customer = node.get("customer", {})
-                first_name = customer.get("firstName", "")
-                last_name = customer.get("lastName", "")
-                if first_name or last_name:
-                    customer_display = f"{first_name} {last_name}".strip()
-                else:
-                    customer_display = "Customer"
-                
-            # Safely extract price
-            price = "0.00"
-            if node.get("currentTotalPriceSet") and node.get("currentTotalPriceSet").get("shopMoney"):
-                price = node.get("currentTotalPriceSet").get("shopMoney").get("amount", "0.00")
+            # Extract customer info safely
+            customer_info = node.get("customer", {}) or {}
+            first_name = customer_info.get("firstName", "") or ""
+            last_name = customer_info.get("lastName", "") or ""
+            customer_email = customer_info.get("email", "") or node.get("email", "")
             
-            # Count items
-            item_count = 0
-            if node.get("lineItems"):
-                item_count = len(node.get("lineItems", {}).get("edges", []))
+            # Format customer display name
+            if first_name or last_name:
+                customer_display = f"{first_name} {last_name}".strip()
+            else:
+                customer_display = "Guest Customer"
+            
+            # Extract price safely
+            total_price = "0.00"
+            currency = "USD"
+            price_set = node.get("totalPriceSet", {})
+            if price_set and price_set.get("shopMoney"):
+                shop_money = price_set.get("shopMoney", {})
+                total_price = shop_money.get("amount", "0.00")
+                currency = shop_money.get("currencyCode", "USD")
+            
+            # Extract line items
+            line_items = []
+            line_items_data = node.get("lineItems", {}).get("edges", [])
+            for item_edge in line_items_data:
+                item_node = item_edge.get("node", {})
+                if item_node:
+                    item_price = "0.00"
+                    price_set = item_node.get("originalUnitPriceSet", {})
+                    if price_set and price_set.get("shopMoney"):
+                        item_price = price_set.get("shopMoney", {}).get("amount", "0.00")
+                    
+                    line_items.append({
+                        "title": item_node.get("title", "Unknown Item"),
+                        "quantity": item_node.get("quantity", 1),
+                        "price": item_price
+                    })
 
-            orders.append({
-                "id": node.get("name", "Unknown"),
-                "customer": customer_display,
-                "total": f"${price}",
-                "items": item_count,
-                "status": node.get("displayFinancialStatus", "N/A"),
-            })
+            # Create order object in format expected by order_processing.py
+            order = {
+                "id": node.get("id", "").replace("gid://shopify/Order/", ""),
+                "order_number": node.get("name", "").replace("#", ""),
+                "name": node.get("name", ""),
+                "email": customer_email,
+                "total_price": total_price,
+                "currency": currency,
+                "financial_status": node.get("displayFinancialStatus", "unknown").lower(),
+                "fulfillment_status": node.get("displayFulfillmentStatus", "unfulfilled").lower(),
+                "created_at": node.get("createdAt", ""),
+                "customer": {
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "email": customer_email
+                },
+                "shipping_address": node.get("shippingAddress", {}),
+                "line_items": line_items,
+                "tags": node.get("tags", ""),
+                "gateway": node.get("gateway", ""),
+                "risk_level": "low"  # Default for now
+            }
+            orders.append(order)
             
         return orders
 

@@ -824,106 +824,19 @@ def api_process_orders():
                 "value_proposition": "Save 10+ hours per week on manual order management"
             }), 403
 
-        # Get store with validation
-        store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
-        if not store:
-            return jsonify({
-                "success": False,
-                "error": "No active store found. Please reconnect your Shopify store.",
-                "action": "reconnect",
-                "help_url": "/support"
-            }), 404
-
-        # Validate connection with retry logic
-        access_token = store.get_access_token()
-        if not access_token:
-            return jsonify({
-                "success": False,
-                "error": "Store connection expired. Please reconnect in Settings.",
-                "action": "reconnect",
-                "reconnect_url": "/settings/shopify"
-            }), 401
-
-        # Mock processing with comprehensive analytics for demo
-        try:
-            import time
-            import random
-            
-            # Simulate API delay
-            time.sleep(0.5)
-            
-            # Generate realistic mock data
-            mock_orders = []
-            total_value = 0
-            pending_count = random.randint(2, 8)
-            fulfilled_count = random.randint(15, 35)
-            high_value_orders = random.randint(1, 5)
-            
-            # Create sample orders
-            for i in range(pending_count + fulfilled_count):
-                order_total = round(random.uniform(25.99, 299.99), 2)
-                is_fulfilled = i >= pending_count
-                
-                order_data = {
-                    "id": f"order_{1000 + i}",
-                    "order_number": f"#{1000 + i}",
-                    "customer": f"Customer {chr(65 + i % 26)}",
-                    "email": f"customer{i}@example.com",
-                    "total": order_total,
-                    "currency": "USD",
-                    "financial_status": "paid",
-                    "fulfillment_status": "fulfilled" if is_fulfilled else "unfulfilled",
-                    "created_at": datetime.utcnow().isoformat(),
-                    "line_items_count": random.randint(1, 4),
-                    "shipping_address": {"city": "Sample City", "country": "US"},
-                    "tags": "priority" if order_total > 100 else "",
-                    "gateway": "shopify_payments",
-                    "risk_level": "low"
-                }
-                
-                mock_orders.append(order_data)
-                total_value += order_total
-                
-            # Calculate insights
-            avg_order_value = round(total_value / len(mock_orders), 2) if mock_orders else 0
-            fulfillment_rate = round((fulfilled_count / len(mock_orders)) * 100, 1) if mock_orders else 0
-
-            return jsonify({
-                "success": True,
-                "message": f"Successfully processed {len(mock_orders)} orders",
-                "orders_data": mock_orders[:50],  # Limit for performance
-                "summary": {
-                    "total_orders": len(mock_orders),
-                    "total_value": round(total_value, 2),
-                    "pending_orders": pending_count,
-                    "fulfilled_orders": fulfilled_count,
-                    "high_value_orders": high_value_orders,
-                    "average_order_value": avg_order_value,
-                    "fulfillment_rate": fulfillment_rate
-                },
-                "insights": {
-                    "needs_attention": pending_count,
-                    "performance_score": min(100, fulfillment_rate + (avg_order_value / 10)),
-                    "recommendations": [
-                        f"You have {pending_count} orders awaiting fulfillment" if pending_count > 0 else "All orders are fulfilled - great job!",
-                        f"Your average order value of ${avg_order_value} is {'above' if avg_order_value > 50 else 'below'} average",
-                        f"{high_value_orders} high-value orders ($100+) need special attention" if high_value_orders > 0 else "Focus on increasing order values"
-                    ]
-                },
-                "last_updated": datetime.utcnow().isoformat(),
-                "data_freshness": "Real-time"
-            })
-            
-        except Exception as api_error:
-            logger.error(f"Order processing error for user {user.id}: {api_error}")
-            return jsonify({
-                "success": False,
-                "error": "Unable to fetch orders from Shopify. This might be a temporary issue.",
-                "technical_details": str(api_error)[:100] + "..." if len(str(api_error)) > 100 else str(api_error),
-                "action": "retry",
-                "support_message": "If this persists, our support team can help resolve it immediately.",
-                "support_url": "/support"
-            }), 500
+        # Use real order processing
+        from order_processing import process_orders
+        
+        # Get date filters from request
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        result = process_orders(user_id=user.id, start_date=start_date, end_date=end_date)
+        
+        if result.get("success"):
+            return jsonify(result)
+        else:
+            return jsonify(result), 500
 
     except Exception as e:
         error_id = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
