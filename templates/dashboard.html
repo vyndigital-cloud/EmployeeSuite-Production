@@ -175,238 +175,189 @@
 
     <div class="page-wrapper">
         <div class="container">
-            <div class="dashboard-header-row">
-                <div>
-                    <div class="page-title">Dashboard</div>
-                    <div class="page-subtitle">
-                        Monitor your Shopify store operations with inventory
-                        tracking, order monitoring, and comprehensive revenue
-                        analytics. 7-day free trial, no setup fees.
-                    </div>
-                    <div class="mt-4 flex-center" style="justify-content: flex-start; gap: 12px; flex-wrap: wrap;">
-                        <a href="#" onclick="
-                                openPage('/features/welcome');
-                                return false;
-                            " class="btn-primary" style="
-                                background: linear-gradient(135deg, #008060 0%, #00a86b 100%);
-                                color: white;
-                                padding: 16px 24px;
-                                border-radius: 12px;
-                                text-decoration: none;
-                                font-weight: 600;
-                                font-size: 16px;
-                                display: inline-flex;
-                                align-items: center;
-                                gap: 8px;
-                                box-shadow: 0 4px 12px rgba(0, 128, 96, 0.3);
-                                transition: all 0.2s ease;
-                            ">
-                            🚀 Explore New Features
-                            <span style="font-size: 14px;">→</span>
-                        </a>
-                        
-                        <a href="#" onclick="
-                                openPage('/features/scheduled-reports');
-                                return false;
-                            " class="btn-secondary">
-                            📧 Automated Reports
-                        </a>
+            <!-- Pro Theme Header -->
+            <header class="header-section">
+                <div class="logo-area">
+                    <div class="brand-badge">
+                        <i class="ph-bold ph-rocket-launch"></i>
+                        <span>Employee Suite</span>
                     </div>
                 </div>
-                {% if is_subscribed %}
-                <div class="sub-status-card">
-                    <div class="sub-status-label">
-                        Subscribed
-                    </div>
-                    <div class="sub-status-value">
-                        ✓ Active
-                    </div>
-                </div>
-                {% endif %}
-            </div>
+                <h1 class="main-title">Unlock Full Potential</h1>
+                <p class="sub-title">Supercharge your store with advanced analytics, automated inventory tracking, and
+                    unlimited reporting.</p>
 
-            {% if not has_access %}
-            <div class="banner banner-warning" style="justify-content: space-between; align-items: center">
-                <div class="banner-content">
-                    <h3>Subscription Required</h3>
-                    <p>
-                        Your trial has ended. Subscribe now to continue using
-                        Employee Suite.
-                    </p>
+                <!-- Quick Actions (Replaces Header Nav) -->
+                <div style="margin-top: 1.5rem; display: flex; justify-content: center; gap: 12px;">
+                    <a href="#" onclick="openPage('/settings/shopify'); return false;" class="status-pill"
+                        style="background: white; border: 1px solid #e1e3e5; color: #6d7175; text-decoration: none; padding: 6px 16px; font-weight: 500; font-size: 13px; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                        <i class="ph-bold ph-gear"></i> Settings
+                    </a>
+                    {% if not is_subscribed %}
+                    <a href="#" onclick="openPage('/subscribe'); return false;" class="status-pill"
+                        style="background: #e3fcef; color: #008060; text-decoration: none; padding: 6px 16px; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                        <i class="ph-bold ph-crown"></i> Upgrade to Pro
+                    </a>
+                    {% endif %}
                 </div>
-                <a href="#" onclick="
-                        openPage('/subscribe');
-                        return false;
-                    " class="banner-action">Subscribe Now</a>
+            </header>
+
+            <!-- Alerts/Banners -->
+            {% if not has_access %}
+            <div class="banner banner-warning"
+                style="justify-content: center; text-align: center; flex-direction: column; gap: 12px; border-left: 1px solid #fde6a8;">
+                <div class="banner-content">
+                    <h3 style="margin-bottom: 6px;">Subscription Required</h3>
+                    <p>Your trial has ended. Subscribe now to continue using Employee Suite.</p>
+                </div>
+                <a href="#" onclick="openPage('/subscribe'); return false;" class="banner-action">Subscribe Now</a>
             </div>
             {% elif trial_active and not is_subscribed %}
-            <div class="banner banner-warning" style="justify-content: space-between; align-items: center">
+            <div class="banner banner-warning"
+                style="justify-content: center; text-align: center; flex-direction: column; gap: 12px; border-left: 1px solid #fde6a8;">
                 <div class="banner-content">
-                    <h3>
-                        ⏰ Trial Active - {{ days_left }} day{{ 's' if days_left
-                        != 1 else '' }} remaining
-                    </h3>
-                    <p>
-                        Subscribe to <strong>Employee Suite Pro for just $39/month</strong> to keep access when your trial ends. Cancel anytime.
-                    </p>
+                    <h3 style="margin-bottom: 6px;">⏰ Trial Active - {{ days_left }} day{{ 's' if days_left != 1 else ''
+                        }} remaining</h3>
+                    <p>Subscribe to <strong>Employee Suite Pro for just $39/month</strong> to keep access when your
+                        trial ends.</p>
                 </div>
-                <a href="{{ url_for('billing.subscribe') }}" class="banner-action">Subscribe Now →</a>
-            </div>
-            {% endif %} {% if has_shopify and quick_stats.has_data and
-            is_subscribed %}
-            <!-- PREMIUM: PROPRIETARY FORECASTING ENGINE (Premium Feature) -->
-
-            {% endif %} {% if has_shopify and quick_stats.has_data and
-            is_subscribed %}
-            <div class="quick-stats-grid">
-                <div class="quick-stat-card">
-                    <div class="quick-stat-header">
-                        <span>📦</span>
-                        <span>Pending Orders</span>
-                    </div>
-                    <div class="quick-stat-value">
-                        {{ quick_stats.pending_orders or 0 }}
-                    </div>
-                    <div class="quick-stat-footer">
-                        Need your attention
-                    </div>
-                </div>
-                <div class="quick-stat-card">
-                    <div class="quick-stat-header">
-                        <span>📊</span>
-                        <span>Total Products</span>
-                    </div>
-                    <div class="quick-stat-value">
-                        {{ quick_stats.total_products or 0 }}
-                    </div>
-                    <div class="quick-stat-footer">
-                        In your store
-                    </div>
-                </div>
-                <div class="quick-stat-card">
-                    <div class="quick-stat-header">
-                        <span>⚠️</span>
-                        <span>Low Stock</span>
-                    </div>
-                    <div class="quick-stat-value"
-                        style="color: {% if quick_stats and quick_stats.low_stock_items and quick_stats.low_stock_items > 0 %}#dc2626{% else %}#16a34a{% endif %};">
-                        {{ quick_stats.low_stock_items or 0 }}
-                    </div>
-                    <div class="quick-stat-footer">
-                        {% if quick_stats and quick_stats.low_stock_items and quick_stats.low_stock_items > 0 %}Need restocking{% else %}All good{% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endif %} {% if not has_shopify %}
-            <div class="banner banner-info" style="
-                    background: #ffffff;
-                    border: 1px solid #e1e3e5;
-                    border-left: 3px solid #008060;
-                ">
-                <div class="banner-content" style="flex: 1">
-                    <h3 style="
-                            margin-bottom: 8px;
-                            font-size: 16px;
-                            font-weight: 600;
-                            color: #202223;
-                        ">
-                        Connect your Shopify store
-                    </h3>
-                    <p style="
-                            margin-bottom: 0;
-                            font-size: 14px;
-                            color: #6d7175;
-                        ">
-                        Get started in 30 seconds. Connect your store to unlock
-                        order monitoring, inventory management, and revenue
-                        analytics.
-                    </p>
-                </div>
-                <a href="#" onclick="
-                        openPage('/settings/shopify');
-                        return false;
-                    " class="banner-action">Connect Store →</a>
+                <a href="{{ url_for('billing.subscribe') }}" class="banner-action" style="box-shadow: none;">Subscribe
+                    Now →</a>
             </div>
             {% endif %}
 
+            {% if not has_shopify %}
+            <div class="banner banner-info"
+                style="justify-content: center; text-align: center; flex-direction: column; gap: 12px; border-left: 1px solid #e1e3e5;">
+                <div class="banner-content">
+                    <h3 style="margin-bottom: 6px;">Connect your Shopify store</h3>
+                    <p>Get started in 30 seconds. Connect your store to unlock full functionality.</p>
+                </div>
+                <a href="#" onclick="openPage('/settings/shopify'); return false;" class="banner-action">Connect Store
+                    →</a>
+            </div>
+            {% endif %}
+
+            <!-- Quick Stats -->
+            {% if has_shopify and quick_stats.has_data and is_subscribed %}
+            <div class="quick-stats-grid">
+                <div class="quick-stat-card">
+                    <div class="quick-stat-header">
+                        <i class="ph-duotone ph-package" style="font-size: 18px; color: var(--primary);"></i>
+                        <span>Pending Orders</span>
+                    </div>
+                    <div class="quick-stat-value">{{ quick_stats.pending_orders or 0 }}</div>
+                    <div class="quick-stat-footer">Need your attention</div>
+                </div>
+                <div class="quick-stat-card">
+                    <div class="quick-stat-header">
+                        <i class="ph-duotone ph-tag" style="font-size: 18px; color: var(--primary);"></i>
+                        <span>Total Products</span>
+                    </div>
+                    <div class="quick-stat-value">{{ quick_stats.total_products or 0 }}</div>
+                    <div class="quick-stat-footer">In your store</div>
+                </div>
+                <div class="quick-stat-card">
+                    <div class="quick-stat-header">
+                        <i class="ph-duotone ph-warning-circle"
+                            style="font-size: 18px; color: {% if quick_stats.low_stock_items > 0 %}#dc2626{% else %}var(--primary){% endif %};"></i>
+                        <span>Low Stock</span>
+                    </div>
+                    <div class="quick-stat-value"
+                        style="color: {% if quick_stats.low_stock_items > 0 %}#dc2626{% else %}inherit{% endif %};">
+                        {{ quick_stats.low_stock_items or 0 }}
+                    </div>
+                    <div class="quick-stat-footer">
+                        {% if quick_stats.low_stock_items > 0 %}Need restocking{% else %}All good{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Main Feature Cards -->
             <div class="cards-grid">
+                <!-- Order Processing -->
                 <div class="card">
-                    <div class="card-icon">📦</div>
+                    <div class="card-icon">
+                        <i class="ph-duotone ph-shopping-cart-simple" style="font-size: 32px;"></i>
+                    </div>
                     <div class="card-title">Order Processing</div>
                     <div class="card-description">
-                        View pending and unfulfilled Shopify orders. Monitor
-                        order status and payment information.
+                        View pending and unfulfilled Shopify orders. Monitor order status and payment information.
                     </div>
                     {% if has_access %}
-                    <button type="button" class="card-btn" data-action="processOrders" onclick="
-                            if (window.processOrders)
-                                window.processOrders(this);
-                        " aria-label="View pending orders">
+                    <button type="button" class="card-btn" data-action="processOrders"
+                        onclick="if(window.processOrders) window.processOrders(this);">
                         <span>View Orders</span>
-                        <span style="font-size: 12px; opacity: 0.8">→</span>
+                        <i class="ph-bold ph-arrow-right"></i>
                     </button>
                     {% else %}
                     <button type="button" class="card-btn" onclick="showSubscribePrompt()"
-                        style="opacity: 0.6; cursor: not-allowed" disabled aria-label="Subscribe to view orders">
+                        style="opacity: 0.6; cursor: not-allowed" disabled>
                         <span>View Orders</span>
-                        <span style="font-size: 12px; opacity: 0.8">→</span>
+                        <i class="ph-bold ph-lock"></i>
                     </button>
                     {% endif %}
                 </div>
 
+                <!-- Inventory Management -->
                 <div class="card">
-                    <div class="card-icon">📊</div>
+                    <div class="card-icon">
+                        <i class="ph-duotone ph-chart-bar" style="font-size: 32px;"></i>
+                    </div>
                     <div class="card-title">Inventory Management</div>
                     <div class="card-description">
-                        Monitor stock levels across all products. Get low-stock
-                        alerts and complete inventory visibility.
+                        Monitor stock levels across all products. Get low-stock alerts and complete inventory
+                        visibility.
                     </div>
                     {% if has_access %}
-                    <button type="button" class="card-btn" data-action="updateInventory" onclick="
-                            if (window.updateInventory)
-                                window.updateInventory(this);
-                        " aria-label="Check inventory levels">
+                    <button type="button" class="card-btn" data-action="updateInventory"
+                        onclick="if(window.updateInventory) window.updateInventory(this);">
                         <span>Check Inventory</span>
-                        <span style="font-size: 12px; opacity: 0.8">→</span>
+                        <i class="ph-bold ph-arrow-right"></i>
                     </button>
                     {% else %}
                     <button type="button" class="card-btn" onclick="showSubscribePrompt()"
-                        style="opacity: 0.6; cursor: not-allowed" disabled aria-label="Subscribe to check inventory">
+                        style="opacity: 0.6; cursor: not-allowed" disabled>
                         <span>Check Inventory</span>
-                        <span style="font-size: 12px; opacity: 0.8">→</span>
+                        <i class="ph-bold ph-lock"></i>
                     </button>
                     {% endif %}
                 </div>
 
+                <!-- Revenue Analytics -->
                 <div class="card">
-                    <div class="card-icon">💰</div>
+                    <div class="card-icon">
+                        <i class="ph-duotone ph-currency-dollar" style="font-size: 32px;"></i>
+                    </div>
                     <div class="card-title">Revenue Analytics</div>
                     <div class="card-description">
-                        Generate revenue reports with product-level breakdown
-                        and insights.
+                        Generate revenue reports with product-level breakdown and insights.
                     </div>
                     {% if has_access %}
-                    <button type="button" class="card-btn" data-action="generateReport" onclick="
-                            if (window.generateReport)
-                                window.generateReport(this);
-                        " aria-label="Generate revenue report">
+                    <button type="button" class="card-btn" data-action="generateReport"
+                        onclick="if(window.generateReport) window.generateReport(this);">
                         <span>Generate Report</span>
-                        <span style="font-size: 12px; opacity: 0.8">→</span>
+                        <i class="ph-bold ph-arrow-right"></i>
                     </button>
                     {% else %}
                     <button type="button" class="card-btn" onclick="showSubscribePrompt()"
-                        style="opacity: 0.6; cursor: not-allowed" disabled aria-label="Subscribe to generate reports">
+                        style="opacity: 0.6; cursor: not-allowed" disabled>
                         <span>Generate Report</span>
-                        <span style="font-size: 12px; opacity: 0.8">→</span>
+                        <i class="ph-bold ph-lock"></i>
                     </button>
                     {% endif %}
                 </div>
-
             </div>
 
             <div id="connection-status" style="display: none; margin-bottom: 16px"></div>
             <div class="output-container">
-                <div class="output-header">Results</div>
+                <div class="output-header">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="ph-bold ph-terminal-window" style="color: var(--primary);"></i>
+                        <span>System Output</span>
+                    </div>
+                </div>
                 <div id="output"></div>
             </div>
         </div>

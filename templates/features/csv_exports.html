@@ -1,289 +1,256 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "layout_polaris.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSV Exports - Employee Suite</title>
-    <!-- Styles & Icons -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge/latest/environments/production.js"></script>
-    <script>
-        window.openPage = function (path) {
-            var params = new URLSearchParams(window.location.search);
-            var shop = params.get('shop');
-            var host = params.get('host');
-            var embedded = params.get('embedded') || (host ? '1' : '');
-            var sep = path.indexOf('?') > -1 ? '&' : '?';
-            var dest = path;
-            if (shop) dest += sep + 'shop=' + shop;
-            if (host) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'host=' + host;
-            if (embedded) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'embedded=' + embedded;
-            window.location.href = dest;
-            return false;
-        };
-    </script>
-    <style>
-        .date-filter {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
+{% block extra_head %}
+<style>
+    .page-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--text-main);
+    }
 
-        .date-input {
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 14px;
-            background: #fff;
-            color: var(--text-main);
-        }
+    .page-subtitle {
+        font-size: 14px;
+        color: var(--text-sub);
+        margin-bottom: 24px;
+    }
 
-        .filter-btn {
-            padding: 8px 12px;
-            background: rgba(0, 0, 0, 0.03);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: var(--text-sub);
-        }
+    .date-filter {
+        display: flex;
+        gap: 12px;
+        margin-top: 20px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
 
-        .filter-btn:hover {
-            background: rgba(0, 0, 0, 0.06);
-            color: var(--text-main);
-        }
-    </style>
-</head>
+    .date-input {
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        background: #fff;
+        color: var(--text-main);
+    }
 
-<body>
-    <div class="header">
-        <div class="header-content">
-            <a href="#" onclick="openPage('/dashboard'); return false;" class="logo">
-                <i class="ph-bold ph-arrow-left"></i>
-                <span>Back to Dashboard</span>
+    .filter-btn {
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, 0.03);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: var(--text-sub);
+    }
+
+    .filter-btn:hover {
+        background: rgba(0, 0, 0, 0.06);
+        color: var(--text-main);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="text-center" style="margin-bottom: 40px; text-align: center;">
+    <h1 class="page-title">CSV Exports</h1>
+    <p class="page-subtitle" style="margin: 0 auto;">Download your data as CSV files with date filtering.
+    </p>
+</div>
+
+{% if not has_store %}
+<div class="banner error"
+    style="background: #fef2f2; border: 1px solid #fca5a5; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+    <div class="banner-content">
+        <h3 style="color: #991b1b; font-size: 16px; font-weight: 600; margin-bottom: 4px;">Store Not Connected</h3>
+        <p style="color: #991b1b;">Please connect your Shopify store to export data.</p>
+    </div>
+    <a href="#" onclick="openPage('/settings/shopify'); return false;" class="banner-action"
+        style="margin-top: 12px; display: inline-block; color: #7f1d1d; text-decoration: underline;">Connect Store</a>
+</div>
+{% else %}
+
+<div class="cards-grid" style="display: grid; grid-template-columns: 1fr; gap: 24px;">
+    <!-- Orders Export -->
+    <div class="card">
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+            <div class="card-icon" style="font-size: 24px;"><i class="ph-bold ph-package"></i></div>
+            <h3 class="card-title" style="margin: 0; font-size: 16px; font-weight: 600;">Export Orders</h3>
+        </div>
+
+        <div class="date-filter">
+            <input type="date" id="orders-start" class="date-input">
+            <span style="color: var(--text-sub);">to</span>
+            <input type="date" id="orders-end" class="date-input">
+
+            <button onclick="setDateRange('orders', 7)" class="filter-btn">Last 7 Days</button>
+            <button onclick="setDateRange('orders', 30)" class="filter-btn">Last 30 Days</button>
+
+            <a href="#" id="export-orders" class="btn-primary"
+                style="width: auto; margin-left: auto; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; background: black; color: white; text-decoration: none;">
+                Export CSV <i class="ph-bold ph-download-simple"></i>
             </a>
         </div>
     </div>
 
-    <div class="page-wrapper">
-        <div class="container" style="max-width: 900px;">
-            <div class="text-center" style="margin-bottom: 40px; text-align: center;">
-                <h1 class="page-title">CSV Exports</h1>
-                <p class="page-subtitle" style="margin: 0 auto;">Download your data as CSV files with date filtering.
-                </p>
+    <!-- Inventory Export -->
+    <div class="card">
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+            <div class="card-icon" style="font-size: 24px;"><i class="ph-bold ph-clipboard-text"></i></div>
+            <h3 class="card-title" style="margin: 0; font-size: 16px; font-weight: 600;">Export Inventory</h3>
+        </div>
+
+        <div class="date-filter">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <label style="font-size: 14px; color: var(--text-sub);">Lookback Days:</label>
+                <input type="number" id="inventory-days" class="date-input" value="30" style="width: 100px;">
             </div>
-
-            {% if not has_store %}
-            <div class="banner error">
-                <div class="banner-content">
-                    <h3>Store Not Connected</h3>
-                    <p>Please connect your Shopify store to export data.</p>
-                </div>
-                <a href="#" onclick="openPage('/settings/shopify'); return false;" class="banner-action">Connect
-                    Store</a>
-            </div>
-            {% else %}
-
-            <div class="cards-grid" style="grid-template-columns: 1fr; gap: 24px;">
-                <!-- Orders Export -->
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-                        <div class="card-icon"><i class="ph-bold ph-package"></i></div>
-                        <h3 class="card-title" style="margin: 0;">Export Orders</h3>
-                    </div>
-
-                    <div class="date-filter">
-                        <input type="date" id="orders-start" class="date-input">
-                        <span style="color: var(--text-sub);">to</span>
-                        <input type="date" id="orders-end" class="date-input">
-
-                        <button onclick="setDateRange('orders', 7)" class="filter-btn">Last 7 Days</button>
-                        <button onclick="setDateRange('orders', 30)" class="filter-btn">Last 30 Days</button>
-
-                        <a href="#" id="export-orders" class="card-btn" style="width: auto; margin-left: auto;">
-                            Export CSV <i class="ph-bold ph-download-simple"></i>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Inventory Export -->
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-                        <div class="card-icon"><i class="ph-bold ph-clipboard-text"></i></div>
-                        <h3 class="card-title" style="margin: 0;">Export Inventory</h3>
-                    </div>
-
-                    <div class="date-filter">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <label style="font-size: 14px; color: var(--text-sub);">Lookback Days:</label>
-                            <input type="number" id="inventory-days" class="date-input" value="30"
-                                style="width: 100px;">
-                        </div>
-                        <a href="#" id="export-inventory" class="card-btn" style="width: auto; margin-left: auto;">
-                            Export CSV <i class="ph-bold ph-download-simple"></i>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Revenue Export -->
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-                        <div class="card-icon"><i class="ph-bold ph-chart-bar"></i></div>
-                        <h3 class="card-title" style="margin: 0;">Export Revenue</h3>
-                    </div>
-
-                    <div class="date-filter">
-                        <input type="date" id="revenue-start" class="date-input">
-                        <span style="color: var(--text-sub);">to</span>
-                        <input type="date" id="revenue-end" class="date-input">
-
-                        <button onclick="setDateRange('revenue', 7)" class="filter-btn">Last 7 Days</button>
-                        <button onclick="setDateRange('revenue', 30)" class="filter-btn">Last 30 Days</button>
-
-                        <a href="#" id="export-revenue" class="card-btn" style="width: auto; margin-left: auto;">
-                            Export CSV <i class="ph-bold ph-download-simple"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
+            <a href="#" id="export-inventory" class="btn-primary"
+                style="width: auto; margin-left: auto; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; background: black; color: white; text-decoration: none;">
+                Export CSV <i class="ph-bold ph-download-simple"></i>
+            </a>
         </div>
     </div>
 
-    <!-- Scripts (copied from logic, keeping JS minimal) -->
-    <script>
-        var sessionToken = "{{ session_token|default('') }}"; // In case backend passes it
+    <!-- Revenue Export -->
+    <div class="card">
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+            <div class="card-icon" style="font-size: 24px;"><i class="ph-bold ph-chart-bar"></i></div>
+            <h3 class="card-title" style="margin: 0; font-size: 16px; font-weight: 600;">Export Revenue</h3>
+        </div>
 
-        function setDateRange(type, days) {
-            const end = new Date();
-            const start = new Date();
-            start.setDate(start.getDate() - days);
+        <div class="date-filter">
+            <input type="date" id="revenue-start" class="date-input">
+            <span style="color: var(--text-sub);">to</span>
+            <input type="date" id="revenue-end" class="date-input">
 
-            const formatDate = (date) => {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            };
+            <button onclick="setDateRange('revenue', 7)" class="filter-btn">Last 7 Days</button>
+            <button onclick="setDateRange('revenue', 30)" class="filter-btn">Last 30 Days</button>
 
-            if (type === 'orders') {
-                document.getElementById('orders-start').value = formatDate(start);
-                document.getElementById('orders-end').value = formatDate(end);
-            } else if (type === 'revenue') {
-                document.getElementById('revenue-start').value = formatDate(start);
-                document.getElementById('revenue-end').value = formatDate(end);
-            }
+            <a href="#" id="export-revenue" class="btn-primary"
+                style="width: auto; margin-left: auto; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; background: black; color: white; text-decoration: none;">
+                Export CSV <i class="ph-bold ph-download-simple"></i>
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var sessionToken = "{{ session_token|default('') }}"; // In case backend passes it
+
+    function setDateRange(type, days) {
+        const end = new Date();
+        const start = new Date();
+        start.setDate(start.getDate() - days);
+
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        if (type === 'orders') {
+            document.getElementById('orders-start').value = formatDate(start);
+            document.getElementById('orders-end').value = formatDate(end);
+        } else if (type === 'revenue') {
+            document.getElementById('revenue-start').value = formatDate(start);
+            document.getElementById('revenue-end').value = formatDate(end);
         }
+    }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            setDateRange('orders', 30);
-            setDateRange('revenue', 30);
-        });
+    document.addEventListener('DOMContentLoaded', function () {
+        setDateRange('orders', 30);
+        setDateRange('revenue', 30);
+    });
 
-        // Simple alert helper
-        function showSuccess(message) {
-            const alert = document.createElement('div');
-            alert.className = 'success';
-            alert.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 2000; box-shadow: var(--shadow-lg);';
-            alert.innerHTML = `<i class="ph-bold ph-check-circle"></i> ${message}`;
-            document.body.appendChild(alert);
-            setTimeout(() => alert.remove(), 3000);
-        }
+    // Simple alert helper
+    function showSuccess(message) {
+        const alert = document.createElement('div');
+        alert.className = 'success';
+        alert.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 2000; padding: 16px; border-radius: 8px; background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm);';
+        alert.innerHTML = `<i class="ph-bold ph-check-circle"></i> ${message}`;
+        document.body.appendChild(alert);
+        setTimeout(() => alert.remove(), 3000);
+    }
 
-        // Add event listeners for exports... (reusing existing logic logic but simplified)
-        document.querySelectorAll('[id^="export-"]').forEach(btn => {
-            btn.addEventListener('click', function (e) {
-                // Same logic as before would go here, omitting for brevity of the template creation 
-                // but essential for functionality. I will include the logic block.
+    document.getElementById('export-orders')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        const btn = this;
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = 'Exporting... <i class="ph-bold ph-spinner ph-spin"></i>';
+        btn.style.opacity = '0.7';
+
+        const start = document.getElementById('orders-start').value;
+        const end = document.getElementById('orders-end').value;
+        let url = '/api/export/orders';
+        if (start) url += '?start_date=' + start;
+        if (end) url += (start ? '&' : '?') + 'end_date=' + end;
+
+        fetch(url)
+            .then(r => {
+                if (r.ok) return r.blob();
+                throw new Error('Export failed');
+            })
+            .then(blob => {
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = `orders_export_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                showSuccess('Orders exported successfully');
+            })
+            .catch(e => alert(e.message))
+            .finally(() => {
+                btn.innerHTML = originalHTML;
+                btn.style.opacity = '1';
             });
-        });
+    });
 
-        // Re-adding the critical JS logic from previous Step 67 view
-        document.getElementById('export-orders')?.addEventListener('click', function (e) {
-            e.preventDefault();
-            const btn = this;
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = 'Exporting... <i class="ph-bold ph-spinner ph-spin"></i>';
-            btn.style.opacity = '0.7';
+    document.getElementById('export-inventory')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        const btn = this;
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = 'Exporting... <i class="ph-bold ph-spinner ph-spin"></i>';
+        const days = document.getElementById('inventory-days').value || 30;
+        fetch('/api/export/inventory?days=' + days)
+            .then(r => { if (r.ok) return r.blob(); throw new Error('Export failed'); })
+            .then(blob => {
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = `inventory_export_${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+                showSuccess('Inventory exported successfully');
+            })
+            .catch(e => alert(e.message))
+            .finally(() => btn.innerHTML = originalHTML);
+    });
 
-            const start = document.getElementById('orders-start').value;
-            const end = document.getElementById('orders-end').value;
-            let url = '/api/export/orders';
-            if (start) url += '?start_date=' + start;
-            if (end) url += (start ? '&' : '?') + 'end_date=' + end;
-
-            fetch(url)
-                .then(r => {
-                    if (r.ok) return r.blob();
-                    throw new Error('Export failed');
-                })
-                .then(blob => {
-                    const downloadUrl = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = downloadUrl;
-                    link.download = `orders_export_${new Date().toISOString().split('T')[0]}.csv`;
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
-                    showSuccess('Orders exported successfully');
-                })
-                .catch(e => alert(e.message))
-                .finally(() => {
-                    btn.innerHTML = originalHTML;
-                    btn.style.opacity = '1';
-                });
-        });
-
-        // Similarly for inventory and revenue (abbreviated for the sake of the plan, but I'll make sure it works)
-        // For the sake of the user, I'll ensure the JS is complete in the file.
-        document.getElementById('export-inventory')?.addEventListener('click', function (e) {
-            e.preventDefault();
-            const btn = this;
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = 'Exporting... <i class="ph-bold ph-spinner ph-spin"></i>';
-            const days = document.getElementById('inventory-days').value || 30;
-            fetch('/api/export/inventory?days=' + days)
-                .then(r => { if (r.ok) return r.blob(); throw new Error('Export failed'); })
-                .then(blob => {
-                    const link = document.createElement('a');
-                    link.href = window.URL.createObjectURL(blob);
-                    link.download = `inventory_export_${new Date().toISOString().split('T')[0]}.csv`;
-                    link.click();
-                    showSuccess('Inventory exported successfully');
-                })
-                .catch(e => alert(e.message))
-                .finally(() => btn.innerHTML = originalHTML);
-        });
-
-        document.getElementById('export-revenue')?.addEventListener('click', function (e) {
-            e.preventDefault();
-            const btn = this;
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = 'Exporting... <i class="ph-bold ph-spinner ph-spin"></i>';
-            const start = document.getElementById('revenue-start').value;
-            const end = document.getElementById('revenue-end').value;
-            let url = '/api/export/revenue';
-            if (start) url += '?start_date=' + start;
-            if (end) url += (start ? '&' : '?') + 'end_date=' + end;
-            fetch(url)
-                .then(r => { if (r.ok) return r.blob(); throw new Error('Export failed'); })
-                .then(blob => {
-                    const link = document.createElement('a');
-                    link.href = window.URL.createObjectURL(blob);
-                    link.download = `revenue_export_${new Date().toISOString().split('T')[0]}.csv`;
-                    link.click();
-                    showSuccess('Revenue exported successfully');
-                })
-                .catch(e => alert(e.message))
-                .finally(() => btn.innerHTML = originalHTML);
-        });
-    </script>
-</body>
-
-</html>
+    document.getElementById('export-revenue')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        const btn = this;
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = 'Exporting... <i class="ph-bold ph-spinner ph-spin"></i>';
+        const start = document.getElementById('revenue-start').value;
+        const end = document.getElementById('revenue-end').value;
+        let url = '/api/export/revenue';
+        if (start) url += '?start_date=' + start;
+        if (end) url += (start ? '&' : '?') + 'end_date=' + end;
+        fetch(url)
+            .then(r => { if (r.ok) return r.blob(); throw new Error('Export failed'); })
+            .then(blob => {
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = `revenue_export_${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+                showSuccess('Revenue exported successfully');
+            })
+            .catch(e => alert(e.message))
+            .finally(() => btn.innerHTML = originalHTML);
+    });
+</script>
+{% endblock %}

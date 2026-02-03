@@ -1,0 +1,251 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>{{ title|default('Employee Suite') }}</title>
+    <!-- Shopify App Bridge - Latest version with proper initialization -->
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge/latest/environments/production.js"></script>
+
+    <!-- Shopify Polaris Design System -->
+    <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/styles.css" />
+    <script src="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/polaris.min.js"></script>
+    <script>
+        // Initialize App Bridge - moved to external JS file
+        window.appBridgeReady = false;
+        window.isEmbedded = !!new URLSearchParams(window.location.search).get('host');
+
+        // Helper to open pages
+        window.openPage = function (path) {
+            var params = new URLSearchParams(window.location.search);
+            var shop = params.get('shop');
+            var host = params.get('host');
+            var embedded = params.get('embedded') || (host ? '1' : '');
+            var sep = path.indexOf('?') > -1 ? '&' : '?';
+            var dest = path;
+            if (shop) dest += sep + 'shop=' + shop;
+            if (host) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'host=' + host;
+            if (embedded) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'embedded=' + embedded;
+            window.location.href = dest;
+            return false;
+        };
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Critical: Prevent any blocking - render immediately -->
+    <style>
+        /* Inline critical CSS - no blocking */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+    </style>
+    <!-- Defer non-critical resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- External Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <style>
+        /* Critical overrides only */
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Hide header when embedded */
+        body.embedded .header {
+            display: none !important;
+        }
+
+        body.embedded footer {
+            display: none !important;
+        }
+    </style>
+
+    <!-- Google Analytics - Load after page renders -->
+    <script>
+        // Defer analytics loading
+        window.addEventListener("load", function () {
+            var script = document.createElement("script");
+            script.async = true;
+            script.src =
+                "https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3";
+            document.head.appendChild(script);
+
+            script.onload = function () {
+                window.dataLayer = window.dataLayer || [];
+                function gtag() {
+                    dataLayer.push(arguments);
+                }
+                gtag("js", new Date());
+                gtag("config", "G-RBBQ4X7FJ3");
+            };
+        });
+    </script>
+
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+    <div class="header">
+        <div class="header-content">
+            <a href="#" onclick="
+                        openPage('/dashboard');
+                        return false;
+                    " class="logo logo-link">
+                <span>Employee Suite</span>
+            </a>
+            <div class="header-nav">
+                <div class="quick-menu">
+                    <button class="quick-menu-btn" onclick="toggleQuickMenu(event)">
+                        ⚡ Quick Access
+                    </button>
+                    <div class="quick-menu-dropdown" id="quickMenu">
+                        <a href="#" onclick="
+                                    openPage('/features/csv-exports');
+                                    return false;
+                                " class="quick-menu-item" style="
+                                    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+                                    border: 1px solid #bbf7d0;
+                                ">
+                            <span class="quick-menu-item-icon">📥</span>
+                            <strong>CSV Exports</strong>
+                            <span class="quick-menu-shortcut">⌘E</span>
+                        </a>
+                        <a href="#" onclick="
+                                    openPage('/features/scheduled-reports');
+                                    return false;
+                                " class="quick-menu-item">
+                            <span class="quick-menu-item-icon">📅</span>
+                            Scheduled Reports
+                            <span class="quick-menu-shortcut">⌘S</span>
+                        </a>
+                        <a href="#" onclick="
+                                    openPage('/features/dashboard');
+                                    return false;
+                                " class="quick-menu-item">
+                            <span class="quick-menu-item-icon">📊</span>
+                            Comprehensive Dashboard
+                            <span class="quick-menu-shortcut">⌘D</span>
+                        </a>
+                        <a href="#" onclick="
+                                    openPage('/features/welcome');
+                                    return false;
+                                " class="quick-menu-item">
+                            <span class="quick-menu-item-icon">🎉</span>
+                            New Features
+                        </a>
+                        <div style="
+                                    border-top: 1px solid #e1e3e5;
+                                    margin: 8px 0;
+                                "></div>
+                        <a href="#" onclick="
+                                    openPage('/settings/shopify');
+                                    return false;
+                                " class="quick-menu-item">
+                            <span class="quick-menu-item-icon">⚙️</span>
+                            Settings
+                            <span class="quick-menu-shortcut">⌘,</span>
+                        </a>
+                        <a href="#" onclick="
+                                    openPage('/subscribe');
+                                    return false;
+                                " class="quick-menu-item">
+                            <span class="quick-menu-item-icon">💳</span>
+                            Subscribe
+                        </a>
+                    </div>
+                </div>
+                <a href="#" onclick="
+                            openPage('/settings/shopify');
+                            return false;
+                        " class="nav-btn">Settings</a>
+                <a href="#" onclick="
+                            openPage('/subscribe');
+                            return false;
+                        " class="nav-btn nav-btn-primary">Subscribe</a>
+                <a href="/logout" class="nav-btn">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-wrapper">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+
+        <script>
+            // Essential inline JavaScript
+
+            // Quick Menu Toggle
+            function toggleQuickMenu(event) {
+                event.stopPropagation();
+                var menu = document.getElementById('quickMenu');
+                if (menu) {
+                    menu.classList.toggle('show');
+                }
+            }
+
+            // Close quick menu when clicking outside
+            document.addEventListener('click', function (e) {
+                var menu = document.getElementById('quickMenu');
+                var btn = e.target.closest('.quick-menu-btn');
+                if (menu && !btn && !e.target.closest('.quick-menu-dropdown')) {
+                    menu.classList.remove('show');
+                }
+            });
+        </script>
+
+        {% block scripts %}{% endblock %}
+
+        <!-- Load external dashboard JavaScript -->
+        <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+
+        <footer style="
+                margin-top: 64px;
+                padding: 32px 24px;
+                border-top: 1px solid #e1e3e5;
+                text-align: center;
+                background: #ffffff;
+            ">
+            <div style="max-width: 1200px; margin: 0 auto">
+                <div style="
+                        display: flex;
+                        justify-content: center;
+                        gap: 20px;
+                        flex-wrap: wrap;
+                        font-size: 14px;
+                        margin-bottom: 16px;
+                    ">
+                    <a href="/faq" style="
+                            color: #6d7175;
+                            text-decoration: none;
+                            font-weight: 400;
+                            transition: color 0.15s;
+                        ">FAQ</a>
+                    <span style="color: #e1e3e5">|</span>
+                    <a href="/privacy" style="
+                            color: #6d7175;
+                            text-decoration: none;
+                            font-weight: 400;
+                            transition: color 0.15s;
+                        ">Privacy Policy</a>
+                    <span style="color: #e1e3e5">|</span>
+                    <a href="/terms" style="
+                            color: #6d7175;
+                            text-decoration: none;
+                            font-weight: 400;
+                            transition: color 0.15s;
+                        ">Terms of Service</a>
+                </div>
+                <div style="color: #8c9196; font-size: 13px; font-weight: 400">
+                    © 2026 Employee Suite. All rights reserved.
+                </div>
+            </div>
+        </footer>
+    </div> <!-- End .page-wrapper -->
+</body>
+
+</html>

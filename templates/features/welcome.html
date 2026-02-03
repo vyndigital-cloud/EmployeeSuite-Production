@@ -1,147 +1,92 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "layout_polaris.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Suite - Features</title>
-    <!-- Shopify App Bridge -->
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge/latest/environments/production.js"></script>
-    <!-- Styles & Icons -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script>
-        window.openPage = function (path) {
-            var params = new URLSearchParams(window.location.search);
-            var shop = params.get('shop');
-            var host = params.get('host');
-            var embedded = params.get('embedded') || (host ? '1' : '');
+{% block content %}
+<!-- Hero Section -->
+<div style="
+    text-align: center;
+    padding: 80px 20px;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: white;
+    border-radius: 16px;
+    margin-bottom: 40px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+">
+    <h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 24px; letter-spacing: -1px; color: white;">
+        Automate Your Store.
+    </h1>
+    <p
+        style="font-size: 1.25rem; opacity: 0.8; max-width: 600px; margin: 0 auto 40px; line-height: 1.6; color: rgba(255,255,255,0.8);">
+        Stop manually checking inventory and calculating revenue. <br>
+        Employee Suite does the heavy lifting for you.
+    </p>
 
-            var sep = path.indexOf('?') > -1 ? '&' : '?';
-            var dest = path;
+    <div
+        style="display: inline-flex; align-items: center; background: rgba(255, 255, 255, 0.1); padding: 8px 24px; border-radius: 100px; border: 1px solid rgba(255, 255, 255, 0.1);">
+        <span style="color: #4ade80; font-weight: 700; margin-right: 12px;">$39/month</span>
+        <span style="opacity: 0.8; color: rgba(255,255,255,0.8);">Single Plan. Everything Included.</span>
+    </div>
+</div>
 
-            if (shop) dest += sep + 'shop=' + shop;
-            if (host) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'host=' + host;
-            if (embedded) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'embedded=' + embedded;
+<!-- Features Grid -->
+<div class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
 
-            window.location.href = dest;
-            return false;
-        };
-    </script>
-</head>
-
-<body>
-    <div class="header">
-        <div class="header-content">
-            <a href="#" onclick="openPage('/dashboard'); return false;" class="logo">
-                <i class="ph-bold ph-arrow-left"></i>
-                <span>Employee Suite</span>
-            </a>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <a href="#" onclick="openPage('/dashboard'); return false;" class="nav-btn">Dashboard</a>
-                <a href="#" onclick="openPage('/subscribe'); return false;" class="nav-btn nav-btn-primary">Start
-                    Trial</a>
-            </div>
+    <!-- Automated Reports -->
+    <div class="card" style="padding: 32px;">
+        <div class="card-icon" style="background: #ecfdf5; color: #059669; width: 56px; height: 56px; font-size: 28px;">
+            <i class="ph-bold ph-robot"></i>
         </div>
+        <h3 class="card-title" style="font-size: 20px; margin-bottom: 12px;">Automated Intelligence</h3>
+        <p class="card-description" style="font-size: 15px; line-height: 1.6;">
+            Receive daily email reports on inventory levels, revenue forecasts, and stockout risks. Set it
+            and forget it.
+        </p>
     </div>
 
-    <div class="page-wrapper">
-        <div class="container" style="max-width: 900px;">
-            <!-- Hero Section -->
-            <div style="
-                text-align: center;
-                padding: 80px 20px;
-                background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-                color: white;
-                border-radius: 16px;
-                margin-bottom: 40px;
-                box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-            ">
-                <h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 24px; letter-spacing: -1px;">
-                    Automate Your Store.
-                </h1>
-                <p style="font-size: 1.25rem; opacity: 0.8; max-width: 600px; margin: 0 auto 40px; line-height: 1.6;">
-                    Stop manually checking inventory and calculating revenue. <br>
-                    Employee Suite does the heavy lifting for you.
-                </p>
-
-                <div
-                    style="display: inline-flex; align-items: center; background: rgba(255, 255, 255, 0.1); padding: 8px 24px; border-radius: 100px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                    <span style="color: #4ade80; font-weight: 700; margin-right: 12px;">$39/month</span>
-                    <span style="opacity: 0.8;">Single Plan. Everything Included.</span>
-                </div>
-            </div>
-
-            <!-- Features Grid -->
-            <div class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
-
-                <!-- Automated Reports -->
-                <div class="card" style="padding: 32px;">
-                    <div class="card-icon"
-                        style="background: #ecfdf5; color: #059669; width: 56px; height: 56px; font-size: 28px;">
-                        <i class="ph-bold ph-robot"></i>
-                    </div>
-                    <h3 class="card-title" style="font-size: 20px; margin-bottom: 12px;">Automated Intelligence</h3>
-                    <p class="card-description" style="font-size: 15px; line-height: 1.6;">
-                        Receive daily email reports on inventory levels, revenue forecasts, and stockout risks. Set it
-                        and forget it.
-                    </p>
-                </div>
-
-                <!-- InstantSOS -->
-                <div class="card" style="padding: 32px;">
-                    <div class="card-icon"
-                        style="background: #eff6ff; color: #2563eb; width: 56px; height: 56px; font-size: 28px;">
-                        <i class="ph-bold ph-lightning"></i>
-                    </div>
-                    <h3 class="card-title" style="font-size: 20px; margin-bottom: 12px;">Instant 'SOS' Checks</h3>
-                    <p class="card-description" style="font-size: 15px; line-height: 1.6;">
-                        Need to know your status right now? One click generates a real-time health check of your entire
-                        operation.
-                    </p>
-                </div>
-
-                <!-- Data Export -->
-                <div class="card" style="padding: 32px;">
-                    <div class="card-icon"
-                        style="background: #f5f3ff; color: #7c3aed; width: 56px; height: 56px; font-size: 28px;">
-                        <i class="ph-bold ph-download-simple"></i>
-                    </div>
-                    <h3 class="card-title" style="font-size: 20px; margin-bottom: 12px;">Data Ownership</h3>
-                    <p class="card-description" style="font-size: 15px; line-height: 1.6;">
-                        Export your raw data at any time. Clean, formatted CSVs for Orders, Inventory, and Revenue ready
-                        for analysis.
-                    </p>
-                </div>
-
-                <!-- Security -->
-                <div class="card" style="padding: 32px;">
-                    <div class="card-icon"
-                        style="background: #fff1f2; color: #e11d48; width: 56px; height: 56px; font-size: 28px;">
-                        <i class="ph-bold ph-shield-check"></i>
-                    </div>
-                    <h3 class="card-title" style="font-size: 20px; margin-bottom: 12px;">Enterprise Security</h3>
-                    <p class="card-description" style="font-size: 15px; line-height: 1.6;">
-                        Your store's data is encrypted at rest and in transit. Validated by Shopify's strict security
-                        standards.
-                    </p>
-                </div>
-
-            </div>
-
-            <!-- CTA -->
-            <div style="text-align: center; margin-top: 60px;">
-                <a href="#" onclick="openPage('/subscribe'); return false;" class="banner-action"
-                    style="font-size: 1.2rem; padding: 20px 48px; border-radius: 100px;">
-                    Start 7-Day Free Trial
-                </a>
-                <p style="margin-top: 16px; color: var(--text-sub); font-size: 14px;">No commitment. Cancel anytime.</p>
-            </div>
-
+    <!-- InstantSOS -->
+    <div class="card" style="padding: 32px;">
+        <div class="card-icon" style="background: #eff6ff; color: #2563eb; width: 56px; height: 56px; font-size: 28px;">
+            <i class="ph-bold ph-lightning"></i>
         </div>
+        <h3 class="card-title" style="font-size: 20px; margin-bottom: 12px;">Instant 'SOS' Checks</h3>
+        <p class="card-description" style="font-size: 15px; line-height: 1.6;">
+            Need to know your status right now? One click generates a real-time health check of your entire
+            operation.
+        </p>
     </div>
-</body>
 
-</html>
+    <!-- Data Export -->
+    <div class="card" style="padding: 32px;">
+        <div class="card-icon" style="background: #f5f3ff; color: #7c3aed; width: 56px; height: 56px; font-size: 28px;">
+            <i class="ph-bold ph-download-simple"></i>
+        </div>
+        <h3 class="card-title" style="font-size: 20px; margin-bottom: 12px;">Data Ownership</h3>
+        <p class="card-description" style="font-size: 15px; line-height: 1.6;">
+            Export your raw data at any time. Clean, formatted CSVs for Orders, Inventory, and Revenue ready
+            for analysis.
+        </p>
+    </div>
+
+    <!-- Security -->
+    <div class="card" style="padding: 32px;">
+        <div class="card-icon" style="background: #fff1f2; color: #e11d48; width: 56px; height: 56px; font-size: 28px;">
+            <i class="ph-bold ph-shield-check"></i>
+        </div>
+        <h3 class="card-title" style="font-size: 20px; margin-bottom: 12px;">Enterprise Security</h3>
+        <p class="card-description" style="font-size: 15px; line-height: 1.6;">
+            Your store's data is encrypted at rest and in transit. Validated by Shopify's strict security
+            standards.
+        </p>
+    </div>
+
+</div>
+
+<!-- CTA -->
+<div style="text-align: center; margin-top: 60px;">
+    <a href="#" onclick="openPage('/subscribe'); return false;" class="banner-action"
+        style="font-size: 1.2rem; padding: 20px 48px; border-radius: 100px; display: inline-block;">
+        Start 7-Day Free Trial
+    </a>
+    <p style="margin-top: 16px; color: var(--text-sub); font-size: 14px;">No commitment. Cancel anytime.</p>
+</div>
+{% endblock %}
