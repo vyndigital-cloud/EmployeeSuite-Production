@@ -847,7 +847,6 @@ class ShopifyClient:
                             }
                         }
                         tags
-                        gateway
                     }
                 }
             }
@@ -933,7 +932,7 @@ class ShopifyClient:
                 "shipping_address": node.get("shippingAddress", {}),
                 "line_items": line_items,
                 "tags": node.get("tags", ""),
-                "gateway": node.get("gateway", ""),
+                "gateway": "unknown",  # Gateway not available in GraphQL API
                 "risk_level": "low"  # Default for now
             }
             orders.append(order)
