@@ -42,18 +42,15 @@ def get_inventory_forecast():
         if isinstance(products_result, dict) and 'error' in products_result:
             return jsonify(products_result), 400
 
-        # 2. Get Recent Sales (Last 30 days) to calculate Velocity
-        # We use a smart heuristic here: simple velocity calculation
-        # Real "10/10" would use historical order data from DB, but we'll simulate 
-        # highly intelligent forecasting for the MVP to dazzle the user immediately.
-        
+        # 2. Get Recent Sales (Last 30 days) to calculate real Velocity
+        from models import Order, OrderItem
+        from sqlalchemy import func
+
         at_risk_items = []
         total_potential_loss = 0.0
-        
-        import random
-        # Simulate "smart" analysis for demonstration (or use real if we synced orders)
-        # Since we just refactored reports to be streaming, we don't have a local order DB to query efficiently for velocity per product.
-        # So we will implement a "Live Velocity Check" or a professional estimation.
+
+        # Calculate date range for velocity analysis
+        thirty_days_ago = today - timedelta(days=30)
         
         # Convert GraphQL products to expected format
         products = []
@@ -75,32 +72,50 @@ def get_inventory_forecast():
                 'variant_title': ''
             })
         
-        # Value Add: Identify low stock items and project their runout date
+        # Value Add: Identify low stock items and project their runout date using real sales data
         today = datetime.utcnow()
         
         for p in products:
             stock = p.get('stock', 0)
             if stock > 0 and stock < 20: # Low stock threshold
-                # Heuristic: Assume lower stock items sell faster (scarcity)
-                # In production, this would be: velocity = sales_last_30_days / 30
-                velocity = max(0.5, stock / (random.randint(3, 14))) # Random realistic velocity between 3-14 days stock
                 
-                days_remaining = int(stock / velocity)
+                # Get real sales velocity from Order database
+                # Query orders for this product in last 30 days
+                product_title = p.get('product')
+                
+                # Calculate actual velocity from order history
+                velocity_query = db.session.query(
+                    func.sum(OrderItem.quantity).label('total_sold')
+                ).join(Order).filter(
+                    Order.user_id == current_user.id,
+                    Order.created_at >= thirty_days_ago,
+                    OrderItem.product_title == product_title
+                ).first()
+                
+                total_sold = velocity_query.total_sold if velocity_query.total_sold else 0
+                velocity = total_sold / 30.0  # Daily velocity
+                
+                # Fallback to heuristic if no sales data
+                if velocity == 0:
+                    velocity = max(0.1, stock / 30)  # Conservative estimate
+                
+                days_remaining = int(stock / velocity) if velocity > 0 else 999
                 stockout_date = (today + timedelta(days=days_remaining)).strftime('%Y-%m-%d')
                 
                 potential_revenue = float(p.get('price', 0)) * stock
                 
                 if days_remaining < 7:
                     at_risk_items.append({
-                        "product_title": p.get('product'),
+                        "product_title": product_title,
                         "variant_title": p.get('variant_title', ''),
                         "current_stock": stock,
                         "velocity": f"{velocity:.1f}/day",
                         "days_remaining": days_remaining,
                         "stockout_date": stockout_date,
-                        "potential_revenue": potential_revenue
+                        "potential_revenue": potential_revenue,
+                        "sales_last_30_days": total_sold
                     })
-                    total_potential_loss += (float(p.get('price', 0)) * 50) # Loss if out of stock for a month
+                    total_potential_loss += (float(p.get('price', 0)) * velocity * 30) # Loss projection
         
         # Sort by urgency
         at_risk_items.sort(key=lambda x: x['days_remaining'])

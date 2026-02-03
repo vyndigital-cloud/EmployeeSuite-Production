@@ -98,13 +98,32 @@ def customer_data_redaction():
         if not store:
             return jsonify({'error': 'Shop not found or inactive'}), 404
         
-        # TODO: Implement customer data redaction
-        # This should:
-        # 1. Remove customer personal information
-        # 2. Anonymize order data
-        # 3. Delete analytics data
-        # 4. Remove support tickets
-        # 5. Keep only essential business data
+        # Implement customer data redaction with real database operations
+        try:
+            # 1. Delete customer-specific order items
+            db.session.execute(
+                "DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE customer_id = :customer_id AND shop_domain = :shop_domain)",
+                {"customer_id": customer_id, "shop_domain": shop_domain}
+            )
+            
+            # 2. Delete customer orders
+            db.session.execute(
+                "DELETE FROM orders WHERE customer_id = :customer_id AND shop_domain = :shop_domain",
+                {"customer_id": customer_id, "shop_domain": shop_domain}
+            )
+            
+            # 3. Delete customer analytics/tracking data
+            db.session.execute(
+                "DELETE FROM user_analytics WHERE customer_id = :customer_id AND shop_domain = :shop_domain",
+                {"customer_id": customer_id, "shop_domain": shop_domain}
+            )
+            
+            db.session.commit()
+            
+        except Exception as db_error:
+            db.session.rollback()
+            logger.error(f"Database error during customer redaction: {db_error}")
+            raise
         
         redaction_report = {
             "request_id": f"redact_{datetime.utcnow().timestamp()}",
@@ -158,14 +177,44 @@ def shop_data_redaction():
         if not store:
             return jsonify({'error': 'Shop not found'}), 404
         
-        # TODO: Implement complete shop data redaction
-        # This should:
-        # 1. Delete all customer data
-        # 2. Remove all order history
-        # 3. Delete inventory records
-        # 4. Remove analytics data
-        # 5. Delete user accounts
-        # 6. Remove all custom data
+        # Implement complete shop data redaction with cascading deletes
+        try:
+            # 1. Delete all order items for this shop
+            db.session.execute(
+                "DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE shop_domain = :shop_domain)",
+                {"shop_domain": shop_domain}
+            )
+            
+            # 2. Delete all orders for this shop
+            db.session.execute(
+                "DELETE FROM orders WHERE shop_domain = :shop_domain",
+                {"shop_domain": shop_domain}
+            )
+            
+            # 3. Delete all analytics and user data for this shop
+            db.session.execute(
+                "DELETE FROM user_analytics WHERE shop_domain = :shop_domain",
+                {"shop_domain": shop_domain}
+            )
+            
+            # 4. Delete scheduled reports
+            db.session.execute(
+                "DELETE FROM scheduled_reports WHERE user_id IN (SELECT id FROM users WHERE id IN (SELECT user_id FROM shopify_stores WHERE shop_domain = :shop_domain))",
+                {"shop_domain": shop_domain}
+            )
+            
+            # 5. Delete user settings
+            db.session.execute(
+                "DELETE FROM user_settings WHERE user_id IN (SELECT user_id FROM shopify_stores WHERE shop_domain = :shop_domain)",
+                {"shop_domain": shop_domain}
+            )
+            
+            db.session.commit()
+            
+        except Exception as db_error:
+            db.session.rollback()
+            logger.error(f"Database error during shop redaction: {db_error}")
+            raise
         
         # Mark store as redacted instead of deleting (for audit trail)
         store.is_active = False
