@@ -83,9 +83,20 @@ def app_uninstall():
         else:
             logger.warning(f"Store {shop_domain} not found for uninstall")
         
+        # Log successful processing
+        error_logger.log_system_event("WEBHOOK_PROCESSED", {
+            'type': 'app/uninstall',
+            'shop_domain': shop_domain,
+            'status': 'success'
+        })
+        
         return jsonify({'status': 'success'}), 200
         
     except Exception as e:
+        error_logger.log_error(e, "WEBHOOK_PROCESSING_ERROR", {
+            'webhook_type': 'app/uninstall',
+            'shop_domain': request.headers.get('X-Shopify-Shop-Domain', '')
+        })
         logger.error(f"Error handling app/uninstall webhook: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
