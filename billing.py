@@ -30,7 +30,7 @@ except ImportError as e:
     import logging
     logging.getLogger(__name__).warning(f"Could not import enhanced_models: {e}. Using fallback defaults.")
     
-    PLAN_PRICES = {"pro": 39.00, "business": 99.00}
+    PLAN_PRICES = {"pro": 39.00}
 
     class SubscriptionPlan:
         """Fallback class when enhanced_models is missing"""
@@ -99,6 +99,7 @@ def safe_redirect(url, shop=None, host=None):
         return redirect(url)
 
 
+# Plan configuration (Production Price: $39/month - competitive pricing)
 # Plan configuration (Production Price: $39/month - competitive pricing)
 PLANS = {
     "pro": {

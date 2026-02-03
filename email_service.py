@@ -282,3 +282,42 @@ def send_payment_failed(user_email):
     except Exception as e:
         logger.error(f"Email error: {e}")
         return False
+
+
+def send_report_email(user_email, report_type, report_content):
+    """Send a generated report via email"""
+    if not SENDGRID_AVAILABLE:
+        logger.info(f"Email disabled - would send report to {user_email}")
+        return True
+
+    message = Mail(
+        from_email=("adam@golproductions.com", "Employee Suite"),
+        to_emails=user_email,
+        subject=f"Your {report_type.title()} Report - Employee Suite",
+        html_content=f"""
+        <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #171717;">Your {report_type.title()} Report</h1>
+            <p style="font-size: 16px; color: #525252; line-height: 1.6;">
+                Here is your requested report.
+            </p>
+
+            <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb;">
+                {report_content}
+            </div>
+
+            <a href="https://employeesuite-production.onrender.com/dashboard"
+               style="display: inline-block; background: #171717; color: white; padding: 12px 24px;
+                      text-decoration: none; border-radius: 6px; margin: 20px 0;">
+                View Full Dashboard
+            </a>
+        </div>
+        """,
+    )
+
+    try:
+        sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
+        sg.send(message)
+        return True
+    except Exception as e:
+        logger.error(f"Email error: {e}")
+        return False

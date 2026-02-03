@@ -4,10 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprehensive Dashboard - Employee Suite</title>
+    <title>Control Center - Employee Suite</title>
     <!-- Styles & Icons -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge/latest/environments/production.js"></script>
@@ -26,56 +25,178 @@
             return false;
         };
     </script>
+    <style>
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: white;
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            padding: 8px 0;
+        }
+
+        .dropdown-content a {
+            color: var(--text-main);
+            padding: 12px 16px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #f9fafb;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #ecfdf5;
+            color: #065f46;
+        }
+
+        .sos-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.3);
+        }
+
+        .sos-btn:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+        }
+    </style>
 </head>
 
 <body>
     <div class="header">
         <div class="header-content">
-            <a href="#" onclick="openPage('/dashboard'); return false;" class="logo">
-                <i class="ph-bold ph-arrow-left"></i>
-                <span>Back to Dashboard</span>
-            </a>
+            <div class="logo">
+                <i class="ph-bold ph-rocket-launch"></i>
+                <span>Employee Suite</span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <!-- CSV Exports Dropdown -->
+                <div class="dropdown">
+                    <button class="nav-btn" style="display: flex; align-items: center; gap: 6px;">
+                        Data & Exports <i class="ph-bold ph-caret-down"></i>
+                    </button>
+                    <div class="dropdown-content">
+                        <div style="padding: 8px 16px; font-size: 12px; color: var(--text-sub); font-weight: 600;">
+                            DOWNLOADS</div>
+                        <a href="#" onclick="openPage('/features/csv-exports'); return false;">
+                            <i class="ph-bold ph-package"></i> Orders CSV
+                        </a>
+                        <a href="#" onclick="openPage('/features/csv-exports'); return false;">
+                            <i class="ph-bold ph-clipboard-text"></i> Inventory CSV
+                        </a>
+                        <a href="#" onclick="openPage('/features/csv-exports'); return false;">
+                            <i class="ph-bold ph-chart-bar"></i> Revenue CSV
+                        </a>
+                    </div>
+                </div>
+
+                <a href="#" onclick="openPage('/settings/shopify'); return false;" class="nav-btn">
+                    <i class="ph-bold ph-gear"></i> Settings
+                </a>
+            </div>
         </div>
     </div>
 
     <div class="page-wrapper">
         <div class="container" style="max-width: 1000px;">
-            <div class="text-center" style="margin-bottom: 40px; text-align: center;">
-                <h1 class="page-title">Comprehensive Dashboard</h1>
-                <p class="page-subtitle">View all reports (Orders, Inventory, Revenue) in one unified view.</p>
-            </div>
 
             <div id="alert-container"></div>
 
-            <div class="card">
-                <div
-                    style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border);">
-                    <div style="display: flex; align-items: center; gap: 16px;">
-                        <div class="card-icon"><i class="ph-bold ph-squares-four"></i></div>
-                        <div>
-                            <h2 class="card-title" style="margin: 0; font-size: 18px;">All Reports</h2>
-                            <p style="color: var(--text-sub); font-size: 14px; margin: 4px 0 0 0;">Get a complete
-                                overview of your store's performance.</p>
-                        </div>
-                    </div>
-                    <button class="card-btn" onclick="loadDashboard()" id="load-btn"
-                        style="width: auto; padding: 10px 20px;">
-                        <span id="load-btn-text">Load All Reports</span>
-                        <i class="ph-bold ph-arrows-clockwise"></i>
+            <!-- Automation Center (Hero) -->
+            <div class="card"
+                style="padding: 40px; text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow-lg);">
+                <div class="status-badge status-active" style="margin-bottom: 24px;">
+                    <i class="ph-bold ph-pulse"></i> Systems Active
+                </div>
+
+                <h1 style="font-size: 32px; font-weight: 700; color: var(--text-main); margin-bottom: 12px;">
+                    Automation Center
+                </h1>
+                <p style="font-size: 16px; color: var(--text-sub); max-width: 600px; margin: 0 auto 40px;">
+                    Your store is being monitored. Scheduled reports are running.
+                </p>
+
+                <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+                    <button onclick="triggerSOS()" id="sos-btn" class="card-btn sos-btn"
+                        style="width: auto; font-size: 16px; padding: 14px 28px; display: inline-flex; align-items: center; gap: 10px;">
+                        <i class="ph-bold ph-lightning"></i> Send Instant SOS Report
+                    </button>
+
+                    <button onclick="openPage('/features/scheduled-reports')" class="card-btn"
+                        style="width: auto; font-size: 16px; padding: 14px 28px; background: white; color: var(--text-main); border: 1px solid var(--border);">
+                        <i class="ph-bold ph-calendar-check"></i> Configure Schedule
                     </button>
                 </div>
 
-                <div id="dashboard-content">
-                    <div style="text-align: center; padding: 60px 20px; color: var(--text-sub);">
-                        <i class="ph-duotone ph-chart-polar"
-                            style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
-                        <p style="font-size: 16px; margin-bottom: 8px; font-weight: 500; color: var(--text-main);">Ready
-                            to view your comprehensive dashboard</p>
-                        <p style="font-size: 14px;">Click "Load All Reports" to fetch orders, inventory, and revenue
-                            data.</p>
+                <p
+                    style="font-size: 13px; color: var(--text-sub); margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <i class="ph-bold ph-info"></i> SOS Report sends a comprehensive snapshot to your email immediately.
+                </p>
+            </div>
+
+            <!-- Manual Inspection Section -->
+            <div style="margin-top: 40px;">
+                <h3
+                    style="font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                    <i class="ph-bold ph-eye"></i> Manual Verification
+                </h3>
+
+                <div class="card">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px;">
+                        <div>
+                            <h4 style="margin: 0; font-size: 16px;">Live Dashboard</h4>
+                            <p style="margin: 4px 0 0; color: var(--text-sub); font-size: 14px;">Manually load current
+                                data for on-screen inspection.</p>
+                        </div>
+                        <button class="card-btn" onclick="loadDashboard()" id="load-btn"
+                            style="width: auto; padding: 10px 20px;">
+                            <span id="load-btn-text">Load Live Data</span>
+                            <i class="ph-bold ph-arrows-clockwise"></i>
+                        </button>
+                    </div>
+
+                    <div id="dashboard-content">
+                        <div style="text-align: center; padding: 40px 20px; color: var(--text-sub);">
+                            <i class="ph-duotone ph-chart-polar"
+                                style="font-size: 40px; margin-bottom: 16px; opacity: 0.5;"></i>
+                            <p style="font-size: 15px;">Data is hidden to keep your workspace clean.</p>
+                            <p style="font-size: 14px;">Click "Load Live Data" to inspect.</p>
+                        </div>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -83,12 +204,11 @@
         function showAlert(message, type) {
             const container = document.getElementById('alert-container');
             const alert = document.createElement('div');
-            // Using updated styles
             alert.style.cssText = type === 'success'
-                ? 'padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; display: flex; align-items: center; gap: 12px;'
+                ? 'padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm);'
                 : type === 'error'
-                    ? 'padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; display: flex; align-items: center; gap: 12px;'
-                    : 'padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; display: flex; align-items: center; gap: 12px;';
+                    ? 'padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm);'
+                    : 'padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm);';
 
             let icon = '<i class="ph-bold ph-info"></i>';
             if (type === 'success') icon = '<i class="ph-bold ph-check-circle"></i>';
@@ -97,9 +217,38 @@
             alert.innerHTML = icon + '<span>' + message + '</span>';
             container.innerHTML = '';
             container.appendChild(alert);
-            setTimeout(() => alert.remove(), 5000);
+            // Scroll if needed, but not too aggressively
         }
 
+        async function triggerSOS() {
+            const btn = document.getElementById('sos-btn');
+            const originalHTML = btn.innerHTML;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i> Sending...';
+
+            try {
+                const response = await fetch('/features/api/trigger-report-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ report_type: 'all' })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('SOS Request Received: Check your email for the report.', 'success');
+                } else {
+                    showAlert(data.error || 'Failed to send SOS report.', 'error');
+                }
+            } catch (e) {
+                showAlert('Communication error. Please try again.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        }
+
+        // Reuse existing dashboard logic for manual load
         function renderReportSection(title, data, isError) {
             if (!data) return '';
 
@@ -108,7 +257,6 @@
                     <div style="padding: 20px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; margin-bottom: 24px;">
                         <h3 style="color: #991b1b; margin-bottom: 8px; font-size: 16px; font-weight: 600;">${title}</h3>
                         <p style="color: #7f1d1d; margin-bottom: 12px; font-size: 14px;">${data.error || data.message || 'Error loading data'}</p>
-                        ${data.action === 'reconnect_store' ? '<a href="/settings/shopify" style="color: var(--primary); text-decoration: underline; font-weight: 500;">Reconnect Store →</a>' : ''}
                     </div>
                 `;
             }
@@ -116,7 +264,7 @@
             const html = data.message || data.html || JSON.stringify(data, null, 2);
             return `
                 <div style="margin-bottom: 32px;">
-                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
                         ${title}
                     </h3>
                     <div style="background: #fafafa; border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto;">
@@ -130,12 +278,11 @@
             const content = document.getElementById('dashboard-content');
             const btn = document.getElementById('load-btn');
             const btnText = document.getElementById('load-btn-text');
-            const originalIcon = btn.querySelector('i').className;
 
             content.innerHTML = `
                 <div style="text-align: center; padding: 60px 20px;">
                     <i class="ph-duotone ph-spinner ph-spin" style="font-size: 32px; color: var(--primary); margin-bottom: 16px;"></i>
-                    <p style="color: var(--text-sub);">Loading comprehensive report data...</p>
+                    <p style="color: var(--text-sub);">Fetching live store data...</p>
                 </div>`;
 
             btn.disabled = true;
@@ -143,68 +290,38 @@
             btn.querySelector('i').className = 'ph-bold ph-spinner ph-spin';
 
             try {
-                const response = await fetch('/api/dashboard/comprehensive');
+                const response = await fetch('/features/api/dashboard/comprehensive');
                 const data = await response.json();
 
                 if (data.success || (data.orders || data.inventory || data.revenue)) {
                     let html = '';
 
-                    if (data.orders) {
-                        html += renderReportSection('<i class="ph-bold ph-package"></i> Orders Report', data.orders, false);
-                    }
-                    if (data.inventory) {
-                        html += renderReportSection('<i class="ph-bold ph-clipboard-text"></i> Inventory Report', data.inventory, false);
-                    }
-                    if (data.revenue) {
-                        html += renderReportSection('<i class="ph-bold ph-chart-bar"></i> Revenue Report', data.revenue, false);
-                    }
+                    if (data.orders) html += renderReportSection('Orders', data.orders, false);
+                    if (data.inventory) html += renderReportSection('Inventory', data.inventory, false);
+                    if (data.revenue) html += renderReportSection('Revenue', data.revenue, false);
 
                     if (data.errors && data.errors.length > 0) {
                         data.errors.forEach(error => {
-                            let icon = '<i class="ph-bold ph-warning"></i> ';
-                            html += renderReportSection(
-                                icon + error.type.charAt(0).toUpperCase() + error.type.slice(1) + ' Error',
-                                { error: error.error, action: error.action },
-                                true
-                            );
+                            html += renderReportSection(error.type + ' Error', { error: error.error }, true);
                         });
                     }
 
-                    if (!html) {
-                        html = '<p style="color: var(--text-sub); text-align: center; padding: 40px;">No data available. Please try again.</p>';
-                    }
-
+                    if (!html) html = '<p style="text-align:center; padding:20px;">No data available.</p>';
                     content.innerHTML = html;
 
-                    if (data.errors && data.errors.length > 0) {
-                        showAlert('Some reports failed to load. Please check the errors below.', 'error');
-                    } else {
-                        showAlert('All reports loaded successfully!', 'success');
-                    }
+                    if (!data.errors || data.errors.length === 0) showAlert('Live data loaded.', 'success');
+                    else showAlert('Data loaded with some errors.', 'error');
                 } else {
                     const errorMsg = data.error || 'Failed to load dashboard';
-                    content.innerHTML = `
-                         <div style="text-align: center; padding: 40px; color: var(--text-sub);">
-                            <i class="ph-duotone ph-warning-circle" style="font-size: 32px; margin-bottom: 16px; opacity: 0.5;"></i>
-                            <p style="color: #ef4444; margin-bottom: 16px;">${errorMsg}</p>
-                            <button class="nav-btn" onclick="loadDashboard()">Try Again</button>
-                        </div>
-                    `;
+                    content.innerHTML = `<p style="text-align:center; color:red; padding:20px;">${errorMsg}</p>`;
                     showAlert(errorMsg, 'error');
                 }
             } catch (error) {
-                content.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: var(--text-sub);">
-                        <i class="ph-duotone ph-wifi-slash" style="font-size: 32px; margin-bottom: 16px; opacity: 0.5;"></i>
-                        <p style="color: #ef4444; margin-bottom: 8px;">Error loading dashboard</p>
-                        <p style="font-size: 13px; margin-bottom: 16px;">${error.message}</p>
-                        <button class="nav-btn" onclick="loadDashboard()">Try Again</button>
-                    </div>
-                `;
-                showAlert('Error loading dashboard. Please try again.', 'error');
+                content.innerHTML = `<p style="text-align:center; color:red; padding:20px;">Connection Error</p>`;
+                showAlert('Error loading dashboard.', 'error');
             } finally {
                 btn.disabled = false;
-                btnText.textContent = 'Reload All Reports';
+                btnText.textContent = 'Reload Live Data';
                 btn.querySelector('i').className = 'ph-bold ph-arrows-clockwise';
             }
         }
