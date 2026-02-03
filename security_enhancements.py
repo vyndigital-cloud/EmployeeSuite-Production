@@ -109,32 +109,19 @@ def add_security_headers(response):
         or "shopify" in request.path.lower()
     )
 
-    # NUCLEAR OPTION: ALWAYS allow iframes for ANY route that could be accessed from Shopify
-    # This eliminates all edge cases and detection failures
-    # For embedded apps, it's safer to be too permissive than too restrictive
-    if not is_embedded and (is_shopify_referer or is_shopify_route):
-        is_embedded = True  # Allow iframe for CSP
-        logger.info(
-            f"🔓 IFRAME ALLOWED (fallback): path={request.path}, referer={bool(is_shopify_referer)}, route={bool(is_shopify_route)}"
-        )
+    # Determine if this should be embedded based on explicit indicators only
+    # Remove the "nuclear option" - be more restrictive
+    is_embedded = False
 
-    # CRITICAL: Root route `/` is ALWAYS embedded when accessed from Shopify
-    # Always allow iframe for root route to prevent blocking on initial load
-    if request.path == "/" and not is_embedded:
+    # Check for explicit Shopify embedding indicators
+    if request.args.get("embedded") == "1" or request.args.get("host"):
         is_embedded = True
-        logger.info(f"🔓 IFRAME ALLOWED (root route): path={request.path}")
-
-    # NUCLEAR FIX: If we're in production and this is ANY route that could be Shopify-related,
-    # always allow iframe embedding. This prevents all false negatives.
-    # Only block if we're CERTAIN this is standalone (has explicit standalone flag)
-    if os.getenv("ENVIRONMENT") == "production":
-        # Allow iframe unless explicitly marked as standalone-only
-        # Check for explicit standalone indicator (very rare)
-        is_explicit_standalone = request.args.get("standalone") == "true"
-        if not is_explicit_standalone and not is_embedded:
-            # In production, default to allowing iframe (safer for Shopify apps)
-            is_embedded = True
-            logger.info(f"🔓 IFRAME ALLOWED (production default): path={request.path}")
+    elif shop and (request.args.get("shop") or request.headers.get("X-Shopify-Shop-Domain")):
+        # Only allow if we have a verified shop parameter
+        is_embedded = True
+    elif request.path.startswith("/auth/callback") and "myshopify.com" in request.headers.get("Referer", ""):
+        # OAuth callback from Shopify
+        is_embedded = True
 
     # REMOVED X-Frame-Options entirely for embedded - rely ONLY on CSP frame-ancestors
     # X-Frame-Options is too rigid and causes issues with embedded apps
@@ -148,45 +135,32 @@ def add_security_headers(response):
         shop = request.args.get("shop") or request.args.get("shop_domain") or ""
         shop_clean = ""
 
-        # Build frame-ancestors directive - be VERY permissive to avoid blocking
-        # Include ALL possible Shopify domains
-        frame_ancestors_parts = [
-            "https://admin.shopify.com",
-            "https://*.admin.shopify.com",
-            "https://*.myshopify.com",
-            "https://shopify.com",
-            "https://*.shopify.com",
-        ]
-
-        # Add specific shop domain if we have it (most reliable)
+        # Build frame-ancestors directive - only include verified shop domain
         if shop:
-            # Shop is already cleaned above
-            if shop.endswith(".myshopify.com"):
-                frame_ancestors_parts.insert(
-                    1, f"https://{shop}"
-                )  # Insert early for priority
-
-        # Remove duplicates while preserving order
-        seen = set()
-        unique_parts = []
-        for part in frame_ancestors_parts:
-            if part not in seen:
-                seen.add(part)
-                unique_parts.append(part)
-
-        frame_ancestors = "frame-ancestors " + " ".join(unique_parts) + "; "
-
-        # Log for debugging
-        has_shop_param = "shop" in request.args
-        has_host_param = "host" in request.args
-        shop_display = shop if shop else "none"
-        logger.info(
-            f"🔓 ALLOWING IFRAME: path={request.path}, shop={shop_display}, host={has_host_param}, domains={len(unique_parts)}"
-        )
+            frame_ancestors_parts = [
+                "https://admin.shopify.com",
+                f"https://{shop}",  # Specific shop domain
+                "https://*.admin.shopify.com"
+            ]
+            
+            # Only add generic Shopify domains if we can't determine specific shop
+            if not shop.endswith(".myshopify.com"):
+                frame_ancestors_parts.extend([
+                    "https://*.myshopify.com",
+                    "https://shopify.com"
+                ])
+            
+            frame_ancestors = "frame-ancestors " + " ".join(frame_ancestors_parts) + "; "
+            
+            logger.info(f"🔓 IFRAME ALLOWED (verified): path={request.path}, shop={shop}")
+        else:
+            frame_ancestors = "frame-ancestors 'none'; "
+            logger.warning(f"🔒 IFRAME BLOCKED (no shop verification): path={request.path}")
     else:
-        # Regular pages - prevent ALL iframe embedding via CSP only
+        # Strict no-iframe policy
         frame_ancestors = "frame-ancestors 'none'; "
-        # DO NOT set X-Frame-Options - let CSP handle it
+        if is_embedded:
+            logger.warning(f"🔒 IFRAME BLOCKED (no shop verification): path={request.path}")
 
     # Prevent MIME type sniffing
     response.headers["X-Content-Type-Options"] = "nosniff"

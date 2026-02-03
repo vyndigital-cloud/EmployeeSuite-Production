@@ -47,11 +47,6 @@ class SimpleCSRFManager:
 
     def _setup_csrf_context(self):
         """Setup CSRF context for current request"""
-        # Skip CSRF for certain routes
-        if self._should_skip_csrf():
-            g.csrf_exempt = True
-            return
-
         # Generate token for session if needed
         if "csrf_token" not in session:
             session["csrf_token"] = self.generate_token()
@@ -205,10 +200,6 @@ def require_csrf(f):
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Skip if already marked as exempt
-        if getattr(g, "csrf_exempt", False):
-            return f(*args, **kwargs)
-
         # Skip if CSRF is disabled
         if not csrf_manager.app.config.get("CSRF_ENABLED", True):
             return f(*args, **kwargs)
@@ -243,7 +234,13 @@ def csrf_exempt(f):
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        g.csrf_exempt = True
+        # Only allow CSRF exemption for webhook endpoints with HMAC verification
+        if not (request.path.startswith("/webhooks/") or request.path.startswith("/webhook/")):
+            logger.warning(f"CSRF exemption attempted on non-webhook route: {request.path}")
+            # Don't exempt - let CSRF validation proceed
+            pass
+        else:
+            g.csrf_exempt = True
         return f(*args, **kwargs)
 
     return decorated_function
