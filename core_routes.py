@@ -49,8 +49,7 @@ def require_access(f):
     return decorated_function
 
 
-# Deferred imports - moved inside functions to speed up startup
-# from models import ShopifyStore, User, db
+# Deferred imports moved inside functions for faster startup
 from session_token_verification import get_shop_from_session_token
 from utils import safe_redirect
 
@@ -88,14 +87,13 @@ def scaling_status():
 
 
 def get_authenticated_user():
-    """Get authenticated user - with deferred imports"""
-    # Import only when needed to speed up startup
-    from models import ShopifyStore, User, db
-
     """
     Get authenticated user from either Flask-Login or Shopify session token.
     Returns (user, error_response) tuple. If user is None, error_response contains the error.
+    Uses deferred imports for faster startup.
     """
+    # Import only when needed to speed up startup
+    from models import ShopifyStore, User, db
     # Try Flask-Login first (for standalone access)
     if current_user.is_authenticated:
         logger.debug(f"User authenticated via Flask-Login: {current_user.id}")
@@ -202,11 +200,17 @@ def get_authenticated_user():
                 except Exception as rollback_error:
                     logger.error(f"Database rollback failed: {rollback_error}")
                 finally:
-                    # FIXED: Add proper session cleanup
+                    # Enhanced session cleanup with context management
                     try:
                         db.session.remove()
                     except Exception as remove_error:
                         logger.error(f"Failed to remove database session: {remove_error}")
+                    finally:
+                        # Ensure session is always cleaned up
+                        try:
+                            db.session.close()
+                        except Exception:
+                            pass
 
                 return None, (
                     jsonify(

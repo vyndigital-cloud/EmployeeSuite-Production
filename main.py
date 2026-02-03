@@ -28,14 +28,27 @@ except ImportError as e:
     logger.error(f"Error logging import failed: {e}")
     # Create a fallback error logger
     class FallbackErrorLogger:
-        def log_error(self, error, error_type="GENERAL"):
+        def __init__(self):
+            self.errors = []
+        
+        def log_error(self, error, error_type="GENERAL", additional_context=None):
+            error_entry = {
+                'timestamp': datetime.now().isoformat(),
+                'error': str(error),
+                'type': error_type,
+                'context': additional_context
+            }
+            self.errors.append(error_entry)
             logger.error(f"[{error_type}] {str(error)}")
+            
         def log_user_action(self, action, user_id=None, details=None):
             logger.info(f"User Action: {action}")
+            
         def log_system_event(self, event, details=None):
             logger.info(f"System Event: {event}")
+            
         def get_recent_errors(self, count=50):
-            return []
+            return self.errors[-count:] if self.errors else []
     
     error_logger = FallbackErrorLogger()
     
