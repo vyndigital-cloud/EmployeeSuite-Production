@@ -1171,75 +1171,305 @@ def api_analytics_forecast():
         return jsonify({"error": "Failed to generate forecast", "success": False}), 500
 
 
+@core_bp.route("/api/dashboard/comprehensive", methods=["GET"])
+@verify_session_token
+def api_comprehensive_dashboard():
+    """Comprehensive dashboard API - all reports in one"""
+    try:
+        user, error_response = get_authenticated_user()
+        if error_response:
+            return error_response
+
+        if not user.has_access():
+            return jsonify({
+                "success": False,
+                "error": "Subscription required",
+                "action": "subscribe"
+            }), 403
+
+        result = {"success": True, "errors": []}
+        
+        # Try to get orders
+        try:
+            from order_processing import process_orders
+            orders_result = process_orders(user_id=user.id)
+            if orders_result.get("success"):
+                result["orders"] = orders_result
+            else:
+                result["errors"].append({
+                    "type": "orders",
+                    "error": orders_result.get("error", "Failed to load orders"),
+                    "action": orders_result.get("action")
+                })
+        except Exception as e:
+            result["errors"].append({
+                "type": "orders", 
+                "error": str(e),
+                "action": "retry"
+            })
+
+        # Try to get inventory
+        try:
+            from inventory import update_inventory
+            inventory_result = update_inventory(user_id=user.id)
+            if inventory_result.get("success"):
+                result["inventory"] = inventory_result
+            else:
+                result["errors"].append({
+                    "type": "inventory",
+                    "error": inventory_result.get("error", "Failed to load inventory"),
+                    "action": inventory_result.get("action")
+                })
+        except Exception as e:
+            result["errors"].append({
+                "type": "inventory",
+                "error": str(e), 
+                "action": "retry"
+            })
+
+        # Try to get revenue
+        try:
+            from reporting import generate_report
+            revenue_result = generate_report(user_id=user.id)
+            if revenue_result.get("success"):
+                result["revenue"] = revenue_result
+            else:
+                result["errors"].append({
+                    "type": "revenue",
+                    "error": revenue_result.get("error", "Failed to load revenue"),
+                    "action": revenue_result.get("action")
+                })
+        except Exception as e:
+            result["errors"].append({
+                "type": "revenue",
+                "error": str(e),
+                "action": "retry"
+            })
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error in comprehensive dashboard: {e}")
+        return jsonify({
+            "success": False,
+            "error": "Failed to load dashboard data",
+            "action": "retry"
+        }), 500
+
+
+@core_bp.route("/api/scheduled-reports", methods=["GET"])
+@verify_session_token  
+def api_list_scheduled_reports():
+    """List user's scheduled reports"""
+    try:
+        user, error_response = get_authenticated_user()
+        if error_response:
+            return error_response
+
+        if not user.has_access():
+            return jsonify({
+                "success": False,
+                "error": "Subscription required", 
+                "action": "subscribe"
+            }), 403
+
+        try:
+            from enhanced_models import ScheduledReport
+            
+            reports = ScheduledReport.query.filter_by(
+                user_id=user.id,
+                is_active=True
+            ).all()
+
+            reports_data = []
+            for report in reports:
+                reports_data.append({
+                    "id": report.id,
+                    "report_type": report.report_type,
+                    "frequency": report.frequency,
+                    "delivery_email": report.delivery_email,
+                    "delivery_time": getattr(report, 'delivery_time', '09:00'),
+                    "next_send_at": report.next_send_at.strftime('%Y-%m-%d %H:%M') if report.next_send_at else "Not scheduled"
+                })
+
+            return jsonify({"success": True, "reports": reports_data})
+            
+        except ImportError:
+            return jsonify({"success": True, "reports": []})
+
+    except Exception as e:
+        logger.error(f"Error listing scheduled reports: {e}")
+        return jsonify({"success": False, "error": "Failed to load reports"}), 500
+
+
+@core_bp.route("/api/scheduled-reports", methods=["POST"])
+@verify_session_token
+def api_create_scheduled_report():
+    """Create new scheduled report"""
+    try:
+        user, error_response = get_authenticated_user()
+        if error_response:
+            return error_response
+
+        if not user.has_access():
+            return jsonify({
+                "success": False,
+                "error": "Subscription required",
+                "action": "subscribe"
+            }), 403
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+
+        report_type = data.get("report_type")
+        frequency = data.get("frequency") 
+        delivery_email = data.get("delivery_email")
+        delivery_time = data.get("delivery_time", "09:00")
+
+        if not all([report_type, frequency, delivery_email]):
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+
+        try:
+            from enhanced_models import ScheduledReport
+
+            scheduled_report = ScheduledReport(
+                user_id=user.id,
+                report_type=report_type,
+                frequency=frequency,
+                delivery_email=delivery_email,
+                delivery_time=delivery_time,
+                is_active=True
+            )
+
+            scheduled_report.next_send_at = scheduled_report.calculate_next_send()
+
+            db.session.add(scheduled_report)
+            db.session.commit()
+
+            return jsonify({"success": True, "message": "Scheduled report created successfully"})
+            
+        except ImportError:
+            return jsonify({"success": False, "error": "Scheduled reports not available"}), 500
+
+    except Exception as e:
+        logger.error(f"Error creating scheduled report: {e}")
+        return jsonify({"success": False, "error": "Failed to create scheduled report"}), 500
+
+
+@core_bp.route("/api/scheduled-reports/<int:report_id>", methods=["DELETE"])
+@verify_session_token
+def api_delete_scheduled_report(report_id):
+    """Delete scheduled report"""
+    try:
+        user, error_response = get_authenticated_user()
+        if error_response:
+            return error_response
+
+        if not user.has_access():
+            return jsonify({
+                "success": False,
+                "error": "Subscription required",
+                "action": "subscribe"
+            }), 403
+
+        try:
+            from enhanced_models import ScheduledReport
+
+            report = ScheduledReport.query.filter_by(
+                id=report_id,
+                user_id=user.id
+            ).first()
+
+            if not report:
+                return jsonify({"success": False, "error": "Report not found"}), 404
+
+            report.is_active = False
+            db.session.commit()
+
+            return jsonify({"success": True, "message": "Scheduled report deleted successfully"})
+            
+        except ImportError:
+            return jsonify({"success": False, "error": "Scheduled reports not available"}), 500
+
+    except Exception as e:
+        logger.error(f"Error deleting scheduled report: {e}")
+        return jsonify({"success": False, "error": "Failed to delete scheduled report"}), 500
+
+
 # ---------------------------------------------------------------------------
 # CSV Export Endpoints (legacy)
 # ---------------------------------------------------------------------------
 
 
-@core_bp.route("/api/export/inventory-simple", methods=["GET"])
-@login_required
+@core_bp.route("/api/export/inventory", methods=["GET"])
+@verify_session_token
 def export_inventory_csv():
-    # Add inline access check
-    if not current_user.has_access():
-        return jsonify({"error": "Subscription required", "success": False}), 403
+    """Export inventory as CSV with days parameter"""
     try:
-        from inventory import check_inventory
+        user, error_response = get_authenticated_user()
+        if error_response:
+            return error_response
 
-        inventory_data = session.get("inventory_data", [])
-        if not inventory_data:
-            result = check_inventory()
-            if result.get("success") and "inventory_data" in result:
-                inventory_data = result["inventory_data"]
-                session["inventory_data"] = inventory_data
+        if not user.has_access():
+            return jsonify({"error": "Subscription required", "success": False}), 403
 
-        if not inventory_data:
-            return "No inventory data available. Please check inventory first.", 404
+        days = request.args.get('days', '30')
 
+        from inventory import update_inventory
+        result = update_inventory(user_id=user.id, days=int(days))
+        
+        if not result.get("success"):
+            return jsonify(result), 500
+
+        inventory_data = result.get("inventory_data", [])
+        
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(["Product", "SKU", "Stock", "Price"])
         for item in inventory_data:
-            writer.writerow(
-                [
-                    item.get("product", "N/A"),
-                    item.get("sku", "N/A"),
-                    item.get("stock", 0),
-                    item.get("price", "N/A"),
-                ]
-            )
+            writer.writerow([
+                item.get("product", "N/A"),
+                item.get("sku", "N/A"),
+                item.get("stock", 0),
+                item.get("price", "N/A"),
+            ])
 
         return Response(
             output.getvalue(),
             mimetype="text/csv",
             headers={
-                "Content-Disposition": f"attachment; filename=inventory_{datetime.utcnow().strftime('%Y%m%d')}.csv"
+                "Content-Disposition": f"attachment; filename=inventory_export_{datetime.utcnow().strftime('%Y%m%d')}.csv"
             },
         )
     except Exception as e:
-        logger.error(f"Error exporting inventory CSV: {e}", exc_info=True)
+        logger.error(f"Error exporting inventory CSV: {e}")
         return jsonify({"error": f"Failed to export inventory: {e}"}), 500
 
 
 @core_bp.route("/api/export/orders", methods=["GET"])
-@login_required
+@verify_session_token
 def export_orders_csv():
-    # Add inline access check
-    if not current_user.has_access():
-        return jsonify({"error": "Subscription required", "success": False}), 403
+    """Export orders as CSV with date filtering"""
     try:
+        user, error_response = get_authenticated_user()
+        if error_response:
+            return error_response
+
+        if not user.has_access():
+            return jsonify({"error": "Subscription required", "success": False}), 403
+
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+
         from order_processing import process_orders
+        result = process_orders(user_id=user.id, start_date=start_date, end_date=end_date)
+        
+        if not result.get("success"):
+            return jsonify(result), 500
 
-        # Try to get cached orders data first
-        orders_data = session.get("orders_data", [])
-        if not orders_data:
-            result = process_orders(user_id=current_user.id)
-            if result.get("success") and "orders_data" in result:
-                orders_data = result["orders_data"]
-                session["orders_data"] = orders_data
-
-        if not orders_data:
-            return "No orders data available. Please process orders first.", 404
-
+        orders_data = result.get("orders_data", [])
+        
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(["Order ID", "Customer", "Total", "Items", "Status", "Date"])
@@ -1247,72 +1477,76 @@ def export_orders_csv():
         for order in orders_data:
             writer.writerow([
                 order.get("id", "N/A"),
-                order.get("customer", "N/A"),
+                order.get("customer", "N/A"), 
                 order.get("total", "N/A"),
                 order.get("items", 0),
                 order.get("status", "N/A"),
-                datetime.utcnow().strftime('%Y-%m-%d')
+                order.get("date", datetime.utcnow().strftime('%Y-%m-%d'))
             ])
 
         return Response(
             output.getvalue(),
             mimetype="text/csv",
             headers={
-                "Content-Disposition": f"attachment; filename=orders_{datetime.utcnow().strftime('%Y%m%d')}.csv"
+                "Content-Disposition": f"attachment; filename=orders_export_{datetime.utcnow().strftime('%Y%m%d')}.csv"
             },
         )
+
     except Exception as e:
-        logger.error(f"Error exporting orders CSV: {e}", exc_info=True)
+        logger.error(f"Error exporting orders CSV: {e}")
         return jsonify({"error": f"Failed to export orders: {e}"}), 500
 
 
-@core_bp.route("/api/export/report", methods=["GET"])
-@login_required
-@require_access
-def export_report_csv():
+@core_bp.route("/api/export/revenue", methods=["GET"])
+@verify_session_token
+def export_revenue_csv():
+    """Export revenue as CSV with date filtering"""
     try:
+        user, error_response = get_authenticated_user()
+        if error_response:
+            return error_response
+
+        if not user.has_access():
+            return jsonify({"error": "Subscription required", "success": False}), 403
+
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+
         from reporting import generate_report
+        result = generate_report(user_id=user.id, start_date=start_date, end_date=end_date)
+        
+        if not result.get("success"):
+            return jsonify(result), 500
 
-        report_data = session.get("report_data", {})
-        if not report_data:
-            data = generate_report()
-            if data.get("success") and "report_data" in data:
-                report_data = data["report_data"]
-
-        if not report_data or "products" not in report_data:
-            return "No report data available. Please generate report first.", 404
-
+        report_data = result.get("report_data", {})
+        
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(
-            ["Product", "Revenue", "Percentage", "Total Revenue", "Total Orders"]
-        )
+        writer.writerow(["Product", "Revenue", "Percentage", "Total Revenue", "Total Orders"])
 
         total_revenue = report_data.get("total_revenue", 0)
         total_orders = report_data.get("total_orders", 0)
 
         for product, revenue in report_data.get("products", [])[:10]:
             percentage = (revenue / total_revenue * 100) if total_revenue > 0 else 0
-            writer.writerow(
-                [
-                    product,
-                    f"${revenue:,.2f}",
-                    f"{percentage:.1f}%",
-                    f"${total_revenue:,.2f}",
-                    total_orders,
-                ]
-            )
+            writer.writerow([
+                product,
+                f"${revenue:,.2f}",
+                f"{percentage:.1f}%",
+                f"${total_revenue:,.2f}",
+                total_orders,
+            ])
 
         return Response(
             output.getvalue(),
             mimetype="text/csv",
             headers={
-                "Content-Disposition": f"attachment; filename=revenue_report_{datetime.utcnow().strftime('%Y%m%d')}.csv"
+                "Content-Disposition": f"attachment; filename=revenue_export_{datetime.utcnow().strftime('%Y%m%d')}.csv"
             },
         )
     except Exception as e:
-        logger.error(f"Error exporting report CSV: {e}", exc_info=True)
-        return f"Error exporting CSV: {e}", 500
+        logger.error(f"Error exporting revenue CSV: {e}")
+        return jsonify({"error": f"Failed to export revenue: {e}"}), 500
 
 
 @core_bp.route("/features/csv-exports")
