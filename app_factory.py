@@ -33,26 +33,62 @@ def create_app():
         from models import User
         return User.query.get(int(user_id))
     
-    # Register blueprints
-    from core_routes import core_bp
-    from auth import auth_bp
-    from shopify_oauth import oauth_bp
-    from shopify_routes import shopify_bp
-    from billing import billing_bp
-    from features_pages import features_pages_bp
-    from legal_routes import legal_bp
-    from gdpr_compliance import gdpr_bp
-    from webhook_shopify import webhook_shopify_bp
+    # Setup basic logging first
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    app.logger.setLevel(logging.INFO)
     
-    app.register_blueprint(core_bp)
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(oauth_bp)
-    app.register_blueprint(shopify_bp)
-    app.register_blueprint(billing_bp)
-    app.register_blueprint(features_pages_bp)
-    app.register_blueprint(legal_bp)
-    app.register_blueprint(gdpr_bp)
-    app.register_blueprint(webhook_shopify_bp)
+    # Register blueprints (with error handling for missing blueprints)
+    blueprints_to_register = [
+        ('core_routes', 'core_bp'),
+        ('auth', 'auth_bp'), 
+        ('shopify_oauth', 'oauth_bp'),
+        ('shopify_routes', 'shopify_bp'),
+        ('billing', 'billing_bp'),
+        ('features_pages', 'features_pages_bp'),
+        ('legal_routes', 'legal_bp'),
+        ('gdpr_compliance', 'gdpr_bp'),
+        ('webhook_shopify', 'webhook_shopify_bp'),
+    ]
+    
+    registered_blueprints = []
+    failed_blueprints = []
+    
+    for module_name, blueprint_name in blueprints_to_register:
+        try:
+            module = __import__(module_name)
+            blueprint = getattr(module, blueprint_name)
+            app.register_blueprint(blueprint)
+            registered_blueprints.append(blueprint_name)
+            app.logger.info(f"✅ Registered blueprint: {blueprint_name}")
+        except (ImportError, AttributeError) as e:
+            failed_blueprints.append(f"{blueprint_name}: {str(e)}")
+            app.logger.warning(f"❌ Could not register blueprint {blueprint_name} from {module_name}: {e}")
+    
+    app.logger.info(f"Blueprint registration complete: {len(registered_blueprints)} successful, {len(failed_blueprints)} failed")
+    
+    if failed_blueprints:
+        app.logger.warning(f"Failed blueprints: {failed_blueprints}")
+    
+    # Add basic error handlers
+    @app.errorhandler(500)
+    def internal_error(error):
+        app.logger.error(f"Internal Server Error: {error}")
+        from flask import jsonify
+        from datetime import datetime
+        return jsonify({
+            'error': 'Internal Server Error',
+            'message': 'Error has been logged and will be investigated',
+            'error_id': datetime.now().strftime('%Y%m%d_%H%M%S')
+        }), 500
+    
+    @app.errorhandler(404)
+    def not_found_error(error):
+        from flask import jsonify
+        return jsonify({
+            'error': 'Not Found',
+            'message': 'The requested resource was not found'
+        }), 404
     
     return app
 
