@@ -531,7 +531,7 @@
         <script>
             // Fetch AI Forecast - Only if subscribed
             document.addEventListener('DOMContentLoaded', function () {
-                var isSubscribed = {{ "true" if is_subscribed else "false" }
+                var isSubscribed = {{ "true" if is_subscribed else "false" }}
             };
             if (!isSubscribed) return;
 
