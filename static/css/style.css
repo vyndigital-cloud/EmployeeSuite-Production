@@ -491,3 +491,103 @@ body::before {
         padding: 0 1rem;
     }
 }
+
+/* Inventory Status Styles */
+.output-card {
+    background: white;
+    padding: 0;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.output-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fcfcfc;
+}
+
+.output-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.inventory-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.inventory-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+}
+
+.inventory-item:last-child {
+    border-bottom: none;
+}
+
+.inventory-item:hover {
+    background: var(--bg-page);
+}
+
+.inventory-info {
+    flex: 1;
+}
+
+.product-name {
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+}
+
+.price-text {
+    font-size: 0.85rem;
+    color: var(--text-sub);
+}
+
+.inventory-stock {
+    text-align: right;
+    min-width: 120px;
+}
+
+.stock-count {
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+}
+
+.stock-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: #e1e3e5;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.stock-bar-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 3px;
+    transition: width 0.5s ease-out;
+}
+
+.badge-Z {
+    background: #fff4f4;
+    color: #d72c0d;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid #fecaca;
+}
