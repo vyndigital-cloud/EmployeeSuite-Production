@@ -53,6 +53,16 @@ def require_access(f):
 from utils import safe_redirect
 
 
+@core_bp.route("/admin")
+def admin_dashboard():
+    """Admin dashboard - redirect to scaling status for now"""
+    if os.getenv("ENVIRONMENT") != "production":
+        return jsonify({"error": "Only available in production"}), 403
+    
+    # For now, redirect to the scaling status page
+    return redirect(url_for('core.scaling_status'))
+
+
 @core_bp.route("/admin/scaling-status")
 def scaling_status():
     """Admin dashboard for scaling status"""
