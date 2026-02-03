@@ -58,12 +58,19 @@ except ImportError as e:
 os.environ.setdefault("ENVIRONMENT", "production")
 os.environ.setdefault("PYTHONUNBUFFERED", "1")
 
+# Add environment validation
+required_env_vars = ['SHOPIFY_API_KEY', 'SHOPIFY_API_SECRET', 'SECRET_KEY']
+missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+if missing_vars:
+    logger.warning(f"Missing environment variables: {missing_vars}")
+    logger.warning("App may not function properly without these variables")
+
 
 try:
-    logger.info("Attempting to create app via startup.create_app()")
-    from startup import create_app
+    logger.info("Attempting to create app via app_factory.create_app()")
+    from app_factory import create_app
     app = create_app()
-    logger.info("App created successfully via startup")
+    logger.info("App created successfully via app_factory")
 
     # Enhanced error handlers
     @app.errorhandler(500)
@@ -167,11 +174,14 @@ except Exception as startup_error:
         })
     except Exception as factory_error:
         error_logger.log_error(factory_error, "FACTORY_ERROR")
+        logger.error(f"App factory failed: {factory_error}")
 
         # Ultimate fallback
         logger.info("Using ultimate fallback Flask app")
         from flask import Flask, jsonify
         app = Flask(__name__)
+        
+        app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'fallback-secret-key')
         
         error_logger.log_system_event("APP_STARTUP_ULTIMATE_FALLBACK")
         

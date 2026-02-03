@@ -8,6 +8,8 @@ from flask import Flask
 def create_app():
     """Create simple Flask app"""
     app = Flask(__name__)
+    app.static_folder = 'static'
+    app.static_url_path = '/static'
     
     # Basic config
     app.config.update({
