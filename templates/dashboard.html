@@ -688,7 +688,7 @@
                         style="font-size: 40px; font-weight: 800; color: {% if quick_stats.low_stock_items > 0 %}#dc2626{% else %}#16a34a{% endif %}; line-height: 1; margin-bottom: 8px;">
                         {{ quick_stats.low_stock_items or 0 }}
                     </div>
-                    <div style="font-size: 13px; color: #737373">
+                    <div style="font-size: 13px; color: #737373;">
                         {% if quick_stats.low_stock_items > 0 %}Need restocking{% else %}All good{% endif %}
                     </div>
                 </div>
@@ -1799,9 +1799,9 @@
             style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Refresh
             Page</button>';
         } else if (d.action === 'subscribe' && d.subscribe_url) {
-        errorHtml += '<a href="' + d.subscribe_url + '"
-            style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Subscribe
-            Now</a>';
+            errorHtml += '<a href="' + d.subscribe_url + '"
+                style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Subscribe
+                Now</a>';
         } else if (d.action === 'install') {
         errorHtml += '<a href="/settings/shopify"
             style="display: inline-block; padding: 8px 16px; background: #008060; color: #fff; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none;">Connect
@@ -1817,28 +1817,28 @@
             }
         }
         if (!errorHtml.includes('</div>')) errorHtml += '</div>';
-    document.getElementById('output').innerHTML = errorHtml;
-    }
+        document.getElementById('output').innerHTML = errorHtml;
+        }
     })
     .catch(err => {
-    // Don't show error if request was cancelled
-    if (err.name === 'AbortError') {
-    return;
-    }
+        // Don't show error if request was cancelled
+        if (err.name === 'AbortError') {
+            return;
+        }
 
-    setButtonLoading(button, false);
-    activeRequests.updateInventory = null;
-    if (debounceTimers.updateInventory) {
-    clearTimeout(debounceTimers.updateInventory);
-    debounceTimers.updateInventory = null;
-    }
+        setButtonLoading(button, false);
+        activeRequests.updateInventory = null;
+        if (debounceTimers.updateInventory) {
+            clearTimeout(debounceTimers.updateInventory);
+            debounceTimers.updateInventory = null;
+        }
 
-    var errorMessage = 'Unable to connect to server. Please check your internet connection and try again.';
-    if (!isOnline) {
-    errorMessage = 'No internet connection. Please check your network and try again.';
-    }
+        var errorMessage = 'Unable to connect to server. Please check your internet connection and try again.';
+        if (!isOnline) {
+            errorMessage = 'No internet connection. Please check your network and try again.';
+        }
 
-    document.getElementById('output').innerHTML = `
+        document.getElementById('output').innerHTML = `
     <div
         style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
         <div style="font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 8px;">Connection Error</div>
@@ -1901,81 +1901,81 @@
 
     // Wait for App Bridge if available, but fall back to cookie auth if not
     if (isEmbedded && window.waitForAppBridge && typeof window.waitForAppBridge === 'function' &&
-    !window.appBridgeReady) {
-    window.waitForAppBridge().then(function (bridgeState) {
-    if (bridgeState && bridgeState.ready && bridgeState.app) {
-    window.shopifyApp = bridgeState.app;
-    window.appBridgeReady = true;
-    }
-    proceedWithApiCall();
-    }).catch(function (error) {
-    console.warn('App Bridge not available, using cookie auth fallback:', error.message);
-    proceedWithApiCall();
-    });
-    return;
+        !window.appBridgeReady) {
+        window.waitForAppBridge().then(function (bridgeState) {
+            if (bridgeState && bridgeState.ready && bridgeState.app) {
+                window.shopifyApp = bridgeState.app;
+                window.appBridgeReady = true;
+            }
+            proceedWithApiCall();
+        }).catch(function (error) {
+            console.warn('App Bridge not available, using cookie auth fallback:', error.message);
+            proceedWithApiCall();
+        });
+        return;
     }
     proceedWithApiCall();
 
     // Extract API call logic into function
     function proceedWithApiCall() {
-    // Build report URL with shop param
-    var reportUrl = '/api/generate_report';
-    if (window.SHOP_PARAM) {
-    reportUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
-    }
-    if (isEmbedded) {
-    reportUrl = APP_URL + reportUrl;
-    }
+        // Build report URL with shop param
+        var reportUrl = '/api/generate_report';
+        if (window.SHOP_PARAM) {
+            reportUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
+        }
+        if (isEmbedded) {
+            reportUrl = APP_URL + reportUrl;
+        }
 
-    // Use id_token from URL if available
-    if (window.ID_TOKEN) {
-    fetchPromise = fetch(reportUrl, {
-    headers: { 'Authorization': 'Bearer ' + window.ID_TOKEN },
-    signal: controller.signal,
-    credentials: 'include'
-    });
-    } else if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
-    // Try App Bridge token
-    fetchPromise = window.shopifyApp.getSessionToken().then(function (token) {
-    var headers = token ? { 'Authorization': 'Bearer ' + token } : {};
-    return fetch(reportUrl, {
-    headers: headers,
-    signal: controller.signal,
-    credentials: 'include'
-    });
-    }).catch(function (err) {
-    if (err.name === 'AbortError') return;
-    return fetch(reportUrl, {
-    signal: controller.signal,
-    credentials: 'include'
-    });
-    });
-    } else {
-    // No token - use shop param in URL
-    fetchPromise = fetch(reportUrl, {
-    signal: controller.signal,
-    credentials: 'include'
-    });
-    }
+        // Use id_token from URL if available
+        if (window.ID_TOKEN) {
+            fetchPromise = fetch(reportUrl, {
+                headers: { 'Authorization': 'Bearer ' + window.ID_TOKEN },
+                signal: controller.signal,
+                credentials: 'include'
+            });
+        } else if (isEmbedded && window.shopifyApp && window.appBridgeReady) {
+            // Try App Bridge token
+            fetchPromise = window.shopifyApp.getSessionToken().then(function (token) {
+                var headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+                return fetch(reportUrl, {
+                    headers: headers,
+                    signal: controller.signal,
+                    credentials: 'include'
+                });
+            }).catch(function (err) {
+                if (err.name === 'AbortError') return;
+                return fetch(reportUrl, {
+                    signal: controller.signal,
+                    credentials: 'include'
+                });
+            });
+        } else {
+            // No token - use shop param in URL
+            fetchPromise = fetch(reportUrl, {
+                signal: controller.signal,
+                credentials: 'include'
+            });
+        }
 
-    // Execute the Promise chain inside proceedWithApiCall so it runs in all code paths
-    fetchPromise
-    .then(r => r.json())
-    .then(d => {
-    // Check if request was cancelled
-    if (!d) return;
+        // Execute the Promise chain inside proceedWithApiCall so it runs in all code paths
+        fetchPromise
+        .then(r => r.json())
+        .then(d => {
+            // Check if request was cancelled
+            if (!d) return;
 
-    setButtonLoading(button, false);
-    activeRequests.generateReport = null;
-    if (debounceTimers.generateReport) {
-    clearTimeout(debounceTimers.generateReport);
-    debounceTimers.generateReport = null;
-    }
+            setButtonLoading(button, false);
+            activeRequests.generateReport = null;
+            if (debounceTimers.generateReport) {
+                clearTimeout(debounceTimers.generateReport);
+                debounceTimers.generateReport = null;
+            }
 
-    // Check if the response contains an error message (from backend)
-    if (d.success) {
-    const html = d.html || d.message || "Report generated successfully";
-    document.getElementById('output').innerHTML = `
+            // Check if the response contains an error message (from backend)
+            if (d.success) {
+                const html = d.html || d.message || "Report generated successfully";
+                document.getElementById('output').innerHTML = `
     <div style="animation: fadeIn 0.3s ease-in;">
         <h3 class="success" style="display: flex; align-items: center; gap: 8px;">
             <span>✅</span>
@@ -1996,41 +1996,41 @@
         ${error_message}</div>`;
     }
     }
-    })
-    .catch(err => {
-    // Don't show error if request was cancelled
-    if (err.name === 'AbortError') {
-    return;
-    }
+        })
+        .catch(err => {
+            // Don't show error if request was cancelled
+            if (err.name === 'AbortError') {
+                return;
+            }
 
-    setButtonLoading(button, false);
-    activeRequests.generateReport = null;
-    if (debounceTimers.generateReport) {
-    clearTimeout(debounceTimers.generateReport);
-    debounceTimers.generateReport = null;
-    }
+            setButtonLoading(button, false);
+            activeRequests.generateReport = null;
+            if (debounceTimers.generateReport) {
+                clearTimeout(debounceTimers.generateReport);
+                debounceTimers.generateReport = null;
+            }
 
-    // Try to parse JSON error message if it looks like one
-    let errorDisplayMessage = err.message;
-    let isJsonError = false;
-    try {
-    const jsonError = JSON.parse(err.message);
-    if (jsonError.error) {
-    errorDisplayMessage = jsonError.error;
-    isJsonError = true;
-    }
-    } catch (e) {
-    // Not JSON
-    }
+            // Try to parse JSON error message if it looks like one
+            let errorDisplayMessage = err.message;
+            let isJsonError = false;
+            try {
+                const jsonError = JSON.parse(err.message);
+                if (jsonError.error) {
+                    errorDisplayMessage = jsonError.error;
+                    isJsonError = true;
+                }
+            } catch (e) {
+                // Not JSON
+            }
 
-    // Check if error message is HTML (from backend)
-    if (err.message && (err.message.includes('Error Loading revenue') || err.message.includes('<div'))) {
-        // Backend error HTML - display as is
-        document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${err.message}</div>`;
-    } else if (isJsonError || (errorDisplayMessage && errorDisplayMessage.length < 200 &&
-        !errorDisplayMessage.includes('Unable to generate'))) {
-        // JSON error or short text error (likely from backend middleware)
-        document.getElementById('output').innerHTML = `<div
+            // Check if error message is HTML (from backend)
+            if (err.message && (err.message.includes('Error Loading revenue') || err.message.includes('<div'))) {
+                // Backend error HTML - display as is
+                document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${err.message}</div>`;
+            } else if (isJsonError || (errorDisplayMessage && errorDisplayMessage.length < 200 &&
+                !errorDisplayMessage.includes('Unable to generate'))) {
+                // JSON error or short text error (likely from backend middleware)
+                document.getElementById('output').innerHTML = `<div
             style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
             <div style="font-size: 15px; font-weight: 600; color: #b45309; margin-bottom: 8px;">Request Failed</div>
             <div style="font-size: 14px; color: #92400e; margin-bottom: 16px; line-height: 1.5;">${errorDisplayMessage}
