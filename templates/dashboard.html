@@ -244,206 +244,155 @@
             {% endif %} {% if has_shopify and quick_stats.has_data and
             is_subscribed %}
             <!-- PREMIUM: PROPRIETARY FORECASTING ENGINE ($99/mo Value) -->
-            <div id="executive-insights" class="executive-card">
-                <div class="executive-card-inner">
-                    <!-- Background decoration -->
-                    <div class="bg-decoration-1"></div>
-                    <div class="bg-decoration-2"></div>
 
-                    <div class="executive-content-wrapper">
-                        <div>
-                            <div class="ai-badge-container">
-                                <span class="ai-badge">AI Forecast</span>
-                                <span class="ai-subtitle">Inventory Intelligence</span>
-                            </div>
-                            <h2 class="executive-title">
-                                Stockout Risk Detected
-                            </h2>
-                            <p class="executive-description">
-                                Our predictive engine analyzed your recent sales
-                                velocity.
-                                <strong id="risk-count" style="color: white; font-weight: 600">-- items</strong>
-                                are projected to run out of stock within the
-                                next 7 days.
-                            </p>
-                        </div>
-                        <div class="revenue-loss-card">
-                            <div class="revenue-loss-label">
-                                Potential Revenue Loss
-                            </div>
-                            <div id="risk-revenue" class="revenue-loss-amount">
-                                --
-                            </div>
-                        </div>
+            {% endif %} {% if has_shopify and quick_stats.has_data and
+            is_subscribed %}
+            <div class="quick-stats-grid">
+                <div class="quick-stat-card">
+                    <div class="quick-stat-header">
+                        <span>📦</span>
+                        <span>Pending Orders</span>
                     </div>
-
-                    <!-- Risk Items Table -->
-                    <div class="risk-table-container">
-                        <div class="risk-table-header">
-                            <span>High Risk Items</span>
-                            <span>Projection</span>
-                        </div>
-                        <div id="risk-list" style="display: flex; flex-direction: column">
-                            <!-- JS injected items here -->
-                            <div class="risk-list-placeholder">
-                                Analyzing sales patterns...
-                            </div>
-                        </div>
+                    <div class="quick-stat-value">
+                        {{ quick_stats.pending_orders or 0 }}
+                    </div>
+                    <div class="quick-stat-footer">
+                        Need your attention
+                    </div>
+                </div>
+                <div class="quick-stat-card">
+                    <div class="quick-stat-header">
+                        <span>📊</span>
+                        <span>Total Products</span>
+                    </div>
+                    <div class="quick-stat-value">
+                        {{ quick_stats.total_products or 0 }}
+                    </div>
+                    <div class="quick-stat-footer">
+                        In your store
+                    </div>
+                </div>
+                <div class="quick-stat-card">
+                    <div class="quick-stat-header">
+                        <span>⚠️</span>
+                        <span>Low Stock</span>
+                    </div>
+                    <div class="quick-stat-value"
+                        style="color: {% if quick_stats and quick_stats.low_stock_items and quick_stats.low_stock_items > 0 %}#dc2626{% else %}#16a34a{% endif %};">
+                        {{ quick_stats.low_stock_items or 0 }}
+                    </div>
+                    <div class="quick-stat-footer">
+                        {% if quick_stats and quick_stats.low_stock_items and quick_stats.low_stock_items > 0 %}Need
+                        restocking{% else %}All good{% endif %}
                     </div>
                 </div>
             </div>
-        </div>
-        <script>
-            // AI Forecast functionality moved to external JS file
-        </script>
-        {% endif %} {% if has_shopify and quick_stats.has_data and
-        is_subscribed %}
-        <div class="quick-stats-grid">
-            <div class="quick-stat-card">
-                <div class="quick-stat-header">
-                    <span>📦</span>
-                    <span>Pending Orders</span>
-                </div>
-                <div class="quick-stat-value">
-                    {{ quick_stats.pending_orders or 0 }}
-                </div>
-                <div class="quick-stat-footer">
-                    Need your attention
-                </div>
-            </div>
-            <div class="quick-stat-card">
-                <div class="quick-stat-header">
-                    <span>📊</span>
-                    <span>Total Products</span>
-                </div>
-                <div class="quick-stat-value">
-                    {{ quick_stats.total_products or 0 }}
-                </div>
-                <div class="quick-stat-footer">
-                    In your store
-                </div>
-            </div>
-            <div class="quick-stat-card">
-                <div class="quick-stat-header">
-                    <span>⚠️</span>
-                    <span>Low Stock</span>
-                </div>
-                <div class="quick-stat-value"
-                    style="color: {% if quick_stats and quick_stats.low_stock_items and quick_stats.low_stock_items > 0 %}#dc2626{% else %}#16a34a{% endif %};">
-                    {{ quick_stats.low_stock_items or 0 }}
-                </div>
-                <div class="quick-stat-footer">
-                    {% if quick_stats and quick_stats.low_stock_items and quick_stats.low_stock_items > 0 %}Need
-                    restocking{% else %}All good{% endif %}
-                </div>
-            </div>
-        </div>
-        {% endif %} {% if not has_shopify %}
-        <div class="banner banner-info" style="
+            {% endif %} {% if not has_shopify %}
+            <div class="banner banner-info" style="
                     background: #ffffff;
                     border: 1px solid #e1e3e5;
                     border-left: 3px solid #008060;
                 ">
-            <div class="banner-content" style="flex: 1">
-                <h3 style="
+                <div class="banner-content" style="flex: 1">
+                    <h3 style="
                             margin-bottom: 8px;
                             font-size: 16px;
                             font-weight: 600;
                             color: #202223;
                         ">
-                    Connect your Shopify store
-                </h3>
-                <p style="
+                        Connect your Shopify store
+                    </h3>
+                    <p style="
                             margin-bottom: 0;
                             font-size: 14px;
                             color: #6d7175;
                         ">
-                    Get started in 30 seconds. Connect your store to unlock
-                    order monitoring, inventory management, and revenue
-                    analytics.
-                </p>
-            </div>
-            <a href="#" onclick="
+                        Get started in 30 seconds. Connect your store to unlock
+                        order monitoring, inventory management, and revenue
+                        analytics.
+                    </p>
+                </div>
+                <a href="#" onclick="
                         openPage('/settings/shopify');
                         return false;
                     " class="banner-action">Connect Store →</a>
-        </div>
-        {% endif %}
+            </div>
+            {% endif %}
 
-        <div class="cards-grid">
-            <div class="card">
-                <div class="card-icon">📦</div>
-                <div class="card-title">Order Processing</div>
-                <div class="card-description">
-                    View pending and unfulfilled Shopify orders. Monitor
-                    order status and payment information.
-                </div>
-                {% if has_access %}
-                <button type="button" class="card-btn" data-action="processOrders" onclick="
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-icon">📦</div>
+                    <div class="card-title">Order Processing</div>
+                    <div class="card-description">
+                        View pending and unfulfilled Shopify orders. Monitor
+                        order status and payment information.
+                    </div>
+                    {% if has_access %}
+                    <button type="button" class="card-btn" data-action="processOrders" onclick="
                             if (window.processOrders)
                                 window.processOrders(this);
                         " aria-label="View pending orders">
-                    <span>View Orders</span>
-                    <span style="font-size: 12px; opacity: 0.8">→</span>
-                </button>
-                {% else %}
-                <button type="button" class="card-btn" onclick="showSubscribePrompt()"
-                    style="opacity: 0.6; cursor: not-allowed" disabled aria-label="Subscribe to view orders">
-                    <span>View Orders</span>
-                    <span style="font-size: 12px; opacity: 0.8">→</span>
-                </button>
-                {% endif %}
-            </div>
-
-            <div class="card">
-                <div class="card-icon">📊</div>
-                <div class="card-title">Inventory Management</div>
-                <div class="card-description">
-                    Monitor stock levels across all products. Get low-stock
-                    alerts and complete inventory visibility.
+                        <span>View Orders</span>
+                        <span style="font-size: 12px; opacity: 0.8">→</span>
+                    </button>
+                    {% else %}
+                    <button type="button" class="card-btn" onclick="showSubscribePrompt()"
+                        style="opacity: 0.6; cursor: not-allowed" disabled aria-label="Subscribe to view orders">
+                        <span>View Orders</span>
+                        <span style="font-size: 12px; opacity: 0.8">→</span>
+                    </button>
+                    {% endif %}
                 </div>
-                {% if has_access %}
-                <button type="button" class="card-btn" data-action="updateInventory" onclick="
+
+                <div class="card">
+                    <div class="card-icon">📊</div>
+                    <div class="card-title">Inventory Management</div>
+                    <div class="card-description">
+                        Monitor stock levels across all products. Get low-stock
+                        alerts and complete inventory visibility.
+                    </div>
+                    {% if has_access %}
+                    <button type="button" class="card-btn" data-action="updateInventory" onclick="
                             if (window.updateInventory)
                                 window.updateInventory(this);
                         " aria-label="Check inventory levels">
-                    <span>Check Inventory</span>
-                    <span style="font-size: 12px; opacity: 0.8">→</span>
-                </button>
-                {% else %}
-                <button type="button" class="card-btn" onclick="showSubscribePrompt()"
-                    style="opacity: 0.6; cursor: not-allowed" disabled aria-label="Subscribe to check inventory">
-                    <span>Check Inventory</span>
-                    <span style="font-size: 12px; opacity: 0.8">→</span>
-                </button>
-                {% endif %}
-            </div>
-
-            <div class="card">
-                <div class="card-icon">💰</div>
-                <div class="card-title">Revenue Analytics</div>
-                <div class="card-description">
-                    Generate revenue reports with product-level breakdown
-                    and insights.
+                        <span>Check Inventory</span>
+                        <span style="font-size: 12px; opacity: 0.8">→</span>
+                    </button>
+                    {% else %}
+                    <button type="button" class="card-btn" onclick="showSubscribePrompt()"
+                        style="opacity: 0.6; cursor: not-allowed" disabled aria-label="Subscribe to check inventory">
+                        <span>Check Inventory</span>
+                        <span style="font-size: 12px; opacity: 0.8">→</span>
+                    </button>
+                    {% endif %}
                 </div>
-                {% if has_access %}
-                <button type="button" class="card-btn" data-action="generateReport" onclick="
+
+                <div class="card">
+                    <div class="card-icon">💰</div>
+                    <div class="card-title">Revenue Analytics</div>
+                    <div class="card-description">
+                        Generate revenue reports with product-level breakdown
+                        and insights.
+                    </div>
+                    {% if has_access %}
+                    <button type="button" class="card-btn" data-action="generateReport" onclick="
                             if (window.generateReport)
                                 window.generateReport(this);
                         " aria-label="Generate revenue report">
-                    <span>Generate Report</span>
-                    <span style="font-size: 12px; opacity: 0.8">→</span>
-                </button>
-                {% else %}
-                <button type="button" class="card-btn" onclick="showSubscribePrompt()"
-                    style="opacity: 0.6; cursor: not-allowed" disabled aria-label="Subscribe to generate reports">
-                    <span>Generate Report</span>
-                    <span style="font-size: 12px; opacity: 0.8">→</span>
-                </button>
-                {% endif %}
-            </div>
+                        <span>Generate Report</span>
+                        <span style="font-size: 12px; opacity: 0.8">→</span>
+                    </button>
+                    {% else %}
+                    <button type="button" class="card-btn" onclick="showSubscribePrompt()"
+                        style="opacity: 0.6; cursor: not-allowed" disabled aria-label="Subscribe to generate reports">
+                        <span>Generate Report</span>
+                        <span style="font-size: 12px; opacity: 0.8">→</span>
+                    </button>
+                    {% endif %}
+                </div>
 
-            <div class="card" style="
+                <div class="card" style="
                         border: 2px solid #008060;
                         background: linear-gradient(
                             135deg,
@@ -451,14 +400,14 @@
                             #f0fdf4 100%
                         );
                     ">
-                <div style="
+                    <div style="
                             display: flex;
                             align-items: center;
                             gap: 8px;
                             margin-bottom: 8px;
                         ">
-                    <div class="card-icon">📥</div>
-                    <span style="
+                        <div class="card-icon">📥</div>
+                        <span style="
                                 background: #008060;
                                 color: white;
                                 padding: 2px 8px;
@@ -466,15 +415,15 @@
                                 font-size: 11px;
                                 font-weight: 600;
                             ">NEW</span>
-                </div>
-                <div class="card-title">CSV Exports</div>
-                <div class="card-description">
-                    Download Orders, Inventory, and Revenue reports as CSV
-                    with date filtering. Export your data anytime.
-                </div>
-                {% if has_access %}
-                <a href="/features/csv-exports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                    class="card-btn" style="
+                    </div>
+                    <div class="card-title">CSV Exports</div>
+                    <div class="card-description">
+                        Download Orders, Inventory, and Revenue reports as CSV
+                        with date filtering. Export your data anytime.
+                    </div>
+                    {% if has_access %}
+                    <a href="/features/csv-exports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
+                        class="card-btn" style="
                             text-decoration: none;
                             display: flex;
                             justify-content: space-between;
@@ -482,12 +431,12 @@
                             background: #008060;
                             color: white;
                         ">
-                    <span>Export Data</span>
-                    <span style="font-size: 12px; opacity: 0.9">→</span>
-                </a>
-                {% else %}
-                <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                    class="card-btn" style="
+                        <span>Export Data</span>
+                        <span style="font-size: 12px; opacity: 0.9">→</span>
+                    </a>
+                    {% else %}
+                    <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
+                        class="card-btn" style="
                             text-decoration: none;
                             display: flex;
                             justify-content: space-between;
@@ -495,13 +444,13 @@
                             background: #008060;
                             color: white;
                         ">
-                    <span>Learn More</span>
-                    <span style="font-size: 12px; opacity: 0.9">→</span>
-                </a>
-                {% endif %}
-            </div>
+                        <span>Learn More</span>
+                        <span style="font-size: 12px; opacity: 0.9">→</span>
+                    </a>
+                    {% endif %}
+                </div>
 
-            <div class="card" style="
+                <div class="card" style="
                         border: 2px solid #008060;
                         background: linear-gradient(
                             135deg,
@@ -509,14 +458,14 @@
                             #f0fdf4 100%
                         );
                     ">
-                <div style="
+                    <div style="
                             display: flex;
                             align-items: center;
                             gap: 8px;
                             margin-bottom: 8px;
                         ">
-                    <div class="card-icon">📅</div>
-                    <span style="
+                        <div class="card-icon">📅</div>
+                        <span style="
                                 background: #008060;
                                 color: white;
                                 padding: 2px 8px;
@@ -524,15 +473,15 @@
                                 font-size: 11px;
                                 font-weight: 600;
                             ">NEW</span>
-                </div>
-                <div class="card-title">Scheduled Reports</div>
-                <div class="card-description">
-                    Automatically receive reports via Email or SMS at your
-                    preferred time. Set it and forget it.
-                </div>
-                {% if has_access %}
-                <a href="/features/scheduled-reports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                    class="card-btn" style="
+                    </div>
+                    <div class="card-title">Scheduled Reports</div>
+                    <div class="card-description">
+                        Automatically receive reports via Email or SMS at your
+                        preferred time. Set it and forget it.
+                    </div>
+                    {% if has_access %}
+                    <a href="/features/scheduled-reports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
+                        class="card-btn" style="
                             text-decoration: none;
                             display: flex;
                             justify-content: space-between;
@@ -540,12 +489,12 @@
                             background: #008060;
                             color: white;
                         ">
-                    <span>Schedule Reports</span>
-                    <span style="font-size: 12px; opacity: 0.9">→</span>
-                </a>
-                {% else %}
-                <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                    class="card-btn" style="
+                        <span>Schedule Reports</span>
+                        <span style="font-size: 12px; opacity: 0.9">→</span>
+                    </a>
+                    {% else %}
+                    <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
+                        class="card-btn" style="
                             text-decoration: none;
                             display: flex;
                             justify-content: space-between;
@@ -553,13 +502,13 @@
                             background: #008060;
                             color: white;
                         ">
-                    <span>Learn More</span>
-                    <span style="font-size: 12px; opacity: 0.9">→</span>
-                </a>
-                {% endif %}
-            </div>
+                        <span>Learn More</span>
+                        <span style="font-size: 12px; opacity: 0.9">→</span>
+                    </a>
+                    {% endif %}
+                </div>
 
-            <div class="card" style="
+                <div class="card" style="
                         border: 2px solid #008060;
                         background: linear-gradient(
                             135deg,
@@ -567,14 +516,14 @@
                             #f0fdf4 100%
                         );
                     ">
-                <div style="
+                    <div style="
                             display: flex;
                             align-items: center;
                             gap: 8px;
                             margin-bottom: 8px;
                         ">
-                    <div class="card-icon">📊</div>
-                    <span style="
+                        <div class="card-icon">📊</div>
+                        <span style="
                                 background: #008060;
                                 color: white;
                                 padding: 2px 8px;
@@ -582,15 +531,15 @@
                                 font-size: 11px;
                                 font-weight: 600;
                             ">NEW</span>
-                </div>
-                <div class="card-title">Comprehensive Dashboard</div>
-                <div class="card-description">
-                    View all three reports (Orders, Inventory, Revenue) in
-                    one unified dashboard view.
-                </div>
-                {% if has_access %}
-                <a href="/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                    class="card-btn" style="
+                    </div>
+                    <div class="card-title">Comprehensive Dashboard</div>
+                    <div class="card-description">
+                        View all three reports (Orders, Inventory, Revenue) in
+                        one unified dashboard view.
+                    </div>
+                    {% if has_access %}
+                    <a href="/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
+                        class="card-btn" style="
                             text-decoration: none;
                             display: flex;
                             justify-content: space-between;
@@ -598,12 +547,12 @@
                             background: #008060;
                             color: white;
                         ">
-                    <span>View Dashboard</span>
-                    <span style="font-size: 12px; opacity: 0.9">→</span>
-                </a>
-                {% else %}
-                <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                    class="card-btn" style="
+                        <span>View Dashboard</span>
+                        <span style="font-size: 12px; opacity: 0.9">→</span>
+                    </a>
+                    {% else %}
+                    <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
+                        class="card-btn" style="
                             text-decoration: none;
                             display: flex;
                             justify-content: space-between;
@@ -611,25 +560,25 @@
                             background: #008060;
                             color: white;
                         ">
-                    <span>Learn More</span>
-                    <span style="font-size: 12px; opacity: 0.9">→</span>
-                </a>
-                {% endif %}
+                        <span>Learn More</span>
+                        <span style="font-size: 12px; opacity: 0.9">→</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div id="connection-status" style="display: none; margin-bottom: 16px"></div>
+            <div class="output-container">
+                <div class="output-header">Results</div>
+                <div id="output"></div>
             </div>
         </div>
 
-        <div id="connection-status" style="display: none; margin-bottom: 16px"></div>
-        <div class="output-container">
-            <div class="output-header">Results</div>
-            <div id="output"></div>
-        </div>
-    </div>
+        <script>
+            // Essential inline JavaScript - most functionality moved to external file
 
-    <script>
-        // Essential inline JavaScript - most functionality moved to external file
-
-        function showSubscribePrompt() {
-            document.getElementById('output').innerHTML = `
+            function showSubscribePrompt() {
+                document.getElementById('output').innerHTML = `
                 <div style="padding: 40px; background: #fff; border-radius: 16px; border: 1px solid #e5e7eb; text-align: center; animation: fadeIn 0.3s ease-in; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
                     <div style="margin-bottom: 20px; display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background: #FEF2F2; border-radius: 50%;">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -643,42 +592,42 @@
                     <p style="color: #9CA3AF; margin-top: 16px; font-size: 13px;">$39/month • 7-day money-back guarantee</p>
                 </div>
             `;
-        }
-
-        // Quick Menu Toggle
-        function toggleQuickMenu(event) {
-            event.stopPropagation();
-            var menu = document.getElementById('quickMenu');
-            if (menu) {
-                menu.classList.toggle('show');
             }
-        }
 
-    </script>
-
-    <!-- Load external dashboard JavaScript -->
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-
-    <script>
-        // Close quick menu when clicking outside
-        document.addEventListener('click', function (e) {
-            var menu = document.getElementById('quickMenu');
-            var btn = e.target.closest('.quick-menu-btn');
-            if (menu && !btn && !e.target.closest('.quick-menu-dropdown')) {
-                menu.classList.remove('show');
+            // Quick Menu Toggle
+            function toggleQuickMenu(event) {
+                event.stopPropagation();
+                var menu = document.getElementById('quickMenu');
+                if (menu) {
+                    menu.classList.toggle('show');
+                }
             }
-        });
-    </script>
 
-    <footer style="
+        </script>
+
+        <!-- Load external dashboard JavaScript -->
+        <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+
+        <script>
+            // Close quick menu when clicking outside
+            document.addEventListener('click', function (e) {
+                var menu = document.getElementById('quickMenu');
+                var btn = e.target.closest('.quick-menu-btn');
+                if (menu && !btn && !e.target.closest('.quick-menu-dropdown')) {
+                    menu.classList.remove('show');
+                }
+            });
+        </script>
+
+        <footer style="
                 margin-top: 64px;
                 padding: 32px 24px;
                 border-top: 1px solid #e1e3e5;
                 text-align: center;
                 background: #ffffff;
             ">
-        <div style="max-width: 1200px; margin: 0 auto">
-            <div style="
+            <div style="max-width: 1200px; margin: 0 auto">
+                <div style="
                         display: flex;
                         justify-content: center;
                         gap: 20px;
@@ -686,35 +635,35 @@
                         font-size: 14px;
                         margin-bottom: 16px;
                     ">
-                <a href="/faq" style="
+                    <a href="/faq" style="
                             color: #6d7175;
                             text-decoration: none;
                             font-weight: 400;
                             transition: color 0.15s;
                         ">FAQ</a>
-                <span style="color: #e1e3e5">|</span>
-                <a href="/privacy" style="
+                    <span style="color: #e1e3e5">|</span>
+                    <a href="/privacy" style="
                             color: #6d7175;
                             text-decoration: none;
                             font-weight: 400;
                             transition: color 0.15s;
                         ">Privacy Policy</a>
-                <span style="color: #e1e3e5">|</span>
-                <a href="/terms" style="
+                    <span style="color: #e1e3e5">|</span>
+                    <a href="/terms" style="
                             color: #6d7175;
                             text-decoration: none;
                             font-weight: 400;
                             transition: color 0.15s;
                         ">Terms of Service</a>
+                </div>
+                <div style="color: #8c9196; font-size: 13px; font-weight: 400">
+                    © 2026 Employee Suite. All rights reserved.
+                </div>
             </div>
-            <div style="color: #8c9196; font-size: 13px; font-weight: 400">
-                © 2026 Employee Suite. All rights reserved.
-            </div>
-        </div>
-    </footer>
-    <script>
-        // Ensure any critical closing scripts are here
-    </script>
+        </footer>
+        <script>
+            // Ensure any critical closing scripts are here
+        </script>
     </div> <!-- End .container -->
     </div> <!-- End .page-wrapper -->
 </body>
