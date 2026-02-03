@@ -317,91 +317,129 @@ def get_authenticated_user():
 @core_bp.route("/dashboard", endpoint="dashboard")
 def home():
     """Optimized dashboard - target <300ms load time"""
-    # Import only when needed to speed up startup
-    from models import ShopifyStore, User, db
+    try:
+        # Import only when needed to speed up startup
+        from models import ShopifyStore, User, db
+        
+        # PERFORMANCE: Skip heavy database queries for initial load
+        shop = request.args.get("shop")
+        host = request.args.get("host")
 
-    # PERFORMANCE: Skip heavy database queries for initial load
-    shop = request.args.get("shop")
-    host = request.args.get("host")
+        # Store in session immediately
+        if shop:
+            session["shop"] = shop
+            session.permanent = True
+        if host:
+            session["host"] = host
+            session.permanent = True
 
-    # Store in session immediately
-    if shop:
-        session["shop"] = shop
-        session.permanent = True
-    if host:
-        session["host"] = host
-        session.permanent = True
+        # Local dev mode - instant response
+        if os.getenv("ENVIRONMENT") != "production" and not shop:
+            return render_template(
+                "dashboard.html",
+                trial_active=True,
+                days_left=7,
+                is_subscribed=False,
+                has_shopify=True,
+                has_access=True,
+                quick_stats={
+                    "has_data": True,
+                    "pending_orders": 5,
+                    "total_products": 42,
+                    "low_stock_items": 3,
+                },
+                shop="demo-store.myshopify.com",
+                APP_URL=request.url_root.rstrip("/"),
+                host="",
+            )
 
-    # Local dev mode - instant response
-    if os.getenv("ENVIRONMENT") != "production" and not shop:
+        # PERFORMANCE: Defer user lookup and use cached data
+        user = None
+        try:
+            if current_user.is_authenticated:
+                user = current_user
+            elif shop:
+                # Quick lookup without joins - PROTECTED
+                store = db.session.query(ShopifyStore).filter_by(shop_url=shop).first()
+                if store and store.user_id:
+                    user = db.session.query(User).get(store.user_id)
+        except Exception as db_error:
+            logger.error(f"Database error in home(): {db_error}")
+            # Continue with user = None
+            try:
+                db.session.rollback()
+            except:
+                pass
+
+        # Default values (avoid expensive calculations)
+        if user:
+            try:
+                has_access = user.has_access()
+                trial_active = user.is_trial_active()
+                
+                # SAFE datetime calculation
+                if trial_active and hasattr(user, 'trial_ends_at') and user.trial_ends_at:
+                    try:
+                        days_left = max(0, (user.trial_ends_at - datetime.utcnow()).days)
+                    except (AttributeError, TypeError):
+                        days_left = 0
+                else:
+                    days_left = 0
+                    
+                is_subscribed = getattr(user, 'is_subscribed', False)
+                has_shopify = True  # Assume true if we have a user
+            except Exception as user_error:
+                logger.error(f"Error processing user data: {user_error}")
+                # Use safe defaults
+                has_access, trial_active, days_left, is_subscribed, has_shopify = (
+                    False, False, 0, False, False
+                )
+        else:
+            has_access, trial_active, days_left, is_subscribed, has_shopify = (
+                False, False, 0, False, False
+            )
+
+        # PERFORMANCE: Use static quick stats (update via AJAX later)
+        quick_stats = {
+            "has_data": False,
+            "pending_orders": 0,
+            "total_products": 0,
+            "low_stock_items": 0,
+        }
+
         return render_template(
             "dashboard.html",
-            trial_active=True,
-            days_left=7,
-            is_subscribed=False,
-            has_shopify=True,
-            has_access=True,
-            quick_stats={
-                "has_data": True,
-                "pending_orders": 5,
-                "total_products": 42,
-                "low_stock_items": 3,
-            },
-            shop="demo-store.myshopify.com",
-            APP_URL=request.url_root.rstrip("/"),
-            host="",
+            trial_active=trial_active,
+            days_left=days_left,
+            is_subscribed=is_subscribed,
+            has_shopify=has_shopify,
+            has_access=has_access,
+            quick_stats=quick_stats,
+            shop=shop or "",
+            APP_URL=os.getenv("APP_URL", request.url_root.rstrip("/")),
+            host=host or "",
+            plan_name="Employee Suite Pro",
+            plan_price=39,
         )
-
-    # PERFORMANCE: Defer user lookup and use cached data
-    user = None
-    if current_user.is_authenticated:
-        user = current_user
-    elif shop:
-        # Quick lookup without joins
-        store = db.session.query(ShopifyStore).filter_by(shop_url=shop).first()
-        if store:
-            user = db.session.query(User).get(store.user_id)
-
-    # Default values (avoid expensive calculations)
-    if user:
-        has_access = user.has_access()
-        trial_active = user.is_trial_active()
-        days_left = (
-            max(0, (user.trial_ends_at - datetime.utcnow()).days) if trial_active else 0
-        )
-        is_subscribed = user.is_subscribed
-        has_shopify = True  # Assume true if we have a user
-    else:
-        has_access, trial_active, days_left, is_subscribed, has_shopify = (
-            False,
-            False,
-            0,
-            False,
-            False,
-        )
-
-    # PERFORMANCE: Use static quick stats (update via AJAX later)
-    quick_stats = {
-        "has_data": False,
-        "pending_orders": 0,
-        "total_products": 0,
-        "low_stock_items": 0,
-    }
-
-    return render_template(
-        "dashboard.html",
-        trial_active=trial_active,
-        days_left=days_left,
-        is_subscribed=is_subscribed,
-        has_shopify=has_shopify,
-        has_access=has_access,
-        quick_stats=quick_stats,
-        shop=shop or "",
-        APP_URL=os.getenv("APP_URL", request.url_root.rstrip("/")),
-        host=host or "",
-        plan_name="Employee Suite Pro",
-        plan_price=39,
-    )
+        
+    except Exception as e:
+        logger.error(f"Critical error in home(): {e}", exc_info=True)
+        # Return a safe fallback response
+        return render_template_string("""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Employee Suite</title></head>
+        <body>
+            <h1>Employee Suite</h1>
+            <p>Loading dashboard...</p>
+            <script>
+                setTimeout(function() {
+                    window.location.reload();
+                }, 2000);
+            </script>
+        </body>
+        </html>
+        """), 200
 
 
 # ---------------------------------------------------------------------------
