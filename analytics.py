@@ -79,25 +79,30 @@ def get_inventory_forecast():
             stock = p.get('stock', 0)
             if stock > 0 and stock < 20: # Low stock threshold
                 
-                # Get real sales velocity from Order database
-                # Query orders for this product in last 30 days
+                # Calculate velocity using Shopify API data (no local order storage)
                 product_title = p.get('product')
                 
-                # Calculate actual velocity from order history
-                velocity_query = db.session.query(
-                    func.sum(OrderItem.quantity).label('total_sold')
-                ).join(Order).filter(
-                    Order.user_id == current_user.id,
-                    Order.created_at >= thirty_days_ago,
-                    OrderItem.product_title == product_title
-                ).first()
-                
-                total_sold = velocity_query.total_sold if velocity_query.total_sold else 0
-                velocity = total_sold / 30.0  # Daily velocity
-                
-                # Fallback to heuristic if no sales data
-                if velocity == 0:
-                    velocity = max(0.1, stock / 30)  # Conservative estimate
+                # Get recent orders from Shopify API for velocity calculation
+                try:
+                    recent_orders = graphql_client.get_orders(limit=250)
+                    total_sold = 0
+                    
+                    # Calculate sales from API data
+                    if isinstance(recent_orders, dict) and 'orders' in recent_orders:
+                        for order in recent_orders['orders']:
+                            order_date = datetime.fromisoformat(order.get('createdAt', '').replace('Z', '+00:00'))
+                            if order_date >= thirty_days_ago:
+                                for line_item in order.get('lineItems', {}).get('edges', []):
+                                    item = line_item['node']
+                                    if item.get('title') == product_title:
+                                        total_sold += int(item.get('quantity', 0))
+                    
+                    velocity = total_sold / 30.0  # Daily velocity
+                    
+                except Exception as api_error:
+                    logger.warning(f"Could not fetch order data for velocity: {api_error}")
+                    total_sold = 0
+                    velocity = max(0.1, stock / 30)  # Conservative fallback estimate
                 
                 days_remaining = int(stock / velocity) if velocity > 0 else 999
                 stockout_date = (today + timedelta(days=days_remaining)).strftime('%Y-%m-%d')
