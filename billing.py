@@ -25,10 +25,15 @@ from flask_login import current_user, login_required
 # Add error handling for imports
 try:
     from enhanced_models import PLAN_PRICES, SubscriptionPlan
-except ImportError:
+except ImportError as e:
+    # Log the error so we know it's missing
+    import logging
+    logging.getLogger(__name__).warning(f"Could not import enhanced_models: {e}. Using fallback defaults.")
+    
     PLAN_PRICES = {"pro": 39.00, "business": 99.00}
 
     class SubscriptionPlan:
+        """Fallback class when enhanced_models is missing"""
         pass
 
 
@@ -263,7 +268,14 @@ def create_recurring_charge(shop_url, access_token, return_url, plan_type="pro")
         from shopify_utils import parse_gid
 
         gid = subscription.get("id")
+        # Ensure we return a clean ID for the database
         charge_id = parse_gid(gid)
+        
+        # Log if we got a GID but couldn't parse it (just for debugging)
+        if gid and not charge_id:
+            logger.warning(f"Could not parse numeric ID from subscription GID: {gid}")
+            # Fallback: keep original if parsing failed (better than None)
+            charge_id = gid
 
         return {
             "success": True,
@@ -393,17 +405,11 @@ def cancel_app_subscription(shop_url, access_token, charge_id):
 @billing_bp.route("/billing/subscribe")
 def subscribe():
     """Subscribe page - uses Shopify Billing API"""
+    from shopify_utils import normalize_shop_url
+    
     shop = request.args.get("shop", "")
     if shop:
-        shop = (
-            shop.lower()
-            .replace("https://", "")
-            .replace("http://", "")
-            .replace("www.", "")
-            .strip()
-        )
-        if not shop.endswith(".myshopify.com") and "." not in shop:
-            shop = f"{shop}.myshopify.com"
+        shop = normalize_shop_url(shop)
 
     host = request.args.get("host", "")
 
@@ -452,11 +458,19 @@ def subscribe():
     
     # If store exists but isn't connected, try to reconnect
     if store and not store.is_connected():
-        # Check if we have an access token that might work
-        if store.access_token:
-            has_store = True  # Allow checkout attempt - token might still work
-        else:
+        # Try to validate the token actually works
+        try:
+            from shopify_integration import ShopifyClient
+            # Test with a simple API call
+            client = ShopifyClient(store.shop_url, store.get_access_token())
+            # This will raise exception if token invalid which is what we want
+            client.get_shop_info() 
+            has_store = True
+        except Exception as e:
+            logger.warning(f"Store connection check failed for {store.shop_url}: {e}")
             has_store = False
+            # If token is definitely invalid, strictly we might want to disconnect here, 
+            # but for now just preventing checkout is safer.
     
     if not shop and store:
         shop = store.shop_url
@@ -491,37 +505,19 @@ def subscribe():
 
 
 def validate_csrf_token():
-    """Simple CSRF validation without Flask-WTF"""
-    try:
-        # For Shopify embedded apps, we can validate the shop parameter
-        # and session consistency as a form of CSRF protection
-        shop_from_form = request.form.get("shop") or request.args.get("shop", "")
-        shop_from_session = session.get("shop") or session.get("current_shop", "")
-
-        if shop_from_form and shop_from_session:
-            return shop_from_form.lower().strip() == shop_from_session.lower().strip()
-
-        # If no shop validation possible, check referer
-        referer = request.headers.get("Referer", "")
-        return "myshopify.com" in referer or "admin.shopify.com" in referer
-    except Exception:
-        return False
+    """Simple CSRF validation using centralized logic"""
+    from shopify_utils import validate_csrf_token as validate_csrf
+    return validate_csrf(request, session)
 
 
 @billing_bp.route("/subscribe")
 def subscribe_shortcut():
     """Subscribe page - uses Shopify Billing API"""
+    from shopify_utils import normalize_shop_url
+    
     shop = request.args.get("shop", "")
     if shop:
-        shop = (
-            shop.lower()
-            .replace("https://", "")
-            .replace("http://", "")
-            .replace("www.", "")
-            .strip()
-        )
-        if not shop.endswith(".myshopify.com") and "." not in shop:
-            shop = f"{shop}.myshopify.com"
+        shop = normalize_shop_url(shop)
 
     host = request.args.get("host", "")
     plan_type = request.args.get("plan", "pro")
@@ -551,17 +547,11 @@ def create_charge():
     if not validate_csrf_token():
         logger.warning("CSRF validation failed for billing request")
         return redirect("/billing?error=invalid_request")
+    from shopify_utils import normalize_shop_url
+    
     shop = request.form.get("shop") or request.args.get("shop", "")
     if shop:
-        shop = (
-            shop.lower()
-            .replace("https://", "")
-            .replace("http://", "")
-            .replace("www.", "")
-            .strip()
-        )
-        if not shop.endswith(".myshopify.com") and "." not in shop:
-            shop = f"{shop}.myshopify.com"
+        shop = normalize_shop_url(shop)
 
     host = request.form.get("host") or request.args.get("host", "")
 
@@ -673,17 +663,11 @@ def confirm_charge():
     """Handle return from Shopify after merchant approves/declines charge"""
     from enhanced_models import PLAN_PRICES, SubscriptionPlan
 
+    from shopify_utils import normalize_shop_url
+    
     shop = request.args.get("shop", "")
     if shop:
-        shop = (
-            shop.lower()
-            .replace("https://", "")
-            .replace("http://", "")
-            .replace("www.", "")
-            .strip()
-        )
-        if not shop.endswith(".myshopify.com") and "." not in shop:
-            shop = f"{shop}.myshopify.com"
+        shop = normalize_shop_url(shop)
 
     host = request.args.get("host", "")
 
@@ -784,6 +768,7 @@ def confirm_charge():
 
             locked_access_token = store.get_access_token()
             if not locked_access_token:
+                logger.error(f"No access token found for store {shop_url} during charge confirmation")
                 db.session.rollback()
                 subscribe_url = url_for(
                     "billing.subscribe",
@@ -794,9 +779,14 @@ def confirm_charge():
                 )
                 return safe_redirect(subscribe_url, shop=shop, host=host)
 
-            activate_result = activate_recurring_charge(
-                shop_url, locked_access_token, charge_id
-            )
+            try:
+                activate_result = activate_recurring_charge(
+                    shop_url, locked_access_token, charge_id
+                )
+            except Exception as e:
+                logger.error(f"Error activating charge: {e}")
+                db.session.rollback()
+                activate_result = {"success": False, "error": "Activation failed"}
 
             if activate_result.get("success"):
                 user.is_subscribed = True

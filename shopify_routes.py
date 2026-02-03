@@ -450,17 +450,11 @@ SETTINGS_HTML = """
 def shopify_settings():
     """Shopify settings page - works in both embedded and standalone modes"""
 
+    from shopify_utils import normalize_shop_url
+    
     shop = request.args.get("shop", "")
     if shop:
-        shop = (
-            shop.lower()
-            .replace("https://", "")
-            .replace("http://", "")
-            .replace("www.", "")
-            .strip()
-        )
-        if not shop.endswith(".myshopify.com") and "." not in shop:
-            shop = f"{shop}.myshopify.com"
+        shop = normalize_shop_url(shop)
 
     host = request.args.get("host", "")
 
@@ -532,17 +526,11 @@ def connect_store():
     """Connect store via manual token - works in both embedded and standalone modes"""
     shop_url = request.form.get("shop_url", "").strip()
     access_token = request.form.get("access_token", "").strip()
+    from shopify_utils import normalize_shop_url
+    
     shop = request.form.get("shop") or request.args.get("shop", "")
     if shop:
-        shop = (
-            shop.lower()
-            .replace("https://", "")
-            .replace("http://", "")
-            .replace("www.", "")
-            .strip()
-        )
-        if not shop.endswith(".myshopify.com") and "." not in shop:
-            shop = f"{shop}.myshopify.com"
+        shop = normalize_shop_url(shop)
 
     host = request.form.get("host") or request.args.get("host", "")
 
@@ -663,10 +651,6 @@ def connect_store():
         logger.error(f"Error validating access token: {e}", exc_info=True)
         # Continue anyway - validation is optional
         pass
-    except Exception as e:
-        logger.error(f"Error validating access token: {e}", exc_info=True)
-        # Continue anyway - validation is optional
-        pass
 
     # Encrypt the token before storing (CRITICAL: same as OAuth flow)
     from data_encryption import encrypt_access_token
@@ -702,17 +686,11 @@ def connect_store():
 @shopify_bp.route("/settings/shopify/disconnect", methods=["POST"])
 def disconnect_store():
     """Disconnect store - works in both embedded and standalone modes"""
+    from shopify_utils import normalize_shop_url
+    
     shop = request.form.get("shop") or request.args.get("shop", "")
     if shop:
-        shop = (
-            shop.lower()
-            .replace("https://", "")
-            .replace("http://", "")
-            .replace("www.", "")
-            .strip()
-        )
-        if not shop.endswith(".myshopify.com") and "." not in shop:
-            shop = f"{shop}.myshopify.com"
+        shop = normalize_shop_url(shop)
 
     host = request.form.get("host") or request.args.get("host", "")
 
@@ -780,17 +758,11 @@ def cancel_subscription():
 
     import requests
 
+    from shopify_utils import normalize_shop_url
+    
     shop = request.form.get("shop") or request.args.get("shop", "")
     if shop:
-        shop = (
-            shop.lower()
-            .replace("https://", "")
-            .replace("http://", "")
-            .replace("www.", "")
-            .strip()
-        )
-        if not shop.endswith(".myshopify.com") and "." not in shop:
-            shop = f"{shop}.myshopify.com"
+        shop = normalize_shop_url(shop)
 
     host = request.form.get("host") or request.args.get("host", "")
 
