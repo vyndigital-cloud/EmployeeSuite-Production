@@ -101,7 +101,7 @@
     </div>
 
     <div class="page-wrapper">
-        <div class="container" style="max-width: 800px;">
+        <div class="container" style="max-width: 1000px;">
             <div class="text-center" style="margin-bottom: 40px; text-align: center;">
                 <h1 class="page-title">Scheduled Reports</h1>
                 <p class="page-subtitle">Automatically receive reports via Email or SMS at your preferred time.</p>
@@ -111,7 +111,7 @@
 
             <div class="card">
                 <div
-                    style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border);">
+                    style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border);">
                     <div class="card-icon"><i class="ph-bold ph-plus"></i></div>
                     <div class="card-title" style="margin: 0;">Create New Scheduled Report</div>
                 </div>
@@ -218,17 +218,20 @@
                 }
 
                 container.innerHTML = data.reports.map(report => `
-                    <div class="card" style="padding: 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <div class="report-info">
+                    <div class="card" style="padding: 24px; display: flex; align-items: center; gap: 24px; margin-bottom: 20px;">
+                        <div class="card-icon" style="margin-bottom: 0; width: 48px; height: 48px; font-size: 24px;"><i class="ph-bold ph-file-text"></i></div>
+                        
+                        <div style="flex: 1;">
                             <h3 style="font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 4px;">
                                 ${report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1)} Report
                             </h3>
-                            <div style="font-size: 13px; color: var(--text-sub); display: flex; gap: 12px; align-items: center;">
-                                <span style="display: flex; align-items: center; gap: 4px;"><i class="ph-bold ph-clock"></i> ${report.frequency.charAt(0).toUpperCase() + report.frequency.slice(1)} @ ${report.delivery_time}</span>
-                                <span style="display: flex; align-items: center; gap: 4px;"><i class="ph-bold ph-envelope-simple"></i> ${report.delivery_email}</span>
+                            <div style="font-size: 14px; color: var(--text-sub); display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                                <span style="display: flex; align-items: center; gap: 6px;"><i class="ph-bold ph-clock"></i> ${report.frequency.charAt(0).toUpperCase() + report.frequency.slice(1)} @ ${report.delivery_time}</span>
+                                <span style="display: flex; align-items: center; gap: 6px;"><i class="ph-bold ph-envelope-simple"></i> ${report.delivery_email}</span>
                             </div>
                         </div>
-                        <button class="nav-btn" style="color: #ef4444; border-color: #fecaca; background: #fef2f2;" onclick="deleteReport(${report.id})">
+
+                        <button class="nav-btn" style="color: #ef4444; border-color: #fecaca; background: #fff; padding: 10px 16px;" onclick="deleteReport(${report.id})">
                             <i class="ph-bold ph-trash"></i> Delete
                         </button>
                     </div>

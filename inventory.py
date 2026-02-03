@@ -53,7 +53,7 @@ def update_inventory(user_id=None):
                         <div class="inventory-stock">
                             <div class="stock-count">{stock_val} units</div>
                             <div class="stock-bar-bg">
-                                <div class="stock-bar-fill" style="width: {percentage}%"></div>
+                                <div class="stock-bar-fill" style="width: {percentage}%; background-color: #008060;"></div>
                             </div>
                         </div>
                     </div>

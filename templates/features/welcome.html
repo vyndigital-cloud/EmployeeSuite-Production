@@ -77,67 +77,92 @@
             <!-- Features Grid -->
             <div class="cards-grid" style="grid-template-columns: 1fr; gap: 24px;">
                 <!-- CSV Exports -->
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-                        <div class="card-icon"><i class="ph-bold ph-download-simple"></i></div>
-                        <h3 class="card-title" style="margin: 0;">CSV Exports <span class="success"
-                                style="font-size: 10px; padding: 2px 6px; margin-left: 6px; vertical-align: middle;">NEW</span>
-                        </h3>
+                <div class="card" style="padding: 24px;">
+                    <div style="display: flex; align-items: center; gap: 24px;">
+                        <div class="card-icon" style="margin-bottom: 0; width: 48px; height: 48px; font-size: 24px;"><i
+                                class="ph-bold ph-download-simple"></i></div>
+
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <h3 class="card-title" style="margin: 0; font-size: 16px;">CSV Exports</h3>
+                                <span class="success"
+                                    style="font-size: 10px; padding: 2px 6px; font-weight: 600;">NEW</span>
+                            </div>
+                            <p class="card-description" style="margin: 4px 0 0 0; font-size: 14px; margin-bottom: 0;">
+                                Download your data. Filters available.</p>
+                        </div>
+
+                        <a href="#" onclick="openPage('/features/csv-exports'); return false;" class="card-btn"
+                            style="width: auto; padding: 10px 20px;">
+                            Export Data <i class="ph-bold ph-arrow-right"></i>
+                        </a>
                     </div>
-                    <div class="card-description" style="margin-bottom: 20px;">
-                        Download your data. Filters available.
-                    </div>
-                    <a href="#" onclick="openPage('/features/csv-exports'); return false;" class="card-btn"
-                        style="width: auto; display: inline-flex;">
-                        Export Data <i class="ph-bold ph-arrow-right"></i>
-                    </a>
                 </div>
 
                 <!-- Scheduled Reports -->
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-                        <div class="card-icon"><i class="ph-bold ph-calendar-check"></i></div>
-                        <h3 class="card-title" style="margin: 0;">Scheduled Reports <span class="success"
-                                style="font-size: 10px; padding: 2px 6px; margin-left: 6px; vertical-align: middle;">NEW</span>
-                        </h3>
+                <div class="card" style="padding: 24px;">
+                    <div style="display: flex; align-items: center; gap: 24px;">
+                        <div class="card-icon" style="margin-bottom: 0; width: 48px; height: 48px; font-size: 24px;"><i
+                                class="ph-bold ph-calendar-check"></i></div>
+
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <h3 class="card-title" style="margin: 0; font-size: 16px;">Scheduled Reports</h3>
+                                <span class="success"
+                                    style="font-size: 10px; padding: 2px 6px; font-weight: 600;">NEW</span>
+                            </div>
+                            <p class="card-description" style="margin: 4px 0 0 0; font-size: 14px; margin-bottom: 0;">
+                                Daily, weekly, or monthly email reports.</p>
+                        </div>
+
+                        <a href="#" onclick="openPage('/features/scheduled-reports'); return false;" class="card-btn"
+                            style="width: auto; padding: 10px 20px;">
+                            Schedule Reports <i class="ph-bold ph-arrow-right"></i>
+                        </a>
                     </div>
-                    <div class="card-description" style="margin-bottom: 20px;">
-                        Daily, weekly, or monthly email reports.
-                    </div>
-                    <a href="#" onclick="openPage('/features/scheduled-reports'); return false;" class="card-btn"
-                        style="width: auto; display: inline-flex;">
-                        Schedule Reports <i class="ph-bold ph-arrow-right"></i>
-                    </a>
                 </div>
 
                 <!-- Comprehensive Dashboard -->
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-                        <div class="card-icon"><i class="ph-bold ph-squares-four"></i></div>
-                        <h3 class="card-title" style="margin: 0;">Unified Dashboard <span class="success"
-                                style="font-size: 10px; padding: 2px 6px; margin-left: 6px; vertical-align: middle;">NEW</span>
-                        </h3>
+                <div class="card" style="padding: 24px;">
+                    <div style="display: flex; align-items: center; gap: 24px;">
+                        <div class="card-icon" style="margin-bottom: 0; width: 48px; height: 48px; font-size: 24px;"><i
+                                class="ph-bold ph-squares-four"></i></div>
+
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <h3 class="card-title" style="margin: 0; font-size: 16px;">Unified Dashboard</h3>
+                                <span class="success"
+                                    style="font-size: 10px; padding: 2px 6px; font-weight: 600;">NEW</span>
+                            </div>
+                            <p class="card-description" style="margin: 4px 0 0 0; font-size: 14px; margin-bottom: 0;">
+                                All metrics in one place.</p>
+                        </div>
+
+                        <a href="#" onclick="openPage('/features/dashboard'); return false;" class="card-btn"
+                            style="width: auto; padding: 10px 20px;">
+                            View Dashboard <i class="ph-bold ph-arrow-right"></i>
+                        </a>
                     </div>
-                    <div class="card-description" style="margin-bottom: 20px;">
-                        All metrics in one place.
-                    </div>
-                    <a href="#" onclick="openPage('/features/dashboard'); return false;" class="card-btn"
-                        style="width: auto; display: inline-flex;">
-                        View Dashboard <i class="ph-bold ph-arrow-right"></i>
-                    </a>
                 </div>
 
                 <!-- Secure Data -->
-                <div class="card">
-                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-                        <div class="card-icon"><i class="ph-bold ph-shield-check"></i></div>
-                        <h3 class="card-title" style="margin: 0;">Data Encryption</h3>
-                    </div>
-                    <div class="card-description" style="margin-bottom: 20px;">
-                        Your data is safe. Encrypted at rest.
-                    </div>
-                    <div style="color: var(--primary); font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                        <i class="ph-bold ph-check-circle"></i> Always Active
+                <div class="card" style="padding: 24px;">
+                    <div style="display: flex; align-items: center; gap: 24px;">
+                        <div class="card-icon" style="margin-bottom: 0; width: 48px; height: 48px; font-size: 24px;"><i
+                                class="ph-bold ph-shield-check"></i></div>
+
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <h3 class="card-title" style="margin: 0; font-size: 16px;">Data Encryption</h3>
+                            </div>
+                            <p class="card-description" style="margin: 4px 0 0 0; font-size: 14px; margin-bottom: 0;">
+                                Your data is safe. Encrypted at rest.</p>
+                        </div>
+
+                        <div
+                            style="color: var(--primary); font-weight: 600; display: flex; align-items: center; gap: 6px; font-size: 14px;">
+                            <i class="ph-bold ph-check-circle"></i> Always Active
+                        </div>
                     </div>
                 </div>
             </div>

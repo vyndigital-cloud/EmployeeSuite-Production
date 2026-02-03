@@ -556,6 +556,7 @@ body::before {
 }
 
 .inventory-stock {
+    display: block !important;
     text-align: right;
     min-width: 120px;
 }
@@ -565,21 +566,27 @@ body::before {
     color: var(--text-main);
     font-size: 0.9rem;
     margin-bottom: 6px;
+    display: block;
 }
 
 .stock-bar-bg {
     width: 100%;
-    height: 6px;
+    height: 8px;
     background: #e1e3e5;
-    border-radius: 3px;
+    border-radius: 4px;
     overflow: hidden;
+    position: relative;
+    display: block;
 }
 
 .stock-bar-fill {
     height: 100%;
     background: var(--primary);
-    border-radius: 3px;
+    border-radius: 4px;
     transition: width 0.5s ease-out;
+    display: block;
+    min-width: 2px;
+    /* Ensure at least visible if > 0 */
 }
 
 .badge-Z {

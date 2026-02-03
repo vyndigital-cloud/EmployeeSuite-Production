@@ -49,13 +49,17 @@
 
             <div class="card">
                 <div
-                    style="display: flex; justify-content: space-between; align-items: start; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;">
-                    <div>
-                        <h2 class="card-title" style="margin-bottom: 4px;">All Reports</h2>
-                        <p style="color: var(--text-sub); font-size: 14px; margin: 0;">Get a complete overview of your
-                            store's performance.</p>
+                    style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border);">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div class="card-icon"><i class="ph-bold ph-squares-four"></i></div>
+                        <div>
+                            <h2 class="card-title" style="margin: 0; font-size: 18px;">All Reports</h2>
+                            <p style="color: var(--text-sub); font-size: 14px; margin: 4px 0 0 0;">Get a complete
+                                overview of your store's performance.</p>
+                        </div>
                     </div>
-                    <button class="card-btn" onclick="loadDashboard()" id="load-btn" style="width: auto;">
+                    <button class="card-btn" onclick="loadDashboard()" id="load-btn"
+                        style="width: auto; padding: 10px 20px;">
                         <span id="load-btn-text">Load All Reports</span>
                         <i class="ph-bold ph-arrows-clockwise"></i>
                     </button>
