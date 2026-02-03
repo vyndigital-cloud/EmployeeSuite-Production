@@ -551,7 +551,7 @@
                     <span>Low Stock</span>
                 </div>
                 <div
-                    style="font-size: 40px; font-weight: 800; color: {% if quick_stats.low_stock_items > 0 %}#dc2626{% else %}#16a34a{% endif %}; line-height: 1; margin-bottom: 8px;">
+                    style="font-size: 40px; font-weight: 800; color: {% if quick_stats and quick_stats.low_stock_items and quick_stats.low_stock_items > 0 %}#dc2626{% else %}#16a34a{% endif %}; line-height: 1; margin-bottom: 8px;">
                     {{ quick_stats.low_stock_items or 0 }}
                 </div>
                 <div style="font-size: 13px; color: #737373;">
