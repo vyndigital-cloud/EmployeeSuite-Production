@@ -42,24 +42,20 @@ def generate_report(user_id=None, shop_url=None):
         avg_value = total_revenue / len(orders) if orders else 0
         
         html = f"""
-        <div class="output-card">
-            <div class="output-header">
-                <h4>Revenue Overview</h4>
-                <span class="badge badge-primary">Today</span>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div style="background: var(--slate-50); padding: 16px; border-radius: var(--radius-md); text-align: center;">
+                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Revenue</div>
+                <div style="font-size: 20px; font-weight: 700; color: var(--text-primary);">${total_revenue:,.2f}</div>
             </div>
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <div class="stat-label">Total Orders</div>
-                    <div class="stat-value">{len(orders) if orders else 0}</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Total Revenue</div>
-                    <div class="stat-value">${total_revenue:,.2f}</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Avg. Order Value</div>
-                    <div class="stat-value">${avg_value:,.2f}</div>
-                </div>
+            
+            <div style="background: var(--slate-50); padding: 16px; border-radius: var(--radius-md); text-align: center;">
+                 <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Orders</div>
+                <div style="font-size: 20px; font-weight: 700; color: var(--text-primary);">{len(orders) if orders else 0}</div>
+            </div>
+            
+            <div style="grid-column: span 2; background: var(--slate-50); padding: 16px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;">
+                 <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Avg. Order Value</div>
+                 <div style="font-size: 16px; font-weight: 700; color: var(--primary);">${avg_value:,.2f}</div>
             </div>
         </div>
         """

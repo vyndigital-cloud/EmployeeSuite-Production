@@ -6,101 +6,148 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title or 'Employee Suite' }}</title>
 
+    <!-- Google Fonts: Inter (Premium UI Standard) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- Shopify App Bridge -->
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge/latest/environments/production.js"></script>
 
-    <!-- Shopify Polaris -->
-    <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/styles.css">
-    <script src="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/polaris.min.js"></script>
-
-    <!-- Custom Global Styles -->
+    <!-- Custom Premium Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-
-    <!-- Inline critical overrides if needed -->
-    <style>
-        .Polaris-Frame {
-            min-height: 100vh;
-        }
-    </style>
 </head>
 
 <body>
-    <div id="app">
-        <!-- Loading state -->
-        <div id="loading" class="loading-container">
-            <div class="Polaris-Spinner Polaris-Spinner--sizeLarge"></div>
-        </div>
 
-        <!-- Error state -->
-        <div id="error" class="error-container" style="display: none;">
-            <h2>Something went wrong</h2>
-            <p id="error-message">Please try refreshing the page.</p>
-        </div>
+    <div id="app" class="app-layout">
 
-        <!-- Main content -->
-        <div id="main-content" style="display: none;">
-            {% block content %}{% endblock %}
-        </div>
+        <!-- Sidebar Navigation -->
+        <aside class="app-sidebar">
+            <div class="logo-area">
+                <a href="/" class="logo-text"
+                    onclick="if(window.openPage) { window.openPage('/dashboard'); return false; }">
+                    <i class="ph-fill ph-rocket-launch" style="color: var(--primary);"></i>
+                    Employee Suite
+                </a>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="#" onclick="window.openPage('/dashboard'); return false;" class="nav-item active">
+                    <i class="ph ph-squares-four nav-icon"></i>
+                    Dashboard
+                </a>
+                <a href="#" onclick="window.openPage('/features/csv-exports'); return false;" class="nav-item">
+                    <i class="ph ph-download-simple nav-icon"></i>
+                    Exports
+                </a>
+                <a href="#" onclick="window.openPage('/features/scheduled-reports'); return false;" class="nav-item">
+                    <i class="ph ph-calendar-check nav-icon"></i>
+                    Schedules
+                </a>
+
+                <div style="height: 1px; background: var(--border-subtle); margin: 8px 12px;"></div>
+
+                <a href="#" onclick="window.openPage('/subscribe'); return false;" class="nav-item"
+                    style="color: var(--primary);">
+                    <i class="ph-fill ph-crown nav-icon"></i>
+                    Upgrade Plan
+                </a>
+                <a href="#" onclick="window.openPage('/settings/shopify'); return false;" class="nav-item">
+                    <i class="ph ph-gear nav-icon"></i>
+                    Settings
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content (Flex Grow) -->
+        <main class="app-main">
+            <!-- Loading State -->
+            <div id="loading" style="display: flex; justify-content: center; padding-top: 100px;">
+                <div class="spinner" style="
+                    width: 40px; 
+                    height: 40px; 
+                    border: 3px solid var(--slate-200); 
+                    border-top-color: var(--primary); 
+                    border-radius: 50%; 
+                    animation: spin 0.8s linear infinite;">
+                </div>
+                <style>
+                    @keyframes spin {
+                        to {
+                            transform: rotate(360deg);
+                        }
+                    }
+                </style>
+            </div>
+
+            <div id="main-content" style="display: none;" class="animate-enter">
+                {% block content %}{% endblock %}
+            </div>
+
+            <!-- Error State -->
+            <div id="error" style="display: none; padding: 40px; text-align: center;">
+                <h2 class="text-lg font-bold">Something went wrong</h2>
+                <p class="text-slate-500" id="error-message">Please refresh the page.</p>
+            </div>
+        </main>
+
     </div>
 
+    <!-- App Bridge Logic -->
     <script>
-        // Initialize App Bridge
         let app;
-        let redirect;
 
-        function initializeAppBridge() {
+        // Navigation Helper (Make available globally)
+        window.openPage = function (path) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const shop = urlParams.get('shop') || '';
+            const host = urlParams.get('host') || '';
+
+            let dest = path;
+            const sep = dest.includes('?') ? '&' : '?';
+
+            if (shop) dest += `${sep}shop=${shop}`;
+            // Add host if present
+            if (host) {
+                const sep2 = dest.includes('?') ? '&' : '?';
+                dest += `${sep2}host=${host}`;
+            }
+
+            window.location.href = dest;
+            return false; // Prevent default
+        };
+
+        function initializeApp() {
             try {
-                // Get shop from URL or use default
                 const urlParams = new URLSearchParams(window.location.search);
                 const shop = urlParams.get('shop') || urlParams.get('host');
 
-                if (!shop) {
-                    throw new Error('Shop parameter not found');
-                }
-
-                // Create App Bridge app
-                app = window.shopify.createApp({
-                    apiKey: '{{ SHOPIFY_API_KEY }}',
-                    host: shop,
-                    forceRedirect: true
-                });
-
-                // Create redirect utility
-                redirect = window.shopify.appRedirect(app);
-
-                // Show main content
+                // Visual Ready
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('main-content').style.display = 'block';
 
-                console.log('App Bridge initialized successfully');
-
-            } catch (error) {
-                console.error('Failed to initialize App Bridge:', error);
-                showError('Failed to initialize app: ' + error.message);
+                if (shop) {
+                    app = window.shopify.createApp({
+                        apiKey: '{{ SHOPIFY_API_KEY }}',
+                        host: shop,
+                        forceRedirect: true
+                    });
+                    console.log("[AppBridge] Initialized");
+                }
+            } catch (e) {
+                console.error("[AppBridge] Error:", e);
+                // Still show content even if bridge fails, just warn
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
             }
         }
 
-        function showError(message) {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('error').style.display = 'block';
-            document.getElementById('error-message').textContent = message;
-        }
-
-        // Initialize when DOM is ready
-        document.addEventListener('DOMContentLoaded', initializeAppBridge);
-
-        // Global error handler
-        window.addEventListener('error', function (event) {
-            console.error('Global error:', event.error);
-            showError('An unexpected error occurred');
-        });
-
-        // Make app and redirect available globally
-        window.appBridge = { app, redirect };
+        document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 
     {% block scripts %}{% endblock %}
