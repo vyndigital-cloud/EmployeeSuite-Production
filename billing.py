@@ -450,6 +450,14 @@ def subscribe():
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     has_store = store is not None and store.is_connected()
     
+    # If store exists but isn't connected, try to reconnect
+    if store and not store.is_connected():
+        # Check if we have an access token that might work
+        if store.access_token:
+            has_store = True  # Allow checkout attempt - token might still work
+        else:
+            has_store = False
+    
     if not shop and store:
         shop = store.shop_url
 
@@ -459,7 +467,10 @@ def subscribe():
     
     error = request.args.get("error")
     if not has_store and not error:
-        error = "No Shopify store connected"
+        if store is None:
+            error = "No Shopify store connected"
+        else:
+            error = "Store connection issue - please reconnect in Settings"
 
     return render_template(
         "subscribe.html",
