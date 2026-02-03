@@ -650,8 +650,10 @@ def create_charge():
 
     shop_url = store.shop_url
 
-    if not store.is_connected():
-        logger.error(f"Store {shop_url} not connected")
+    access_token = store.get_access_token()
+    
+    if not access_token:
+        logger.error(f"Store {shop_url} has no valid access token")
         settings_url = url_for(
             "shopify.shopify_settings",
             error="Store not connected. Please reconnect.",
@@ -659,8 +661,6 @@ def create_charge():
             host=host,
         )
         return safe_redirect(settings_url, shop=shop_url, host=host)
-
-    access_token = store.get_access_token()
 
     if user.is_subscribed:
         dashboard_url = f"/dashboard?shop={shop_url}&host={host}"
