@@ -47,7 +47,6 @@ except ImportError as e:
                     return None
             return MockQuery()
 
-
 from logging_config import logger
 from models import ShopifyStore, User, db
 from shopify_utils import normalize_shop_url
@@ -56,6 +55,12 @@ billing_bp = Blueprint("billing", __name__)
 
 # Shopify Billing API configuration
 from config import SHOPIFY_API_VERSION
+
+# Ensure required environment variables
+SHOPIFY_API_KEY = os.getenv("SHOPIFY_API_KEY")
+if not SHOPIFY_API_KEY:
+    logger.warning("SHOPIFY_API_KEY environment variable not set")
+    SHOPIFY_API_KEY = ""
 
 APP_URL = os.getenv("SHOPIFY_APP_URL", "https://employeesuite-production.onrender.com")
 
@@ -538,15 +543,15 @@ def subscribe():
         if not shop and store:
             shop = store.shop_url
 
-        # Calculate user status
+        # Calculate user status with safety checks
         trial_active = user.is_trial_active() if user else False
         has_access = user.has_access() if user else False
         days_left = 0
-        if user and trial_active:
+        if user and trial_active and hasattr(user, 'trial_ends_at') and user.trial_ends_at:
             try:
                 days_left = (user.trial_ends_at - datetime.utcnow()).days
                 days_left = max(0, days_left)
-            except:
+            except (AttributeError, TypeError):
                 days_left = 0
         
         # Determine error message
@@ -571,7 +576,7 @@ def subscribe():
             "price": int(plan["price"]),
             "features": plan["features"],
             "error": error,
-            "config_api_key": os.getenv("SHOPIFY_API_KEY", ""),
+            "config_api_key": SHOPIFY_API_KEY,
         }
 
         return render_template("subscribe.html", **template_vars)
@@ -617,7 +622,7 @@ def subscribe_shortcut():
         plan_name=plan["name"],
         price=int(plan["price"]),
         features=plan["features"],
-        config_api_key=os.getenv("SHOPIFY_API_KEY"),
+        config_api_key=SHOPIFY_API_KEY,
         error=None,
         trial_active=False,
         has_access=False,
@@ -921,40 +926,43 @@ def confirm_charge():
             if activate_result.get("success"):
                 # Update user subscription status atomically
                 try:
-                    with db.session.begin():  # Use transaction
-                        user.is_subscribed = True
-                        store.charge_id = str(charge_id)
-                        
-                        # Always sync SubscriptionPlan
-                        existing_plan = SubscriptionPlan.query.filter_by(user_id=user.id).first()
-                        if existing_plan:
-                            existing_plan.status = "active"
-                            existing_plan.charge_id = str(charge_id)
-                            existing_plan.cancelled_at = None
-                            existing_plan.plan_type = plan_type
-                            existing_plan.price_usd = PLAN_PRICES.get(plan_type, 39.00)
-                        else:
-                            new_plan = SubscriptionPlan(
-                                user_id=user.id,
-                                plan_type=plan_type,
-                                price_usd=PLAN_PRICES.get(plan_type, 39.00),
-                                charge_id=str(charge_id),
-                                status="active",
-                                multi_store_enabled=True,
-                                automated_reports_enabled=True,
-                                scheduled_delivery_enabled=True,
-                            )
-                            db.session.add(new_plan)
-                        
-                        logger.info(f"Subscription activated for {shop_url}, plan: {plan_type}")
+                    # Use explicit transaction instead of nested begin()
+                    user.is_subscribed = True
+                    store.charge_id = str(charge_id)
+                    
+                    # Always sync SubscriptionPlan
+                    existing_plan = SubscriptionPlan.query.filter_by(user_id=user.id).first()
+                    if existing_plan:
+                        existing_plan.status = "active"
+                        existing_plan.charge_id = str(charge_id)
+                        existing_plan.cancelled_at = None
+                        existing_plan.plan_type = plan_type
+                        existing_plan.price_usd = PLAN_PRICES.get(plan_type, 39.00)
+                    else:
+                        new_plan = SubscriptionPlan(
+                            user_id=user.id,
+                            plan_type=plan_type,
+                            price_usd=PLAN_PRICES.get(plan_type, 39.00),
+                            charge_id=str(charge_id),
+                            status="active",
+                            multi_store_enabled=True,
+                            automated_reports_enabled=True,
+                            scheduled_delivery_enabled=True,
+                        )
+                        db.session.add(new_plan)
+                    
+                    # Set trial end date
+                    trial_end_date = datetime.utcnow() + timedelta(days=7)
+                    user.trial_ends_at = trial_end_date
+                    
+                    db.session.commit()  # Single commit at the end
+                    logger.info(f"Subscription activated for {shop_url}, plan: {plan_type}")
+                    
                 except Exception as e:
+                    db.session.rollback()
                     logger.error(f"Transaction failed: {e}")
                     raise
 
-                # Set trial end date
-                trial_end_date = datetime.utcnow() + timedelta(days=7)
-                user.trial_ends_at = trial_end_date
-                
                 # Return enhanced success page
                 dashboard_url = f"/dashboard?shop={shop_url}&host={host}&success=subscription_activated"
                 

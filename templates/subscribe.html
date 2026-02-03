@@ -95,3 +95,120 @@
     </div>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscribe to Employee Suite Pro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/subscribe.css') }}">
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="container">
+            <div class="header-section">
+                <div class="logo-area">
+                    <div class="brand-badge">
+                        <span>🚀</span>
+                        Employee Suite Pro
+                    </div>
+                </div>
+                <h1 class="main-title">Transform Your Store Operations</h1>
+                <p class="sub-title">
+                    AI-powered inventory management and analytics to boost your revenue and streamline operations
+                </p>
+            </div>
+
+            {% if error %}
+            <div class="error-message">
+                <strong>⚠️ {{ error }}</strong>
+            </div>
+            {% endif %}
+
+            <div class="pricing-card">
+                <div class="card-content">
+                    <div class="plan-header">
+                        <span class="plan-name">{{ plan_name }}</span>
+                        <div class="price-container">
+                            <span class="currency">$</span>
+                            <span class="price-value">{{ price }}</span>
+                            <span class="period">/month</span>
+                        </div>
+                        {% if not is_subscribed %}
+                        <div class="trial-badge">7-day free trial</div>
+                        {% endif %}
+                    </div>
+
+                    <ul class="features-list">
+                        {% for feature in features %}
+                        <li class="feature-item">
+                            <span class="check-icon">✓</span>
+                            {{ feature }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+
+                    {% if not is_subscribed and has_store %}
+                    <form action="/billing/create-charge" method="POST" id="subscribeForm">
+                        <input type="hidden" name="shop" value="{{ shop }}">
+                        <input type="hidden" name="host" value="{{ host }}">
+                        <input type="hidden" name="plan" value="{{ plan }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                        
+                        <button type="submit" class="cta-button">
+                            <span>🎯</span>
+                            Start Free Trial
+                        </button>
+                    </form>
+                    <p class="guarantee-text">
+                        💳 No credit card required • Cancel anytime
+                    </p>
+                    {% elif is_subscribed %}
+                    <div class="already-subscribed">
+                        <p>✅ You're already subscribed!</p>
+                        <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="cta-button">
+                            Go to Dashboard
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="connect-store-prompt">
+                        <p>Please connect your Shopify store first</p>
+                        <a href="/oauth/install?shop={{ shop }}&host={{ host }}" class="cta-button">
+                            Connect Store
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="footer-actions">
+                <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="back-link">
+                    ← Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // App Bridge setup for embedded apps
+        if (window.shopify && window.shopify.environment) {
+            const AppBridge = window['app-bridge'];
+            const createApp = AppBridge.default;
+            const { Redirect } = AppBridge.actions;
+            
+            const app = createApp({
+                apiKey: '{{ config_api_key }}',
+                host: '{{ host }}',
+            });
+        }
+
+        // Form submission handling
+        document.getElementById('subscribeForm')?.addEventListener('submit', function(e) {
+            const button = this.querySelector('.cta-button');
+            button.innerHTML = '<span>⏳</span> Creating subscription...';
+            button.disabled = true;
+        });
+    </script>
+</body>
+</html>
