@@ -130,55 +130,58 @@ def get_authenticated_user():
                     500,
                 )
 
-            payload = jwt.decode(
-                token,
-                api_secret,
-                algorithms=["HS256"],
-                options={
-                    "verify_signature": True,
-                    "verify_exp": True,
-                    "verify_iat": True,
-                    "require": ["iss", "dest", "aud", "sub", "exp", "nbf", "iat"],
-                },
-            )
-
-            # Validate required claims
-            token_aud = payload.get("aud", "")
-            if token_aud != api_key:
-                logger.warning(
-                    f"Invalid audience in session token: got '{token_aud}', expected '{api_key}'"
+            try:
+                payload = jwt.decode(
+                    token,
+                    api_secret,
+                    algorithms=["HS256"],
+                    options={
+                        "verify_signature": True,
+                        "verify_exp": True,
+                        "verify_iat": True,
+                        "require": ["iss", "dest", "aud", "sub", "exp", "nbf", "iat"],
+                    },
                 )
+            except jwt.ExpiredSignatureError:
                 return None, (
-                    jsonify({"error": "Invalid token audience", "success": False}),
+                    jsonify({
+                        "error": "Session expired - please refresh the page",
+                        "success": False,
+                        "action": "refresh",
+                    }),
                     401,
                 )
-            
-            # Validate issuer
-            token_iss = payload.get("iss", "")
-            if not token_iss.endswith(".myshopify.com"):
-                logger.warning(f"Invalid issuer in session token: {token_iss}")
+            except jwt.InvalidTokenError as e:
+                logger.warning(f"Invalid JWT token: {e}")
                 return None, (
-                    jsonify({"error": "Invalid token issuer", "success": False}),
+                    jsonify({
+                        "error": "Invalid session token",
+                        "success": False,
+                        "action": "refresh",
+                    }),
                     401,
                 )
 
+            # Validate token claims
+            if payload.get("aud") != api_key:
+                logger.warning(f"Invalid audience: {payload.get('aud')}")
+                return None, (
+                    jsonify({"error": "Invalid token", "success": False}),
+                    401,
+                )
+
+            # Extract shop domain
             dest = payload.get("dest", "")
             if not dest or not dest.endswith(".myshopify.com"):
-                logger.warning(f"Invalid destination in session token: {dest}")
+                logger.warning(f"Invalid destination: {dest}")
                 return None, (
                     jsonify({"error": "Invalid token", "success": False}),
                     401,
                 )
 
             try:
-                cleaned_dest = dest.replace("https://", "").replace("http://", "")
-                shop_domain = (
-                    cleaned_dest.split("/")[0] if "/" in cleaned_dest else cleaned_dest
-                )
-                if not shop_domain:
-                    raise ValueError("Empty shop domain")
-            except (IndexError, AttributeError, ValueError) as e:
-                logger.warning(f"Error parsing shop domain from dest '{dest}': {e}")
+                shop_domain = dest.replace("https://", "").replace("http://", "").split("/")[0]
+            except (IndexError, AttributeError):
                 return None, (
                     jsonify({"error": "Invalid token format", "success": False}),
                     401,

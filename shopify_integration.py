@@ -14,52 +14,36 @@ logger = logging.getLogger(__name__)
 class ShopifyClient:
     def __init__(self, shop_url, access_token):
         self.shop_url = shop_url.replace("https://", "").replace("http://", "")
-
-        # Handle encrypted tokens with graceful failure
+        
+        # Handle encrypted tokens with proper error handling
         if access_token and not (
             access_token.startswith("shpat_") or access_token.startswith("shpca_")
         ):
             try:
                 from data_encryption import decrypt_access_token
-
                 decrypted = decrypt_access_token(access_token)
                 if decrypted:
                     self.access_token = decrypted
+                    logger.info(f"Successfully decrypted token for {shop_url}")
                 else:
-                    logger.warning(
-                        f"Token decryption failed for {shop_url} - store needs reconnection"
-                    )
-                    self.access_token = None  # Force reconnection
+                    logger.warning(f"Token decryption failed for {shop_url}")
+                    self.access_token = None
+            except ImportError:
+                logger.warning("data_encryption module not available, using token as-is")
+                self.access_token = access_token
             except Exception as e:
                 logger.error(f"Token handling failed for {shop_url}: {e}")
-                self.access_token = None  # Force reconnection
+                self.access_token = None
         else:
             self.access_token = access_token
-        self.api_version = SHOPIFY_API_VERSION  # Match app.json API version
-
-        # Debug logging: Verify token format
-        if access_token:
-            token_preview = (
-                access_token[:10] if len(access_token) > 10 else access_token
-            )
-            token_length = len(access_token)
-            starts_with_shpat = (
-                access_token.startswith("shpat_") if access_token else False
-            )
-            starts_with_shpca = (
-                access_token.startswith("shpca_") if access_token else False
-            )
-
-            logger.info(
-                f"ShopifyClient initialized with token: {token_preview}... (length: {token_length}, starts with shpat_: {starts_with_shpat}, starts with shpca_: {starts_with_shpca})"
-            )
-
-            if not (starts_with_shpat or starts_with_shpca):
-                logger.warning(
-                    f"WARNING: Access token doesn't match expected format! Token starts with: {access_token[:20]}"
-                )
-        else:
-            logger.error("ShopifyClient initialized with None/empty access_token!")
+        
+        self.api_version = SHOPIFY_API_VERSION
+        
+        # Validate token
+        if not self.access_token:
+            logger.error(f"No valid access token for {shop_url}")
+        elif not (self.access_token.startswith("shpat_") or self.access_token.startswith("shpca_")):
+            logger.warning(f"Access token format may be invalid for {shop_url}")
 
     def _get_headers(self):
         # Debug logging: Verify token format before API call

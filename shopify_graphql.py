@@ -11,7 +11,7 @@ from config import SHOPIFY_API_VERSION
 logger = logging.getLogger(__name__)
 
 class ShopifyGraphQLClient:
-    """GraphQL client for Shopify Admin API"""
+    """GraphQL client for Shopify Admin API with proper error handling"""
     
     def __init__(self, shop_url: str, access_token: str):
         """
@@ -21,14 +21,21 @@ class ShopifyGraphQLClient:
             shop_url: Shop domain (e.g., 'mystore.myshopify.com')
             access_token: Shopify access token
         """
+        if not shop_url or not access_token:
+            raise ValueError("Shop URL and access token are required")
+            
         self.shop_url = shop_url.replace('https://', '').replace('http://', '')
         self.access_token = access_token
         self.api_version = SHOPIFY_API_VERSION
         self.endpoint = f"https://{self.shop_url}/admin/api/{self.api_version}/graphql.json"
         
+        # Validate access token format
+        if not (access_token.startswith('shpat_') or access_token.startswith('shpca_')):
+            logger.warning(f"Access token may be invalid format for {shop_url}")
+        
     def execute_query(self, query: str, variables: Optional[Dict] = None) -> Dict[str, Any]:
         """
-        Execute a GraphQL query
+        Execute a GraphQL query with comprehensive error handling
         
         Args:
             query: GraphQL query string
@@ -37,12 +44,16 @@ class ShopifyGraphQLClient:
         Returns:
             GraphQL response data
         """
+        if not query or not isinstance(query, str):
+            return {'error': 'Invalid query provided'}
+            
         headers = {
             'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': self.access_token
+            'X-Shopify-Access-Token': self.access_token,
+            'User-Agent': 'Employee Suite/1.0'
         }
         
-        payload = {'query': query}
+        payload = {'query': query.strip()}
         if variables:
             payload['variables'] = variables
             
@@ -53,21 +64,52 @@ class ShopifyGraphQLClient:
                 headers=headers,
                 timeout=30
             )
+            
+            # Check HTTP status first
+            if response.status_code == 401:
+                return {'error': 'Authentication failed - please reconnect your store'}
+            elif response.status_code == 403:
+                return {'error': 'Access denied - missing required permissions'}
+            elif response.status_code == 429:
+                return {'error': 'Rate limit exceeded - please try again later'}
+            elif response.status_code >= 500:
+                return {'error': 'Shopify server error - please try again later'}
+            
             response.raise_for_status()
             
-            data = response.json()
+            try:
+                data = response.json()
+            except ValueError as e:
+                logger.error(f"Failed to parse JSON response: {e}")
+                return {'error': 'Invalid response from Shopify'}
             
             # Check for GraphQL errors
             if 'errors' in data:
-                error_msg = '; '.join([e.get('message', 'Unknown error') for e in data['errors']])
+                error_messages = []
+                for error in data['errors']:
+                    if isinstance(error, dict):
+                        error_messages.append(error.get('message', str(error)))
+                    else:
+                        error_messages.append(str(error))
+                
+                error_msg = '; '.join(error_messages)
                 logger.error(f"GraphQL errors: {error_msg}")
                 return {'error': error_msg}
             
             return data.get('data', {})
             
+        except requests.exceptions.Timeout:
+            logger.error(f"GraphQL request timeout for {self.shop_url}")
+            return {'error': 'Request timeout - please try again'}
+        except requests.exceptions.ConnectionError:
+            logger.error(f"Connection error for {self.shop_url}")
+            return {'error': 'Connection error - check your internet connection'}
         except requests.exceptions.RequestException as e:
             logger.error(f"GraphQL request failed: {e}")
-            return {'error': str(e)}
+            return {'error': f'Request failed: {str(e)}'}
+        except Exception as e:
+            logger.error(f"Unexpected error in GraphQL client: {e}", exc_info=True)
+            return {'error': 'Unexpected error occurred'}
     
     def get_orders(self, limit: int = 250, cursor: Optional[str] = None) -> Dict[str, Any]:
         """

@@ -16,7 +16,7 @@ except ImportError:
 
 def normalize_shop_url(shop_url: str) -> Optional[str]:
     """
-    Normalize a shop URL to the standard myshopify.com format.
+    Normalize a shop URL with comprehensive validation
     
     Args:
         shop_url: The raw shop URL string.
@@ -27,27 +27,37 @@ def normalize_shop_url(shop_url: str) -> Optional[str]:
     if not shop_url or not isinstance(shop_url, str):
         return None
         
-    shop = (
-        shop_url.lower()
-        .replace("https://", "")
-        .replace("http://", "")
-        .replace("www.", "")
-        .strip()
-    )
-    
-    # Basic validation
-    if not shop or len(shop) > 255:
-        return None
+    try:
+        shop = (
+            shop_url.lower()
+            .replace("https://", "")
+            .replace("http://", "")
+            .replace("www.", "")
+            .strip()
+        )
         
-    # Add .myshopify.com if not present
-    if not shop.endswith(".myshopify.com") and "." not in shop:
-        shop = f"{shop}.myshopify.com"
-    
-    # Validate final format
-    if not re.match(r'^[a-zA-Z0-9-]+\.myshopify\.com$', shop):
-        return None
+        # Basic validation
+        if not shop or len(shop) > 255 or len(shop) < 3:
+            return None
+            
+        # Remove any path components
+        shop = shop.split('/')[0]
         
-    return shop
+        # Add .myshopify.com if not present
+        if not shop.endswith(".myshopify.com"):
+            if "." not in shop:
+                shop = f"{shop}.myshopify.com"
+            elif not shop.endswith(".myshopify.com"):
+                return None  # Invalid domain
+        
+        # Validate final format
+        if not re.match(r'^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]\.myshopify\.com$', shop):
+            return None
+            
+        return shop
+    except Exception as e:
+        logger.warning(f"Error normalizing shop URL '{shop_url}': {e}")
+        return None
 
 def validate_csrf_token(req: request, sess: session) -> bool:
     """
