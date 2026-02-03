@@ -12,7 +12,7 @@ _CONFIG_CACHE = {
     "ENVIRONMENT": os.getenv("ENVIRONMENT", "production"),
     "SQLALCHEMY_DATABASE_URI": os.getenv("DATABASE_URL", "sqlite:///app.db"),
     "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-    "WTF_CSRF_ENABLED": False,
+    "WTF_CSRF_ENABLED": True,
     "MAX_CONTENT_LENGTH": 16 * 1024 * 1024,
     "SHOPIFY_API_VERSION": os.getenv("SHOPIFY_API_VERSION", "2025-10"),
     "APP_URL": os.getenv("APP_URL", os.getenv("SHOPIFY_APP_URL", "https://employeesuite-production.onrender.com")),

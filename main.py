@@ -186,6 +186,10 @@ try:
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
             response.headers['Pragma'] = 'no-cache'
             response.headers['Expires'] = '0'
+            response.headers['X-Content-Type-Options'] = 'nosniff'
+            response.headers['X-Frame-Options'] = 'DENY'
+            response.headers['X-XSS-Protection'] = '1; mode=block'
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
             return response
         except Exception as e:
             logger.error(f"Error adding GDPR headers: {e}")
@@ -241,8 +245,13 @@ except Exception as startup_error:
         def health():
             return jsonify({"status": "fallback healthy"})
 
+        @app.route("/ready")
+        def ready():
+            return jsonify({"status": "ready", "timestamp": datetime.now().isoformat()})
+
 
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
+    debug_mode = os.getenv("ENVIRONMENT", "production") != "production"
+    app.run(host="0.0.0.0", port=port, debug=debug_mode, threaded=True)
