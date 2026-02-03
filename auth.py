@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from flask import (
     Blueprint,
@@ -587,6 +587,10 @@ def register():
         bcrypt = get_bcrypt()
         hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
         new_user = User(email=email, password_hash=hashed_password)
+        
+        # Ensure trial is properly set
+        new_user.trial_ends_at = datetime.now(timezone.utc) + timedelta(days=7)
+        new_user.is_subscribed = False
 
         db.session.add(new_user)
         db.session.commit()

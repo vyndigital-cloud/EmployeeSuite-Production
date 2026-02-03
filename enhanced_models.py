@@ -8,13 +8,8 @@ from sqlalchemy.orm import validates
 from models import db, User, ShopifyStore
 
 # Subscription Plan Types
-PLAN_FREE = 'free'        # $0/month - Dashboard, 1 store, view-only
-PLAN_PRO = 'pro'          # $29/month - CSV exports, 3 stores, date filtering
-PLAN_BUSINESS = 'business' # $99/month - Automation, unlimited stores, priority support
-
-# Legacy plan type mappings (for backwards compatibility)
-PLAN_MANUAL = PLAN_PRO
-PLAN_AUTOMATED = PLAN_BUSINESS
+PLAN_FREE = 'free'
+PLAN_PRO = 'pro'
 
 # Plan Pricing (Updated for Production: $39/month single plan)
 PLAN_PRICES = {
@@ -25,7 +20,7 @@ PLAN_PRICES = {
 # Plan Features
 PLAN_FEATURES = {
     PLAN_FREE: {
-        'name': 'Free',
+        'name': 'Free Trial',
         'price': 0,
         'stores_limit': 1,
         'data_days': 7,
@@ -196,30 +191,28 @@ def get_user_settings(user):
     return settings
 
 def is_automated_plan(user):
-    """Check if user has automated/business plan (scheduled reports)"""
-    plan = get_user_plan(user)
-    return plan and plan.plan_type == PLAN_BUSINESS
+    """Check if user has automated plan features (Pro plan)"""
+    return user.is_subscribed
 
 def is_pro_or_higher(user):
-    """Check if user has Pro or Business plan"""
-    plan = get_user_plan(user)
-    return plan and plan.plan_type in [PLAN_PRO, PLAN_BUSINESS]
+    """Check if user has Pro plan"""
+    return user.is_subscribed
 
 def can_export_csv(user):
-    """Check if user can export CSV files"""
-    return user.has_access()
+    """Check if user can export CSV files - requires paid subscription"""
+    return user.is_subscribed
 
 def can_auto_download(user):
-    """Check if user can use auto-download"""
-    return user.has_access()
+    """Check if user can use auto-download - requires paid subscription"""
+    return user.is_subscribed
 
 def can_scheduled_reports(user):
-    """Check if user can use scheduled reports"""
-    return user.has_access()
+    """Check if user can use scheduled reports - requires paid subscription"""
+    return user.is_subscribed
 
 def can_multi_store(user):
-    """Check if user can connect multiple stores"""
-    return user.has_access()
+    """Check if user can connect multiple stores - requires paid subscription"""
+    return user.is_subscribed
 
 def get_stores_limit(user):
     """Get max stores allowed for user's plan"""

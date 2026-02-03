@@ -121,19 +121,18 @@ class User(UserMixin, db.Model, TimestampMixin):
 
     def is_trial_active(self) -> bool:
         """Check if user's trial is still active"""
-        if not self.trial_ends_at:
+        if not self.trial_ends_at or self.is_subscribed:
             return False
 
-        # FIX: Handle timezone-aware vs timezone-naive datetime comparison
         now = datetime.now(timezone.utc)
-
-        # Make trial_ends_at timezone-aware if it's naive
+        
+        # Ensure trial_ends_at is timezone-aware
         if self.trial_ends_at.tzinfo is None:
             trial_end = self.trial_ends_at.replace(tzinfo=timezone.utc)
         else:
             trial_end = self.trial_ends_at
-
-        return now < trial_end and not self.is_subscribed
+        
+        return now < trial_end
 
     def has_access(self) -> bool:
         """Check if user has access (subscribed or trial active)"""
@@ -145,10 +144,20 @@ class User(UserMixin, db.Model, TimestampMixin):
             return 0
 
         now = datetime.now(timezone.utc)
-        if now >= self.trial_ends_at:
+        
+        # Ensure timezone consistency
+        if self.trial_ends_at.tzinfo is None:
+            trial_end = self.trial_ends_at.replace(tzinfo=timezone.utc)
+        else:
+            trial_end = self.trial_ends_at
+        
+        if now >= trial_end:
             return 0
 
-        return (self.trial_ends_at - now).days
+        # Use ceiling to be generous with partial days
+        import math
+        delta = trial_end - now
+        return math.ceil(delta.total_seconds() / 86400)  # 86400 seconds in a day
 
     def update_last_login(self) -> None:
         """Update last login timestamp"""
@@ -165,6 +174,21 @@ class User(UserMixin, db.Model, TimestampMixin):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "last_login": self.last_login.isoformat() if self.last_login else None,
         }
+
+    @classmethod
+    def expire_trials(cls):
+        """Expire trials that have ended - call this from a cron job"""
+        now = datetime.now(timezone.utc)
+        expired_users = cls.query.filter(
+            cls.trial_ends_at < now,
+            cls.is_subscribed == False
+        ).all()
+        
+        for user in expired_users:
+            logger.info(f"Trial expired for user {user.email}")
+            # Could send expiration email here
+        
+        return len(expired_users)
 
     def __repr__(self) -> str:
         return f"<User {self.email}>"

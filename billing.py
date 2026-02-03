@@ -868,43 +868,37 @@ def confirm_charge():
             )
 
             if activate_result.get("success"):
-                # Update user subscription status
-                user.is_subscribed = True
-                store.charge_id = str(charge_id)
-
-                # Create/update SubscriptionPlan with proper error handling
+                # Update user subscription status atomically
                 try:
-                    plan_price = PLAN_PRICES.get(plan_type, 29.00)
-                    existing_plan = SubscriptionPlan.query.filter_by(
-                        user_id=user.id
-                    ).first()
-                    if existing_plan:
-                        existing_plan.plan_type = plan_type
-                        existing_plan.price_usd = plan_price
-                        existing_plan.charge_id = str(charge_id)
-                        existing_plan.status = "active"
-                        existing_plan.cancelled_at = None
-                        existing_plan.multi_store_enabled = True
-                        existing_plan.automated_reports_enabled = True
-                        existing_plan.scheduled_delivery_enabled = True
-                    else:
-                        new_plan = SubscriptionPlan(
-                            user_id=user.id,
-                            plan_type=plan_type,
-                            price_usd=plan_price,
-                            charge_id=str(charge_id),
-                            status="active",
-                            multi_store_enabled=True,
-                            automated_reports_enabled=True,
-                            scheduled_delivery_enabled=True,
-                        )
-                        db.session.add(new_plan)
-                except Exception as plan_error:
-                    logger.warning(f"Could not create/update SubscriptionPlan for user {user.id}, shop {shop_url}: {plan_error}")
-                    # Continue without SubscriptionPlan if enhanced_models is missing
-
-                db.session.commit()
-                logger.info(f"Subscription activated for {shop_url}, plan: {plan_type}, user: {user.id}")
+                    with db.session.begin():  # Use transaction
+                        user.is_subscribed = True
+                        store.charge_id = str(charge_id)
+                        
+                        # Always sync SubscriptionPlan
+                        existing_plan = SubscriptionPlan.query.filter_by(user_id=user.id).first()
+                        if existing_plan:
+                            existing_plan.status = "active"
+                            existing_plan.charge_id = str(charge_id)
+                            existing_plan.cancelled_at = None
+                            existing_plan.plan_type = plan_type
+                            existing_plan.price_usd = PLAN_PRICES.get(plan_type, 39.00)
+                        else:
+                            new_plan = SubscriptionPlan(
+                                user_id=user.id,
+                                plan_type=plan_type,
+                                price_usd=PLAN_PRICES.get(plan_type, 39.00),
+                                charge_id=str(charge_id),
+                                status="active",
+                                multi_store_enabled=True,
+                                automated_reports_enabled=True,
+                                scheduled_delivery_enabled=True,
+                            )
+                            db.session.add(new_plan)
+                        
+                        logger.info(f"Subscription activated for {shop_url}, plan: {plan_type}")
+                except Exception as e:
+                    logger.error(f"Transaction failed: {e}")
+                    raise
 
                 return render_template_string(SUCCESS_HTML, shop=shop_url, host=host)
             else:
