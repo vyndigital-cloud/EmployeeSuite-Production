@@ -1167,7 +1167,7 @@ def subscribe():
             "config_api_key": os.getenv("SHOPIFY_API_KEY", ""),
         }
 
-        return render_template_string(SUBSCRIBE_PAGE_HTML, **template_vars)
+        return render_template("subscribe.html", **template_vars)
             
     except Exception as e:
         logger.error(f"Critical error in subscribe route: {e}", exc_info=True)
