@@ -570,7 +570,8 @@ def subscribe_shortcut():
     )
 
 
-@billing_bp.route("/create-charge", methods=["POST"])
+@billing_bp.route("/create-charge", methods=["GET", "POST"])
+@billing_bp.route("/billing/create-charge", methods=["GET", "POST"])
 def create_charge():
     """Create a Shopify recurring charge"""
     from shopify_utils import normalize_shop_url

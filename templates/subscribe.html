@@ -67,7 +67,7 @@
                     </div>
                     {% endif %}
 
-                    <form method="POST" action="/create-charge">
+                    <form method="POST" action="/billing/create-charge">
                         <input type="hidden" name="shop" value="{{ shop }}">
                         <input type="hidden" name="host" value="{{ host }}">
                         <input type="hidden" name="plan" value="{{ plan }}">
@@ -79,7 +79,7 @@
                         <p class="guarantee-text" style="margin-bottom: 16px;">No commitment. Cancel anytime.</p>
                     </form>
 
-                    <form method="POST" action="/create-charge">
+                    <form method="POST" action="/billing/create-charge">
                         <input type="hidden" name="shop" value="{{ shop }}">
                         <input type="hidden" name="host" value="{{ host }}">
                         <input type="hidden" name="plan" value="{{ plan }}">
