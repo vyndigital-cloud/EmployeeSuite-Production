@@ -76,6 +76,7 @@ def create_app():
         ('legal_routes', 'legal_bp'),
         ('gdpr_compliance', 'gdpr_bp'),
         ('webhook_shopify', 'webhook_shopify_bp'),
+        ('faq_routes', 'faq_bp'),
     ]
     
     registered_blueprints = []

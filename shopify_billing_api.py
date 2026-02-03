@@ -19,37 +19,23 @@ billing_bp = Blueprint("shopify_billing", __name__)
 
 # Billing plans configuration
 BILLING_PLANS = {
-    "growth": {
-        "name": "Growth Plan",
-        "price": 99.00,
+    "pro": {
+        "name": "Pro Plan",
+        "price": 39.00,
         "interval": "EVERY_30_DAYS",
         "features": [
             "Inventory Intelligence Dashboard",
             "Smart Reorder Recommendations",
             "Dead Stock Alerts",
             "30-Day Sales Forecasting",
-            "CSV Export Capable",
-            "Up to 3 Store Connections",
-            "Email Support",
-        ],
-        "trial_days": 7,
-    },
-    "scale": {
-        "name": "Scale Plan",
-        "price": 297.00,
-        "interval": "EVERY_30_DAYS",
-        "features": [
-            "Everything in Growth",
             "Advanced Multi-Location Sync",
             "Automated Supplier Emails",
             "Custom Reporting Engine",
             "Unlimited Data History",
-            "Priority 24/7 Support",
-            "Dedicated Success Manager",
-            "Early Access to Beta Features",
+            "Priority Support",
         ],
-        "trial_days": 14,
-    },
+        "trial_days": 7,
+    }
 }
 
 

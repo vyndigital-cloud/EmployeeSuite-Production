@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ - Employee Suite</title>
+
+    <!-- Shopify App Bridge -->
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <script>
+        var host = "{{ host }}";
+        var shop = "{{ shop }}";
+        if (host) {
+            var AppBridge = window['app-bridge'];
+            var createApp = AppBridge.default;
+            var app = createApp({
+                apiKey: "{{ config_api_key }}",
+                host: host,
+                forceRedirect: true
+            });
+        }
+    </script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        .faq-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+
+        .faq-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .faq-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .faq-header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .faq-grid {
+            display: grid;
+            gap: 24px;
+        }
+
+        .faq-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid #e1e3e5;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            transition: all 0.2s ease;
+        }
+
+        .faq-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border-color: #d1d5db;
+        }
+
+        .faq-question {
+            font-size: 18px;
+            font-weight: 600;
+            color: #111;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .faq-question i {
+            color: #0ea5e9;
+            font-size: 20px;
+        }
+
+        .faq-answer {
+            color: #4b5563;
+            line-height: 1.6;
+        }
+
+        .support-section {
+            margin-top: 60px;
+            background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            color: white;
+        }
+
+        .support-section h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .support-section p {
+            opacity: 0.9;
+            margin-bottom: 24px;
+            font-size: 16px;
+        }
+
+        .contact-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            color: #2563eb;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .contact-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            text-decoration: none;
+            margin-top: 40px;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: #1a1a1a;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="faq-container">
+        <header class="faq-header">
+            <h1>Frequently Asked Questions</h1>
+            <p>Everything you need to know about Employee Suite</p>
+        </header>
+
+        <div class="faq-grid">
+            <div class="faq-card">
+                <div class="faq-question">
+                    <i class="ph-bold ph-currency-dollar"></i>
+                    How much does it cost?
+                </div>
+                <div class="faq-answer">
+                    We offer a simple, unified <strong>Pro Plan</strong> at just <strong>$39/month</strong>. No hidden
+                    fees, no tiers, just full access to everything. This includes unlimited data history and priority
+                    support.
+                </div>
+            </div>
+
+            <div class="faq-card">
+                <div class="faq-question">
+                    <i class="ph-bold ph-clock-countdown"></i>
+                    How does the free trial work?
+                </div>
+                <div class="faq-answer">
+                    You get 7 days of full access to test drive the app. No charges apply until the trial ends. You can
+                    cancel at any time during the trial with no penalty.
+                </div>
+            </div>
+
+            <div class="faq-card">
+                <div class="faq-question">
+                    <i class="ph-bold ph-storefront"></i>
+                    How do I connect my store?
+                </div>
+                <div class="faq-answer">
+                    Installation is seamless. If you installed via the Shopify App Store, you're already connected! For
+                    manual setup, go to the Settings tab in your dashboard.
+                </div>
+            </div>
+
+            <div class="faq-card">
+                <div class="faq-question">
+                    <i class="ph-bold ph-database"></i>
+                    What about database upgrades?
+                </div>
+                <div class="faq-answer">
+                    We handle all the infrastructure for you. Our "1-Click Subscription" model ensures that as you grow,
+                    our database scales with you automatically. You never need to worry about servers or upgrades.
+                </div>
+            </div>
+
+            <div class="faq-card">
+                <div class="faq-question">
+                    <i class="ph-bold ph-shield-check"></i>
+                    Is my data secure?
+                </div>
+                <div class="faq-answer">
+                    Absolutely. We use industry-standard encryption and comprehensive security protocols to ensure your
+                    shop data is safe and GDPR compliant.
+                </div>
+            </div>
+        </div>
+
+        <div class="support-section">
+            <h2>Still need help?</h2>
+            <p>Our team is ready to assist you with any questions or issues.</p>
+            <a href="mailto:adam@golproductions.com" class="contact-btn">
+                <i class="ph-bold ph-envelope-simple"></i>
+                Contact Support
+            </a>
+        </div>
+
+        <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="back-link">
+            <i class="ph-bold ph-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+</body>
+
+</html>

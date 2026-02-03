@@ -5,7 +5,7 @@ import os
 
 # Pre-compute all config values at module load time
 _CONFIG_CACHE = {
-    "SECRET_KEY": os.getenv("SECRET_KEY", "dev-secret-key-change-in-production"),
+    "SECRET_KEY": os.getenv("SECRET_KEY"),  # Must be set in environment
     "SHOPIFY_API_KEY": os.getenv("SHOPIFY_API_KEY", ""),
     "SHOPIFY_API_SECRET": os.getenv("SHOPIFY_API_SECRET", ""),
     "DATABASE_URL": os.getenv("DATABASE_URL", "sqlite:///app.db"),
