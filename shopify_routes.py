@@ -852,9 +852,8 @@ def cancel_subscription():
             )
             return safe_redirect(settings_url, shop=shop, host=host)
         else:
-            logger.error(
-                f"Failed to cancel Shopify subscription: {response.status_code} - {response.text}"
-            )
+            error_msg = result.get("error", "Unknown error")
+            logger.error(f"Failed to cancel Shopify subscription: {error_msg}")
             settings_url = url_for(
                 "shopify.shopify_settings",
                 error="Failed to cancel subscription. Please try again or contact support.",
