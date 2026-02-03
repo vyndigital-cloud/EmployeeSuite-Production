@@ -736,9 +736,10 @@ def log_error():
         }
 
         logger.error(
-            f"JS Error - Type: {error_data.get('error_type', 'UnknownError')}, "
-            f"Message: {error_data.get('error_message', 'Unknown error')}, "
-            f"Location: {error_data.get('error_location', 'unknown')}",
+            "JS Error - Type: %s, Message: %s, Location: %s",
+            error_data.get('error_type', 'UnknownError'),
+            error_data.get('error_message', 'Unknown error'), 
+            error_data.get('error_location', 'unknown'),
             extra={"error_data": full_error_data},
         )
         return jsonify({"success": True, "message": "Error logged"}), 200
