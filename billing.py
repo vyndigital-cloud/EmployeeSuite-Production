@@ -467,20 +467,26 @@ def subscribe():
         # Determine store connection status with better validation
         has_store = False
         if store:
-            has_store = store.is_connected()
-            
-            # If store exists but isn't connected, try to validate token
-            if not has_store and store.access_token:
+            # Check if store has a valid access token
+            access_token = store.get_access_token()
+            if access_token:
+                # Try to validate token with a simple API call
                 try:
                     from shopify_graphql import ShopifyGraphQLClient
-                    client = ShopifyGraphQLClient(store.shop_url, store.get_access_token())
+                    client = ShopifyGraphQLClient(store.shop_url, access_token)
                     query = "query { shop { name } }"
                     result = client.execute_query(query)
                     if "error" not in result and "errors" not in result:
                         has_store = True
+                    else:
+                        logger.warning(f"Store connection validation failed for {store.shop_url}: {result.get('error', 'Unknown error')}")
+                        has_store = False
                 except Exception as e:
                     logger.warning(f"Store connection check failed for {store.shop_url}: {e}")
                     has_store = False
+            else:
+                logger.warning(f"Store {store.shop_url} has no access token")
+                has_store = False
 
         # Set shop from store if not provided
         if not shop and store:
@@ -639,9 +645,16 @@ def create_charge():
     
     if not store:
         logger.error(f"No active store found for user {user.id}")
+        # Try to find ANY store for this user to get better error info
+        any_store = ShopifyStore.query.filter_by(user_id=user.id).first()
+        if any_store:
+            error_msg = f"Store {any_store.shop_url} is not active. Please reconnect in Settings."
+        else:
+            error_msg = "No Shopify store connected. Please connect your store first."
+        
         subscribe_url = url_for(
             "billing.subscribe",
-            error="No Shopify store connected",
+            error=error_msg,
             shop=shop,
             host=host,
             plan=plan_type,
@@ -661,6 +674,24 @@ def create_charge():
             host=host,
         )
         return safe_redirect(settings_url, shop=shop_url, host=host)
+
+    # Optional: Test the connection with a simple API call
+    try:
+        from shopify_graphql import ShopifyGraphQLClient
+        client = ShopifyGraphQLClient(shop_url, access_token)
+        test_result = client.execute_query("query { shop { name } }")
+        if "error" in test_result:
+            logger.error(f"Store {shop_url} connection test failed: {test_result['error']}")
+            settings_url = url_for(
+                "shopify.shopify_settings",
+                error="Store connection issue. Please reconnect.",
+                shop=shop_url,
+                host=host,
+            )
+            return safe_redirect(settings_url, shop=shop_url, host=host)
+    except Exception as e:
+        logger.warning(f"Store connection test failed for {shop_url}: {e}")
+        # Continue anyway - don't block on connection test failures
 
     if user.is_subscribed:
         dashboard_url = f"/dashboard?shop={shop_url}&host={host}"
@@ -801,7 +832,7 @@ def confirm_charge():
 
     status = status_result.get("status", "")
 
-    if status == "accepted":
+    if status.lower() in ["accepted", "active"]:
         try:
             store = (
                 ShopifyStore.query.with_for_update()
