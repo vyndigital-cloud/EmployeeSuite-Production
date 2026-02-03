@@ -1,11 +1,18 @@
 """
 Shopify Utilities
 Centralized logic for safe GID parsing, type conversion, and common helpers.
-helps prevent 500 errors from invalid input formats.
+Helps prevent 500 errors from invalid input formats.
 """
+import re
 from typing import Optional, Union, Any
-from logging_config import logger
 from flask import request, session
+
+# Use fallback logger if logging_config not available
+try:
+    from logging_config import logger
+except ImportError:
+    import logging
+    logger = logging.getLogger(__name__)
 
 def normalize_shop_url(shop_url: str) -> Optional[str]:
     """
@@ -17,7 +24,7 @@ def normalize_shop_url(shop_url: str) -> Optional[str]:
     Returns:
         str: Normalized URL (e.g. 'store.myshopify.com') or None if invalid.
     """
-    if not shop_url:
+    if not shop_url or not isinstance(shop_url, str):
         return None
         
     shop = (
@@ -28,12 +35,17 @@ def normalize_shop_url(shop_url: str) -> Optional[str]:
         .strip()
     )
     
-    # Basic validation characters
+    # Basic validation
     if not shop or len(shop) > 255:
         return None
         
+    # Add .myshopify.com if not present
     if not shop.endswith(".myshopify.com") and "." not in shop:
         shop = f"{shop}.myshopify.com"
+    
+    # Validate final format
+    if not re.match(r'^[a-zA-Z0-9-]+\.myshopify\.com$', shop):
+        return None
         
     return shop
 
@@ -61,9 +73,9 @@ def validate_csrf_token(req: request, sess: session) -> bool:
         # If no shop validation possible, check referer
         referer = req.headers.get("Referer", "")
         return "myshopify.com" in referer or "admin.shopify.com" in referer
-    except Exception:
+    except Exception as e:
+        logger.warning(f"CSRF validation error: {e}")
         return False
-
 
 def parse_gid(gid: Union[str, int, None]) -> Optional[int]:
     """
@@ -81,7 +93,7 @@ def parse_gid(gid: Union[str, int, None]) -> Optional[int]:
         
     # If it's already an integer, return it
     if isinstance(gid, int):
-        return gid
+        return gid if gid > 0 else None
         
     # If it's a string
     if isinstance(gid, str):
@@ -96,15 +108,14 @@ def parse_gid(gid: Union[str, int, None]) -> Optional[int]:
         # Try to parse as GID URI
         if '/' in gid:
             try:
-                # take the last part after the slash
+                # Take the last part after the slash
                 last_part = gid.split('/')[-1]
-                # handle potential query params if they exist (though rare in GID)
+                # Handle potential query params if they exist (though rare in GID)
                 clean_id = last_part.split('?')[0]
                 if clean_id.isdigit():
                     return int(clean_id)
             except Exception as e:
                 logger.warning(f"Failed to parse GID '{gid}': {e}")
-                pass
                 
     logger.warning(f"Could not parse valid ID from: {gid}")
     return None
@@ -136,6 +147,122 @@ def safe_int(value: Any, default: Optional[int] = None) -> Optional[int]:
     try:
         if value is None:
             return default
-        return int(value)
+        if isinstance(value, (int, float)):
+            return int(value)
+        if isinstance(value, str):
+            value = value.strip()
+            if value.isdigit():
+                return int(value)
+            # Handle negative numbers
+            if value.startswith('-') and value[1:].isdigit():
+                return int(value)
+        return default
+    except (ValueError, TypeError, AttributeError):
+        return default
+
+def safe_float(value: Any, default: Optional[float] = None) -> Optional[float]:
+    """
+    Safely convert a value to float.
+    
+    Args:
+        value: The value to convert.
+        default: The default value to return if conversion fails.
+        
+    Returns:
+        float: The converted float or default.
+    """
+    try:
+        if value is None:
+            return default
+        return float(value)
     except (ValueError, TypeError):
         return default
+
+def extract_shop_from_request(req: request) -> Optional[str]:
+    """
+    Extract and normalize shop domain from request.
+    
+    Args:
+        req: Flask request object
+        
+    Returns:
+        str: Normalized shop domain or None
+    """
+    # Try different sources
+    shop = (
+        req.args.get('shop') or 
+        req.form.get('shop') or 
+        req.headers.get('X-Shopify-Shop-Domain') or
+        getattr(req, 'shop_domain', None)
+    )
+    
+    if shop:
+        return normalize_shop_url(shop)
+        
+    return None
+
+def is_shopify_request(req: request) -> bool:
+    """
+    Check if request is from Shopify.
+    
+    Args:
+        req: Flask request object
+        
+    Returns:
+        bool: True if from Shopify
+    """
+    # Check various indicators
+    referer = req.headers.get('Referer', '')
+    user_agent = req.headers.get('User-Agent', '')
+    
+    shopify_indicators = [
+        'myshopify.com' in referer,
+        'admin.shopify.com' in referer,
+        'Shopify' in user_agent,
+        req.headers.get('X-Shopify-Shop-Domain'),
+        req.headers.get('X-Shopify-Hmac-Sha256'),
+        req.args.get('shop'),
+        req.form.get('shop')
+    ]
+    
+    return any(shopify_indicators)
+
+def format_currency(amount: Union[str, int, float], currency: str = 'USD') -> str:
+    """
+    Format amount as currency.
+    
+    Args:
+        amount: The amount to format
+        currency: Currency code (default: USD)
+        
+    Returns:
+        str: Formatted currency string
+    """
+    try:
+        amount = float(amount)
+        if currency.upper() == 'USD':
+            return f"${amount:,.2f}"
+        else:
+            return f"{amount:,.2f} {currency}"
+    except (ValueError, TypeError):
+        return f"0.00 {currency}"
+
+def truncate_string(text: str, max_length: int = 50, suffix: str = '...') -> str:
+    """
+    Truncate string to max length with suffix.
+    
+    Args:
+        text: String to truncate
+        max_length: Maximum length
+        suffix: Suffix to add if truncated
+        
+    Returns:
+        str: Truncated string
+    """
+    if not text or not isinstance(text, str):
+        return ''
+        
+    if len(text) <= max_length:
+        return text
+        
+    return text[:max_length - len(suffix)] + suffix

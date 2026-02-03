@@ -577,3 +577,73 @@ def create_shopify_store(
 
     logger.info(f"Created new store connection: {shop_url} for user {user_id}")
     return store
+"""
+Database Models for Employee Suite
+"""
+import os
+from datetime import datetime, timedelta, timezone
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy.orm import relationship
+
+db = SQLAlchemy()
+
+class User(UserMixin, db.Model):
+    __tablename__ = 'users'
+    
+    id = Column(Integer, primary_key=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_login = Column(DateTime)
+    
+    # Trial and subscription
+    trial_ends_at = Column(DateTime)
+    is_subscribed = Column(Boolean, default=False)
+    subscription_id = Column(String(255))
+    
+    # Password reset
+    reset_token = Column(String(255))
+    reset_token_expires = Column(DateTime)
+    
+    # Relationships
+    shopify_stores = relationship('ShopifyStore', backref='user', lazy=True)
+    
+    def __repr__(self):
+        return f'<User {self.email}>'
+    
+    def has_access(self):
+        """Check if user has access (trial or subscription)"""
+        if self.is_subscribed:
+            return True
+        return self.is_trial_active()
+    
+    def is_trial_active(self):
+        """Check if trial is still active"""
+        if not self.trial_ends_at:
+            return False
+        return datetime.now(timezone.utc) < self.trial_ends_at.replace(tzinfo=timezone.utc)
+    
+    def days_left_in_trial(self):
+        """Get days left in trial"""
+        if not self.trial_ends_at:
+            return 0
+        delta = self.trial_ends_at.replace(tzinfo=timezone.utc) - datetime.now(timezone.utc)
+        return max(0, delta.days)
+
+class ShopifyStore(db.Model):
+    __tablename__ = 'shopify_stores'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    shop_url = Column(String(255), nullable=False, index=True)
+    shop_id = Column(String(255))
+    access_token = Column(Text)  # Encrypted
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    uninstalled_at = Column(DateTime)
+    
+    def __repr__(self):
+        return f'<ShopifyStore {self.shop_url}>'

@@ -47,3 +47,67 @@ AUTO_SCALING_ENGINE_OPTIONS = {
 
 class ConfigValidationError(Exception):
     pass
+"""
+Configuration Management
+"""
+import os
+from typing import Any, Optional
+
+def get_config_safe(key: str, default: Any = None) -> Any:
+    """
+    Safely get configuration value with fallback
+    
+    Args:
+        key: Environment variable name
+        default: Default value if not found
+        
+    Returns:
+        Configuration value or default
+    """
+    try:
+        value = os.getenv(key, default)
+        
+        # Handle boolean strings
+        if isinstance(value, str):
+            if value.lower() in ('true', '1', 'yes', 'on'):
+                return True
+            elif value.lower() in ('false', '0', 'no', 'off'):
+                return False
+                
+        return value
+    except Exception:
+        return default
+
+# Shopify API Configuration
+SHOPIFY_API_VERSION = "2024-01"
+SHOPIFY_API_KEY = get_config_safe("SHOPIFY_API_KEY", "")
+SHOPIFY_API_SECRET = get_config_safe("SHOPIFY_API_SECRET", "")
+
+# Database Configuration
+DATABASE_URL = get_config_safe("DATABASE_URL", "sqlite:///employeesuite.db")
+
+# App Configuration
+SECRET_KEY = get_config_safe("SECRET_KEY", "dev-secret-key-change-in-production")
+DEBUG = get_config_safe("DEBUG", False)
+ENVIRONMENT = get_config_safe("ENVIRONMENT", "development")
+
+# Security Configuration
+ENCRYPTION_KEY = get_config_safe("ENCRYPTION_KEY", "")
+CSRF_SECRET_KEY = get_config_safe("CSRF_SECRET_KEY", SECRET_KEY)
+
+# Email Configuration
+SMTP_SERVER = get_config_safe("SMTP_SERVER", "")
+SMTP_PORT = get_config_safe("SMTP_PORT", 587)
+SMTP_USERNAME = get_config_safe("SMTP_USERNAME", "")
+SMTP_PASSWORD = get_config_safe("SMTP_PASSWORD", "")
+
+# Logging Configuration
+LOG_LEVEL = get_config_safe("LOG_LEVEL", "INFO")
+UPLOAD_FOLDER = get_config_safe("UPLOAD_FOLDER", "uploads")
+
+# Performance Configuration
+CACHE_TYPE = get_config_safe("CACHE_TYPE", "simple")
+CACHE_DEFAULT_TIMEOUT = get_config_safe("CACHE_DEFAULT_TIMEOUT", 300)
+
+# Testing Configuration
+TESTING = get_config_safe("TESTING", False)
