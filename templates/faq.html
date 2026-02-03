@@ -9,17 +9,25 @@
     <!-- Shopify App Bridge -->
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <script>
-        var host = "{{ host }}";
-        var shop = "{{ shop }}";
+        var host = new URLSearchParams(window.location.search).get('host');
+        var shop = new URLSearchParams(window.location.search).get('shop');
         if (host) {
             var AppBridge = window['app-bridge'];
             var createApp = AppBridge.default;
             var app = createApp({
-                apiKey: "{{ config_api_key }}",
+                apiKey: '{{ config_api_key }}',
                 host: host,
                 forceRedirect: true
             });
         }
+
+        window.openPage = function (path) {
+            var sep = path.indexOf('?') > -1 ? '&' : '?';
+            if (shop) path += sep + 'shop=' + shop;
+            if (host) path += (path.indexOf('?') > -1 ? '&' : '?') + 'host=' + host;
+            window.location.href = path;
+            return false;
+        };
     </script>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -218,7 +226,7 @@
             </a>
         </div>
 
-        <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="back-link">
+        <a href="#" onclick="openPage('/dashboard'); return false;" class="back-link">
             <i class="ph-bold ph-arrow-left"></i>
             Back to Dashboard
         </a>
