@@ -66,6 +66,7 @@ try:
     def internal_error(error):
         error_logger.log_error(error, "INTERNAL_SERVER_ERROR")
         from flask import jsonify
+        from datetime import datetime
         return jsonify({
             'error': 'Internal Server Error',
             'message': 'Error has been logged and will be investigated',
@@ -94,6 +95,7 @@ try:
     @app.before_request
     def log_request():
         """Log all incoming requests"""
+        from flask import request, session
         error_logger.log_user_action(
             f"{request.method} {request.endpoint or request.path}",
             session.get('user_id') if session else None,
@@ -108,6 +110,7 @@ try:
     @log_errors("ADMIN_ERROR")
     def view_errors():
         """Admin route to view recent errors"""
+        from flask import session, jsonify
         try:
             # Simple authentication check
             if not session.get('user_id'):
