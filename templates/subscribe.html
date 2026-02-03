@@ -641,3 +641,188 @@
     </div>
 </body>
 </html>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Subscribe - Employee Suite</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f6f6f7;
+            color: #202223;
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.5;
+        }
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid #e1e3e5;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 16px;
+            font-weight: 600;
+            color: #202223;
+            text-decoration: none;
+            letter-spacing: -0.2px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+        .page-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: #202223;
+            margin-bottom: 8px;
+            letter-spacing: -0.3px;
+            text-align: center;
+        }
+        .page-subtitle {
+            font-size: 15px;
+            color: #6d7175;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        .card {
+            background: #ffffff;
+            border: 1px solid #e1e3e5;
+            border-radius: 8px;
+            padding: 32px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .price {
+            font-size: 48px;
+            font-weight: 700;
+            color: #008060;
+            margin-bottom: 8px;
+        }
+        .price-period {
+            font-size: 16px;
+            color: #6d7175;
+            margin-bottom: 24px;
+        }
+        .features {
+            list-style: none;
+            margin: 24px 0;
+            text-align: left;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .features li {
+            padding: 8px 0;
+            font-size: 14px;
+            color: #202223;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.15s;
+        }
+        .btn-primary {
+            background: #008060;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #006e52;
+        }
+        .error {
+            background: #fff4f4;
+            border: 1px solid #fecaca;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #d72c0d;
+        }
+        .trial-banner {
+            background: #e3fcef;
+            border: 1px solid #b2f5d1;
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .trial-banner h3 {
+            color: #008060;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <a href="/dashboard" class="logo">Employee Suite</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1 class="page-title">Choose Your Plan</h1>
+        <p class="page-subtitle">Start your free trial today</p>
+
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+
+        {% if trial_active %}
+        <div class="trial-banner">
+            <h3>Free Trial Active</h3>
+            <p>{{ days_left }} days remaining. Subscribe to continue after trial.</p>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="price">${{ price }}</div>
+            <div class="price-period">per month</div>
+            <h2>{{ plan_name }}</h2>
+            
+            <ul class="features">
+                {% for feature in features %}
+                <li>{{ feature }}</li>
+                {% endfor %}
+            </ul>
+
+            {% if not has_store %}
+            <p style="color: #d72c0d; margin-bottom: 16px;">Please connect your Shopify store first</p>
+            <a href="/settings/shopify?shop={{ shop }}&host={{ host }}" class="btn btn-primary">Connect Store</a>
+            {% elif is_subscribed %}
+            <p style="color: #008060; margin-bottom: 16px;">✓ Already subscribed</p>
+            <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="btn btn-primary">Go to Dashboard</a>
+            {% else %}
+            <form method="POST" action="/create-charge">
+                <input type="hidden" name="shop" value="{{ shop }}">
+                <input type="hidden" name="host" value="{{ host }}">
+                <input type="hidden" name="plan" value="{{ plan }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                <button type="submit" class="btn btn-primary">Start Free Trial</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

@@ -20,7 +20,7 @@ def process_orders(user_id=None, start_date=None, end_date=None, **kwargs):
 
         # Get orders from Shopify with date filtering
         client = ShopifyClient(store.shop_url, store.get_access_token())
-        orders = client.get_orders(start_date=start_date, end_date=end_date)
+        orders = client.get_orders(status="any", limit=50, start_date=start_date, end_date=end_date)
 
         if isinstance(orders, dict) and "error" in orders:
             return {"success": False, "error": orders["error"]}
