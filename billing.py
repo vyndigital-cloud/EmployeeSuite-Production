@@ -7,7 +7,7 @@ Stripe/external payment processors are NOT allowed for embedded apps
 import hashlib
 import os
 import secrets
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import (
     Blueprint,
