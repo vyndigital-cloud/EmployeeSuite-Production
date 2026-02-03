@@ -618,6 +618,12 @@ def subscribe_shortcut():
         price=int(plan["price"]),
         features=plan["features"],
         config_api_key=os.getenv("SHOPIFY_API_KEY"),
+        error=None,
+        trial_active=False,
+        has_access=False,
+        days_left=0,
+        is_subscribed=False,
+        has_store=True,
     )
 
 
