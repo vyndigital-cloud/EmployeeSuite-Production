@@ -108,9 +108,12 @@
                         <a href="#" onclick="
                                     openPage('/features/csv-exports');
                                     return false;
-                                " class="quick-menu-item">
+                                " class="quick-menu-item" style="
+                                    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+                                    border: 1px solid #bbf7d0;
+                                ">
                             <span class="quick-menu-item-icon">📥</span>
-                            CSV Exports
+                            <strong>CSV Exports</strong>
                             <span class="quick-menu-shortcut">⌘E</span>
                         </a>
                         <a href="#" onclick="
@@ -184,15 +187,29 @@
                         <a href="#" onclick="
                                 openPage('/features/welcome');
                                 return false;
-                            " class="btn-primary">
-                            🎉 Explore New Features →
+                            " class="btn-primary" style="
+                                background: linear-gradient(135deg, #008060 0%, #00a86b 100%);
+                                color: white;
+                                padding: 16px 24px;
+                                border-radius: 12px;
+                                text-decoration: none;
+                                font-weight: 600;
+                                font-size: 16px;
+                                display: inline-flex;
+                                align-items: center;
+                                gap: 8px;
+                                box-shadow: 0 4px 12px rgba(0, 128, 96, 0.3);
+                                transition: all 0.2s ease;
+                            ">
+                            🚀 Explore New Features
+                            <span style="font-size: 14px;">→</span>
                         </a>
-
+                        
                         <a href="#" onclick="
-                                openPage('/features/dashboard');
+                                openPage('/features/scheduled-reports');
                                 return false;
                             " class="btn-secondary">
-                            📊 Full Dashboard
+                            📧 Automated Reports
                         </a>
                     </div>
                 </div>
@@ -230,8 +247,7 @@
                         != 1 else '' }} remaining
                     </h3>
                     <p>
-                        Subscribe now to keep access when your trial ends. No
-                        credit card required until trial ends.
+                        Subscribe to <strong>Employee Suite Pro for just $39/month</strong> to keep access when your trial ends. Cancel anytime.
                     </p>
                 </div>
                 <a href="{{ url_for('billing.subscribe') }}" class="banner-action">Subscribe Now →</a>
@@ -387,179 +403,6 @@
                     {% endif %}
                 </div>
 
-                <div class="card" style="
-                        border: 2px solid #008060;
-                        background: linear-gradient(
-                            135deg,
-                            #ffffff 0%,
-                            #f0fdf4 100%
-                        );
-                    ">
-                    <div style="
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                            margin-bottom: 8px;
-                        ">
-                        <div class="card-icon">📥</div>
-                        <span style="
-                                background: #008060;
-                                color: white;
-                                padding: 2px 8px;
-                                border-radius: 4px;
-                                font-size: 11px;
-                                font-weight: 600;
-                            ">NEW</span>
-                    </div>
-                    <div class="card-title">CSV Exports</div>
-                    <div class="card-description">
-                        Download Orders, Inventory, and Revenue reports as CSV
-                        with date filtering. Export your data anytime.
-                    </div>
-                    {% if has_access %}
-                    <a href="/features/csv-exports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                        class="card-btn" style="
-                            text-decoration: none;
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            background: #008060;
-                            color: white;
-                        ">
-                        <span>Export Data</span>
-                        <span style="font-size: 12px; opacity: 0.9">→</span>
-                    </a>
-                    {% else %}
-                    <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                        class="card-btn" style="
-                            text-decoration: none;
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            background: #008060;
-                            color: white;
-                        ">
-                        <span>Learn More</span>
-                        <span style="font-size: 12px; opacity: 0.9">→</span>
-                    </a>
-                    {% endif %}
-                </div>
-
-                <div class="card" style="
-                        border: 2px solid #008060;
-                        background: linear-gradient(
-                            135deg,
-                            #ffffff 0%,
-                            #f0fdf4 100%
-                        );
-                    ">
-                    <div style="
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                            margin-bottom: 8px;
-                        ">
-                        <div class="card-icon">📅</div>
-                        <span style="
-                                background: #008060;
-                                color: white;
-                                padding: 2px 8px;
-                                border-radius: 4px;
-                                font-size: 11px;
-                                font-weight: 600;
-                            ">NEW</span>
-                    </div>
-                    <div class="card-title">Scheduled Reports</div>
-                    <div class="card-description">
-                        Automatically receive reports via Email or SMS at your
-                        preferred time. Set it and forget it.
-                    </div>
-                    {% if has_access %}
-                    <a href="/features/scheduled-reports{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                        class="card-btn" style="
-                            text-decoration: none;
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            background: #008060;
-                            color: white;
-                        ">
-                        <span>Schedule Reports</span>
-                        <span style="font-size: 12px; opacity: 0.9">→</span>
-                    </a>
-                    {% else %}
-                    <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                        class="card-btn" style="
-                            text-decoration: none;
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            background: #008060;
-                            color: white;
-                        ">
-                        <span>Learn More</span>
-                        <span style="font-size: 12px; opacity: 0.9">→</span>
-                    </a>
-                    {% endif %}
-                </div>
-
-                <div class="card" style="
-                        border: 2px solid #008060;
-                        background: linear-gradient(
-                            135deg,
-                            #ffffff 0%,
-                            #f0fdf4 100%
-                        );
-                    ">
-                    <div style="
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                            margin-bottom: 8px;
-                        ">
-                        <div class="card-icon">📊</div>
-                        <span style="
-                                background: #008060;
-                                color: white;
-                                padding: 2px 8px;
-                                border-radius: 4px;
-                                font-size: 11px;
-                                font-weight: 600;
-                            ">NEW</span>
-                    </div>
-                    <div class="card-title">Comprehensive Dashboard</div>
-                    <div class="card-description">
-                        View all three reports (Orders, Inventory, Revenue) in
-                        one unified dashboard view.
-                    </div>
-                    {% if has_access %}
-                    <a href="/features/dashboard{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                        class="card-btn" style="
-                            text-decoration: none;
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            background: #008060;
-                            color: white;
-                        ">
-                        <span>View Dashboard</span>
-                        <span style="font-size: 12px; opacity: 0.9">→</span>
-                    </a>
-                    {% else %}
-                    <a href="/features/welcome{% if shop %}?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}{% endif %}"
-                        class="card-btn" style="
-                            text-decoration: none;
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            background: #008060;
-                            color: white;
-                        ">
-                        <span>Learn More</span>
-                        <span style="font-size: 12px; opacity: 0.9">→</span>
-                    </a>
-                    {% endif %}
-                </div>
             </div>
 
             <div id="connection-status" style="display: none; margin-bottom: 16px"></div>

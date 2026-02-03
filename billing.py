@@ -106,18 +106,18 @@ PLANS = {
         "name": "Employee Suite Pro",
         "price": 39.00,
         "features": [
-            "🤖 AI-Powered Stockout Predictions",
-            "📊 Real-Time Inventory Dashboard", 
+            "🤖 Complete Store Automation",
+            "📊 Real-Time Analytics Dashboard", 
             "📦 Smart Order Management",
-            "💰 Revenue Analytics & Forecasting",
+            "💰 Revenue Forecasting",
             "📥 Unlimited CSV Exports",
-            "🔄 Automated Reorder Alerts",
-            "📱 Mobile-Responsive Interface",
-            "⚡ Real-Time Sync with Shopify",
-            "🎯 Low Stock Notifications",
-            "📈 Sales Velocity Analysis",
+            "📧 Automated Email Reports",
+            "📱 Mobile-Optimized Interface",
+            "⚡ Instant Shopify Sync",
+            "🎯 Low Stock Alerts",
+            "📈 Sales Trend Analysis",
             "🛡️ Enterprise Security",
-            "💬 Priority Email Support",
+            "💬 Priority Support",
         ],
     },
 }
@@ -917,7 +917,7 @@ def confirm_charge():
                         )
                         db.session.add(new_plan)
                     
-                    # Set trial end date
+                    # Set trial end date - FIXED: Always set 7 days from activation
                     trial_end_date = datetime.utcnow() + timedelta(days=7)
                     user.trial_ends_at = trial_end_date
                     
