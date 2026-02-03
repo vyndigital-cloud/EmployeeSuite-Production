@@ -5,6 +5,7 @@ Production Main Entry Point - Bulletproof
 
 import os
 import sys
+import logging
 from pathlib import Path
 from datetime import datetime
 
@@ -14,9 +15,11 @@ if str(project_dir) not in sys.path:
     sys.path.insert(0, str(project_dir))
 
 # Configure logging for production speed
-import logging
 import traceback
 from error_logging import error_logger, log_errors
+
+# Initialize logger for this module
+logger = logging.getLogger(__name__)
 
 # Optimized logging for production
 logging.basicConfig(
@@ -192,17 +195,6 @@ except Exception as startup_error:
         def health():
             return jsonify({"status": "fallback healthy"})
 
-# Add Protected Customer Data compliance headers for fallback mode
-@app.after_request
-def add_gdpr_headers(response):
-    """Add Shopify Protected Customer Data compliance headers"""
-    response.headers['X-Shopify-Data-Protection'] = 'compliant'
-    response.headers['X-Data-Minimization'] = 'enabled'
-    response.headers['X-Customer-Privacy'] = 'protected'
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    return response
 
 
 if __name__ == "__main__":

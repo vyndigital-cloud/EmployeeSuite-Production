@@ -145,10 +145,24 @@ def get_authenticated_user():
                 },
             )
 
+            # Validate required claims
             token_aud = payload.get("aud", "")
             if token_aud != api_key:
                 logger.warning(
                     f"Invalid audience in session token: got '{token_aud}', expected '{api_key}'"
+                )
+                return None, (
+                    jsonify({"error": "Invalid token audience", "success": False}),
+                    401,
+                )
+            
+            # Validate issuer
+            token_iss = payload.get("iss", "")
+            if not token_iss.endswith(".myshopify.com"):
+                logger.warning(f"Invalid issuer in session token: {token_iss}")
+                return None, (
+                    jsonify({"error": "Invalid token issuer", "success": False}),
+                    401,
                 )
 
             dest = payload.get("dest", "")

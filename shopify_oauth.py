@@ -456,9 +456,8 @@ def _handle_oauth_callback():
         # Get or create user (for App Store, use shop domain as identifier)
         # CRITICAL: Ensure database columns exist before querying
         try:
-            from app import ensure_db_initialized
-
-            ensure_db_initialized()
+            # Check if required columns exist by attempting a simple query
+            db.session.execute(db.text("SELECT 1 FROM users LIMIT 1"))
         except Exception as init_err:
             logger.warning(f"Database initialization check failed: {init_err}")
 

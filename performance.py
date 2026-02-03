@@ -31,8 +31,8 @@ _cache_timestamps = {}
 _cache_access_times = {}  # Track last access for LRU
 
 # Cache limits to prevent memory exhaustion (critical for worker stability)
-MAX_CACHE_ENTRIES = 200  # Increased for better performance
-MAX_CACHE_SIZE_MB = 100  # Increased cache size for speed
+MAX_CACHE_ENTRIES = 150  # Balanced for performance and memory
+MAX_CACHE_SIZE_MB = 50   # Reduced to prevent memory issues
 
 # Cache TTLs (in seconds) - Optimized for speed
 CACHE_TTL_INVENTORY = 300  # 5 minutes for inventory (increased for speed)
