@@ -49,6 +49,9 @@ def get_inventory_forecast():
         at_risk_items = []
         total_potential_loss = 0.0
 
+        # Value Add: Identify low stock items and project their runout date using real sales data
+        today = datetime.utcnow()
+        
         # Calculate date range for velocity analysis
         thirty_days_ago = today - timedelta(days=30)
         
@@ -71,9 +74,6 @@ def get_inventory_forecast():
                 'price': price,
                 'variant_title': ''
             })
-        
-        # Value Add: Identify low stock items and project their runout date using real sales data
-        today = datetime.utcnow()
         
         for p in products:
             stock = p.get('stock', 0)
