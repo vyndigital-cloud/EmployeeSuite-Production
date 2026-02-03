@@ -12,17 +12,18 @@ project_dir = Path(__file__).parent.absolute()
 if str(project_dir) not in sys.path:
     sys.path.insert(0, str(project_dir))
 
-# Configure logging immediately
+# Configure logging for production speed
 import logging
 import traceback
 from error_logging import error_logger, log_errors
 
+# Optimized logging for production
 logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.WARNING,  # Changed from DEBUG to WARNING for speed
+    format='%(asctime)s - %(levelname)s - %(message)s',  # Simplified format
     handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('app_errors.log')
+        logging.StreamHandler(sys.stdout)
+        # Removed file handler for speed - use external log aggregation
     ]
 )
 

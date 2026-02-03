@@ -31,16 +31,14 @@ _cache_timestamps = {}
 _cache_access_times = {}  # Track last access for LRU
 
 # Cache limits to prevent memory exhaustion (critical for worker stability)
-MAX_CACHE_ENTRIES = 100  # Maximum number of cache entries per worker
-MAX_CACHE_SIZE_MB = 50  # Maximum cache size in MB (approximate)
+MAX_CACHE_ENTRIES = 200  # Increased for better performance
+MAX_CACHE_SIZE_MB = 100  # Increased cache size for speed
 
-# Cache TTLs (in seconds) - Balanced for performance and memory
-CACHE_TTL_INVENTORY = (
-    180  # 3 minutes for inventory (reduced from 5min to prevent memory issues)
-)
-CACHE_TTL_ORDERS = 120  # 2 minutes for orders (reduced from 3min)
-CACHE_TTL_REPORTS = 300  # 5 minutes for reports (reduced from 10min to prevent crashes)
-CACHE_TTL_STATS = 180  # 3 minutes for dashboard stats
+# Cache TTLs (in seconds) - Optimized for speed
+CACHE_TTL_INVENTORY = 300  # 5 minutes for inventory (increased for speed)
+CACHE_TTL_ORDERS = 180     # 3 minutes for orders (increased for speed)
+CACHE_TTL_REPORTS = 600    # 10 minutes for reports (increased for speed)
+CACHE_TTL_STATS = 300      # 5 minutes for dashboard stats (increased for speed)
 
 # Cache statistics tracking
 _cache_stats = {}
