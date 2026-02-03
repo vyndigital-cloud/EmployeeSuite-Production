@@ -435,12 +435,8 @@ def home():
         <head><title>Employee Suite</title></head>
         <body>
             <h1>Employee Suite</h1>
-            <p>Loading dashboard...</p>
-            <script>
-                setTimeout(function() {
-                    window.location.reload();
-                }, 2000);
-            </script>
+            <p>Dashboard temporarily unavailable. Please try refreshing manually.</p>
+            <button onclick="window.location.reload()">Refresh</button>
         </body>
         </html>
         """), 200
