@@ -102,8 +102,164 @@ body {
     z-index: 100;
 }
 
+z-index: 100;
+}
+
 body.embedded .header {
     display: none !important;
+}
+
+/* --- Global Navigation Styles (Restored & Modernized) --- */
+.header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 72px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo-link {
+    text-decoration: none;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    font-size: 1.05rem;
+    transition: opacity 0.2s;
+}
+
+.logo-link:hover {
+    opacity: 0.8;
+}
+
+.header-nav {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Nav Buttons */
+.nav-btn {
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--text-sub);
+    transition: all 0.2s ease;
+}
+
+.nav-btn:hover {
+    color: var(--primary);
+    background: rgba(0, 128, 96, 0.05);
+}
+
+.nav-btn-primary {
+    background: var(--primary);
+    color: #fff !important;
+    box-shadow: 0 4px 12px rgba(0, 128, 96, 0.2);
+}
+
+.nav-btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 128, 96, 0.3);
+}
+
+/* Quick Menu */
+.quick-menu {
+    position: relative;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.quick-menu-btn {
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    background: rgba(246, 246, 247, 0.5);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.quick-menu-btn:hover {
+    background: rgba(225, 227, 229, 0.6);
+    border-color: #d1d5db;
+}
+
+.quick-menu-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 12px;
+    background: #ffffff;
+    border: 1px solid rgba(225, 227, 229, 0.8);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+    min-width: 260px;
+    z-index: 1000;
+    overflow: hidden;
+    padding: 8px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.quick-menu-dropdown.show {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.quick-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    color: var(--text-main);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.15s;
+    border-radius: 8px;
+    margin-bottom: 2px;
+}
+
+.quick-menu-item:hover {
+    background: rgba(0, 128, 96, 0.04);
+    color: var(--primary);
+}
+
+.quick-menu-item-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-right: 12px;
+    font-size: 1.1rem;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.quick-menu-shortcut {
+    margin-left: auto;
+    color: var(--text-sub);
+    font-size: 10px;
+    background: rgba(0, 0, 0, 0.04);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 /* --- Cards Grid (Premium Style) --- */

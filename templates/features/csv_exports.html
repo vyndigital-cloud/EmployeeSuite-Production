@@ -51,11 +51,10 @@
 {% endblock %}
 
 {% block content %}
-<div class="text-center" style="margin-bottom: 40px; text-align: center;">
-    <h1 class="page-title">CSV Exports</h1>
-    <p class="page-subtitle" style="margin: 0 auto;">Download your data as CSV files with date filtering.
-    </p>
-</div>
+<header class="header-section">
+    <h1 class="main-title">CSV Exports</h1>
+    <p class="sub-title">Download your data as CSV files with date filtering.</p>
+</header>
 
 {% if not has_store %}
 <div class="banner error"
@@ -69,12 +68,13 @@
 </div>
 {% else %}
 
-<div class="cards-grid" style="display: grid; grid-template-columns: 1fr; gap: 24px;">
+<div class="cards-grid" style="display: grid; grid-template-columns: 1fr; gap: 24px; max-width: 800px; margin: 0 auto;">
     <!-- Orders Export -->
     <div class="card">
         <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-            <div class="card-icon" style="font-size: 24px;"><i class="ph-bold ph-package"></i></div>
-            <h3 class="card-title" style="margin: 0; font-size: 16px; font-weight: 600;">Export Orders</h3>
+            <div class="card-icon" style="font-size: 24px; margin-bottom: 0; width: 48px; height: 48px;"><i
+                    class="ph-bold ph-package"></i></div>
+            <h3 class="card-title" style="margin: 0;">Export Orders</h3>
         </div>
 
         <div class="date-filter">
@@ -86,7 +86,7 @@
             <button onclick="setDateRange('orders', 30)" class="filter-btn">Last 30 Days</button>
 
             <a href="#" id="export-orders" class="btn-primary"
-                style="width: auto; margin-left: auto; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; background: black; color: white; text-decoration: none;">
+                style="width: auto; margin-left: auto; display: inline-flex; align-items: center; gap: 8px;">
                 Export CSV <i class="ph-bold ph-download-simple"></i>
             </a>
         </div>
@@ -95,8 +95,9 @@
     <!-- Inventory Export -->
     <div class="card">
         <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-            <div class="card-icon" style="font-size: 24px;"><i class="ph-bold ph-clipboard-text"></i></div>
-            <h3 class="card-title" style="margin: 0; font-size: 16px; font-weight: 600;">Export Inventory</h3>
+            <div class="card-icon" style="font-size: 24px; margin-bottom: 0; width: 48px; height: 48px;"><i
+                    class="ph-bold ph-clipboard-text"></i></div>
+            <h3 class="card-title" style="margin: 0;">Export Inventory</h3>
         </div>
 
         <div class="date-filter">
@@ -105,7 +106,7 @@
                 <input type="number" id="inventory-days" class="date-input" value="30" style="width: 100px;">
             </div>
             <a href="#" id="export-inventory" class="btn-primary"
-                style="width: auto; margin-left: auto; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; background: black; color: white; text-decoration: none;">
+                style="width: auto; margin-left: auto; display: inline-flex; align-items: center; gap: 8px;">
                 Export CSV <i class="ph-bold ph-download-simple"></i>
             </a>
         </div>
@@ -114,8 +115,9 @@
     <!-- Revenue Export -->
     <div class="card">
         <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-            <div class="card-icon" style="font-size: 24px;"><i class="ph-bold ph-chart-bar"></i></div>
-            <h3 class="card-title" style="margin: 0; font-size: 16px; font-weight: 600;">Export Revenue</h3>
+            <div class="card-icon" style="font-size: 24px; margin-bottom: 0; width: 48px; height: 48px;"><i
+                    class="ph-bold ph-chart-bar"></i></div>
+            <h3 class="card-title" style="margin: 0;">Export Revenue</h3>
         </div>
 
         <div class="date-filter">
@@ -127,7 +129,7 @@
             <button onclick="setDateRange('revenue', 30)" class="filter-btn">Last 30 Days</button>
 
             <a href="#" id="export-revenue" class="btn-primary"
-                style="width: auto; margin-left: auto; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; background: black; color: white; text-decoration: none;">
+                style="width: auto; margin-left: auto; display: inline-flex; align-items: center; gap: 8px;">
                 Export CSV <i class="ph-bold ph-download-simple"></i>
             </a>
         </div>

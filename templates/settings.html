@@ -1,489 +1,252 @@
-<!DOCTYPE html>
-<html>
+{% extends "layout_polaris.html" %}
 
-<head>
-    <title>Settings - Employee Suite</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% block extra_head %}
+<style>
+    /* Settings specific overrides if needed */
+    .status-connected {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: #e3fcef;
+        color: #008060;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+    }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f6f6f7;
-            color: #202223;
-            -webkit-font-smoothing: antialiased;
-            line-height: 1.5;
-        }
+    .status-active {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: #f0fdf4;
+        color: #166534;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        border: 1px solid #bbf7d0;
+    }
 
-        .header {
-            background: #ffffff;
-            border-bottom: 1px solid #e1e3e5;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+    .info-grid {
+        display: grid;
+        gap: 16px;
+        margin: 20px 0;
+    }
 
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
-            height: 64px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 14px;
+    }
 
-        .logo {
-            font-size: 16px;
-            font-weight: 600;
-            color: #202223;
-            text-decoration: none;
-            letter-spacing: -0.2px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    .info-row:last-child {
+        border-bottom: none;
+    }
 
-        .nav-btn {
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            text-decoration: none;
-            color: #6d7175;
-            transition: background 0.15s;
-        }
+    .info-label {
+        color: var(--text-sub);
+        font-weight: 400;
+    }
 
-        .nav-btn:hover {
-            background: #f6f6f7;
-            color: #202223;
-        }
+    .info-value {
+        color: var(--text-main);
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 32px 24px;
-        }
-
-        .page-title {
-            font-size: 28px;
-            font-weight: 600;
-            color: #202223;
-            margin-bottom: 8px;
-            letter-spacing: -0.3px;
-        }
-
-        .page-subtitle {
-            font-size: 15px;
-            color: #6d7175;
-            margin-bottom: 32px;
-        }
-
-        .card {
-            background: #ffffff;
-            border: 1px solid #e1e3e5;
-            border-radius: 8px;
-            padding: 24px;
-            margin-bottom: 20px;
-        }
-
-        .card-header {
-            margin-bottom: 20px;
-        }
-
-        .card-title {
-            font-size: 17px;
-            font-weight: 600;
-            color: #202223;
-            margin-bottom: 4px;
-        }
-
-        .card-subtitle {
-            font-size: 14px;
-            color: #6d7175;
-        }
-
-        .status-connected {
-            display: inline-block;
-            padding: 6px 12px;
-            background: #e3fcef;
-            color: #008060;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            margin-bottom: 16px;
-        }
-
-        .info-grid {
-            display: grid;
-            gap: 16px;
-            margin: 20px 0;
-        }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 16px 0;
-            border-bottom: 1px solid #e1e3e5;
-            font-size: 14px;
-        }
-
-        .info-row:last-child {
-            border-bottom: none;
-        }
-
-        .info-label {
-            color: #6d7175;
-            font-weight: 400;
-        }
-
-        .info-value {
-            color: #202223;
-            font-weight: 500;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 13px;
-            font-weight: 500;
-            color: #202223;
-            margin-bottom: 6px;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #e1e3e5;
-            border-radius: 6px;
-            font-size: 14px;
-            font-family: inherit;
-            background: #ffffff;
-            transition: border-color 0.15s;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #008060;
-            box-shadow: 0 0 0 1px #008060;
-        }
-
-        .form-help {
-            font-size: 13px;
-            color: #6d7175;
-            margin-top: 6px;
-        }
-
-        .btn {
-            padding: 10px 16px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            transition: background 0.15s;
-        }
-
-        .btn-primary {
-            background: #008060;
-            color: #fff;
-        }
-
-        .btn-primary:hover {
-            background: #006e52;
-        }
-
-        .btn-danger {
-            background: #d72c0d;
-            color: #fff;
-        }
-
-        .btn-danger:hover {
-            background: #bf280a;
-        }
-
-        .banner-success {
-            background: #e3fcef;
-            border: 1px solid #b2f5d1;
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            color: #008060;
-            font-weight: 400;
-        }
-
-        .banner-error {
-            background: #fff4f4;
-            border: 1px solid #fecaca;
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            color: #d72c0d;
-            font-weight: 400;
-        }
-
-        /* Mobile */
-        @media (max-width: 768px) {
-            .container {
-                padding: 24px 16px;
-            }
-
-            .page-title {
-                font-size: 24px;
-            }
-
-            .card {
-                padding: 20px;
-            }
-
-            .header-content {
-                padding: 0 16px;
-                height: 56px;
-            }
-
-            .info-row {
-                flex-direction: column;
-                gap: 4px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                padding: 20px 12px;
-            }
-
-            .page-title {
-                font-size: 20px;
-            }
-
-            .card {
-                padding: 16px;
-            }
-        }
-    </style>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-    <script>
-        var host = new URLSearchParams(window.location.search).get('host');
-        var shop = new URLSearchParams(window.location.search).get('shop');
-        if (host) {
-            var AppBridge = window['app-bridge'];
-            var createApp = AppBridge.default;
-            var app = createApp({
-                apiKey: '{{ config_api_key }}',
-                host: host,
-                forceRedirect: true
-            });
-        }
-
-        window.openPage = function (path) {
-            var sep = path.indexOf('?') > -1 ? '&' : '?';
-            if (shop) path += sep + 'shop=' + shop;
-            if (host) path += (path.indexOf('?') > -1 ? '&' : '?') + 'host=' + host;
-            window.location.href = path;
-            return false;
-        };
-    </script>
-</head>
-
-<body>
-    <div class="header">
-        <div class="header-content">
-            <a href="#" onclick="openPage('/dashboard'); return false;"
-                style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 10px; font-weight: 600;"
-                class="logo">
-                <span>Employee Suite</span>
-            </a>
-            <a href="#" onclick="openPage('/dashboard'); return false;" class="nav-btn">
-                <i class="ph-bold ph-arrow-left" style="vertical-align: middle;"></i> Back to Dashboard
-            </a>
+{% block content %}
+<header class="header-section">
+    <div class="logo-area">
+        <div class="brand-badge">
+            <i class="ph-bold ph-gear"></i>
+            <span>Settings</span>
         </div>
     </div>
+    <h1 class="main-title">Store Connection</h1>
+    <p class="sub-title">Manage your Shopify connection and subscription settings.</p>
+</header>
 
-    <div class="container">
-        <h1 class="page-title">Settings</h1>
-        <p class="page-subtitle">Manage your Shopify connection and account</p>
+<div class="cards-grid" style="display: grid; grid-template-columns: 1fr; gap: 24px; max-width: 800px; margin: 0 auto;">
 
-        {% if success %}
-        <div class="banner-success" style="animation: fadeIn 0.5s ease-in;">
+    {% if success %}
+    <div class="banner success"
+        style="background: #e3fcef; border: 1px solid #b2f5d1; padding: 16px; border-radius: 12px; animation: fadeInDown 0.5s ease-out;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <i class="ph-bold ph-check-circle" style="font-size: 20px; color: #008060;"></i>
+            <div>
+                <strong style="display: block; margin-bottom: 2px; color: #008060; font-size: 14px;">{{ success
+                    }}</strong>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="banner error"
+        style="background: #fff4f4; border: 1px solid #fecaca; padding: 16px; border-radius: 12px; animation: fadeInDown 0.5s ease-out;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <i class="ph-bold ph-warning-circle" style="font-size: 20px; color: #d72c0d;"></i>
+            <div style="color: #d72c0d; font-size: 14px;">{{ error }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if is_subscribed %}
+    <div class="card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
             <div style="display: flex; align-items: center; gap: 12px;">
-                <span style="font-size: 24px;">🎉</span>
+                <div class="card-icon" style="margin-bottom: 0; width: 40px; height: 40px; font-size: 20px;"><i
+                        class="ph-bold ph-crown"></i></div>
                 <div>
-                    <strong style="display: block; margin-bottom: 4px;">{{ success }}</strong>
-                    <span style="font-size: 14px; opacity: 0.9;">You're all set! Head back to the dashboard to start
-                        monitoring your store.</span>
+                    <h2 class="card-title" style="margin: 0; font-size: 16px;">Subscription</h2>
+                    <p style="font-size: 13px; color: var(--text-sub);">Your plan details</p>
                 </div>
+            </div>
+            <span class="status-active"><i class="ph-bold ph-check"></i> Active</span>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-row">
+                <span class="info-label">Plan</span>
+                <span class="info-value">Employee Suite Pro</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Billing</span>
+                <span class="info-value">$39/month</span>
             </div>
         </div>
-        {% endif %}
-
-        {% if error %}
-        <div class="banner-error">{{ error }}</div>
-        {% endif %}
-
-        {% if is_subscribed %}
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">Subscription</h2>
-                <p class="card-subtitle">Manage your subscription</p>
-            </div>
-            <div class="info-grid">
-                <div class="info-row">
-                    <span class="info-label">Status</span>
-                    <span class="info-value">Active</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Plan</span>
-                    <span class="info-value">Employee Suite Pro</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Billing</span>
-                    <span class="info-value">$39/month</span>
-                </div>
-            </div>
-            <form method="POST" action="{{ url_for('shopify.cancel_subscription') }}" style="margin-top: 20px;">
-                {% if shop %}<input type="hidden" name="shop" value="{{ shop }}">{% endif %}
-                {% if host %}<input type="hidden" name="host" value="{{ host }}">{% endif %}
-                <button type="submit" class="btn btn-danger"
-                    onclick="return confirm('Cancel subscription? You will lose access to all features.')">Cancel
-                    Subscription</button>
-            </form>
-        </div>
-        {% endif %}
-
-        {% if store %}
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">Shopify Connection</h2>
-                <span class="status-connected">✓ Connected</span>
-            </div>
-            <div class="info-grid">
-                <div class="info-row">
-                    <span class="info-label">Store URL</span>
-                    <span class="info-value">{{ store.shop_url }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Connected</span>
-                    <span class="info-value">{{ store.created_at.strftime('%B %d, %Y') }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Shopify Admin</span>
-                    <span class="info-value">
-                        <a href="https://admin.shopify.com/store/{{ store.shop_url.replace('.myshopify.com', '') }}"
-                            target="_blank" rel="noopener noreferrer"
-                            style="color: #008060; text-decoration: none; font-weight: 500;">Open in new tab →</a>
-                    </span>
-                </div>
-            </div>
-            <form method="POST" action="{{ url_for('shopify.disconnect_store') }}" style="margin-top: 20px;">
-                {% if shop %}<input type="hidden" name="shop" value="{{ shop }}">{% endif %}
-                {% if host %}<input type="hidden" name="host" value="{{ host }}">{% endif %}
-                <button type="submit" class="btn btn-danger" onclick="return confirm('Disconnect store?')">Disconnect
-                    Store</button>
-            </form>
-        </div>
-        {% else %}
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">Connect Shopify Store</h2>
-                <p class="card-subtitle">Connect your store to start monitoring your operations</p>
-            </div>
-
-            <!-- OAuth Quick Connect (1-2 clicks) -->
-            <div
-                style="margin-bottom: 24px; padding: 24px; background: #fafafa; border: 1px solid #e5e5e5; border-radius: 16px;">
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                    <span style="font-size: 24px;">✨</span>
-                    <h3 style="font-size: 18px; font-weight: 600; color: #171717; margin: 0;">Quick Connect
-                        (Recommended)</h3>
-                </div>
-                <p style="font-size: 14px; color: #525252; margin-bottom: 20px; line-height: 1.6;">Connect your store in
-                    seconds with one click. No need to copy tokens manually. We'll redirect you to Shopify to authorize
-                    the connection.</p>
-                <div>
-                    <label for="shop_oauth"
-                        style="display: block; font-size: 14px; font-weight: 500; color: #171717; margin-bottom: 8px;">Enter
-                        your store domain</label>
-                    <form method="GET" action="/install"
-                        style="display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 250px;">
-                            <input type="text" id="shop_oauth" name="shop" class="form-input"
-                                placeholder="yourstore.myshopify.com" required
-                                style="width: 100%; font-size: 15px; padding: 12px;">
-                            <p style="font-size: 12px; color: #737373; margin-top: 6px;">Enter your store domain (e.g.,
-                                mystore.myshopify.com)</p>
-                            {% if request.args.get('host') %}
-                            <input type="hidden" name="host" value="{{ request.args.get('host') }}">
-                            {% endif %}
-                        </div>
-                        <div style="display: flex; align-items: flex-start;">
-                            <button type="submit" class="btn btn-primary"
-                                style="white-space: nowrap; padding: 12px 24px; font-size: 15px; font-weight: 600; background: #0ea5e9; border: none; height: 44px;">Connect
-                                with Shopify</button>
-                        </div>
-                    </form>
-                </div>
-                <div style="margin-top: 16px; padding: 12px; background: rgba(255,255,255,0.7); border-radius: 8px;">
-                    <p
-                        style="font-size: 13px; color: #166534; margin: 0; display: flex; align-items: center; gap: 8px;">
-                        <span>✓</span>
-                        <span>Secure OAuth connection. You'll be redirected to Shopify to approve access.</span>
-                    </p>
-                </div>
-            </div>
-
-            <!-- Manual Connection (Advanced/Fallback) -->
-            <details style="margin-top: 24px;">
-                <summary
-                    style="font-size: 14px; font-weight: 500; color: #525252; cursor: pointer; padding: 14px; background: #fafafa; border-radius: 8px; border: 1px solid #e5e5e5; user-select: none;">
-                    🔧 Advanced: Connect with Access Token (Manual Method)
-                </summary>
-                <div
-                    style="margin-top: 20px; padding: 20px; background: #fafafa; border-radius: 8px; border: 1px solid #e5e5e5;">
-                    <p style="font-size: 13px; color: #737373; margin-bottom: 20px; line-height: 1.6;">
-                        <strong>When to use this:</strong> Only if you need to connect a development store, custom app,
-                        or if the Quick Connect above doesn't work for your setup.
-                    </p>
-                    <form method="POST" action="{{ url_for('shopify.connect_store') }}">
-                        {% if shop %}<input type="hidden" name="shop" value="{{ shop }}">{% endif %}
-                        {% if host %}<input type="hidden" name="host" value="{{ host }}">{% endif %}
-                        <div class="form-group">
-                            <label class="form-label">Store URL</label>
-                            <input type="text" name="shop_url" placeholder="yourstore.myshopify.com" class="form-input"
-                                required>
-                            <p class="form-help">Your Shopify store URL</p>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Admin API Access Token</label>
-                            <input type="password" name="access_token" class="form-input"
-                                placeholder="shpat_xxxxxxxxxxxx" required>
-                            <p class="form-help">Get this from: <strong>Shopify Admin → Settings → Apps and sales
-                                    channels → Develop apps → Create app → Admin API access token</strong><br>
-                                <a href="https://admin.shopify.com" target="_blank" rel="noopener noreferrer"
-                                    style="color: #008060; text-decoration: none; font-size: 13px; margin-top: 4px; display: inline-block;">Open
-                                    Shopify Admin in new tab →</a>
-                            </p>
-                        </div>
-                        <button type="submit" class="btn btn-primary" style="background: #0ea5e9;">Connect
-                            Store</button>
-                    </form>
-                </div>
-            </details>
-        </div>
-        {% endif %}
+        <form method="POST" action="{{ url_for('shopify.cancel_subscription') }}"
+            style="margin-top: 20px; border-top: 1px solid var(--border); pt-4;">
+            {% if shop %}<input type="hidden" name="shop" value="{{ shop }}">{% endif %}
+            {% if host %}<input type="hidden" name="host" value="{{ host }}">{% endif %}
+            <button type="submit" class="nav-btn"
+                style="color: #d72c0d; width: 100%; text-align: left; padding: 0; background: none; margin-top: 16px;"
+                onclick="return confirm('Cancel subscription? You will lose access to all features.')">
+                <i class="ph-bold ph-x-circle"></i> Cancel Subscription
+            </button>
+        </form>
     </div>
-</body>
+    {% endif %}
 
-</html>
+    {% if store %}
+    <div class="card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="card-icon" style="margin-bottom: 0; width: 40px; height: 40px; font-size: 20px;"><i
+                        class="ph-bold ph-storefront"></i></div>
+                <div>
+                    <h2 class="card-title" style="margin: 0; font-size: 16px;">Shopify Store</h2>
+                    <p style="font-size: 13px; color: var(--text-sub);">Connection status</p>
+                </div>
+            </div>
+            <span class="status-connected"><i class="ph-bold ph-link"></i> Connected</span>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-row">
+                <span class="info-label">Store URL</span>
+                <span class="info-value">{{ store.shop_url }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Connected Since</span>
+                <span class="info-value">{{ store.created_at.strftime('%B %d, %Y') }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Shopify Admin</span>
+                <span class="info-value">
+                    <a href="https://admin.shopify.com/store/{{ store.shop_url.replace('.myshopify.com', '') }}"
+                        target="_blank" rel="noopener noreferrer"
+                        style="color: var(--primary); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                        Open <i class="ph-bold ph-arrow-square-out"></i>
+                    </a>
+                </span>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('shopify.disconnect_store') }}" style="margin-top: 20px;">
+            {% if shop %}<input type="hidden" name="shop" value="{{ shop }}">{% endif %}
+            {% if host %}<input type="hidden" name="host" value="{{ host }}">{% endif %}
+            <button type="submit" class="cta-button"
+                style="background: white; color: #d72c0d; border: 1px solid #fecaca; width: 100%; justify-content: center;"
+                onclick="return confirm('Disconnect store?')">
+                <i class="ph-bold ph-plugs"></i> Disconnect Store
+            </button>
+        </form>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-header" style="margin-bottom: 24px;">
+            <h2 class="card-title" style="font-size: 18px;">Connect Shopify Store</h2>
+            <p style="color: var(--text-sub); font-size: 14px;">Connect your store to start monitoring your operations
+            </p>
+        </div>
+
+        <!-- OAuth Quick Connect -->
+        <div
+            style="margin-bottom: 24px; padding: 24px; background: #f8fafc; border: 1px solid var(--border); border-radius: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <span style="font-size: 20px;">✨</span>
+                <h3 style="font-size: 16px; font-weight: 600; margin: 0;">Quick Connect (Recommended)</h3>
+            </div>
+            <p style="font-size: 14px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.6;">
+                Connect your store in seconds. We'll redirect you to Shopify to authorize.
+            </p>
+
+            <form method="GET" action="/install"
+                style="display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 250px;">
+                    <input type="text" id="shop_oauth" name="shop" placeholder="yourstore.myshopify.com" required
+                        style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;">
+                    {% if request.args.get('host') %}
+                    <input type="hidden" name="host" value="{{ request.args.get('host') }}">
+                    {% endif %}
+                </div>
+                <button type="submit" class="cta-button">
+                    <span>Connect with Shopify</span>
+                    <i class="ph-bold ph-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- Manual Connection -->
+        <details>
+            <summary
+                style="font-size: 13px; font-weight: 500; color: var(--text-sub); cursor: pointer; padding: 12px; border: 1px solid var(--border); border-radius: 8px; list-style: none; display: flex; align-items: center; justify-content: space-between;">
+                <span>🔧 Advanced: Connect with Access Token</span>
+                <i class="ph-bold ph-caret-down"></i>
+            </summary>
+            <div
+                style="margin-top: 12px; padding: 20px; background: #fff; border: 1px solid var(--border); border-radius: 8px;">
+                <form method="POST" action="{{ url_for('shopify.connect_store') }}">
+                    {% if shop %}<input type="hidden" name="shop" value="{{ shop }}">{% endif %}
+                    {% if host %}<input type="hidden" name="host" value="{{ host }}">{% endif %}
+
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">Store
+                            URL</label>
+                        <input type="text" name="shop_url" placeholder="yourstore.myshopify.com" required
+                            style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;">
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">Admin API
+                            Access Token</label>
+                        <input type="password" name="access_token" placeholder="shpat_xxxxxxxxxxxx" required
+                            style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;">
+                    </div>
+
+                    <button type="submit" class="cta-button" style="width: 100%; justify-content: center;">
+                        Connect Store
+                    </button>
+                </form>
+            </div>
+        </details>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
