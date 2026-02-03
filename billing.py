@@ -239,11 +239,15 @@ def create_recurring_charge(shop_url, access_token, return_url, plan_type="pro")
         }
         """
 
+        # Check if trial should be skipped
+        skip_trial = request.form.get("skip_trial") == "true"
+        trial_days = 0 if skip_trial else 7
+
         variables = {
             "name": f"Employee Suite {plan['name']}",
             "returnUrl": return_url,
             "test": test_mode,
-            "trialDays": 7,  # Standard 7-day free trial
+            "trialDays": trial_days,
             "lineItems": [
                 {
                     "plan": {
