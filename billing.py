@@ -423,105 +423,152 @@ def subscribe():
     """Subscribe page - uses Shopify Billing API"""
     from shopify_utils import normalize_shop_url
     
-    # Normalize shop URL first thing
-    shop = request.args.get("shop", "")
-    if shop:
-        shop = normalize_shop_url(shop)
-
-    host = request.args.get("host", "")
-
-    plan_type = request.args.get("plan", "pro")
-    
-    # Validate plan type
-    if plan_type not in PLANS:
-        plan_type = "pro"
-    
-    plan = PLANS[plan_type]
-
-    # Find user
-    user = None
     try:
-        if current_user.is_authenticated:
-            user_id = current_user.get_id()
-            if user_id:
-                user = User.query.get(int(user_id))
-        if not user and shop:
-            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
-            if store and store.user:
-                user = store.user
-    except Exception:
-        pass
+        # Normalize shop URL first thing
+        shop = request.args.get("shop", "").strip()
+        if shop:
+            shop = normalize_shop_url(shop)
 
-    if not user:
-        return render_template(
-            "subscribe.html",
-            trial_active=False,
-            has_access=False,
-            days_left=0,
-            is_subscribed=False,
-            shop=shop,
-            host=host,
-            has_store=False,
-            plan=plan_type,
-            plan_name=plan["name"],
-            price=int(plan["price"]),
-            features=plan["features"],
-            error="Please connect your Shopify store first.",
-            config_api_key=os.getenv("SHOPIFY_API_KEY"),
-        )
-            
-    store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
-    has_store = store is not None and store.is_connected()
-    
-    # If store exists but isn't connected, try to reconnect
-    if store and not store.is_connected():
-        # Try to validate the token actually works
+        host = request.args.get("host", "").strip()
+        plan_type = request.args.get("plan", "pro")
+        
+        # Validate plan type
+        if plan_type not in PLANS:
+            plan_type = "pro"
+        
+        plan = PLANS[plan_type]
+
+        # Find user with comprehensive error handling
+        user = None
+        store = None
         try:
-            from shopify_graphql import ShopifyGraphQLClient
-            # Simple test - just check if we can make any GraphQL call
-            client = ShopifyGraphQLClient(store.shop_url, store.get_access_token())
-            query = "query { shop { name } }"
-            result = client.execute_query(query)
-            if "error" not in result:
-                has_store = True
-            else:
-                has_store = False
+            if current_user.is_authenticated:
+                user_id = current_user.get_id()
+                if user_id:
+                    user = User.query.get(int(user_id))
+            
+            # Only try shop lookup if shop is not empty
+            if not user and shop:
+                store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+                if store and store.user:
+                    user = store.user
         except Exception as e:
-            logger.warning(f"Store connection check failed for {store.shop_url}: {e}")
-            has_store = False
-            # If token is definitely invalid, strictly we might want to disconnect here, 
-            # but for now just preventing checkout is safer.
-    
-    if not shop and store:
-        shop = store.shop_url
+            logger.error(f"Error finding user in subscribe: {e}")
+            user = None
 
-    trial_active = user.is_trial_active()
-    has_access = user.has_access()
-    days_left = (user.trial_ends_at - datetime.utcnow()).days if trial_active else 0
-    
-    error = request.args.get("error")
-    if not has_store and not error:
-        if store is None:
-            error = "No Shopify store connected"
-        else:
-            error = "Store connection issue - please reconnect in Settings"
+        # Get store if we have a user but no store yet
+        if user and not store:
+            store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
 
-    return render_template(
-        "subscribe.html",
-        trial_active=trial_active,
-        has_access=has_access,
-        days_left=days_left,
-        is_subscribed=user.is_subscribed,
-        shop=shop,
-        host=host,
-        has_store=has_store,
-        plan=plan_type,
-        plan_name=plan["name"],
-        price=int(plan["price"]),
-        features=plan["features"],
-        error=error,
-        config_api_key=os.getenv("SHOPIFY_API_KEY"),
-    )
+        # Determine store connection status
+        has_store = False
+        if store:
+            has_store = store.is_connected()
+            
+            # If store exists but isn't connected, try to validate token
+            if not has_store and store.access_token:
+                try:
+                    from shopify_graphql import ShopifyGraphQLClient
+                    client = ShopifyGraphQLClient(store.shop_url, store.get_access_token())
+                    query = "query { shop { name } }"
+                    result = client.execute_query(query)
+                    if "error" not in result:
+                        has_store = True
+                except Exception as e:
+                    logger.warning(f"Store connection check failed for {store.shop_url}: {e}")
+                    has_store = False
+
+        # Set shop from store if not provided
+        if not shop and store:
+            shop = store.shop_url
+
+        # Calculate user status
+        trial_active = user.is_trial_active() if user else False
+        has_access = user.has_access() if user else False
+        days_left = 0
+        if user and trial_active:
+            try:
+                days_left = (user.trial_ends_at - datetime.utcnow()).days
+                days_left = max(0, days_left)  # Don't show negative days
+            except:
+                days_left = 0
+        
+        # Determine error message
+        error = request.args.get("error")
+        if not has_store and not error:
+            if store is None:
+                error = "No Shopify store connected"
+            else:
+                error = "Store connection issue - please reconnect in Settings"
+
+        # Template variables with safe defaults
+        template_vars = {
+            "trial_active": trial_active,
+            "has_access": has_access,
+            "days_left": days_left,
+            "is_subscribed": user.is_subscribed if user else False,
+            "shop": shop or "",
+            "host": host or "",
+            "has_store": has_store,
+            "plan": plan_type,
+            "plan_name": plan["name"],
+            "price": int(plan["price"]),
+            "features": plan["features"],
+            "error": error,
+            "config_api_key": os.getenv("SHOPIFY_API_KEY", ""),
+        }
+
+        try:
+            return render_template("subscribe.html", **template_vars)
+        except Exception as template_error:
+            logger.error(f"Template error in subscribe: {template_error}")
+            # Fallback to inline HTML
+            return render_template_string("""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Subscribe - Employee Suite</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 40px; }
+        .card { max-width: 600px; margin: 0 auto; padding: 32px; border: 1px solid #ddd; border-radius: 8px; }
+        .error { background: #fff4f4; padding: 16px; border-radius: 8px; color: #d72c0d; margin: 16px 0; }
+        .btn { padding: 12px 24px; background: #008060; color: white; text-decoration: none; border-radius: 8px; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>{{ plan_name }}</h1>
+        <p><strong>${{ price }}/month</strong></p>
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        <ul>
+        {% for feature in features %}
+            <li>{{ feature }}</li>
+        {% endfor %}
+        </ul>
+        {% if has_store and not is_subscribed %}
+            <form method="POST" action="/create-charge">
+                <input type="hidden" name="shop" value="{{ shop }}">
+                <input type="hidden" name="host" value="{{ host }}">
+                <input type="hidden" name="plan" value="{{ plan }}">
+                <button type="submit" class="btn">Start 7-Day Free Trial</button>
+            </form>
+        {% else %}
+            <a href="/settings/shopify?shop={{ shop }}&host={{ host }}" class="btn">Connect Store</a>
+        {% endif %}
+        <p><a href="/dashboard?shop={{ shop }}&host={{ host }}">Back to Dashboard</a></p>
+    </div>
+</body>
+</html>
+            """, **template_vars)
+            
+    except Exception as e:
+        logger.error(f"Critical error in subscribe route: {e}", exc_info=True)
+        return jsonify({
+            "error": "Internal Server Error",
+            "message": "Subscribe page temporarily unavailable",
+            "error_id": datetime.now().strftime('%Y%m%d_%H%M%S')
+        }), 500
 
 
 def validate_csrf_token():

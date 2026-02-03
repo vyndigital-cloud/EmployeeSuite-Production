@@ -473,3 +473,171 @@
     </div>
 </body>
 </html>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Subscribe - Employee Suite</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f6f6f7;
+            color: #202223;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+        .card {
+            background: #ffffff;
+            border: 1px solid #e1e3e5;
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .plan-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #202223;
+            margin-bottom: 8px;
+        }
+        .plan-price {
+            font-size: 48px;
+            font-weight: 700;
+            color: #008060;
+            margin-bottom: 4px;
+        }
+        .plan-period {
+            font-size: 16px;
+            color: #6d7175;
+            margin-bottom: 24px;
+        }
+        .features {
+            text-align: left;
+            margin: 24px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .feature {
+            padding: 8px 0;
+            font-size: 14px;
+            color: #202223;
+            border-bottom: 1px solid #f6f6f7;
+        }
+        .feature:last-child {
+            border-bottom: none;
+        }
+        .error {
+            background: #fff4f4;
+            border: 1px solid #fecaca;
+            padding: 16px;
+            border-radius: 8px;
+            color: #d72c0d;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .success {
+            background: #e3fcef;
+            border: 1px solid #b2f5d1;
+            padding: 16px;
+            border-radius: 8px;
+            color: #008060;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s;
+            margin: 8px;
+        }
+        .btn-primary {
+            background: #008060;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #006e52;
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background: #f6f6f7;
+            color: #202223;
+            border: 1px solid #e1e3e5;
+        }
+        .btn-secondary:hover {
+            background: #e1e3e5;
+        }
+        .trial-info {
+            background: #f0f8ff;
+            border: 1px solid #b3d9ff;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #0066cc;
+            margin-top: 16px;
+        }
+        @media (max-width: 768px) {
+            .container { padding: 20px 16px; }
+            .card { padding: 24px; }
+            .plan-price { font-size: 36px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1 class="plan-title">{{ plan_name or "Employee Suite Pro" }}</h1>
+            <div class="plan-price">${{ price or 39 }}</div>
+            <div class="plan-period">per month</div>
+            
+            {% if error %}
+            <div class="error">{{ error }}</div>
+            {% endif %}
+            
+            {% if trial_active %}
+            <div class="success">
+                ✓ Free trial active - {{ days_left }} days remaining
+            </div>
+            {% endif %}
+            
+            <div class="features">
+                {% for feature in (features or []) %}
+                <div class="feature">{{ feature }}</div>
+                {% endfor %}
+            </div>
+            
+            {% if has_store and not is_subscribed %}
+            <form method="POST" action="/create-charge">
+                <input type="hidden" name="shop" value="{{ shop or '' }}">
+                <input type="hidden" name="host" value="{{ host or '' }}">
+                <input type="hidden" name="plan" value="{{ plan or 'pro' }}">
+                <button type="submit" class="btn btn-primary">Start 7-Day Free Trial</button>
+            </form>
+            <div class="trial-info">
+                ✓ 7-day free trial • Cancel anytime • No commitment
+            </div>
+            {% elif not has_store %}
+            <a href="/settings/shopify?shop={{ shop or '' }}&host={{ host or '' }}" class="btn btn-primary">Connect Store First</a>
+            {% elif is_subscribed %}
+            <div class="success">✓ You're already subscribed!</div>
+            <a href="/dashboard?shop={{ shop or '' }}&host={{ host or '' }}" class="btn btn-primary">Go to Dashboard</a>
+            {% endif %}
+            
+            <div style="margin-top: 24px;">
+                <a href="/dashboard?shop={{ shop or '' }}&host={{ host or '' }}" class="btn btn-secondary">Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

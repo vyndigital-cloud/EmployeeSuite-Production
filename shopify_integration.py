@@ -796,22 +796,37 @@ class ShopifyClient:
         return inventory
 
     @cache_result(ttl=60)  # Reduced to 1 minute for customer data compliance
-    def get_orders(self, status="any", limit=50):
+    def get_orders(self, status="any", limit=50, start_date=None, end_date=None):
         """
-        Get orders using GraphQL (migrated from legacy REST API)
-        Avoids "Protected Customer Data" 403 errors by using more granular GraphQL permissions
+        Get orders using GraphQL with date filtering
         """
-        # Map REST status to GraphQL query filter
-        query_filter = ""
+        # Build query filters
+        query_filters = []
+        
         if status != "any":
-            # GraphQL uses specific query syntax
-            # financial_status:paid, etc.
             if status == "paid":
-                query_filter = "query: \"financial_status:paid\""
+                query_filters.append("financial_status:paid")
             elif status == "pending":
-                query_filter = "query: \"financial_status:pending\""
+                query_filters.append("financial_status:pending")
             elif status == "refunded":
-                query_filter = "query: \"financial_status:refunded\""
+                query_filters.append("financial_status:refunded")
+        
+        # Add date filters if provided
+        if start_date:
+            # Convert to Shopify's expected format if needed
+            if isinstance(start_date, str):
+                query_filters.append(f"created_at:>={start_date}")
+            else:
+                query_filters.append(f"created_at:>={start_date.isoformat()}")
+        
+        if end_date:
+            if isinstance(end_date, str):
+                query_filters.append(f"created_at:<={end_date}")
+            else:
+                query_filters.append(f"created_at:<={end_date.isoformat()}")
+        
+        # Combine filters
+        query_string = " AND ".join(query_filters) if query_filters else ""
 
         query = """
         query getOrders($first: Int!, $query: String) {
@@ -846,8 +861,8 @@ class ShopifyClient:
         """
         
         variables = {
-            "first": min(limit, 50), # Max 50 for performance
-            "query": query_filter.replace("query: ", "").replace("\"", "") if query_filter else None
+            "first": min(limit, 50),
+            "query": query_string if query_string else None
         }
 
         data = self._make_graphql_request(query, variables)
@@ -866,7 +881,7 @@ class ShopifyClient:
             if not node:
                 continue
                 
-            # GDPR-compliant customer display - no email exposure
+            # GDPR-compliant customer display
             customer_display = "Guest"
             if node.get("customer"):
                 customer = node.get("customer", {})
@@ -887,15 +902,13 @@ class ShopifyClient:
             if node.get("lineItems"):
                 item_count = len(node.get("lineItems", {}).get("edges", []))
 
-            orders.append(
-                {
-                    "id": node.get("name", "Unknown"), # Use name (e.g. #1001) as ID for display
-                    "customer": customer_display,
-                    "total": f"${price}",
-                    "items": item_count,
-                    "status": node.get("displayFinancialStatus", "N/A"),
-                }
-            )
+            orders.append({
+                "id": node.get("name", "Unknown"),
+                "customer": customer_display,
+                "total": f"${price}",
+                "items": item_count,
+                "status": node.get("displayFinancialStatus", "N/A"),
+            })
             
         return orders
 
