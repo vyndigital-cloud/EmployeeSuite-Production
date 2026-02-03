@@ -412,6 +412,7 @@ def subscribe():
     """Subscribe page - uses Shopify Billing API"""
     from shopify_utils import normalize_shop_url
     
+    # Normalize shop URL first thing
     shop = request.args.get("shop", "")
     if shop:
         shop = normalize_shop_url(shop)
@@ -466,9 +467,25 @@ def subscribe():
         # Try to validate the token actually works
         try:
             from shopify_graphql import ShopifyGraphQLClient
-            # Test with a simple GraphQL query
+            # Test with a comprehensive GraphQL query that checks billing permissions
             client = ShopifyGraphQLClient(store.shop_url, store.get_access_token())
-            query = "query { shop { name } }"
+            query = """
+            query {
+                shop {
+                    name
+                    plan {
+                        displayName
+                    }
+                }
+                currentAppInstallation {
+                    id
+                    activeSubscriptions {
+                        id
+                        status
+                    }
+                }
+            }
+            """
             result = client.execute_query(query)
             # This will raise exception if token invalid which is what we want
             if "error" not in result:
@@ -552,15 +569,17 @@ def subscribe_shortcut():
 @billing_bp.route("/create-charge", methods=["POST"])
 def create_charge():
     """Create a Shopify recurring charge"""
-    # Simple CSRF protection
-    if not validate_csrf_token():
-        logger.warning("CSRF validation failed for billing request")
-        return redirect("/billing?error=invalid_request")
     from shopify_utils import normalize_shop_url
     
+    # Normalize shop URL first thing
     shop = request.form.get("shop") or request.args.get("shop", "")
     if shop:
         shop = normalize_shop_url(shop)
+    
+    # Simple CSRF protection
+    if not validate_csrf_token():
+        logger.warning(f"CSRF validation failed for billing request from shop: {shop}")
+        return redirect("/billing?error=invalid_request")
 
     host = request.form.get("host") or request.args.get("host", "")
 
@@ -797,35 +816,40 @@ def confirm_charge():
 
             if activate_result.get("success"):
                 try:
+                    # Update user subscription status
                     user.is_subscribed = True
                     store.charge_id = str(charge_id)
 
-                    # Create/update SubscriptionPlan
-                    plan_price = PLAN_PRICES.get(plan_type, 29.00)
-                    existing_plan = SubscriptionPlan.query.filter_by(
-                        user_id=user.id
-                    ).first()
-                    if existing_plan:
-                        existing_plan.plan_type = plan_type
-                        existing_plan.price_usd = plan_price
-                        existing_plan.charge_id = str(charge_id)
-                        existing_plan.status = "active"
-                        existing_plan.cancelled_at = None
-                        existing_plan.multi_store_enabled = True
-                        existing_plan.automated_reports_enabled = True
-                        existing_plan.scheduled_delivery_enabled = True
-                    else:
-                        new_plan = SubscriptionPlan(
-                            user_id=user.id,
-                            plan_type=plan_type,
-                            price_usd=plan_price,
-                            charge_id=str(charge_id),
-                            status="active",
-                            multi_store_enabled=True,
-                            automated_reports_enabled=True,
-                            scheduled_delivery_enabled=True,
-                        )
-                        db.session.add(new_plan)
+                    # Create/update SubscriptionPlan with proper error handling
+                    try:
+                        plan_price = PLAN_PRICES.get(plan_type, 29.00)
+                        existing_plan = SubscriptionPlan.query.filter_by(
+                            user_id=user.id
+                        ).first()
+                        if existing_plan:
+                            existing_plan.plan_type = plan_type
+                            existing_plan.price_usd = plan_price
+                            existing_plan.charge_id = str(charge_id)
+                            existing_plan.status = "active"
+                            existing_plan.cancelled_at = None
+                            existing_plan.multi_store_enabled = True
+                            existing_plan.automated_reports_enabled = True
+                            existing_plan.scheduled_delivery_enabled = True
+                        else:
+                            new_plan = SubscriptionPlan(
+                                user_id=user.id,
+                                plan_type=plan_type,
+                                price_usd=plan_price,
+                                charge_id=str(charge_id),
+                                status="active",
+                                multi_store_enabled=True,
+                                automated_reports_enabled=True,
+                                scheduled_delivery_enabled=True,
+                            )
+                            db.session.add(new_plan)
+                    except Exception as plan_error:
+                        logger.warning(f"Could not create/update SubscriptionPlan for user {user.id}: {plan_error}")
+                        # Continue without SubscriptionPlan if enhanced_models is missing
 
                     db.session.commit()
                     logger.info(f"Subscription activated for {shop_url}, plan: {plan_type}, user: {user.id}")
@@ -868,10 +892,23 @@ def confirm_charge():
             return safe_redirect(subscribe_url, shop=shop, host=host)
 
     elif status == "active":
-        user.is_subscribed = True
-        store.charge_id = str(charge_id)
-        db.session.commit()
-        return render_template_string(SUCCESS_HTML, shop=shop_url, host=host)
+        try:
+            user.is_subscribed = True
+            store.charge_id = str(charge_id)
+            db.session.commit()
+            logger.info(f"Subscription already active for {shop_url}, user: {user.id}")
+            return render_template_string(SUCCESS_HTML, shop=shop_url, host=host)
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Database error marking subscription active for user {user.id}: {e}")
+            subscribe_url = url_for(
+                "billing.subscribe",
+                error="Error processing subscription",
+                shop=shop,
+                host=host,
+                plan=plan_type,
+            )
+            return safe_redirect(subscribe_url, shop=shop, host=host)
 
     elif status == "declined":
         logger.info(f"Merchant declined subscription for {shop_url}")
@@ -985,13 +1022,3 @@ def test_billing():
     )
 
 
-# Billing status formatting utilities
-def format_billing_error(error_msg):
-    """Format common Shopify billing errors into user-friendly messages"""
-    error_lower = error_msg.lower()
-
-    if "422" in error_msg or "unprocessable" in error_lower:
-        if "owned by a shop" in error_lower or "must be migrated" in error_lower:
-            return "App ownership migration required in Shopify Partners dashboard."
-        return f"Shopify could not process this subscription: {error_msg[:100]}"
-    return f"Billing error: {error_msg[:150]}"
