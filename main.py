@@ -248,6 +248,69 @@ except Exception as startup_error:
         def ready():
             return jsonify({"status": "ready", "timestamp": datetime.now().isoformat()})
 
+    # Add API routes
+    @app.route('/api/process_orders')
+    @log_errors("API_PROCESS_ORDERS")
+    def api_process_orders():
+        """API endpoint for processing orders"""
+        try:
+            from flask import session
+            user_id = session.get('user_id')
+            if not user_id:
+                return jsonify({"success": False, "error": "Not authenticated"}), 401
+            
+            from reporting import generate_orders_report
+            result = generate_orders_report(user_id=user_id)
+            return jsonify(result)
+            
+        except Exception as e:
+            error_logger.log_error(e, "API_PROCESS_ORDERS")
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    @app.route('/api/update_inventory')
+    @log_errors("API_UPDATE_INVENTORY")
+    def api_update_inventory():
+        """API endpoint for updating inventory"""
+        try:
+            from flask import session
+            user_id = session.get('user_id')
+            if not user_id:
+                return jsonify({"success": False, "error": "Not authenticated"}), 401
+            
+            from reporting import generate_inventory_report
+            result = generate_inventory_report(user_id=user_id)
+            return jsonify(result)
+            
+        except Exception as e:
+            error_logger.log_error(e, "API_UPDATE_INVENTORY")
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    @app.route('/api/generate_report')
+    @log_errors("API_GENERATE_REPORT")
+    def api_generate_report():
+        """API endpoint for generating revenue report"""
+        try:
+            from flask import session
+            user_id = session.get('user_id')
+            if not user_id:
+                return jsonify({"success": False, "error": "Not authenticated"}), 401
+            
+            from reporting import generate_report
+            result = generate_report(user_id=user_id)
+            return jsonify(result)
+            
+        except Exception as e:
+            error_logger.log_error(e, "API_GENERATE_REPORT")
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    # Register features blueprint
+    try:
+        from features_routes import features_bp
+        app.register_blueprint(features_bp)
+        logger.info("Features blueprint registered successfully")
+    except ImportError as e:
+        logger.error(f"Failed to import features blueprint: {e}")
+
 
 
 if __name__ == "__main__":
