@@ -610,7 +610,7 @@ def _handle_oauth_callback():
         logger.error(f"Session save error: {session_error}")
 
     logger.info(
-        f"✅ Session bulletproofed: shop={shop}, user_id={user.id}, host={bool(host)}"
+        f"✅ Session bulletproofed: shop={shop}, user_id={user.id}, host={bool(host) if host else False}"
     )
     logger.info(f"✅ Session keys stored: {list(session.keys())}")
 
