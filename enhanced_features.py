@@ -104,8 +104,12 @@ def export_orders_csv():
         return response
         
     except Exception as e:
-        logger.error(f"Error exporting orders CSV: {str(e)}", exc_info=True)
-        return jsonify({"error": f"Failed to export orders: {str(e)}"}), 500
+        logger.error(f"Error in export_orders_csv: {e}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "error": "An error occurred exporting orders",
+            "error_id": datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+        }), 500
 
 @enhanced_bp.route('/api/export/inventory', methods=['GET'])
 @login_required
@@ -161,8 +165,12 @@ def export_inventory_csv_enhanced():
         return response
         
     except Exception as e:
-        logger.error(f"Error exporting inventory CSV: {str(e)}", exc_info=True)
-        return jsonify({"error": f"Failed to export inventory: {str(e)}"}), 500
+        logger.error(f"Error in export_inventory_csv_enhanced: {e}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "error": "An error occurred exporting inventory",
+            "error_id": datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+        }), 500
 
 @enhanced_bp.route('/api/export/revenue', methods=['GET'])
 @login_required
@@ -221,8 +229,12 @@ def export_revenue_csv_enhanced():
         return response
         
     except Exception as e:
-        logger.error(f"Error exporting revenue CSV: {str(e)}", exc_info=True)
-        return jsonify({"error": f"Failed to export revenue: {str(e)}"}), 500
+        logger.error(f"Error in export_revenue_csv_enhanced: {e}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "error": "An error occurred exporting revenue",
+            "error_id": datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+        }), 500
 
 # ============================================================================
 # SETTINGS MANAGEMENT
@@ -470,15 +482,48 @@ def send_scheduled_report(report):
         # Send SMS if configured (requires Twilio setup)
         if report.delivery_sms:
             try:
-                # TODO: Implement SMS sending via Twilio
-                # For now, just log
-                logger.info(f"SMS delivery requested for report {report.id} to {report.delivery_sms} (not implemented yet)")
+                sms_sent = send_sms_notification(report.delivery_sms, f"Employee Suite Report: Your {report.report_type} report is ready.")
+                if sms_sent:
+                    logger.info(f"Sent SMS for report {report.id} to {report.delivery_sms}")
+                else:
+                    logger.warning(f"SMS delivery failed for report {report.id} - Twilio not configured")
             except Exception as e:
                 logger.error(f"Error sending SMS for report {report.id}: {str(e)}")
         
         return True
     except Exception as e:
         logger.error(f"Error sending scheduled report {report.id}: {str(e)}", exc_info=True)
+        return False
+
+
+def send_sms_notification(phone_number, message):
+    """Send SMS via Twilio (requires TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN)"""
+    try:
+        import os
+        # Check if Twilio is available
+        try:
+            from twilio.rest import Client
+        except ImportError:
+            logger.warning("Twilio not installed - SMS notifications disabled")
+            return False
+        
+        account_sid = os.getenv('TWILIO_ACCOUNT_SID')
+        auth_token = os.getenv('TWILIO_AUTH_TOKEN')
+        from_number = os.getenv('TWILIO_PHONE_NUMBER')
+        
+        if not all([account_sid, auth_token, from_number]):
+            logger.warning("Twilio credentials not configured - SMS disabled")
+            return False
+            
+        client = Client(account_sid, auth_token)
+        client.messages.create(
+            body=message,
+            from_=from_number,
+            to=phone_number
+        )
+        return True
+    except Exception as e:
+        logger.error(f"SMS send failed: {e}")
         return False
 
 # ============================================================================

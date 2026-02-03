@@ -45,9 +45,10 @@ def process_orders(user_id=None, start_date=None, end_date=None, **kwargs):
                         <tbody>
             """
             for order in orders[:10]:  # Show first 10
-                # Mock status for UI demo since API doesn't return it yet
-                status_class = "status-paid" if float(order['total'].replace('$','').replace(',','')) > 50 else "status-pending"
-                status_text = "Paid" if status_class == "status-paid" else "Pending"
+                # Use actual Shopify financial status
+                financial_status = order.get('status', 'pending')
+                status_class = f"status-{financial_status.lower()}"
+                status_text = financial_status.title()
                 
                 html += f"""
                             <tr>

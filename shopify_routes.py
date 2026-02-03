@@ -99,8 +99,9 @@ def shopify_settings():
             store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
             if store and store.user:
                 user = store.user
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Error finding user in shopify_settings: {e}", exc_info=True)
+        # Continue with user=None, will redirect to appropriate auth flow
 
     # If no user found, redirect to install (for embedded) or show message
     if not user:
@@ -175,8 +176,15 @@ def connect_store():
             store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
             if store and store.user:
                 user = store.user
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Error finding user in connect_store: {e}", exc_info=True)
+        settings_url = url_for(
+            "shopify.shopify_settings",
+            error="Authentication error occurred. Please try again.",
+            shop=shop,
+            host=host,
+        )
+        return safe_redirect(settings_url, shop=shop, host=host)
 
     if not user:
         settings_url = url_for(
@@ -335,8 +343,15 @@ def disconnect_store():
             store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
             if store and store.user:
                 user = store.user
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Error finding user in disconnect_store: {e}", exc_info=True)
+        settings_url = url_for(
+            "shopify.shopify_settings",
+            error="Authentication error occurred. Please try again.",
+            shop=shop,
+            host=host,
+        )
+        return safe_redirect(settings_url, shop=shop, host=host)
 
     if not user:
         settings_url = url_for(
@@ -407,8 +422,15 @@ def cancel_subscription():
             store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
             if store and store.user:
                 user = store.user
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Error finding user in cancel_subscription: {e}", exc_info=True)
+        settings_url = url_for(
+            "shopify.shopify_settings",
+            error="Authentication error occurred. Please try again.",
+            shop=shop,
+            host=host,
+        )
+        return safe_redirect(settings_url, shop=shop, host=host)
 
     if not user:
         settings_url = url_for(

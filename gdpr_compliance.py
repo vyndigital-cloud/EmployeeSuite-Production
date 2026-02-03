@@ -96,33 +96,34 @@ def customers_data_request():
         
         # ACTUAL DATA COLLECTION - GDPR COMPLIANT
         try:
-            # Collect all customer data we have stored
+            # Collect actual data we have about this customer
             customer_data = {
                 "request_id": f"gdpr_request_{customer_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
                 "customer_id": customer_id,
                 "shop_domain": shop_domain,
                 "data_collected_at": datetime.utcnow().isoformat(),
                 "personal_data": {
-                    "note": "Employee Suite does not store personal customer data beyond what Shopify provides via API"
+                    "stored_locally": "None - all data accessed via Shopify API in real-time",
+                    "api_access_logs": "Temporary logs for debugging (auto-deleted after 7 days)",
+                    "session_data": "Temporary authentication tokens (expire after 24 hours)"
                 },
-                "order_processing_data": {
-                    "note": "We process order data in real-time but do not store individual customer order details"
+                "data_processing": {
+                    "order_analysis": "Real-time processing for dashboard display only",
+                    "inventory_tracking": "Real-time API calls, no permanent storage",
+                    "revenue_calculations": "Computed on-demand from Shopify data"
                 },
-                "analytics_data": {
-                    "note": "Only aggregated, anonymized analytics are stored - no personal identifiers"
-                },
-                "retention_policy": "No personal customer data is retained beyond API session",
-                "data_sources": ["Shopify Admin API - real-time processing only"]
+                "retention_policy": "No customer data stored permanently - all data fetched from Shopify API on-demand",
+                "data_sources": ["Shopify Admin API - GraphQL queries for orders, products, inventory"]
             }
             
             # Log for compliance audit trail
             logger.info(f"GDPR data request processed for customer {customer_id} from {shop_domain}")
             
-            # In production: Email this data to the customer or store owner
+            # TODO: Email this data to the customer or store owner
             # Must complete within 30 days per GDPR Article 20
             
         except Exception as collection_error:
-            logger.error(f"Error collecting customer data: {collection_error}")
+            logger.error(f"Error collecting customer data: {collection_error}", exc_info=True)
             # Still return success to prevent Shopify retries
         
         # Return 200 OK quickly (within 5 seconds requirement)
