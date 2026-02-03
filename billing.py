@@ -802,9 +802,9 @@ def confirm_charge():
                     existing_plan.charge_id = str(charge_id)
                     existing_plan.status = "active"
                     existing_plan.cancelled_at = None
-                    existing_plan.multi_store_enabled = plan_type == "business"
-                    existing_plan.automated_reports_enabled = plan_type == "business"
-                    existing_plan.scheduled_delivery_enabled = plan_type == "business"
+                    existing_plan.multi_store_enabled = True
+                    existing_plan.automated_reports_enabled = True
+                    existing_plan.scheduled_delivery_enabled = True
                 else:
                     new_plan = SubscriptionPlan(
                         user_id=user.id,
@@ -812,9 +812,9 @@ def confirm_charge():
                         price_usd=plan_price,
                         charge_id=str(charge_id),
                         status="active",
-                        multi_store_enabled=(plan_type == "business"),
-                        automated_reports_enabled=(plan_type == "business"),
-                        scheduled_delivery_enabled=(plan_type == "business"),
+                        multi_store_enabled=True,
+                        automated_reports_enabled=True,
+                        scheduled_delivery_enabled=True,
                     )
                     db.session.add(new_plan)
 

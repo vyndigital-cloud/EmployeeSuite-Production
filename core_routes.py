@@ -399,6 +399,8 @@ def home():
         shop=shop or "",
         APP_URL=os.getenv("APP_URL", request.url_root.rstrip("/")),
         host=host or "",
+        plan_name="Employee Suite Pro",
+        plan_price=39,
     )
 
 

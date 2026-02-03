@@ -16,11 +16,10 @@ PLAN_BUSINESS = 'business' # $99/month - Automation, unlimited stores, priority 
 PLAN_MANUAL = PLAN_PRO
 PLAN_AUTOMATED = PLAN_BUSINESS
 
-# Plan Pricing (Updated for Production: $99 and $297)
+# Plan Pricing (Updated for Production: $39/month single plan)
 PLAN_PRICES = {
     PLAN_FREE: 0.00,
-    PLAN_PRO: 99.00,
-    PLAN_BUSINESS: 297.00,
+    PLAN_PRO: 39.00,
 }
 
 # Plan Features
@@ -39,21 +38,8 @@ PLAN_FEATURES = {
         'api_access': False,
     },
     PLAN_PRO: {
-        'name': 'Growth',
-        'price': 99,
-        'stores_limit': 3,
-        'data_days': 90,
-        'csv_exports': True,
-        'auto_download': True,
-        'scheduled_reports': False,
-        'email_reports': False,
-        'sms_reports': False,
-        'priority_support': False,
-        'api_access': False,
-    },
-    PLAN_BUSINESS: {
-        'name': 'Scale',
-        'price': 297,
+        'name': 'Employee Suite Pro',
+        'price': 39,
         'stores_limit': -1,  # Unlimited
         'data_days': -1,     # Unlimited
         'csv_exports': True,
@@ -107,11 +93,11 @@ class SubscriptionPlan(db.Model):
     plan_type = db.Column(db.String(20), nullable=False)  # 'manual' or 'automated'
     price_usd = db.Column(db.Numeric(10, 2), nullable=False)
     
-    # Plan features
-    multi_store_enabled = db.Column(db.Boolean, default=False)
-    staff_connections_enabled = db.Column(db.Boolean, default=False)
-    automated_reports_enabled = db.Column(db.Boolean, default=False)
-    scheduled_delivery_enabled = db.Column(db.Boolean, default=False)
+    # Plan features (all enabled for single paid plan)
+    multi_store_enabled = db.Column(db.Boolean, default=True)
+    staff_connections_enabled = db.Column(db.Boolean, default=True)
+    automated_reports_enabled = db.Column(db.Boolean, default=True)
+    scheduled_delivery_enabled = db.Column(db.Boolean, default=True)
     
     # Shopify billing
     charge_id = db.Column(db.String(255), nullable=True, index=True)
@@ -221,27 +207,19 @@ def is_pro_or_higher(user):
 
 def can_export_csv(user):
     """Check if user can export CSV files"""
-    features = get_plan_features(user)
-    return features.get('csv_exports', False)
+    return user.has_access()
 
 def can_auto_download(user):
     """Check if user can use auto-download"""
-    features = get_plan_features(user)
-    return features.get('auto_download', False)
+    return user.has_access()
 
 def can_scheduled_reports(user):
     """Check if user can use scheduled reports"""
-    features = get_plan_features(user)
-    return features.get('scheduled_reports', False)
+    return user.has_access()
 
 def can_multi_store(user):
     """Check if user can connect multiple stores"""
-    plan = get_user_plan(user)
-    if not plan:
-        return False
-    features = PLAN_FEATURES.get(plan.plan_type, PLAN_FEATURES[PLAN_FREE])
-    stores_limit = features.get('stores_limit', 1)
-    return stores_limit == -1 or stores_limit > 1
+    return user.has_access()
 
 def get_stores_limit(user):
     """Get max stores allowed for user's plan"""

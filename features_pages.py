@@ -161,7 +161,7 @@ WELCOME_HTML = '''
             <h1>🎉 Welcome to Employee Suite Premium</h1>
             <p>Discover powerful new features designed to save you time and grow your business</p>
             <div style="font-size: 16px; opacity: 0.9;">
-                <strong>$99/month</strong> • 7-day free trial • Cancel anytime
+                <strong>$39/month</strong> • 7-day free trial • Cancel anytime
             </div>
         </div>
         
