@@ -452,6 +452,7 @@ def shopify_settings():
 
     from shopify_utils import normalize_shop_url
     
+    # Normalize shop URL first thing
     shop = request.args.get("shop", "")
     if shop:
         shop = normalize_shop_url(shop)
