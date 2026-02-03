@@ -536,43 +536,118 @@ def subscribe():
     <title>Subscribe - Employee Suite</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 20px; background: #f6f6f7; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; }
-        .plan-title { font-size: 24px; font-weight: 600; margin-bottom: 16px; }
-        .price { font-size: 32px; font-weight: 700; color: #008060; margin-bottom: 24px; }
-        .features { list-style: none; padding: 0; margin-bottom: 32px; }
-        .features li { padding: 8px 0; display: flex; align-items: center; }
-        .btn { background: #008060; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
-        .error { background: #fff4f4; border: 1px solid #fecaca; padding: 12px; border-radius: 6px; color: #d72c0d; margin-bottom: 20px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container { 
+            background: white; 
+            border-radius: 12px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 500px; 
+            width: 100%;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #008060 0%, #00a86b 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .plan-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+        .price { font-size: 48px; font-weight: 800; margin-bottom: 8px; }
+        .price-period { font-size: 16px; opacity: 0.9; }
+        .content { padding: 30px; }
+        .features { list-style: none; margin-bottom: 30px; }
+        .features li { 
+            padding: 12px 0; 
+            display: flex; 
+            align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .features li:last-child { border-bottom: none; }
+        .features li::before {
+            content: "✓";
+            color: #008060;
+            font-weight: bold;
+            margin-right: 12px;
+            font-size: 16px;
+        }
+        .btn { 
+            background: linear-gradient(135deg, #008060 0%, #00a86b 100%);
+            color: white; 
+            padding: 16px 32px; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .error { 
+            background: #fef2f2; 
+            border: 1px solid #fecaca; 
+            padding: 16px; 
+            border-radius: 8px; 
+            color: #dc2626; 
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .trial-info {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="plan-title">{{ plan_name }}</h1>
-        <div class="price">${{ price }}/month</div>
+        <div class="header">
+            <h1 class="plan-title">{{ plan_name }}</h1>
+            <div class="price">${{ price }}</div>
+            <div class="price-period">per month</div>
+        </div>
         
-        {% if error %}
-        <div class="error">{{ error }}</div>
-        {% endif %}
-        
-        {% if not has_store %}
-        <div class="error">Please connect your Shopify store first in Settings.</div>
-        {% endif %}
-        
-        <ul class="features">
-        {% for feature in features %}
-            <li>{{ feature }}</li>
-        {% endfor %}
-        </ul>
-        
-        {% if has_store and not error %}
-        <form method="POST" action="/billing/create-charge">
-            <input type="hidden" name="shop" value="{{ shop }}">
-            <input type="hidden" name="host" value="{{ host }}">
-            <input type="hidden" name="plan" value="{{ plan }}">
-            <button type="submit" class="btn">Subscribe Now</button>
-        </form>
-        {% endif %}
+        <div class="content">
+            {% if trial_active %}
+            <div class="trial-info">
+                <strong>Free Trial Active</strong><br>
+                {{ days_left }} days remaining
+            </div>
+            {% endif %}
+            
+            {% if error %}
+            <div class="error">{{ error }}</div>
+            {% endif %}
+            
+            <ul class="features">
+            {% for feature in features %}
+                <li>{{ feature.replace('🤖 ', '').replace('📊 ', '').replace('📦 ', '').replace('💰 ', '').replace('📥 ', '').replace('🔄 ', '').replace('📱 ', '').replace('⚡ ', '').replace('🎯 ', '').replace('📈 ', '').replace('🛡️ ', '').replace('💬 ', '') }}</li>
+            {% endfor %}
+            </ul>
+            
+            {% if has_store and not error %}
+            <form method="POST" action="/billing/create-charge">
+                <input type="hidden" name="shop" value="{{ shop }}">
+                <input type="hidden" name="host" value="{{ host }}">
+                <input type="hidden" name="plan" value="{{ plan }}">
+                <button type="submit" class="btn">Start Free Trial</button>
+            </form>
+            {% else %}
+            <a href="/settings/shopify?shop={{ shop }}&host={{ host }}" class="btn" style="display: block; text-align: center; text-decoration: none;">Connect Store First</a>
+            {% endif %}
+        </div>
     </div>
 </body>
 </html>

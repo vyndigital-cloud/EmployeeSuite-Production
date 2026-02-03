@@ -171,3 +171,31 @@ window.addEventListener('error', function(e) {
         return; // Don't log to backend
     }
 }, true);
+
+// Ensure all HTML content is properly escaped when building dynamic content
+function escapeHtml(text) {
+    var map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+// Safe HTML builder for dynamic content
+function buildHtmlContent(data) {
+    var html = '';
+    if (data && typeof data === 'object') {
+        for (var key in data) {
+            if (data.hasOwnProperty(key)) {
+                html += '<div class="data-item">';
+                html += '<span class="key">' + escapeHtml(String(key)) + ':</span> ';
+                html += '<span class="value">' + escapeHtml(String(data[key])) + '</span>';
+                html += '</div>';
+            }
+        }
+    }
+    return html;
+}
