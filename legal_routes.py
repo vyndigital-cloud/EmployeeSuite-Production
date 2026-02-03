@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template_string
+from flask import Blueprint, render_template, request
 
 legal_bp = Blueprint("legal", __name__)
 
@@ -93,13 +93,21 @@ LEGAL_HTML = """
 
 @legal_bp.route("/privacy")
 def privacy():
+    shop = request.args.get("shop", "")
+    host = request.args.get("host", "")
     content = PRIVACY_TEXT.replace("\n\n", "</p><p>").replace("\n", "<br>")
     content = f"<p>{content}</p>"
-    return render_template_string(LEGAL_HTML, title="Privacy Policy", content=content)
+    return render_template(
+        "legal.html", title="Privacy Policy", content=content, shop=shop, host=host
+    )
 
 
 @legal_bp.route("/terms")
 def terms():
+    shop = request.args.get("shop", "")
+    host = request.args.get("host", "")
     content = TERMS_TEXT.replace("\n\n", "</p><p>").replace("\n", "<br>")
     content = f"<p>{content}</p>"
-    return render_template_string(LEGAL_HTML, title="Terms of Service", content=content)
+    return render_template(
+        "legal.html", title="Terms of Service", content=content, shop=shop, host=host
+    )

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Employee Suite</title>
+
+    <!-- Shopify App Bridge -->
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <script>
+        var host = "{{ host }}";
+        var shop = "{{ shop }}";
+        if (host) {
+            var AppBridge = window['app-bridge'];
+            var createApp = AppBridge.default;
+            var app = createApp({
+                apiKey: "{{ config_api_key }}",
+                host: host,
+                forceRedirect: true
+            });
+        }
+    </script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        .legal-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+
+        .legal-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .legal-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .legal-content {
+            background: #fff;
+            border-radius: 12px;
+            padding: 40px;
+            border: 1px solid #e1e3e5;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            line-height: 1.8;
+            color: #4b5563;
+        }
+
+        .legal-content h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #111;
+            margin: 32px 0 16px;
+        }
+
+        .legal-content p {
+            margin-bottom: 16px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            text-decoration: none;
+            margin-top: 40px;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: #1a1a1a;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="legal-container">
+        <header class="legal-header">
+            <h1>{{ title }}</h1>
+        </header>
+
+        <div class="legal-content">
+            {{ content|safe }}
+        </div>
+
+        <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="back-link">
+            <i class="ph-bold ph-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+</body>
+
+</html>

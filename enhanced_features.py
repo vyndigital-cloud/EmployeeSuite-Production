@@ -624,3 +624,53 @@ def get_comprehensive_dashboard():
             'message': 'Please try again or reconnect your store at Settings → Shopify if you see permission errors.'
         }), 500
 
+
+# ============================================================================
+# INDIVIDUAL REPORT ENDPOINTS (For Dashboard Buttons)
+# ============================================================================
+
+@enhanced_bp.route('/api/process_orders')
+@login_required
+@require_access
+def api_process_orders():
+    """API endpoint for processing orders"""
+    try:
+        result = process_orders(user_id=current_user.id)
+        if result.get('success'):
+            return result['html']
+        else:
+            return f'<div class="alert alert-danger">{result.get("error")}</div>', 400
+    except Exception as e:
+        logger.error(f"Error in api_process_orders: {e}")
+        return f'<div class="alert alert-danger">Error: {str(e)}</div>', 500
+
+@enhanced_bp.route('/api/update_inventory')
+@login_required
+@require_access
+def api_update_inventory():
+    """API endpoint for inventory check"""
+    try:
+        result = check_inventory(user_id=current_user.id)
+        if result.get('success'):
+            return result['html']
+        else:
+            return f'<div class="alert alert-danger">{result.get("error")}</div>', 400
+    except Exception as e:
+        logger.error(f"Error in api_update_inventory: {e}")
+        return f'<div class="alert alert-danger">Error: {str(e)}</div>', 500
+
+@enhanced_bp.route('/api/generate_report')
+@login_required
+@require_access
+def api_generate_report():
+    """API endpoint for revenue report"""
+    try:
+        result = generate_report(user_id=current_user.id)
+        if result.get('success'):
+            return result['html']
+        else:
+            return f'<div class="alert alert-danger">{result.get("error")}</div>', 400
+    except Exception as e:
+        logger.error(f"Error in api_generate_report: {e}")
+        return f'<div class="alert alert-danger">Error: {str(e)}</div>', 500
+

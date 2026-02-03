@@ -273,17 +273,42 @@
             }
         }
     </style>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <script>
+        var host = new URLSearchParams(window.location.search).get('host');
+        var shop = new URLSearchParams(window.location.search).get('shop');
+        if (host) {
+            var AppBridge = window['app-bridge'];
+            var createApp = AppBridge.default;
+            var app = createApp({
+                apiKey: '{{ config_api_key }}',
+                host: host,
+                forceRedirect: true
+            });
+        }
+
+        window.openPage = function (path) {
+            var sep = path.indexOf('?') > -1 ? '&' : '?';
+            if (shop) path += sep + 'shop=' + shop;
+            if (host) path += (path.indexOf('?') > -1 ? '&' : '?') + 'host=' + host;
+            window.location.href = path;
+            return false;
+        };
+    </script>
 </head>
 
 <body>
     <div class="header">
         <div class="header-content">
-            <a href="/dashboard"
+            <a href="#" onclick="openPage('/dashboard'); return false;"
                 style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 10px; font-weight: 600;"
                 class="logo">
                 <span>Employee Suite</span>
             </a>
-            <a href="/dashboard" class="nav-btn">Back to Dashboard</a>
+            <a href="#" onclick="openPage('/dashboard'); return false;" class="nav-btn">
+                <i class="ph-bold ph-arrow-left" style="vertical-align: middle;"></i> Back to Dashboard
+            </a>
         </div>
     </div>
 

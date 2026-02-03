@@ -21,6 +21,17 @@ def update_inventory(user_id=None):
         # Get inventory from Shopify
         client = ShopifyClient(store.shop_url, store.get_access_token())
         inventory = client.get_products()
+        
+        # Sort inventory by stock level (ascending) if it's a list
+        if isinstance(inventory, list):
+            # Helper to safely get int stock
+            def get_stock(item):
+                try:
+                    return int(item.get('stock', 0))
+                except (ValueError, TypeError):
+                    return 0
+            
+            inventory.sort(key=get_stock)
 
         if isinstance(inventory, dict) and "error" in inventory:
             return {"success": False, "error": inventory["error"]}
