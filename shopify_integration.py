@@ -370,11 +370,8 @@ class ShopifyClient:
                     error_detail = "Access denied - Missing required permissions"
                     response_text = ""
                     try:
-                        if hasattr(e, 'response') and e.response:
-                            response_text = e.response.text[:500]
-                            error_data = e.response.json()
-                        else:
-                            error_data = {}
+                        response_text = response.text[:500]
+                        error_data = response.json()
                         if isinstance(error_data, dict):
                             errors = error_data.get("errors", {})
                             if isinstance(errors, dict):
