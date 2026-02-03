@@ -16,7 +16,30 @@ if str(project_dir) not in sys.path:
 
 # Configure logging for production speed
 import traceback
-from error_logging import error_logger, log_errors
+
+# Import error logging with fallback
+try:
+    from error_logging import error_logger, log_errors
+    logger.info("Error logging imported successfully")
+except ImportError as e:
+    logger.error(f"Error logging import failed: {e}")
+    # Create a fallback error logger
+    class FallbackErrorLogger:
+        def log_error(self, error, error_type="GENERAL"):
+            logger.error(f"[{error_type}] {str(error)}")
+        def log_user_action(self, action, user_id=None, details=None):
+            logger.info(f"User Action: {action}")
+        def log_system_event(self, event, details=None):
+            logger.info(f"System Event: {event}")
+        def get_recent_errors(self, count=50):
+            return []
+    
+    error_logger = FallbackErrorLogger()
+    
+    def log_errors(error_type="GENERAL"):
+        def decorator(func):
+            return func
+        return decorator
 
 # Initialize logger for this module
 logger = logging.getLogger(__name__)

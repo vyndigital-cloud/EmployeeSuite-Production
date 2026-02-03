@@ -1,4 +1,3 @@
 def register_errors(app):
-    @app.errorhandler(404)
-    def not_found(error):
-        return {"error": "Not found"}, 404
+    """Register basic error handlers - currently unused as main.py handles errors"""
+    pass
