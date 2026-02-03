@@ -39,6 +39,7 @@ def customer_data_request():
         ).first()
         
         if not store:
+            logger.warning(f"GDPR request for inactive/missing shop: {shop_domain}")
             return jsonify({'error': 'Shop not found or inactive'}), 404
         
         # Collect customer data from your app
@@ -97,6 +98,7 @@ def customer_data_redaction():
         ).first()
         
         if not store:
+            logger.warning(f"GDPR redaction request for inactive/missing shop: {shop_domain}")
             return jsonify({'error': 'Shop not found or inactive'}), 404
         
         # Implement customer data redaction with real database operations
@@ -166,6 +168,7 @@ def shop_data_redaction():
         store = ShopifyStore.query.filter_by(shop_domain=shop_domain).first()
         
         if not store:
+            logger.warning(f"Shop redaction request for non-existent shop: {shop_domain}")
             return jsonify({'error': 'Shop not found'}), 404
         
         # Implement complete shop data redaction with cascading deletes
