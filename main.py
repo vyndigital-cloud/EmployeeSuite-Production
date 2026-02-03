@@ -59,11 +59,10 @@ except ImportError as e:
 
 # Optimized logging for production
 logging.basicConfig(
-    level=logging.WARNING,  # Changed from DEBUG to WARNING for speed
-    format='%(asctime)s - %(levelname)s - %(message)s',  # Simplified format
+    level=logging.INFO,  # INFO level for production monitoring
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout)
-        # Removed file handler for speed - use external log aggregation
     ]
 )
 

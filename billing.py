@@ -98,10 +98,10 @@ def safe_redirect(url, shop=None, host=None):
 PLANS = {
     "pro": {
         "name": "Employee Suite Pro",
-        "price": 39.00,  # Changed from $99 to $39
+        "price": 39.00,
         "features": [
             "🤖 AI-Powered Stockout Predictions",
-            "📊 Real-Time Inventory Dashboard",
+            "📊 Real-Time Inventory Dashboard", 
             "📦 Smart Order Management",
             "💰 Revenue Analytics & Forecasting",
             "📥 Unlimited CSV Exports",
@@ -114,7 +114,6 @@ PLANS = {
             "💬 Priority Email Support",
         ],
     },
-    # Remove the $297 tier - single $39 plan for maximum conversions
 }
 
 SUCCESS_HTML = """

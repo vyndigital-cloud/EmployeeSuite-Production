@@ -93,9 +93,9 @@ def get_authenticated_user():
     """
     # Import only when needed to speed up startup
     from models import ShopifyStore, User, db
+    
     # Try Flask-Login first (for standalone access)
     if current_user.is_authenticated:
-        logger.debug(f"User authenticated via Flask-Login: {current_user.id}")
         return current_user, None
 
     # Try session token (for embedded apps)
