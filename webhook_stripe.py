@@ -3,6 +3,7 @@ import stripe
 import os
 from models import db, User
 from email_service import send_payment_failed
+from logging_config import logger
 
 webhook_bp = Blueprint('webhook', __name__)
 
@@ -29,7 +30,7 @@ def stripe_webhook():
     event_type = event['type']
     data = event['data']['object']
     
-    print(f"Received Stripe webhook: {event_type}")
+    logger.info(f"Received Stripe webhook: {event_type}")
     
     if event_type == 'invoice.payment_failed':
         handle_payment_failed(data)
@@ -51,7 +52,7 @@ def handle_payment_failed(invoice):
     
     user = User.query.filter_by(stripe_customer_id=customer_id).first()
     if not user:
-        print(f"User not found for customer {customer_id}")
+        logger.warning(f"User not found for customer {customer_id}")
         return
     
     # Lock user out
@@ -62,9 +63,9 @@ def handle_payment_failed(invoice):
     try:
         send_payment_failed(user.email)
     except Exception as e:
-        print(f"Failed to send payment failed email: {e}")
+        logger.error(f"Failed to send payment failed email: {e}")
     
-    print(f"Payment failed for {user.email} - access revoked")
+    logger.warning(f"Payment failed for {user.email} - access revoked")
 
 def handle_payment_succeeded(invoice):
     """Handle successful payment - ensure user has access"""
@@ -72,14 +73,14 @@ def handle_payment_succeeded(invoice):
     
     user = User.query.filter_by(stripe_customer_id=customer_id).first()
     if not user:
-        print(f"User not found for customer {customer_id}")
+        logger.warning(f"User not found for customer {customer_id}")
         return
     
     # Ensure user is marked as subscribed
     if not user.is_subscribed:
         user.is_subscribed = True
         db.session.commit()
-        print(f"Payment succeeded for {user.email} - access granted")
+        logger.info(f"Payment succeeded for {user.email} - access granted")
 
 def handle_subscription_deleted(subscription):
     """Handle subscription cancellation from Stripe dashboard"""
@@ -87,14 +88,14 @@ def handle_subscription_deleted(subscription):
     
     user = User.query.filter_by(stripe_customer_id=customer_id).first()
     if not user:
-        print(f"User not found for customer {customer_id}")
+        logger.warning(f"User not found for customer {customer_id}")
         return
     
     # Revoke access
     user.is_subscribed = False
     db.session.commit()
     
-    print(f"Subscription deleted for {user.email} - access revoked")
+    logger.info(f"Subscription deleted for {user.email} - access revoked")
 
 def handle_subscription_updated(subscription):
     """Handle subscription updates (plan changes, etc)"""
@@ -103,7 +104,7 @@ def handle_subscription_updated(subscription):
     
     user = User.query.filter_by(stripe_customer_id=customer_id).first()
     if not user:
-        print(f"User not found for customer {customer_id}")
+        logger.warning(f"User not found for customer {customer_id}")
         return
     
     # Update subscription status based on Stripe status
@@ -113,4 +114,4 @@ def handle_subscription_updated(subscription):
         user.is_subscribed = False
     
     db.session.commit()
-    print(f"Subscription updated for {user.email} - status: {status}")
+    logger.info(f"Subscription updated for {user.email} - status: {status}")
