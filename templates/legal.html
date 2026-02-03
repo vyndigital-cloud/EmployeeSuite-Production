@@ -30,10 +30,12 @@
     }
 
     .legal-content-card h2 {
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 600;
         color: var(--text-main);
         margin: 32px 0 16px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     .legal-content-card h2:first-child {
@@ -74,11 +76,90 @@
     </header>
 
     <div class="legal-content-card">
+        {% if 'Privacy' in title %}
+        <p><strong>Last updated: January 2025</strong></p>
+        <p>Employee Suite ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains
+            how we collect, use, and safeguard your information when you use our Shopify application.</p>
+
+        <h2>Information We Collect</h2>
+        <p>We collect information you provide directly to us, such as when you create an account, connect your Shopify
+            store, or contact us for support.</p>
+        <ul>
+            <li><strong>Store Data:</strong> We access your Shopify store data including orders, products, and inventory
+                as necessary to provide our services.</li>
+            <li><strong>Usage Information:</strong> We collect information about how you use our application, including
+                features accessed and actions taken.</li>
+        </ul>
+
+        <h2>How We Use Your Information</h2>
+        <p>We use the information we collect to:</p>
+        <ul>
+            <li>Provide, maintain, and improve our services</li>
+            <li>Process transactions and send related information</li>
+            <li>Send technical notices and support messages</li>
+            <li>Respond to your comments and questions</li>
+        </ul>
+
+        <h2>Data Security</h2>
+        <p>We implement appropriate security measures to protect your personal information against unauthorized access,
+            alteration, disclosure, or destruction. Your data is encrypted at rest and in transit.</p>
+
+        <h2>Third-Party Services</h2>
+        <p>Our application integrates with Shopify and may use other third-party services (such as analytics providers).
+            These services have their own privacy policies.</p>
+
+        <h2>Contact Us</h2>
+        <p>If you have any questions about this Privacy Policy, please contact us at <a
+                href="mailto:support@employeesuite.com"
+                style="color: var(--primary); text-decoration: none;">support@employeesuite.com</a>.</p>
+
+        {% elif 'Terms' in title %}
+        <p><strong>Last updated: January 2025</strong></p>
+        <p>These Terms of Service ("Terms") govern your use of Employee Suite ("Service") operated by Employee Suite
+            ("us", "we", or "our").</p>
+
+        <h2>Acceptance of Terms</h2>
+        <p>By accessing and using this service, you accept and agree to be bound by the terms and provision of this
+            agreement.</p>
+
+        <h2>Use License</h2>
+        <p>Permission is granted to temporarily use Employee Suite for personal, non-commercial transitory viewing only.
+            You may not:</p>
+        <ul>
+            <li>Modify or copy the materials;</li>
+            <li>Use the materials for any commercial purpose, or for any public display (commercial or non-commercial);
+            </li>
+            <li>Attempt to decompile or reverse engineer any software contained on Employee Suite's web site;</li>
+        </ul>
+
+        <h2>Disclaimer</h2>
+        <p>The information on this application is provided on an 'as is' basis. To the fullest extent permitted by law,
+            this Company excludes all representations, warranties, conditions and terms.</p>
+
+        <h2>Limitations</h2>
+        <p>In no event shall Employee Suite or its suppliers be liable for any damages (including, without limitation,
+            damages for loss of data or profit, or due to business interruption) arising out of the use or inability to
+            use the materials on Employee Suite's application.</p>
+
+        <h2>Privacy Policy</h2>
+        <p>Your privacy is important to us. Please review our Privacy Policy, which also governs your use of the
+            Service.</p>
+
+        <h2>Modifications</h2>
+        <p>Employee Suite may revise these terms of service at any time without notice. By using this application, you
+            are agreeing to be bound by the then current version of these terms of service.</p>
+
+        <h2>Contact Information</h2>
+        <p>If you have any questions about these Terms, please contact us at <a href="mailto:support@employeesuite.com"
+                style="color: var(--primary); text-decoration: none;">support@employeesuite.com</a>.</p>
+
+        {% else %}
         {{ content|safe }}
+        {% endif %}
     </div>
 
     <div class="legal-footer">
-        <p>Last updated: February 2026</p>
+        <p>© 2026 Employee Suite. All rights reserved.</p>
     </div>
 </div>
 {% endblock %}
