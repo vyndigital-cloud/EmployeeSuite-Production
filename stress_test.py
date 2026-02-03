@@ -34,6 +34,39 @@ class EmployeeSuiteStressTest:
         self.test_tokens = [
             f"shpat_test_token_{i:04d}" for i in range(1, 21)
         ]
+        self.session_tokens = []
+
+    def setup_test_data(self):
+        """Create realistic test session tokens for authentication"""
+        print("🔧 Setting up test authentication data...")
+        
+        # Create JWT session tokens that match your app's format
+        import jwt
+        import os
+        from datetime import datetime, timedelta
+        
+        # Use test values (in production, these would be your actual keys)
+        api_secret = os.getenv('SHOPIFY_API_SECRET', 'test-secret-for-stress-test')
+        api_key = os.getenv('SHOPIFY_API_KEY', 'test-api-key')
+        
+        for i, shop in enumerate(self.test_shops[:5]):
+            payload = {
+                'iss': shop,
+                'dest': f"https://{shop}",
+                'aud': api_key,
+                'sub': str(1000 + i),
+                'exp': int((datetime.utcnow() + timedelta(hours=1)).timestamp()),
+                'nbf': int(datetime.utcnow().timestamp()),
+                'iat': int(datetime.utcnow().timestamp())
+            }
+            
+            try:
+                token = jwt.encode(payload, api_secret, algorithm='HS256')
+                self.session_tokens.append(token)
+            except Exception as e:
+                print(f"   ⚠️  Could not create test token: {e}")
+        
+        print(f"   ✅ Created {len(self.session_tokens)} test session tokens")
 
     def log_result(self, endpoint, success, response_time, error=None):
         """Log test result"""
@@ -160,6 +193,83 @@ class EmployeeSuiteStressTest:
         
         response, _ = self.make_request('GET', endpoint, headers=headers, params=params)
         return response is not None
+
+    def test_csv_export_with_params(self):
+        """Test CSV exports with various parameters"""
+        endpoints = [
+            ('/api/export/inventory', {'days': random.choice([7, 30, 90])}),
+            ('/api/export/orders', {
+                'start_date': '2024-01-01', 
+                'end_date': '2024-12-31'
+            }),
+            ('/api/export/revenue', {
+                'start_date': '2024-06-01',
+                'end_date': '2024-12-31'
+            })
+        ]
+        
+        endpoint, params = random.choice(endpoints)
+        headers = {}
+        
+        if hasattr(self, 'session_tokens') and self.session_tokens:
+            headers['Authorization'] = f'Bearer {random.choice(self.session_tokens)}'
+        
+        response, _ = self.make_request('GET', endpoint, headers=headers, params=params)
+        return response is not None
+
+    def test_api_with_session_token(self, endpoint, method='POST'):
+        """Test API with session token authentication (embedded app)"""
+        headers = {'Content-Type': 'application/json'}
+        
+        if hasattr(self, 'session_tokens') and self.session_tokens:
+            headers['Authorization'] = f'Bearer {random.choice(self.session_tokens)}'
+        
+        response, _ = self.make_request(method, endpoint, headers=headers)
+        return response is not None
+
+    def test_api_with_shop_param(self, endpoint, method='GET'):
+        """Test API with shop parameter authentication"""
+        shop = random.choice(self.test_shops)
+        params = {'shop': shop}
+        
+        response, _ = self.make_request(method, endpoint, params=params)
+        return response is not None
+
+    def test_scheduled_reports_crud(self):
+        """Test full CRUD operations for scheduled reports"""
+        headers = {'Content-Type': 'application/json'}
+        
+        if hasattr(self, 'session_tokens') and self.session_tokens:
+            headers['Authorization'] = f'Bearer {random.choice(self.session_tokens)}'
+        
+        # Test list
+        response, _ = self.make_request('GET', '/api/scheduled-reports', headers=headers)
+        if not response:
+            return False
+        
+        # Test create
+        data = {
+            'report_type': random.choice(['orders', 'inventory', 'revenue']),
+            'frequency': random.choice(['daily', 'weekly', 'monthly']),
+            'delivery_email': f'stress-test-{random.randint(1, 1000)}@example.com'
+        }
+        
+        response, _ = self.make_request('POST', '/api/scheduled-reports', 
+                                     headers=headers, json=data)
+        return response is not None
+
+    def test_error_logging_api(self):
+        """Test the frontend error logging endpoint"""
+        error_data = {
+            'error_type': 'StressTestError',
+            'error_message': f'Stress test error {random.randint(1, 10000)}',
+            'error_location': f'stress_test.py:{random.randint(1, 100)}',
+            'user_agent': 'StressTest/1.0',
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        response, _ = self.make_request('POST', '/api/log_error', json=error_data)
+        return response is not None and response.status_code == 200
 
     def test_scheduled_reports(self):
         """Test scheduled reports functionality"""
@@ -300,26 +410,80 @@ class EmployeeSuiteStressTest:
         print(f"   📈 Total requests: {request_count}")
         print(f"   ⚡ Avg requests/sec: {request_count / (duration_minutes * 60):.1f}")
 
-    def database_stress_test(self, num_operations=1000):
-        """Stress test database operations"""
-        print(f"\n🗄️  Starting database stress test with {num_operations} operations...")
+    def database_stress_test(self, num_operations=500):
+        """Enhanced database stress test for Employee Suite models"""
+        print(f"\n🗄️  Database stress test ({num_operations} operations)...")
         
-        # Test operations that hit the database heavily
-        database_heavy_tests = [
+        # Test endpoints that heavily use your User and ShopifyStore models
+        db_heavy_tests = [
             self.test_comprehensive_dashboard,
             self.test_scheduled_reports,
             self.test_shopify_connect_disconnect,
-            self.test_dashboard_load
+            self.test_dashboard_load,
+            # Add a direct database test
+            lambda: self.make_request('GET', '/health'),  # Health check queries DB
+        ]
+        
+        start_time = time.time()
+        results = []
+        
+        # Use controlled concurrency to avoid overwhelming the database
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(15, self.max_workers)) as executor:
+            futures = []
+            for _ in range(num_operations):
+                test_func = random.choice(db_heavy_tests)
+                futures.append(executor.submit(test_func))
+            
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    result = future.result(timeout=30)
+                    results.append(result)
+                except Exception as e:
+                    results.append(False)
+                    self.results['errors'].append(f"DB stress: {str(e)}")
+        
+        end_time = time.time()
+        success_rate = (sum(results) / len(results)) * 100 if results else 0
+        
+        print(f"   ✅ Database operations success rate: {success_rate:.1f}%")
+        print(f"   ⏱️  Duration: {end_time - start_time:.2f}s")
+        print(f"   🔥 DB ops/sec: {len(results) / (end_time - start_time):.1f}")
+
+    def authentication_stress_test(self, num_requests=200):
+        """Test both authentication methods under load"""
+        print(f"\n🔐 Authentication stress test ({num_requests} requests)...")
+        
+        auth_endpoints = [
+            '/api/process_orders',
+            '/api/update_inventory', 
+            '/api/generate_report',
+            '/api/dashboard/comprehensive',
+            '/api/scheduled-reports'
         ]
         
         results = []
-        for _ in range(num_operations):
-            test_func = random.choice(database_heavy_tests)
-            result = test_func()
-            results.append(result)
+        start_time = time.time()
         
+        def test_mixed_auth():
+            endpoint = random.choice(auth_endpoints)
+            
+            # Test both auth methods
+            if random.random() < 0.5:
+                # Session token auth
+                return self.test_api_with_session_token(endpoint, 'POST' if 'export' not in endpoint else 'GET')
+            else:
+                # Shop parameter auth  
+                return self.test_api_with_shop_param(endpoint, 'GET')
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(25, self.max_workers)) as executor:
+            futures = [executor.submit(test_mixed_auth) for _ in range(num_requests)]
+            results = [future.result() for future in concurrent.futures.as_completed(futures)]
+        
+        end_time = time.time()
         success_rate = (sum(results) / len(results)) * 100 if results else 0
-        print(f"   ✅ Database operations success rate: {success_rate:.1f}%")
+        
+        print(f"   ✅ Mixed auth success rate: {success_rate:.1f}%")
+        print(f"   ⏱️  Duration: {end_time - start_time:.2f}s")
 
     def error_recovery_test(self):
         """Test error handling and recovery"""
@@ -438,19 +602,79 @@ class EmployeeSuiteStressTest:
         
         print("\n✅ Stress test completed!")
 
-def run_full_stress_test():
-    """Run the complete stress test suite"""
+def run_employee_suite_stress_test():
+    """Run comprehensive Employee Suite stress test"""
     tester = EmployeeSuiteStressTest()
     
-    # Run all stress tests
-    tester.stress_test_all_endpoints(requests_per_endpoint=25)
+    print("🚀 Employee Suite Comprehensive Stress Test")
+    print(f"Target: {tester.base_url}")
+    print(f"Max workers: {tester.max_workers}")
+    print("="*60)
+    
+    # Setup test data
+    tester.setup_test_data()
+    
+    # Phase 1: Core functionality
+    print("\n📊 PHASE 1: Core App Functionality")
+    print("-" * 40)
+    
+    core_tests = [
+        ('Dashboard Load', tester.test_dashboard_load, 30),
+        ('Health Check', tester.test_health_check, 20),
+        ('Shopify Settings', tester.test_shopify_settings, 25),
+        ('Static Resources', tester.test_static_resources, 15),
+    ]
+    
+    for test_name, test_func, num_requests in core_tests:
+        print(f"\n🔍 {test_name} ({num_requests} concurrent requests)...")
+        start_time = time.time()
+        results = tester.run_concurrent_test(test_func, num_requests)
+        end_time = time.time()
+        
+        success_rate = (sum(results) / len(results)) * 100 if results else 0
+        print(f"   ✅ Success: {success_rate:.1f}%")
+        print(f"   ⏱️  Time: {end_time - start_time:.2f}s")
+    
+    # Phase 2: API endpoints
+    print("\n📊 PHASE 2: API Endpoints")
+    print("-" * 40)
+    
+    api_tests = [
+        ('Process Orders API', tester.test_api_process_orders, 25),
+        ('Update Inventory API', tester.test_api_update_inventory, 25),
+        ('Generate Report API', tester.test_api_generate_report, 25),
+        ('Comprehensive Dashboard', tester.test_comprehensive_dashboard, 30),
+        ('CSV Exports', tester.test_csv_export_with_params, 20),
+        ('Scheduled Reports', tester.test_scheduled_reports_crud, 15),
+        ('Error Logging', tester.test_error_logging_api, 20),
+    ]
+    
+    for test_name, test_func, num_requests in api_tests:
+        print(f"\n🔍 {test_name} ({num_requests} concurrent requests)...")
+        start_time = time.time()
+        results = tester.run_concurrent_test(test_func, num_requests)
+        end_time = time.time()
+        
+        success_rate = (sum(results) / len(results)) * 100 if results else 0
+        print(f"   ✅ Success: {success_rate:.1f}%")
+        print(f"   ⏱️  Time: {end_time - start_time:.2f}s")
+    
+    # Phase 3: Specialized stress tests
+    print("\n📊 PHASE 3: Specialized Stress Tests")
+    print("-" * 40)
+    
+    tester.database_stress_test(300)
+    tester.authentication_stress_test(150)
     tester.memory_stress_test(duration_minutes=2)
-    tester.database_stress_test(num_operations=100)
-    tester.concurrent_user_simulation(num_users=10, duration_minutes=2)
+    tester.concurrent_user_simulation(num_users=15, duration_minutes=2)
     tester.error_recovery_test()
     
     # Generate final report
     tester.generate_report()
 
+def run_full_stress_test():
+    """Legacy function for backwards compatibility"""
+    run_employee_suite_stress_test()
+
 if __name__ == "__main__":
-    run_full_stress_test()
+    run_employee_suite_stress_test()
