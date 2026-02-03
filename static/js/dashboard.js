@@ -1,11 +1,43 @@
-/* Optional Dashboard JavaScript - Move inline scripts from dashboard.html here if needed */
-/* This file is currently optional as dashboard.html uses inline scripts */
-
-// Example JavaScript structure if externalizing scripts from dashboard template
+/* Dashboard JavaScript - All functionality moved here from template */
 
 // Global variables
 window.appBridgeReady = false;
 window.isEmbedded = false;
+window.shopifyApp = null;
+
+// Request management
+var activeRequests = {
+    processOrders: null,
+    updateInventory: null,
+    generateReport: null
+};
+
+var debounceTimers = {
+    processOrders: null,
+    updateInventory: null,
+    generateReport: null
+};
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    initializeApp();
+});
+
+function initializeApp() {
+    // Initialize App Bridge
+    initializeAppBridge();
+    
+    // Initialize error logging
+    initializeErrorLogging();
+    
+    // Set up event listeners
+    setupEventListeners();
+    
+    // Initialize network status
+    updateConnectionStatus();
+    
+    console.log('Dashboard JavaScript fully initialized');
+}
 
 // Initialize App Bridge for Shopify embedded apps
 function initializeAppBridge() {
@@ -14,6 +46,9 @@ function initializeAppBridge() {
     var shop = urlParams.get('shop');
 
     window.isEmbedded = !!host;
+    window.SHOP_PARAM = shop || '';
+    window.HOST_PARAM = host || '';
+    window.ID_TOKEN = urlParams.get('id_token') || '';
 
     if (!host) {
         window.shopifyApp = null;
@@ -22,24 +57,31 @@ function initializeAppBridge() {
     }
 
     // App Bridge v4: exposes window.shopify automatically
+    var initAttempts = 0;
+    var maxAttempts = 50;
+
     function init() {
+        initAttempts++;
         if (window.shopify) {
             window.shopifyApp = window.shopify;
             window.appBridgeReady = true;
             return;
         }
-        setTimeout(init, 50);
+        if (initAttempts >= maxAttempts) {
+            console.warn('App Bridge initialization timeout - falling back to cookie auth');
+            window.appBridgeReady = true;
+            return;
+        }
+        setTimeout(init, 100);
     }
     init();
 }
 
 // Error logging functionality
 function initializeErrorLogging() {
-    // Store original console.error
     var originalConsoleError = console.error;
     var isLoggingError = false;
 
-    // Function to log JavaScript errors to backend
     function logJavaScriptError(errorType, errorMessage, errorLocation, errorData, stackTrace) {
         if (isLoggingError) {
             originalConsoleError.call(console, '[ERROR LOGGED]', errorType, ':', errorMessage);
@@ -58,10 +100,6 @@ function initializeErrorLogging() {
                 user_agent: navigator.userAgent,
                 url: window.location.href,
                 referer: document.referrer,
-                viewport: {
-                    width: window.innerWidth,
-                    height: window.innerHeight
-                },
                 session_id: 'js-session-' + Date.now()
             };
 
@@ -116,6 +154,260 @@ function initializeErrorLogging() {
     });
 }
 
+// Set up all event listeners
+function setupEventListeners() {
+    // Button click handling with event delegation
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.card-btn[data-action]');
+        if (!btn) return;
+
+        var action = btn.getAttribute('data-action');
+        if (!action || btn.disabled) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Route to appropriate function
+        if (window[action] && typeof window[action] === 'function') {
+            try {
+                window[action](btn);
+            } catch (err) {
+                console.error('Error executing function:', action, err);
+                showErrorMessage('An error occurred. Please refresh the page and try again.');
+            }
+        } else {
+            console.error('Function not found for action:', action);
+        }
+    });
+
+    // Network status listeners
+    window.addEventListener('online', function() {
+        updateConnectionStatus();
+    });
+    
+    window.addEventListener('offline', function() {
+        updateConnectionStatus();
+    });
+}
+
+// Network status detection
+function updateConnectionStatus() {
+    var isOnline = navigator.onLine;
+    var statusEl = document.getElementById('connection-status');
+    if (statusEl) {
+        if (isOnline) {
+            statusEl.style.display = 'none';
+        } else {
+            statusEl.style.display = 'block';
+            statusEl.innerHTML = '<div style="padding: 8px 16px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 6px; font-size: 13px; color: #202223; text-align: center;">⚠️ No internet connection</div>';
+        }
+    }
+}
+
+// Utility functions
+function showErrorMessage(message) {
+    var outputEl = document.getElementById('output');
+    if (outputEl) {
+        outputEl.innerHTML = '<div style="padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;"><div style="color: #d72c0d; font-weight: 600;">' + message + '</div></div>';
+    }
+}
+
+function setButtonLoading(button, isLoading) {
+    if (isLoading) {
+        button.disabled = true;
+        button.style.opacity = '0.7';
+        button.style.cursor = 'wait';
+        var originalText = button.innerHTML;
+        button.dataset.originalText = originalText;
+        button.innerHTML = '<span style="display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 8px;"></span>Loading...';
+    } else {
+        button.disabled = false;
+        button.style.opacity = '1';
+        button.style.cursor = 'pointer';
+        if (button.dataset.originalText) {
+            button.innerHTML = button.dataset.originalText;
+            delete button.dataset.originalText;
+        }
+    }
+}
+
+function showLoading(message) {
+    document.getElementById('output').innerHTML = '<div class="loading"><div class="spinner"></div><div class="loading-text">' + message + '</div></div>';
+}
+
+function cancelPreviousRequest(requestType) {
+    if (activeRequests[requestType] && activeRequests[requestType].abort) {
+        activeRequests[requestType].abort();
+        activeRequests[requestType] = null;
+    }
+}
+
+// API functions - comprehensive implementations
+window.processOrders = function(button) {
+    if (debounceTimers.processOrders) return;
+    
+    if (!navigator.onLine) {
+        showErrorMessage('No internet connection. Please check your network and try again.');
+        return;
+    }
+    
+    cancelPreviousRequest('processOrders');
+    setButtonLoading(button, true);
+    showLoading('Loading orders...');
+    
+    var controller = new AbortController();
+    activeRequests.processOrders = controller;
+    
+    var apiUrl = '/api/process_orders';
+    if (window.SHOP_PARAM) {
+        apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
+    }
+    
+    var fetchOptions = { 
+        credentials: 'include',
+        signal: controller.signal
+    };
+    
+    if (window.ID_TOKEN) {
+        fetchOptions.headers = { 'Authorization': 'Bearer ' + window.ID_TOKEN };
+    }
+    
+    fetch(apiUrl, fetchOptions)
+        .then(r => {
+            if (controller.signal.aborted) return null;
+            if (!r.ok) throw new Error('Request failed');
+            return r.json();
+        })
+        .then(d => {
+            if (!d) return;
+            
+            setButtonLoading(button, false);
+            activeRequests.processOrders = null;
+            
+            if (d.success) {
+                document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Orders Loaded</h3><div style="margin-top: 12px;">' + (d.html || d.message || 'Orders processed successfully') + '</div></div>';
+            } else {
+                document.getElementById('output').innerHTML = '<div style="color: #dc2626;">' + (d.error || 'Failed to load orders') + '</div>';
+            }
+        })
+        .catch(err => {
+            if (err.name === 'AbortError') return;
+            setButtonLoading(button, false);
+            activeRequests.processOrders = null;
+            showErrorMessage('Unable to connect to server. Please try again.');
+        });
+};
+
+window.updateInventory = function(button) {
+    if (debounceTimers.updateInventory) return;
+    
+    if (!navigator.onLine) {
+        showErrorMessage('No internet connection. Please check your network and try again.');
+        return;
+    }
+    
+    cancelPreviousRequest('updateInventory');
+    setButtonLoading(button, true);
+    showLoading('Loading inventory...');
+    
+    var controller = new AbortController();
+    activeRequests.updateInventory = controller;
+    
+    var apiUrl = '/api/update_inventory';
+    if (window.SHOP_PARAM) {
+        apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
+    }
+    
+    var fetchOptions = { 
+        credentials: 'include',
+        signal: controller.signal
+    };
+    
+    if (window.ID_TOKEN) {
+        fetchOptions.headers = { 'Authorization': 'Bearer ' + window.ID_TOKEN };
+    }
+    
+    fetch(apiUrl, fetchOptions)
+        .then(r => {
+            if (controller.signal.aborted) return null;
+            if (!r.ok) throw new Error('Request failed');
+            return r.json();
+        })
+        .then(d => {
+            if (!d) return;
+            
+            setButtonLoading(button, false);
+            activeRequests.updateInventory = null;
+            
+            if (d.success) {
+                document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Inventory Updated</h3><div style="margin-top: 12px;">' + (d.html || d.message || 'Inventory updated successfully') + '</div></div>';
+            } else {
+                document.getElementById('output').innerHTML = '<div style="color: #dc2626;">' + (d.error || 'Failed to update inventory') + '</div>';
+            }
+        })
+        .catch(err => {
+            if (err.name === 'AbortError') return;
+            setButtonLoading(button, false);
+            activeRequests.updateInventory = null;
+            showErrorMessage('Unable to connect to server. Please try again.');
+        });
+};
+
+window.generateReport = function(button) {
+    if (debounceTimers.generateReport) return;
+    
+    if (!navigator.onLine) {
+        showErrorMessage('No internet connection. Please check your network and try again.');
+        return;
+    }
+    
+    cancelPreviousRequest('generateReport');
+    setButtonLoading(button, true);
+    showLoading('Generating report...');
+    
+    var controller = new AbortController();
+    activeRequests.generateReport = controller;
+    
+    var apiUrl = '/api/generate_report';
+    if (window.SHOP_PARAM) {
+        apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
+    }
+    
+    var fetchOptions = { 
+        credentials: 'include',
+        signal: controller.signal
+    };
+    
+    if (window.ID_TOKEN) {
+        fetchOptions.headers = { 'Authorization': 'Bearer ' + window.ID_TOKEN };
+    }
+    
+    fetch(apiUrl, fetchOptions)
+        .then(r => {
+            if (controller.signal.aborted) return null;
+            if (!r.ok) throw new Error('Request failed');
+            return r.json();
+        })
+        .then(d => {
+            if (!d) return;
+            
+            setButtonLoading(button, false);
+            activeRequests.generateReport = null;
+            
+            if (d.success) {
+                document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Revenue Report Generated</h3><div style="margin-top: 12px;">' + (d.html || d.message || 'Report generated successfully') + '</div></div>';
+            } else {
+                document.getElementById('output').innerHTML = '<div style="color: #dc2626;">' + (d.error || 'Failed to generate report') + '</div>';
+            }
+        })
+        .catch(err => {
+            if (err.name === 'AbortError') return;
+            setButtonLoading(button, false);
+            activeRequests.generateReport = null;
+            showErrorMessage('Unable to connect to server. Please try again.');
+        });
+};
+
 // Navigation helper
 window.openPage = function(path) {
     var params = new URLSearchParams(window.location.search);
@@ -134,41 +426,11 @@ window.openPage = function(path) {
     return false;
 };
 
-// API functions
-window.processOrders = function(button) {
-    // API call implementation would go here
-    console.log('Process orders called');
-};
-
-window.updateInventory = function(button) {
-    // API call implementation would go here
-    console.log('Update inventory called');
-};
-
-window.generateReport = function(button) {
-    // API call implementation would go here
-    console.log('Generate report called');
-};
-
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    initializeAppBridge();
-    initializeErrorLogging();
-
-    // Add embedded class to body if needed
-    if (window.isEmbedded && document.body) {
-        document.body.classList.add('embedded');
-    }
-
-    console.log('Dashboard JavaScript initialized');
-});
-
 // Handle resource loading errors gracefully
 window.addEventListener('error', function(e) {
-    // Skip logging for missing static resources to reduce noise
     if (e.target && (e.target.tagName === 'LINK' || e.target.tagName === 'SCRIPT')) {
         console.warn('Resource failed to load:', e.target.src || e.target.href);
-        return; // Don't log to backend
+        return;
     }
 }, true);
 
