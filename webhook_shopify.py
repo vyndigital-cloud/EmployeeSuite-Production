@@ -11,6 +11,7 @@ import requests
 from models import db, ShopifyStore, User
 from logging_config import logger
 from datetime import datetime
+from error_logging import error_logger, log_errors
 
 webhook_shopify_bp = Blueprint('webhook_shopify', __name__)
 
@@ -37,9 +38,15 @@ def verify_shopify_webhook(data, hmac_header):
     return hmac.compare_digest(calculated_hmac, hmac_header)
 
 @webhook_shopify_bp.route('/webhooks/app/uninstall', methods=['POST'])
+@log_errors("WEBHOOK_ERROR")
 def app_uninstall():
     """Handle app uninstall webhook from Shopify"""
     try:
+        # Log webhook received
+        error_logger.log_system_event("WEBHOOK_RECEIVED", {
+            'type': 'app/uninstall',
+            'shop_domain': request.headers.get('X-Shopify-Shop-Domain', '')
+        })
         # Verify webhook signature
         hmac_header = request.headers.get('X-Shopify-Hmac-Sha256')
         # Get raw bytes for HMAC verification (not decoded string)
@@ -83,9 +90,15 @@ def app_uninstall():
         return jsonify({'error': str(e)}), 500
 
 @webhook_shopify_bp.route('/webhooks/customers/data_request', methods=['POST'])
+@log_errors("WEBHOOK_ERROR")
 def customer_data_request():
     """Handle customer data request webhook for GDPR compliance"""
     try:
+        # Log webhook received
+        error_logger.log_system_event("WEBHOOK_RECEIVED", {
+            'type': 'customers/data_request',
+            'shop_domain': request.headers.get('X-Shopify-Shop-Domain', '')
+        })
         # Verify webhook signature
         hmac_header = request.headers.get('X-Shopify-Hmac-Sha256')
         raw_data = request.get_data(as_text=False)
@@ -118,9 +131,15 @@ def customer_data_request():
         return jsonify({'error': str(e)}), 500
 
 @webhook_shopify_bp.route('/webhooks/customers/redact', methods=['POST'])
+@log_errors("WEBHOOK_ERROR")
 def customer_redact():
     """Handle customer data deletion webhook for GDPR compliance"""
     try:
+        # Log webhook received
+        error_logger.log_system_event("WEBHOOK_RECEIVED", {
+            'type': 'customers/redact',
+            'shop_domain': request.headers.get('X-Shopify-Shop-Domain', '')
+        })
         # Verify webhook signature
         hmac_header = request.headers.get('X-Shopify-Hmac-Sha256')
         raw_data = request.get_data(as_text=False)
@@ -152,9 +171,15 @@ def customer_redact():
         return jsonify({'error': str(e)}), 500
 
 @webhook_shopify_bp.route('/webhooks/shop/redact', methods=['POST'])
+@log_errors("WEBHOOK_ERROR")
 def shop_redact():
     """Handle shop data deletion webhook for GDPR compliance"""
     try:
+        # Log webhook received
+        error_logger.log_system_event("WEBHOOK_RECEIVED", {
+            'type': 'shop/redact',
+            'shop_domain': request.headers.get('X-Shopify-Shop-Domain', '')
+        })
         # Verify webhook signature
         hmac_header = request.headers.get('X-Shopify-Hmac-Sha256')
         raw_data = request.get_data(as_text=False)
@@ -192,9 +217,15 @@ def shop_redact():
         return jsonify({'error': str(e)}), 500
 
 @webhook_shopify_bp.route('/webhooks/app_subscriptions/update', methods=['POST'])
+@log_errors("WEBHOOK_ERROR")
 def app_subscription_update():
     """Handle app subscription update webhook from Shopify"""
     try:
+        # Log webhook received
+        error_logger.log_system_event("WEBHOOK_RECEIVED", {
+            'type': 'app_subscriptions/update',
+            'shop_domain': request.headers.get('X-Shopify-Shop-Domain', '')
+        })
         # Verify webhook signature
         hmac_header = request.headers.get('X-Shopify-Hmac-Sha256')
         # Get raw bytes for HMAC verification (not decoded string)

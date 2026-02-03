@@ -1,10 +1,12 @@
 import logging
 import os
+import time
 
 import requests
 
 from config import SHOPIFY_API_VERSION
 from performance import CACHE_TTL_INVENTORY, CACHE_TTL_ORDERS, cache_result
+from error_logging import error_logger, log_errors
 
 logger = logging.getLogger(__name__)
 
@@ -79,27 +81,38 @@ class ShopifyClient:
             "Content-Type": "application/json",
         }
 
+    @log_errors("SHOPIFY_API_ERROR")
     def _make_request(self, endpoint, retries=3):
-        """
-        Make API request with automatic retry logic (professional standard)
-        Retries on network errors with exponential backoff
-        """
+        """Make API request with comprehensive error logging"""
         url = f"https://{self.shop_url}/admin/api/{self.api_version}/{endpoint}"
         headers = self._get_headers()
         headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         headers["Pragma"] = "no-cache"
         headers["Expires"] = "0"
+        start_time = time.time()
 
         for attempt in range(retries):
             try:
                 response = requests.get(
                     url, headers=headers, timeout=10
                 )  # Reduced for faster failures
+                response_time = (time.time() - start_time) * 1000
+                
+                # Log API call
+                error_logger.log_api_call(
+                    endpoint, "GET", response.status_code, response_time
+                )
+                
                 # CRITICAL: Check status code BEFORE raise_for_status to handle 403 properly
                 status_code = response.status_code
                 if status_code == 403:
                     # Permission denied - missing scopes
                     error_detail = "Access denied - Missing required permissions"
+                    error_logger.log_error(
+                        Exception(error_detail), 
+                        "SHOPIFY_PERMISSION_ERROR",
+                        {'endpoint': endpoint, 'shop_url': self.shop_url}
+                    )
                     response_text = ""
                     try:
                         response_text = response.text[
@@ -160,21 +173,25 @@ class ShopifyClient:
                 return response.json()
             except requests.exceptions.Timeout:
                 if attempt < retries - 1:
-                    # Faster retries - max 0.5s delay
-                    import time
-
                     time.sleep(min(0.5, 0.2 * (attempt + 1)))
                     continue
+                error_logger.log_error(
+                    Exception("Request timeout"), 
+                    "SHOPIFY_TIMEOUT_ERROR",
+                    {'endpoint': endpoint, 'attempt': attempt + 1, 'shop_url': self.shop_url}
+                )
                 return {
                     "error": "Request timeout - Shopify API is taking too long to respond"
                 }
             except requests.exceptions.ConnectionError:
                 if attempt < retries - 1:
-                    # Faster retries - max 0.5s delay
-                    import time
-
                     time.sleep(min(0.5, 0.2 * (attempt + 1)))
                     continue
+                error_logger.log_error(
+                    Exception("Connection error"), 
+                    "SHOPIFY_CONNECTION_ERROR",
+                    {'endpoint': endpoint, 'attempt': attempt + 1, 'shop_url': self.shop_url}
+                )
                 return {
                     "error": "Connection error - Cannot connect to Shopify. Check your internet connection."
                 }
@@ -184,6 +201,17 @@ class ShopifyClient:
                     e.response.status_code
                     if hasattr(e, "response") and e.response
                     else None
+                )
+
+                error_logger.log_error(
+                    e, 
+                    "SHOPIFY_HTTP_ERROR",
+                    {
+                        'endpoint': endpoint,
+                        'status_code': status_code,
+                        'shop_url': self.shop_url,
+                        'response_time': (time.time() - start_time) * 1000
+                    }
                 )
 
                 # Don't retry on HTTP errors (4xx, 5xx) - these are permanent
@@ -302,6 +330,16 @@ class ShopifyClient:
 
                     time.sleep(min(0.5, 0.2 * (attempt + 1)))
                     continue
+                error_logger.log_error(
+                    e, 
+                    "SHOPIFY_REQUEST_ERROR",
+                    {
+                        'endpoint': endpoint,
+                        'attempt': attempt + 1,
+                        'shop_url': self.shop_url,
+                        'response_time': (time.time() - start_time) * 1000
+                    }
+                )
                 return {"error": f"Request failed: {str(e)}"}
 
         return {"error": "Request failed after multiple attempts"}

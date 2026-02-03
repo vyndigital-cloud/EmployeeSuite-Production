@@ -15,6 +15,7 @@ if str(project_dir) not in sys.path:
 # Configure logging immediately
 import logging
 import traceback
+from error_logging import error_logger, log_errors
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -59,20 +60,69 @@ try:
     app = create_app()
     logger.info("App created successfully via startup")
 
-    # Add error handler for 500 errors
+    # Enhanced error handlers
     @app.errorhandler(500)
     def internal_error(error):
-        logger.error(f"Internal Server Error: {error}")
-        logger.error(f"Traceback: {traceback.format_exc()}")
+        error_logger.log_error(error, "INTERNAL_SERVER_ERROR")
         from flask import jsonify
         return jsonify({
             'error': 'Internal Server Error',
-            'message': 'Please check the application logs'
+            'message': 'Error has been logged and will be investigated',
+            'error_id': datetime.now().strftime('%Y%m%d_%H%M%S')
         }), 500
+    
+    @app.errorhandler(404)
+    def not_found_error(error):
+        error_logger.log_error(error, "NOT_FOUND")
+        from flask import jsonify
+        return jsonify({
+            'error': 'Not Found',
+            'message': 'The requested resource was not found'
+        }), 404
+    
+    @app.errorhandler(403)
+    def forbidden_error(error):
+        error_logger.log_error(error, "FORBIDDEN")
+        from flask import jsonify
+        return jsonify({
+            'error': 'Forbidden',
+            'message': 'Access denied'
+        }), 403
 
-    # Webhook blueprint is now registered in app_factory
-    # from webhook_shopify import webhook_shopify_bp
-    # app.register_blueprint(webhook_shopify_bp)
+    # Log all requests
+    @app.before_request
+    def log_request():
+        """Log all incoming requests"""
+        error_logger.log_user_action(
+            f"{request.method} {request.endpoint or request.path}",
+            session.get('user_id') if session else None,
+            {
+                'shop_domain': request.headers.get('X-Shopify-Shop-Domain'),
+                'user_agent': request.headers.get('User-Agent', '')[:100]
+            }
+        )
+
+    # Error dashboard route
+    @app.route('/admin/errors')
+    @log_errors("ADMIN_ERROR")
+    def view_errors():
+        """Admin route to view recent errors"""
+        try:
+            # Simple authentication check
+            if not session.get('user_id'):
+                return jsonify({'error': 'Unauthorized'}), 401
+                
+            recent_errors = error_logger.get_recent_errors(100)
+            
+            return jsonify({
+                'total_errors': len(recent_errors),
+                'errors': recent_errors[-20:],  # Last 20 errors
+                'status': 'success'
+            })
+            
+        except Exception as e:
+            error_logger.log_error(e, "ADMIN_DASHBOARD_ERROR")
+            return jsonify({'error': 'Failed to retrieve errors'}), 500
     
     # Add Protected Customer Data compliance headers
     @app.after_request
@@ -89,25 +139,33 @@ try:
         except Exception as e:
             logger.error(f"Error adding GDPR headers: {e}")
             return response
+    
+    # Log successful startup
+    error_logger.log_system_event("APP_STARTUP_SUCCESS", {
+        'method': 'startup.create_app',
+        'environment': os.getenv('ENVIRONMENT', 'unknown')
+    })
         
 except Exception as startup_error:
-    logger.error(f"Startup failed: {startup_error}")
-    logger.error(f"Startup traceback: {traceback.format_exc()}")
+    error_logger.log_error(startup_error, "STARTUP_ERROR")
 
     # Try app_factory as backup
     try:
         logger.info("Trying app_factory.create_app() as backup")
         from app_factory import create_app
         app = create_app()
-        logger.info("App created via app_factory backup")
+        error_logger.log_system_event("APP_STARTUP_FALLBACK", {
+            'method': 'app_factory.create_app'
+        })
     except Exception as factory_error:
-        logger.error(f"App factory failed: {factory_error}")
-        logger.error(f"Factory traceback: {traceback.format_exc()}")
+        error_logger.log_error(factory_error, "FACTORY_ERROR")
 
         # Ultimate fallback
         logger.info("Using ultimate fallback Flask app")
         from flask import Flask, jsonify
         app = Flask(__name__)
+        
+        error_logger.log_system_event("APP_STARTUP_ULTIMATE_FALLBACK")
         
         # Register GDPR webhook handlers even in fallback mode
         try:
@@ -118,7 +176,7 @@ except Exception as startup_error:
 
         @app.errorhandler(500)
         def internal_error(error):
-            logger.error(f"Fallback app Internal Server Error: {error}")
+            error_logger.log_error(error, "FALLBACK_ERROR")
             return jsonify({'error': 'Application startup failed', 'details': str(error)}), 500
 
         @app.route("/")
