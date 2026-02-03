@@ -689,8 +689,7 @@
                         {{ quick_stats.low_stock_items or 0 }}
                     </div>
                     <div style="font-size: 13px; color: #737373">
-                        {% if quick_stats.low_stock_items > 0 %}Need
-                        restocking{% else %}All good{% endif %}
+                        {% if quick_stats.low_stock_items > 0 %}Need restocking{% else %}All good{% endif %}
                     </div>
                 </div>
             </div>
@@ -1812,9 +1811,12 @@
             style="padding: 8px 16px; background: #008060; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Try
             Again</button>';
         } else {
-        // Fallback: try to display HTML error if it's HTML
-        if (d.error && d.error.includes('<')) { errorHtml='<div style="animation: fadeIn 0.3s ease-in;">' + d.error
-            + '</div>' ; } } if (!errorHtml.includes('</div>')) errorHtml += '</div>';
+            // Fallback: try to display HTML error if it's HTML
+            if (d.error && d.error.includes('<')) { 
+                errorHtml = '<div style="animation: fadeIn 0.3s ease-in;">' + d.error + '</div>';
+            }
+        }
+        if (!errorHtml.includes('</div>')) errorHtml += '</div>';
     document.getElementById('output').innerHTML = errorHtml;
     }
     })
@@ -2022,12 +2024,13 @@
     }
 
     // Check if error message is HTML (from backend)
-    if (err.message && (err.message.includes('Error Loading revenue') || err.message.includes('<div'))) { // Backend
-        error HTML - display as is document.getElementById('output').innerHTML=`<div
-        style="animation: fadeIn 0.3s ease-in;">${err.message}</div>`;
-        } else if (isJsonError || (errorDisplayMessage && errorDisplayMessage.length < 200 &&
-            !errorDisplayMessage.includes('Unable to generate'))) { // JSON error or short text error (likely from
-            backend middleware) document.getElementById('output').innerHTML=` <div
+    if (err.message && (err.message.includes('Error Loading revenue') || err.message.includes('<div'))) {
+        // Backend error HTML - display as is
+        document.getElementById('output').innerHTML = `<div style="animation: fadeIn 0.3s ease-in;">${err.message}</div>`;
+    } else if (isJsonError || (errorDisplayMessage && errorDisplayMessage.length < 200 &&
+        !errorDisplayMessage.includes('Unable to generate'))) {
+        // JSON error or short text error (likely from backend middleware)
+        document.getElementById('output').innerHTML = `<div
             style="animation: fadeIn 0.3s ease-in; padding: 20px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 8px;">
             <div style="font-size: 15px; font-weight: 600; color: #b45309; margin-bottom: 8px;">Request Failed</div>
             <div style="font-size: 14px; color: #92400e; margin-bottom: 16px; line-height: 1.5;">${errorDisplayMessage}
