@@ -17,6 +17,9 @@ if str(project_dir) not in sys.path:
 # Configure logging for production speed
 import traceback
 
+# Initialize logger for this module first
+logger = logging.getLogger(__name__)
+
 # Import error logging with fallback
 try:
     from error_logging import error_logger, log_errors
@@ -40,9 +43,6 @@ except ImportError as e:
         def decorator(func):
             return func
         return decorator
-
-# Initialize logger for this module
-logger = logging.getLogger(__name__)
 
 # Optimized logging for production
 logging.basicConfig(
