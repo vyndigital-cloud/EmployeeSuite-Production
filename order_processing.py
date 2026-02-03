@@ -28,40 +28,39 @@ def process_orders(user_id=None):
         # Format response
         if orders:
             html = """
-            <div style="margin-bottom: 16px;">
-                <table class="premium-table">
-                    <thead>
-                        <tr>
-                            <th>Order</th>
-                            <th>Status</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            <div class="output-card">
+                <div class="output-header">
+                    <h4>Recent Orders</h4>
+                </div>
+                <div class="table-responsive">
+                    <table class="premium-table">
+                        <thead>
+                            <tr>
+                                <th>Order</th>
+                                <th>Customer</th>
+                                <th>Status</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
             """
-            for order in orders[:5]:  # Show first 5 for compact view
-                # Mock status logic
-                try:
-                    val = float(order['total'].replace('$','').replace(',',''))
-                    status_class = "success" if val > 50 else "warning"
-                    status_text = "Paid" if status_class == "success" else "Pending"
-                except:
-                    status_class = "warning"
-                    status_text = "Pending"
+            for order in orders[:10]:  # Show first 10
+                # Mock status for UI demo since API doesn't return it yet
+                status_class = "status-paid" if float(order['total'].replace('$','').replace(',','')) > 50 else "status-pending"
+                status_text = "Paid" if status_class == "status-paid" else "Pending"
                 
                 html += f"""
-                        <tr>
-                            <td>
-                                <span style="font-weight: 600; color: var(--primary);">#{order['id']}</span>
-                                <div style="font-size: 11px; color: var(--text-secondary);">{order['customer']}</div>
-                            </td>
-                            <td><span class="status-badge {status_class}">{status_text}</span></td>
-                            <td style="font-weight: 600;">{order['total']}</td>
-                        </tr>
+                            <tr>
+                                <td><a href="#" class="order-link">#{order['id']}</a></td>
+                                <td>{order['customer']}</td>
+                                <td><span class="status-pill {status_class}">{status_text}</span></td>
+                                <td>{order['total']}</td>
+                            </tr>
                 """
             html += """
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </div>
             </div>
             """
         else:

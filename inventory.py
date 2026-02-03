@@ -28,36 +28,38 @@ def update_inventory(user_id=None):
         # Format response
         if inventory:
             html = """
-            <div class="inventory-grid">
+            <div class="output-card">
+                <div class="output-header">
+                    <h4>Inventory Status</h4>
+                    <span class="badge badge-warning">Low Stock Alerts</span>
+                </div>
+                <div class="inventory-list">
             """
-            for item in inventory[:5]:  # Show first 5
-                # Calculate simple percentage
+            for item in inventory[:10]:  # Show first 10
+                # Calculate simple percentage for demo stock bar (max 100 for visual)
                 try:
                     stock_val = int(item['stock'])
                     percentage = min(100, max(0, (stock_val / 50) * 100))
-                    # Logic for low stock color
-                    is_low = stock_val < 10
-                    fill_class = "low" if is_low else ""
                 except (ValueError, TypeError):
                     stock_val = 0
                     percentage = 0
-                    fill_class = "low"
                 
                 html += f"""
                     <div class="inventory-item">
-                        <div style="flex: 1;">
-                            <div style="font-weight: 500; color: var(--text-primary);">{item['product']}</div>
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">{item['price']}</div>
+                        <div class="inventory-info">
+                            <div class="product-name">{item['product']}</div>
+                            <div class="price-text">{item['price']}</div>
                         </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 12px; font-weight: 600; margin-bottom: 4px;">{stock_val} units</div>
-                            <div class="stock-bar">
-                                <div class="stock-fill {fill_class}" style="width: {percentage}%"></div>
+                        <div class="inventory-stock">
+                            <div class="stock-count">{stock_val} units</div>
+                            <div class="stock-bar-bg">
+                                <div class="stock-bar-fill" style="width: {percentage}%"></div>
                             </div>
                         </div>
                     </div>
                 """
             html += """
+                </div>
             </div>
             """
         else:
