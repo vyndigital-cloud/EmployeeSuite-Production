@@ -1643,6 +1643,94 @@ def delete_scheduled_report(report_id):
         return jsonify({"success": False, "error": "Failed to delete schedule"}), 500
 
 
+@core_bp.route("/faq")
+def faq():
+    """FAQ page"""
+    shop = request.args.get("shop", "")
+    host = request.args.get("host", "")
+    
+    return render_template_string("""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ - Employee Suite</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        window.openPage = function(path) {
+            var params = new URLSearchParams(window.location.search);
+            var shop = params.get('shop');
+            var host = params.get('host');
+            var embedded = params.get('embedded') || (host ? '1' : '');
+            var sep = path.indexOf('?') > -1 ? '&' : '?';
+            var dest = path;
+            if (shop) dest += sep + 'shop=' + shop;
+            if (host) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'host=' + host;
+            if (embedded) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'embedded=' + embedded;
+            window.location.href = dest;
+            return false;
+        };
+    </script>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <a href="#" onclick="openPage('/dashboard'); return false;" class="logo">
+                <i class="ph-bold ph-arrow-left"></i>
+                <span>Back to Dashboard</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="page-wrapper">
+        <div class="container" style="max-width: 800px;">
+            <div class="text-center" style="margin-bottom: 40px; text-align: center;">
+                <h1 class="page-title">Frequently Asked Questions</h1>
+                <p class="page-subtitle">Get answers to common questions about Employee Suite.</p>
+            </div>
+
+            <div class="card">
+                <h3 style="color: var(--primary); margin-bottom: 8px;">What is Employee Suite?</h3>
+                <p style="margin-bottom: 24px;">Employee Suite is a comprehensive Shopify app that helps you manage orders, inventory, and revenue reporting. It provides automated reports, CSV exports, and scheduled delivery of business insights.</p>
+
+                <h3 style="color: var(--primary); margin-bottom: 8px;">How much does it cost?</h3>
+                <p style="margin-bottom: 24px;">Employee Suite costs $39/month with a 7-day free trial. You can cancel anytime during or after the trial period.</p>
+
+                <h3 style="color: var(--primary); margin-bottom: 8px;">What features are included?</h3>
+                <ul style="margin-bottom: 24px; padding-left: 20px;">
+                    <li>Order processing and management</li>
+                    <li>Inventory tracking and low-stock alerts</li>
+                    <li>Revenue reporting and analytics</li>
+                    <li>CSV exports with date filtering</li>
+                    <li>Scheduled report delivery via email</li>
+                    <li>Comprehensive dashboard view</li>
+                    <li>Data encryption and security</li>
+                </ul>
+
+                <h3 style="color: var(--primary); margin-bottom: 8px;">Is my data secure?</h3>
+                <p style="margin-bottom: 24px;">Yes! All sensitive data including access tokens and personal information is encrypted using industry-standard encryption. We follow Shopify's security best practices.</p>
+
+                <h3 style="color: var(--primary); margin-bottom: 8px;">How do I export my data?</h3>
+                <p style="margin-bottom: 24px;">Go to the CSV Exports page from your dashboard. You can export Orders, Inventory, and Revenue data with custom date ranges. Files are downloaded as CSV format compatible with Excel and Google Sheets.</p>
+
+                <h3 style="color: var(--primary); margin-bottom: 8px;">Can I schedule automatic reports?</h3>
+                <p style="margin-bottom: 24px;">Yes! Use the Scheduled Reports feature to automatically receive reports via email. You can set daily, weekly, or monthly schedules and choose which reports to include.</p>
+
+                <h3 style="color: var(--primary); margin-bottom: 8px;">What if I need help?</h3>
+                <p style="margin-bottom: 24px;">Contact our support team through the Shopify App Store or email us directly. We're here to help you get the most out of Employee Suite.</p>
+
+                <h3 style="color: var(--primary); margin-bottom: 8px;">Can I cancel anytime?</h3>
+                <p>Yes, you can cancel your subscription at any time through your Shopify admin panel. There are no long-term contracts or cancellation fees.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+    """, shop=shop, host=host)
+
+
 @core_bp.route("/install")
 def install_redirect():
     """Redirect to OAuth install"""
