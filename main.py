@@ -212,8 +212,8 @@ except Exception as startup_error:
         try:
             from webhook_shopify import webhook_shopify_bp
             app.register_blueprint(webhook_shopify_bp)
-        except ImportError:
-            pass
+        except ImportError as e:
+            logger.warning(f"Could not import webhook_shopify module: {e}")
 
         @app.errorhandler(500)
         def internal_error(error):

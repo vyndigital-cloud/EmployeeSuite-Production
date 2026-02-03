@@ -199,14 +199,14 @@ def get_authenticated_user():
                 )
                 try:
                     db.session.rollback()
-                except Exception:
-                    pass
+                except Exception as rollback_error:
+                    logger.error(f"Database rollback failed: {rollback_error}")
                 finally:
                     # FIXED: Add proper session cleanup
                     try:
                         db.session.remove()
-                    except Exception:
-                        pass
+                    except Exception as remove_error:
+                        logger.error(f"Failed to remove database session: {remove_error}")
 
                 return None, (
                     jsonify(
@@ -364,12 +364,12 @@ def home():
                 if store and store.user_id:
                     user = db.session.query(User).get(store.user_id)
         except Exception as db_error:
-            logger.error(f"Database error in home(): {db_error}")
+            logger.error(f"Database error in home(): {db_error}", exc_info=True)
             # Continue with user = None
             try:
                 db.session.rollback()
-            except:
-                pass
+            except Exception as rollback_error:
+                logger.error(f"Failed to rollback database session: {rollback_error}")
 
         # Default values (avoid expensive calculations)
         if user:

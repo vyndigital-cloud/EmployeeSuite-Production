@@ -650,8 +650,8 @@ def connect_store():
 
     except Exception as e:
         logger.error(f"Error validating access token: {e}", exc_info=True)
-        # Continue anyway - validation is optional
-        pass
+        # Continue anyway - validation is optional for manual token entry
+        logger.warning("Access token validation failed but continuing with manual entry")
 
     # Encrypt the token before storing (CRITICAL: same as OAuth flow)
     from data_encryption import encrypt_access_token
@@ -737,8 +737,8 @@ def disconnect_store():
             logger.error(f"Error disconnecting store: {e}", exc_info=True)
             try:
                 db.session.rollback()
-            except Exception:
-                pass
+            except Exception as rollback_error:
+                logger.error(f"Failed to rollback database session: {rollback_error}")
             settings_url = url_for(
                 "shopify.shopify_settings",
                 error="Error disconnecting store. Please try again.",
@@ -842,7 +842,7 @@ def cancel_subscription():
 
                 send_cancellation_email(user.email)
             except Exception as e:
-                logger.error(f"Failed to send cancellation email: {e}")
+                logger.error(f"Failed to send cancellation email: {e}", exc_info=True)
 
             settings_url = url_for(
                 "shopify.shopify_settings",
