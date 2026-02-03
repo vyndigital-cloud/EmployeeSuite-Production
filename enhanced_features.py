@@ -115,126 +115,120 @@ def export_orders_csv():
 @login_required
 @require_access
 def export_inventory_csv_enhanced():
-    """Export inventory to CSV with date filtering support"""
+    """Export inventory to CSV (Direct API Fetch)"""
     try:
-        from date_filtering import parse_date_range
+        from shopify_integration import ShopifyClient
         
-        # Get date range (for future use - inventory doesn't typically have dates)
-        start_date, end_date = parse_date_range()
+        # Get user's store
+        store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+        if not store:
+            return "No store connected", 404
+
+        # Direct API call to ensure fresh data
+        client = ShopifyClient(store.shop_url, store.get_access_token())
+        inventory_data = client.get_products()
         
-        # Get inventory data
-        result = check_inventory()
-        if not result.get('success'):
-            return result.get('error', 'Error fetching inventory'), 500
-        
-        inventory_data = session.get('inventory_data', [])
-        if not inventory_data:
-            # Try to extract from result
-            if 'inventory_data' in result:
-                inventory_data = result['inventory_data']
-                session['inventory_data'] = inventory_data
-        
-        if not inventory_data:
-            return "No inventory data available", 404
+        if isinstance(inventory_data, dict) and "error" in inventory_data:
+             return f"Error fetching inventory: {inventory_data['error']}", 500
         
         # Create CSV
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(['Product', 'SKU', 'Stock', 'Price', 'Variant', 'Updated'])
+        writer.writerow(['Product', 'SKU', 'Stock', 'Price', 'Variant', 'Status'])
         
         for item in inventory_data:
             writer.writerow([
                 item.get('product', 'N/A'),
                 item.get('sku', 'N/A'),
                 item.get('stock', 0),
-                item.get('price', 'N/A'),
-                item.get('variant', 'N/A'),
-                datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
+                item.get('price', '0.00'),
+                item.get('variant', 'Default'),
+                'active'  # Default status
             ])
         
-        # Check auto-download setting
-        settings = get_user_settings(current_user)
-        auto_download = settings.auto_download_inventory if settings else False
-        
         filename = f"inventory_{datetime.utcnow().strftime('%Y%m%d')}.csv"
-        response = Response(
+        return Response(
             output.getvalue(),
             mimetype='text/csv',
             headers={'Content-Disposition': f'attachment; filename={filename}'}
         )
-        return response
         
     except Exception as e:
         logger.error(f"Error in export_inventory_csv_enhanced: {e}", exc_info=True)
-        return jsonify({
-            "success": False,
-            "error": "An error occurred exporting inventory",
-            "error_id": datetime.utcnow().strftime('%Y%m%d_%H%M%S')
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @enhanced_bp.route('/api/export/revenue', methods=['GET'])
 @login_required
 @require_access
 def export_revenue_csv_enhanced():
-    """Export revenue report to CSV with date filtering"""
+    """Export revenue report to CSV (Direct API Fetch)"""
     try:
-        from date_filtering import parse_date_range
+        from shopify_integration import ShopifyClient
         
         # Get date range
         start_date, end_date = parse_date_range()
         
-        # Get report data
-        result = generate_report()
-        if not result.get('success'):
-            return result.get('error', 'Error generating report'), 500
+        # Get user's store
+        store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+        if not store:
+            return "No store connected", 404
+            
+        client = ShopifyClient(store.shop_url, store.get_access_token())
+        orders = client.get_orders(limit=250) # Get recent orders for revenue calc
         
-        report_data = session.get('report_data', {})
-        if not report_data and 'report_data' in result:
-            report_data = result['report_data']
-            session['report_data'] = report_data
+        if isinstance(orders, dict) and "error" in orders:
+            return f"Error fetching data: {orders['error']}", 500
+            
+        # Calculate revenue by product (fluent aggregation)
+        product_revenue = {}
+        total_revenue = 0.0
         
-        if not report_data or 'products' not in report_data:
-            return "No report data available", 404
-        
+        for order in orders:
+            # Basic date filtering
+            order_date_str = order.get('created_at', '')[:10]
+            try:
+                order_date = datetime.strptime(order_date_str, '%Y-%m-%d')
+                if not (start_date <= order_date <= end_date + timedelta(days=1)):
+                    continue
+            except:
+                continue
+                
+            for item in order.get('line_items', []):
+                price = float(item.get('price', 0))
+                qty = int(item.get('quantity', 0))
+                line_total = price * qty
+                
+                title = item.get('title', 'Unknown Product')
+                product_revenue[title] = product_revenue.get(title, 0.0) + line_total
+                total_revenue += line_total
+
         # Create CSV
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(['Product', 'Revenue', 'Percentage', 'Total Revenue', 'Total Orders', 'Date Range'])
+        writer.writerow(['Product Name', 'Total Sales', 'Units Sold', 'Percentage of Total'])
         
-        total_revenue = report_data.get('total_revenue', 0)
-        total_orders = report_data.get('total_orders', 0)
-        date_range_str = f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
-        
-        for product, revenue in report_data.get('products', []):
-            percentage = (revenue / total_revenue * 100) if total_revenue > 0 else 0
+        for title, rev in product_revenue.items():
+            pct = (rev / total_revenue * 100) if total_revenue > 0 else 0
             writer.writerow([
-                product,
-                f"${revenue:,.2f}",
-                f"{percentage:.1f}%",
-                f"${total_revenue:,.2f}",
-                total_orders,
-                date_range_str
+                title,
+                f"${rev:.2f}",
+                "N/A", # Simplified for now
+                f"{pct:.1f}%"
             ])
-        
-        # Check auto-download setting
-        settings = get_user_settings(current_user)
-        auto_download = settings.auto_download_revenue if settings else False
-        
-        filename = f"revenue_{start_date.strftime('%Y%m%d')}_to_{end_date.strftime('%Y%m%d')}.csv"
-        response = Response(
+            
+        writer.writerow([])
+        writer.writerow(['TOTAL REVENUE', f"${total_revenue:.2f}", '', '100%'])
+
+        filename = f"revenue_{start_date.strftime('%Y%m%d')}.csv"
+        return Response(
             output.getvalue(),
             mimetype='text/csv',
             headers={'Content-Disposition': f'attachment; filename={filename}'}
         )
-        return response
         
     except Exception as e:
         logger.error(f"Error in export_revenue_csv_enhanced: {e}", exc_info=True)
-        return jsonify({
-            "success": False,
-            "error": "An error occurred exporting revenue",
-            "error_id": datetime.utcnow().strftime('%Y%m%d_%H%M%S')
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 # ============================================================================
 # SETTINGS MANAGEMENT
