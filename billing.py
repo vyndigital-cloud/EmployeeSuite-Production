@@ -438,7 +438,7 @@ def subscribe():
         
         plan = PLANS[plan_type]
 
-        # Find user with comprehensive error handling
+        # Find user with better error handling
         user = None
         store = None
         try:
@@ -460,7 +460,7 @@ def subscribe():
         if user and not store:
             store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
 
-        # Determine store connection status
+        # Determine store connection status with better validation
         has_store = False
         if store:
             has_store = store.is_connected()
@@ -472,7 +472,7 @@ def subscribe():
                     client = ShopifyGraphQLClient(store.shop_url, store.get_access_token())
                     query = "query { shop { name } }"
                     result = client.execute_query(query)
-                    if "error" not in result:
+                    if "error" not in result and "errors" not in result:
                         has_store = True
                 except Exception as e:
                     logger.warning(f"Store connection check failed for {store.shop_url}: {e}")
@@ -501,7 +501,7 @@ def subscribe():
             else:
                 error = "Store connection issue - please reconnect in Settings"
 
-        # Template variables with safe defaults
+        # Template variables with safe defaults (keep existing template)
         template_vars = {
             "trial_active": trial_active,
             "has_access": has_access,
@@ -518,49 +518,8 @@ def subscribe():
             "config_api_key": os.getenv("SHOPIFY_API_KEY", ""),
         }
 
-        try:
-            return render_template("subscribe.html", **template_vars)
-        except Exception as template_error:
-            logger.error(f"Template error in subscribe: {template_error}")
-            # Fallback to inline HTML
-            return render_template_string("""
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Subscribe - Employee Suite</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 40px; }
-        .card { max-width: 600px; margin: 0 auto; padding: 32px; border: 1px solid #ddd; border-radius: 8px; }
-        .error { background: #fff4f4; padding: 16px; border-radius: 8px; color: #d72c0d; margin: 16px 0; }
-        .btn { padding: 12px 24px; background: #008060; color: white; text-decoration: none; border-radius: 8px; display: inline-block; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h1>{{ plan_name }}</h1>
-        <p><strong>${{ price }}/month</strong></p>
-        {% if error %}<div class="error">{{ error }}</div>{% endif %}
-        <ul>
-        {% for feature in features %}
-            <li>{{ feature }}</li>
-        {% endfor %}
-        </ul>
-        {% if has_store and not is_subscribed %}
-            <form method="POST" action="/create-charge">
-                <input type="hidden" name="shop" value="{{ shop }}">
-                <input type="hidden" name="host" value="{{ host }}">
-                <input type="hidden" name="plan" value="{{ plan }}">
-                <button type="submit" class="btn">Start 7-Day Free Trial</button>
-            </form>
-        {% else %}
-            <a href="/settings/shopify?shop={{ shop }}&host={{ host }}" class="btn">Connect Store</a>
-        {% endif %}
-        <p><a href="/dashboard?shop={{ shop }}&host={{ host }}">Back to Dashboard</a></p>
-    </div>
-</body>
-</html>
-            """, **template_vars)
+        # Use existing template (don't change design)
+        return render_template("subscribe.html", **template_vars)
             
     except Exception as e:
         logger.error(f"Critical error in subscribe route: {e}", exc_info=True)
