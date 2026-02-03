@@ -30,10 +30,17 @@
         };
     </script>
 
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f6f6f7;
+            color: #202223;
+        }
+
         .faq-container {
             max-width: 800px;
             margin: 40px auto;
@@ -54,27 +61,30 @@
         }
 
         .faq-header p {
-            color: #666;
+            color: #6d7175;
             font-size: 16px;
         }
 
-        .faq-grid {
-            display: grid;
-            gap: 24px;
-        }
-
-        .faq-card {
+        /* Match TOS/Legal styling - Single Card Document */
+        .faq-content {
             background: #fff;
             border-radius: 12px;
-            padding: 24px;
+            padding: 40px;
             border: 1px solid #e1e3e5;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-            transition: all 0.2s ease;
+            line-height: 1.6;
         }
 
-        .faq-card:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            border-color: #d1d5db;
+        .faq-item {
+            margin-bottom: 32px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid #f1f2f3;
+        }
+
+        .faq-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
         }
 
         .faq-question {
@@ -88,61 +98,37 @@
         }
 
         .faq-question i {
-            color: #0ea5e9;
+            color: #008060;
+            /* Shopify Primary Green match */
             font-size: 20px;
         }
 
         .faq-answer {
             color: #4b5563;
-            line-height: 1.6;
+            font-size: 15px;
+            padding-left: 30px;
+            /* Align with text start */
         }
 
         .support-section {
-            margin-top: 60px;
-            background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
-            border-radius: 16px;
-            padding: 40px;
+            margin-top: 40px;
             text-align: center;
-            color: white;
-        }
-
-        .support-section h2 {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 12px;
-        }
-
-        .support-section p {
-            opacity: 0.9;
-            margin-bottom: 24px;
-            font-size: 16px;
-        }
-
-        .contact-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: white;
-            color: #2563eb;
-            padding: 12px 24px;
+            padding: 24px;
+            background: rgba(0, 128, 96, 0.05);
+            /* Subtle green tint */
             border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: transform 0.2s;
-        }
-
-        .contact-btn:hover {
-            transform: translateY(-2px);
+            border: 1px dashed #008060;
         }
 
         .back-link {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            color: #666;
+            color: #5c5f62;
             text-decoration: none;
             margin-top: 40px;
             font-size: 14px;
+            font-weight: 500;
             transition: color 0.2s;
         }
 
@@ -156,11 +142,11 @@
     <div class="faq-container">
         <header class="faq-header">
             <h1>Frequently Asked Questions</h1>
-            <p>Everything you need to know about Employee Suite</p>
+            <p>Common questions about plans, features, and security.</p>
         </header>
 
-        <div class="faq-grid">
-            <div class="faq-card">
+        <div class="faq-content">
+            <div class="faq-item">
                 <div class="faq-question">
                     <i class="ph-bold ph-currency-dollar"></i>
                     How much does it cost?
@@ -172,7 +158,7 @@
                 </div>
             </div>
 
-            <div class="faq-card">
+            <div class="faq-item">
                 <div class="faq-question">
                     <i class="ph-bold ph-clock-countdown"></i>
                     How does the free trial work?
@@ -183,7 +169,7 @@
                 </div>
             </div>
 
-            <div class="faq-card">
+            <div class="faq-item">
                 <div class="faq-question">
                     <i class="ph-bold ph-storefront"></i>
                     How do I connect my store?
@@ -194,7 +180,7 @@
                 </div>
             </div>
 
-            <div class="faq-card">
+            <div class="faq-item">
                 <div class="faq-question">
                     <i class="ph-bold ph-database"></i>
                     What about database upgrades?
@@ -205,7 +191,7 @@
                 </div>
             </div>
 
-            <div class="faq-card">
+            <div class="faq-item">
                 <div class="faq-question">
                     <i class="ph-bold ph-shield-check"></i>
                     Is my data secure?
@@ -215,15 +201,15 @@
                     shop data is safe and GDPR compliant.
                 </div>
             </div>
-        </div>
 
-        <div class="support-section">
-            <h2>Still need help?</h2>
-            <p>Our team is ready to assist you with any questions or issues.</p>
-            <a href="mailto:adam@golproductions.com" class="contact-btn">
-                <i class="ph-bold ph-envelope-simple"></i>
-                Contact Support
-            </a>
+            <div class="support-section">
+                <h3 style="margin-bottom: 8px; font-size: 16px;">Still need help?</h3>
+                <p style="margin-bottom: 12px; font-size: 14px;">Our team is here to assist.</p>
+                <a href="mailto:adam@golproductions.com"
+                    style="color: #008060; font-weight: 600; text-decoration: none;">
+                    Contact Support &rarr;
+                </a>
+            </div>
         </div>
 
         <a href="#" onclick="openPage('/dashboard'); return false;" class="back-link">
