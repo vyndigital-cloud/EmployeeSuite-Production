@@ -1,6 +1,6 @@
 /* Global Design System - 'Pro' Theme */
 
-/* Variables & Tokens */
+/* Variables & Tokens (Matched to Dashboard/Subscribe) */
 :root {
     /* Colors */
     --primary: #008060;
@@ -60,37 +60,60 @@ body::before {
     padding: 2rem;
 }
 
-/* Component: Card */
+/* Typography Helpers - Premium */
+.page-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, var(--text-main) 0%, #4a4a4a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.03em;
+}
+
+.page-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-sub);
+    max-width: 600px;
+    margin-bottom: 2rem;
+}
+
+/* Component: Card - Premium Style */
 .card {
     background: var(--bg-card);
     border-radius: var(--radius);
     box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border);
+    border: 1px solid rgba(225, 227, 229, 0.6);
     padding: 1.5rem;
     margin-bottom: 2rem;
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
-}
-
-box-shadow: var(--shadow-md);
-}
-
-.card--pro {
-    background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
-    border: 2px solid var(--primary);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
     overflow: hidden;
 }
 
-.card--pro::before {
-    content: "";
+.card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px) scale(1.01);
+    border-color: rgba(0, 128, 96, 0.1);
+}
+
+/* Shine effect on card top */
+.card::before {
+    content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     height: 4px;
-    background: var(--primary);
-    display: none;
-    /* Border handles it */
+    background: linear-gradient(90deg, var(--primary), #34d399);
+    opacity: 0.9;
+}
+
+/* Legacy support for card--pro if used anywhere */
+.card--pro {
+    background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+    border: 1px solid var(--primary);
+    /* Reduced border width to match refined style */
 }
 
 /* Component: Banner */
@@ -99,11 +122,14 @@ box-shadow: var(--shadow-md);
     align-items: center;
     justify-content: space-between;
     padding: 1.5rem;
-    background: white;
+    background: rgba(255, 255, 255, 0.8);
+    /* Glassy */
+    backdrop-filter: blur(5px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     margin-bottom: 2rem;
     gap: 1.5rem;
+    box-shadow: var(--shadow-sm);
 }
 
 .banner-info {
@@ -124,17 +150,24 @@ box-shadow: var(--shadow-md);
 }
 
 .banner-action {
-    white-space: nowrap;
-    color: var(--primary);
+    background: var(--primary);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
     font-weight: 600;
     text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
+    white-space: nowrap;
+    transition: all 0.2s;
+    box-shadow: 0 4px 10px rgba(0, 128, 96, 0.15);
 }
 
 .banner-action:hover {
-    text-decoration: underline;
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(0, 128, 96, 0.25);
+    text-decoration: none;
+    color: #fff;
 }
 
 .card-header {
@@ -145,22 +178,21 @@ box-shadow: var(--shadow-md);
 }
 
 .card-title {
-    font-size: 1.1rem;
-    font-weight: 600;
+    font-size: 1.25rem;
+    font-weight: 700;
     color: var(--text-main);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    margin-bottom: 10px;
+    letter-spacing: -0.01em;
 }
 
-/* Component: Buttons */
+/* Component: Buttons - Premium */
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
-    border-radius: var(--radius-sm);
+    border-radius: 8px;
     font-weight: 600;
     font-size: 0.95rem;
     cursor: pointer;
@@ -171,15 +203,17 @@ box-shadow: var(--shadow-md);
 }
 
 .btn-primary {
-    background: var(--primary);
+    background: linear-gradient(135deg, #008060 0%, #006e52 100%);
     color: white;
     box-shadow: 0 4px 12px rgba(0, 128, 96, 0.2);
 }
 
 .btn-primary:hover {
     background: var(--primary-dark);
-    transform: translateY(-1px);
+    /* fallback */
+    transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 128, 96, 0.3);
+    color: white;
 }
 
 .btn-secondary {
@@ -189,8 +223,10 @@ box-shadow: var(--shadow-md);
 }
 
 .btn-secondary:hover {
-    background: #fcfcfc;
-    border-color: #c9cccf;
+    background: #f0fdf4;
+    border-color: var(--primary);
+    color: var(--primary-dark);
+    transform: translateY(-1px);
 }
 
 /* Component: Header/Nav */
@@ -349,6 +385,12 @@ box-shadow: var(--shadow-md);
     display: flex;
     align-items: center;
     gap: 1rem;
+    transition: all 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
 .stat-icon {
