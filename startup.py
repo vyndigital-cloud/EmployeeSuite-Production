@@ -26,15 +26,22 @@ def setup_environment():
 
 def create_app():
     """Create app with maximum error tolerance"""
+    import logging
+    import traceback
+    logger = logging.getLogger(__name__)
+
     setup_environment()
 
     try:
         # Try main app factory
         from app_factory import create_app
 
+        logger.info("App created successfully in startup.py")
         return create_app()
+
     except Exception as e:
-        print(f"Main app factory failed: {e}")
+        logger.error(f"Error in startup.create_app(): {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
 
         # Fallback to minimal Flask app
         from flask import Flask, jsonify
