@@ -120,14 +120,13 @@ SUCCESS_HTML = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Welcome - Employee Suite</title>
+    <title>Welcome to Employee Suite Pro!</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="refresh" content="3;url=/dashboard?shop={{ shop }}&host={{ host }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f6f6f7;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #202223;
             display: flex;
             align-items: center;
@@ -135,40 +134,685 @@ SUCCESS_HTML = """
             min-height: 100vh;
             padding: 24px;
         }
-        .success-container { text-align: center; max-width: 480px; }
+        .success-container { 
+            text-align: center; 
+            max-width: 500px; 
+            background: white;
+            padding: 48px 32px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
         .success-icon {
             width: 80px;
             height: 80px;
-            background: #e3fcef;
+            background: linear-gradient(135deg, #e3fcef 0%, #d1fae5 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 40px;
             margin: 0 auto 24px;
+            animation: bounce 1s ease-in-out;
         }
-        .success-title { font-size: 28px; font-weight: 600; color: #202223; margin-bottom: 12px; }
-        .success-text { font-size: 16px; color: #6d7175; line-height: 1.6; margin-bottom: 24px; }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+        .success-title { 
+            font-size: 32px; 
+            font-weight: 700; 
+            color: #202223; 
+            margin-bottom: 16px; 
+        }
+        .success-text { 
+            font-size: 18px; 
+            color: #6d7175; 
+            line-height: 1.6; 
+            margin-bottom: 32px; 
+        }
         .btn {
-            padding: 12px 24px;
-            background: #008060;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #008060 0%, #00a86b 100%);
             color: #fff;
             border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
             text-decoration: none;
             display: inline-block;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .trial-info {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: #0369a1;
         }
     </style>
 </head>
 <body>
     <div class="success-container">
-        <div class="success-icon">✓</div>
-        <h1 class="success-title">You're All Set!</h1>
-        <p class="success-text">Your subscription is now active. You have full access to Employee Suite.</p>
-        <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="btn">Go to Dashboard</a>
+        <div class="success-icon">🎉</div>
+        <h1 class="success-title">Welcome to Employee Suite Pro!</h1>
+        <div class="trial-info">
+            <strong>Your 7-day free trial has started!</strong><br>
+            Full access to all features until {{ trial_end_date }}
+        </div>
+        <p class="success-text">
+            Your subscription is now active and you have full access to all Employee Suite features. 
+            Start exploring your dashboard to see how we can transform your store operations.
+        </p>
+        <a href="{{ dashboard_url }}" class="btn">🚀 Go to Dashboard</a>
     </div>
+    
+    <script>
+        // Auto-redirect after 5 seconds
+        setTimeout(function() {
+            window.location.href = "{{ dashboard_url }}";
+        }, 5000);
+    </script>
+</body>
+</html>
+"""
+
+# Enhanced subscribe page template
+SUBSCRIBE_PAGE_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscribe to Employee Suite Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #202223;
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .subscribe-card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 800px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #008060 0%, #00a86b 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+        
+        .tagline {
+            font-size: 18px;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+        
+        .content {
+            padding: 50px 40px;
+        }
+        
+        .urgency-banner {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 32px;
+            border-radius: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        
+        .urgency-text {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .urgency-subtext {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .plan-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .trial-badge {
+            display: inline-block;
+            background: #e3fcef;
+            color: #008060;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        
+        .plan-name {
+            font-size: 32px;
+            font-weight: 700;
+            color: #202223;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+        
+        .plan-price {
+            font-size: 48px;
+            font-weight: 800;
+            color: #008060;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+        
+        .plan-price .currency {
+            font-size: 32px;
+            vertical-align: top;
+        }
+        
+        .plan-price .period {
+            font-size: 18px;
+            font-weight: 500;
+            color: #6d7175;
+            vertical-align: bottom;
+        }
+        
+        .social-proof {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        
+        .social-proof-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #202223;
+            margin-bottom: 16px;
+        }
+        
+        .testimonial {
+            font-style: italic;
+            color: #6d7175;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        
+        .testimonial-author {
+            font-size: 14px;
+            font-weight: 600;
+            color: #008060;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 8px;
+            transition: transform 0.2s ease;
+        }
+        
+        .feature-item:hover {
+            transform: translateY(-2px);
+        }
+        
+        .feature-icon {
+            width: 24px;
+            height: 24px;
+            background: #e3fcef;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        
+        .feature-icon::before {
+            content: '✓';
+            color: #008060;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        
+        .feature-text {
+            flex: 1;
+        }
+        
+        .feature-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #202223;
+            margin-bottom: 4px;
+        }
+        
+        .feature-description {
+            font-size: 14px;
+            color: #6d7175;
+            line-height: 1.5;
+        }
+        
+        .cta-section {
+            background: linear-gradient(135deg, #f6f6f7 0%, #e8f4f8 100%);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 32px;
+            border: 2px solid #e3fcef;
+        }
+        
+        .cta-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #202223;
+            margin-bottom: 12px;
+        }
+        
+        .cta-subtitle {
+            font-size: 18px;
+            color: #6d7175;
+            margin-bottom: 32px;
+        }
+        
+        .subscribe-btn {
+            background: linear-gradient(135deg, #008060 0%, #00a86b 100%);
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 8px 20px rgba(0, 128, 96, 0.3);
+            position: relative;
+            overflow: hidden;
+            min-width: 280px;
+        }
+        
+        .subscribe-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(0, 128, 96, 0.4);
+        }
+        
+        .subscribe-btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .subscribe-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .subscribe-btn:hover::before {
+            left: 100%;
+        }
+        
+        .guarantee {
+            margin-top: 24px;
+        }
+        
+        .guarantee-text {
+            font-size: 14px;
+            color: #6d7175;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .guarantee-icon {
+            width: 20px;
+            height: 20px;
+            background: #e3fcef;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .guarantee-icon::before {
+            content: '🛡️';
+            font-size: 12px;
+        }
+        
+        .value-props {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 32px 0;
+        }
+        
+        .value-prop {
+            text-align: center;
+            padding: 16px;
+        }
+        
+        .value-prop-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        
+        .value-prop-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: #202223;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 32px;
+        }
+        
+        .back-link a {
+            color: #6d7175;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        
+        .back-link a:hover {
+            color: #008060;
+        }
+        
+        .error-banner {
+            background: #fff4f4;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .container { padding: 20px 16px; }
+            .content { padding: 32px 24px; }
+            .header { padding: 32px 24px; }
+            .plan-price { font-size: 40px; }
+            .plan-name { font-size: 28px; }
+            .features-grid { grid-template-columns: 1fr; gap: 16px; }
+            .cta-section { padding: 32px 24px; }
+            .subscribe-btn { width: 100%; padding: 18px; min-width: auto; }
+            .cta-title { font-size: 24px; }
+            .cta-subtitle { font-size: 16px; }
+        }
+        
+        @media (max-width: 480px) {
+            .logo { font-size: 24px; }
+            .tagline { font-size: 16px; }
+            .plan-price { font-size: 36px; }
+            .plan-name { font-size: 24px; }
+            .urgency-text { font-size: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="subscribe-card">
+            <div class="header">
+                <div class="header-content">
+                    <div class="logo">Employee Suite</div>
+                    <div class="tagline">Streamline Your Shopify Operations</div>
+                </div>
+            </div>
+            
+            <div class="content">
+                <!-- Error Banner -->
+                {% if error %}
+                <div class="error-banner">
+                    <strong>⚠️ {{ error }}</strong>
+                </div>
+                {% endif %}
+                
+                <!-- Urgency Banner -->
+                <div class="urgency-banner">
+                    <div class="urgency-text">🔥 Limited Time: 7-Day Free Trial</div>
+                    <div class="urgency-subtext">Join 500+ store owners who transformed their operations</div>
+                </div>
+                
+                <div class="plan-header">
+                    <div class="trial-badge">✨ 7-Day Free Trial Included</div>
+                    <div class="plan-name">{{ plan_name }}</div>
+                    <div class="plan-price">
+                        <span class="currency">$</span>{{ price }}<span class="period">/month</span>
+                    </div>
+                </div>
+                
+                <!-- Social Proof -->
+                <div class="social-proof">
+                    <div class="social-proof-title">🌟 Join 500+ Successful Shopify Store Owners</div>
+                    <div class="testimonial">"Employee Suite transformed how we manage inventory. The automated reports save us 10+ hours every week!"</div>
+                    <div class="testimonial-author">— Sarah M., Fashion Store Owner ($50K/month)</div>
+                </div>
+                
+                <!-- Value Props -->
+                <div class="value-props">
+                    <div class="value-prop">
+                        <div class="value-prop-icon">⚡</div>
+                        <div class="value-prop-text">Setup in 2 minutes</div>
+                    </div>
+                    <div class="value-prop">
+                        <div class="value-prop-icon">💰</div>
+                        <div class="value-prop-text">Save 10+ hours/week</div>
+                    </div>
+                    <div class="value-prop">
+                        <div class="value-prop-icon">📈</div>
+                        <div class="value-prop-text">Increase revenue 15%</div>
+                    </div>
+                    <div class="value-prop">
+                        <div class="value-prop-icon">🛡️</div>
+                        <div class="value-prop-text">Enterprise security</div>
+                    </div>
+                </div>
+                
+                <div class="features-grid">
+                    {% for feature in features %}
+                    <div class="feature-item">
+                        <div class="feature-icon"></div>
+                        <div class="feature-text">
+                            <div class="feature-title">{{ feature.split(' ', 1)[1] if ' ' in feature else feature }}</div>
+                            <div class="feature-description">
+                                {% if 'AI-Powered' in feature %}
+                                Predict stockouts before they happen with machine learning
+                                {% elif 'Real-Time' in feature %}
+                                Live inventory tracking with instant low-stock alerts
+                                {% elif 'Smart Order' in feature %}
+                                Automated order processing and fulfillment workflows
+                                {% elif 'Revenue' in feature %}
+                                Comprehensive analytics with profit margin insights
+                                {% elif 'CSV' in feature %}
+                                Export any data with custom date ranges and filters
+                                {% elif 'Automated' in feature %}
+                                Schedule daily, weekly, or monthly report delivery
+                                {% elif 'Mobile' in feature %}
+                                Full-featured mobile interface for on-the-go management
+                                {% elif 'Real-Time Sync' in feature %}
+                                Instant synchronization with your Shopify store data
+                                {% elif 'Low Stock' in feature %}
+                                Smart notifications before you run out of inventory
+                                {% elif 'Sales Velocity' in feature %}
+                                Track product performance and sales trends
+                                {% elif 'Enterprise' in feature %}
+                                Bank-level encryption and data protection
+                                {% elif 'Priority' in feature %}
+                                Direct access to our support team via email
+                                {% else %}
+                                Professional tools to streamline your operations
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Strong CTA Section -->
+                <div class="cta-section">
+                    <div class="cta-title">🚀 Ready to Transform Your Store?</div>
+                    <div class="cta-subtitle">Start your free trial now and see results in 24 hours</div>
+                    
+                    {% if has_store and not error %}
+                    <form method="POST" action="{{ url_for('billing.create_charge') }}">
+                        {% if shop %}<input type="hidden" name="shop" value="{{ shop }}">{% endif %}
+                        {% if host %}<input type="hidden" name="host" value="{{ host }}">{% endif %}
+                        <input type="hidden" name="plan" value="{{ plan }}">
+                        <button type="submit" class="subscribe-btn" id="subscribeBtn">
+                            🎯 Start Free Trial & Subscribe Now
+                        </button>
+                    </form>
+                    {% else %}
+                    <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}" class="subscribe-btn">
+                        🔗 Connect Store First
+                    </a>
+                    {% endif %}
+                    
+                    <div class="guarantee">
+                        <div class="guarantee-text">
+                            <div class="guarantee-icon"></div>
+                            <span>Cancel anytime • No setup fees • 24/7 support • 30-day money-back guarantee</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="back-link">
+                    <a href="{{ url_for('core.dashboard', shop=shop, host=host) }}">← Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const subscribeBtn = document.getElementById('subscribeBtn');
+            
+            if (subscribeBtn) {
+                subscribeBtn.addEventListener('click', function(e) {
+                    // Add loading state
+                    this.innerHTML = '⏳ Creating your subscription...';
+                    this.disabled = true;
+                    
+                    // Re-enable after timeout (in case of errors)
+                    setTimeout(() => {
+                        if (this.disabled) {
+                            this.innerHTML = '🎯 Start Free Trial & Subscribe Now';
+                            this.disabled = false;
+                        }
+                    }, 10000);
+                });
+            }
+            
+            // Add scroll animations
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, observerOptions);
+            
+            // Animate feature items
+            document.querySelectorAll('.feature-item').forEach((item, index) => {
+                item.style.opacity = '0';
+                item.style.transform = 'translateY(20px)';
+                item.style.transition = `opacity 0.6s ease ${index * 0.1}s, transform 0.6s ease ${index * 0.1}s`;
+                observer.observe(item);
+            });
+            
+            // Add urgency timer (optional)
+            const urgencyBanner = document.querySelector('.urgency-banner');
+            if (urgencyBanner) {
+                setInterval(() => {
+                    urgencyBanner.style.transform = 'scale(1.02)';
+                    setTimeout(() => {
+                        urgencyBanner.style.transform = 'scale(1)';
+                    }, 200);
+                }, 3000);
+            }
+        });
+    </script>
 </body>
 </html>
 """
@@ -424,7 +1068,7 @@ def cancel_app_subscription(shop_url, access_token, charge_id):
 
 @billing_bp.route("/billing/subscribe")
 def subscribe():
-    """Subscribe page - uses Shopify Billing API"""
+    """Enhanced subscribe page with strong CTAs"""
     from shopify_utils import normalize_shop_url
     
     try:
@@ -442,7 +1086,7 @@ def subscribe():
         
         plan = PLANS[plan_type]
 
-        # Find user with better error handling
+        # Enhanced user detection
         user = None
         store = None
         try:
@@ -451,7 +1095,7 @@ def subscribe():
                 if user_id:
                     user = User.query.get(int(user_id))
             
-            # Only try shop lookup if shop is not empty
+            # Try shop lookup for embedded apps
             if not user and shop:
                 store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
                 if store and store.user:
@@ -464,13 +1108,11 @@ def subscribe():
         if user and not store:
             store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
 
-        # Determine store connection status with better validation
+        # Validate store connection
         has_store = False
         if store:
-            # Check if store has a valid access token
             access_token = store.get_access_token()
             if access_token:
-                # Try to validate token with a simple API call
                 try:
                     from shopify_graphql import ShopifyGraphQLClient
                     client = ShopifyGraphQLClient(store.shop_url, access_token)
@@ -479,14 +1121,11 @@ def subscribe():
                     if "error" not in result and "errors" not in result:
                         has_store = True
                     else:
-                        logger.warning(f"Store connection validation failed for {store.shop_url}: {result.get('error', 'Unknown error')}")
+                        logger.warning(f"Store connection validation failed for {store.shop_url}")
                         has_store = False
                 except Exception as e:
-                    logger.warning(f"Store connection check failed for {store.shop_url}: {e}")
+                    logger.warning(f"Store connection check failed: {e}")
                     has_store = False
-            else:
-                logger.warning(f"Store {store.shop_url} has no access token")
-                has_store = False
 
         # Set shop from store if not provided
         if not shop and store:
@@ -499,7 +1138,7 @@ def subscribe():
         if user and trial_active:
             try:
                 days_left = (user.trial_ends_at - datetime.utcnow()).days
-                days_left = max(0, days_left)  # Don't show negative days
+                days_left = max(0, days_left)
             except:
                 days_left = 0
         
@@ -507,11 +1146,11 @@ def subscribe():
         error = request.args.get("error")
         if not has_store and not error:
             if store is None:
-                error = "No Shopify store connected"
+                error = "Please connect your Shopify store first to subscribe"
             else:
                 error = "Store connection issue - please reconnect in Settings"
 
-        # Template variables with safe defaults (keep existing template)
+        # Template variables
         template_vars = {
             "trial_active": trial_active,
             "has_access": has_access,
@@ -528,136 +1167,13 @@ def subscribe():
             "config_api_key": os.getenv("SHOPIFY_API_KEY", ""),
         }
 
-        # Use template string since subscribe.html template is not provided
-        return render_template_string("""
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Subscribe - Employee Suite</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .container { 
-            background: white; 
-            border-radius: 12px; 
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            max-width: 500px; 
-            width: 100%;
-            overflow: hidden;
-        }
-        .header {
-            background: linear-gradient(135deg, #008060 0%, #00a86b 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-        }
-        .plan-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-        .price { font-size: 48px; font-weight: 800; margin-bottom: 8px; }
-        .price-period { font-size: 16px; opacity: 0.9; }
-        .content { padding: 30px; }
-        .features { list-style: none; margin-bottom: 30px; }
-        .features li { 
-            padding: 12px 0; 
-            display: flex; 
-            align-items: center;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .features li:last-child { border-bottom: none; }
-        .features li::before {
-            content: "✓";
-            color: #008060;
-            font-weight: bold;
-            margin-right: 12px;
-            font-size: 16px;
-        }
-        .btn { 
-            background: linear-gradient(135deg, #008060 0%, #00a86b 100%);
-            color: white; 
-            padding: 16px 32px; 
-            border: none; 
-            border-radius: 8px; 
-            font-size: 16px; 
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            transition: transform 0.2s;
-        }
-        .btn:hover { transform: translateY(-2px); }
-        .error { 
-            background: #fef2f2; 
-            border: 1px solid #fecaca; 
-            padding: 16px; 
-            border-radius: 8px; 
-            color: #dc2626; 
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-        .trial-info {
-            background: #f0f9ff;
-            border: 1px solid #bae6fd;
-            padding: 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1 class="plan-title">{{ plan_name }}</h1>
-            <div class="price">${{ price }}</div>
-            <div class="price-period">per month</div>
-        </div>
-        
-        <div class="content">
-            {% if trial_active %}
-            <div class="trial-info">
-                <strong>Free Trial Active</strong><br>
-                {{ days_left }} days remaining
-            </div>
-            {% endif %}
-            
-            {% if error %}
-            <div class="error">{{ error }}</div>
-            {% endif %}
-            
-            <ul class="features">
-            {% for feature in features %}
-                <li>{{ feature.replace('🤖 ', '').replace('📊 ', '').replace('📦 ', '').replace('💰 ', '').replace('📥 ', '').replace('🔄 ', '').replace('📱 ', '').replace('⚡ ', '').replace('🎯 ', '').replace('📈 ', '').replace('🛡️ ', '').replace('💬 ', '') }}</li>
-            {% endfor %}
-            </ul>
-            
-            {% if has_store and not error %}
-            <form method="POST" action="/billing/create-charge">
-                <input type="hidden" name="shop" value="{{ shop }}">
-                <input type="hidden" name="host" value="{{ host }}">
-                <input type="hidden" name="plan" value="{{ plan }}">
-                <button type="submit" class="btn">Start Free Trial</button>
-            </form>
-            {% else %}
-            <a href="/settings/shopify?shop={{ shop }}&host={{ host }}" class="btn" style="display: block; text-align: center; text-decoration: none;">Connect Store First</a>
-            {% endif %}
-        </div>
-    </div>
-</body>
-</html>
-        """, **template_vars)
+        return render_template_string(SUBSCRIBE_PAGE_HTML, **template_vars)
             
     except Exception as e:
         logger.error(f"Critical error in subscribe route: {e}", exc_info=True)
         return jsonify({
-            "error": "Internal Server Error",
-            "message": "Subscribe page temporarily unavailable",
+            "error": "Subscribe page temporarily unavailable",
+            "message": "Please try again in a moment",
             "error_id": datetime.now().strftime('%Y%m%d_%H%M%S')
         }), 500
 
@@ -1022,7 +1538,20 @@ def confirm_charge():
                     logger.error(f"Transaction failed: {e}")
                     raise
 
-                return render_template_string(SUCCESS_HTML, shop=shop_url, host=host)
+                # Set trial end date
+                trial_end_date = datetime.utcnow() + timedelta(days=7)
+                user.trial_ends_at = trial_end_date
+                
+                # Return enhanced success page
+                dashboard_url = f"/dashboard?shop={shop_url}&host={host}&success=subscription_activated"
+                
+                return render_template_string(
+                    SUCCESS_HTML, 
+                    shop=shop_url, 
+                    host=host,
+                    trial_end_date=trial_end_date.strftime('%B %d, %Y'),
+                    dashboard_url=dashboard_url
+                )
             else:
                 db.session.rollback()
                 logger.error(f"Failed to activate charge for user {user.id}, shop {shop_url}: {activate_result.get('error')}")
@@ -1052,7 +1581,20 @@ def confirm_charge():
             store.charge_id = str(charge_id)
             db.session.commit()
             logger.info(f"Subscription already active for {shop_url}, user: {user.id}")
-            return render_template_string(SUCCESS_HTML, shop=shop_url, host=host)
+            # Set trial end date
+            trial_end_date = datetime.utcnow() + timedelta(days=7)
+            user.trial_ends_at = trial_end_date
+            
+            # Return enhanced success page
+            dashboard_url = f"/dashboard?shop={shop_url}&host={host}&success=subscription_activated"
+            
+            return render_template_string(
+                SUCCESS_HTML, 
+                shop=shop_url, 
+                host=host,
+                trial_end_date=trial_end_date.strftime('%B %d, %Y'),
+                dashboard_url=dashboard_url
+            )
         except Exception as e:
             db.session.rollback()
             logger.error(f"Database error marking subscription active for user {user.id}, shop {shop_url}: {e}")
