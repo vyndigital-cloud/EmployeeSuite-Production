@@ -251,8 +251,11 @@ if app and startup_error_details is None:
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
             response.headers['Pragma'] = 'no-cache'
             response.headers['Expires'] = '0'
+            # Shopify requires specific CSP headers for embedded apps
+            # We must NOT set X-Frame-Options: DENY or SAMEORIGIN
+            # Instead we use Content-Security-Policy frame-ancestors
+            response.headers['Content-Security-Policy'] = "frame-ancestors https://*.myshopify.com https://admin.shopify.com;"
             response.headers['X-Content-Type-Options'] = 'nosniff'
-            response.headers['X-Frame-Options'] = 'DENY'
             response.headers['X-XSS-Protection'] = '1; mode=block'
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
             return response

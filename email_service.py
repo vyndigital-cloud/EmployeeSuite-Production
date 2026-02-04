@@ -12,6 +12,9 @@ try:
     from sendgrid.helpers.mail import Mail
 
     SENDGRID_AVAILABLE = True
+    if not os.getenv("SENDGRID_API_KEY"):
+        logger.warning("SENDGRID_API_KEY not set - email functionality disabled")
+        SENDGRID_AVAILABLE = False
 except ImportError:
     logger.warning("SendGrid not available - email functionality disabled")
     SENDGRID_AVAILABLE = False
