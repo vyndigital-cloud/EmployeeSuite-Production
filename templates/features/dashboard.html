@@ -50,6 +50,35 @@
     </div>
 </div>
 
+<!-- Quick Stats Section -->
+<div class="quick-stats-grid" id="quick-stats-section" style="display: none; margin-top: 32px; margin-bottom: 24px;">
+    <div class="quick-stat-card">
+        <div class="quick-stat-header">
+            <i class="ph-duotone ph-package" style="font-size: 18px; color: var(--primary);"></i>
+            <span>Pending Orders</span>
+        </div>
+        <div class="quick-stat-value" id="qs-pending-orders">-</div>
+        <div class="quick-stat-footer">Need your attention</div>
+    </div>
+    <div class="quick-stat-card">
+        <div class="quick-stat-header">
+            <i class="ph-duotone ph-tag" style="font-size: 18px; color: var(--primary);"></i>
+            <span>Total Products</span>
+        </div>
+        <div class="quick-stat-value" id="qs-total-products">-</div>
+        <div class="quick-stat-footer">In your store</div>
+    </div>
+    <div class="quick-stat-card">
+        <div class="quick-stat-header">
+            <i class="ph-duotone ph-warning-circle" id="qs-low-stock-icon"
+                style="font-size: 18px; color: var(--primary);"></i>
+            <span>Low Stock</span>
+        </div>
+        <div class="quick-stat-value" id="qs-low-stock">-</div>
+        <div class="quick-stat-footer" id="qs-low-stock-text">Checking...</div>
+    </div>
+</div>
+
 <!-- SOS and Configuration Actions -->
 <div class="card" style="margin-top: 24px;">
     <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
@@ -194,6 +223,37 @@
             const data = await response.json();
 
             if (data.success || (data.orders || data.inventory || data.revenue)) {
+                // Populate Quick Stats
+                const qsSection = document.getElementById('quick-stats-section');
+                if (qsSection) {
+                    const pendingOrders = data.orders?.data?.pending_orders || 0;
+                    const totalProducts = data.inventory?.data?.total_products || 0;
+                    const lowStock = data.inventory?.data?.low_stock_items || 0;
+
+                    const pendingVal = document.getElementById('qs-pending-orders');
+                    if (pendingVal) pendingVal.textContent = pendingOrders;
+
+                    const productsVal = document.getElementById('qs-total-products');
+                    if (productsVal) productsVal.textContent = totalProducts;
+
+                    const lowStockVal = document.getElementById('qs-low-stock');
+                    const lowStockIcon = document.getElementById('qs-low-stock-icon');
+                    const lowStockText = document.getElementById('qs-low-stock-text');
+
+                    if (lowStockVal) {
+                        lowStockVal.textContent = lowStock;
+                        if (lowStock > 0) {
+                            lowStockVal.style.color = '#dc2626';
+                            if (lowStockIcon) lowStockIcon.style.color = '#dc2626';
+                            if (lowStockText) lowStockText.textContent = 'Need restocking';
+                        } else {
+                            lowStockVal.style.color = 'inherit';
+                            if (lowStockIcon) lowStockIcon.style.color = 'var(--primary)';
+                            if (lowStockText) lowStockText.textContent = 'All good';
+                        }
+                    }
+                    qsSection.style.display = 'grid';
+                }
                 let html = '';
 
                 if (data.orders) html += renderReportSection('Orders', data.orders, false);
