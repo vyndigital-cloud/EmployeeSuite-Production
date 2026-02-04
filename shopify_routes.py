@@ -22,55 +22,7 @@ from shopify_utils import normalize_shop_url
 shopify_bp = Blueprint("shopify", __name__)
 
 
-def safe_redirect(url, shop=None, host=None):
-    """
-    Safe redirect that works in both embedded and standalone contexts.
-    For embedded apps, uses App Bridge Redirect action (Shopify 2025+ compliant).
-    For standalone, uses regular Flask redirect.
-    """
-    # Check if we're in an embedded context
-    is_embedded = bool(host) or bool(shop) or request.args.get("embedded") == "1"
-
-    if is_embedded:
-        # Embedded app - use App Bridge Redirect (compliant with Shopify frame policies)
-        redirect_html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Redirecting...</title>
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-    <script>
-        (function() {{
-            var shopOrigin = '{shop or ""}';
-            var hostParam = '{host or ""}';
-            var targetUrl = '{url}';
-
-            // Use App Bridge for Shopify URLs (OAuth, admin, etc.)
-            if (targetUrl.includes('myshopify.com') || targetUrl.includes('shopify.com')) {{
-                if (window.shopify && window.shopify.Redirect) {{
-                    window.shopify.Redirect.dispatch(window.shopify.Redirect.Action.REMOTE, targetUrl);
-                }} else {{
-                    // Fallback: Shopify handles OAuth redirects at HTTP level
-                    window.location.href = targetUrl;
-                }}
-            }} else {{
-                // Internal app URLs - standard redirect
-                window.location.href = targetUrl;
-            }}
-        }})();
-    </script>
-    <noscript>
-        <meta http-equiv="refresh" content="0;url={url}">
-    </noscript>
-</head>
-<body>
-    <p>Redirecting... <a href="{url}">Click here if not redirected</a></p>
-</body>
-</html>"""
-        return Response(redirect_html, mimetype="text/html")
-    else:
-        # Standalone - use regular Flask redirect
-        return redirect(url)
+from utils import safe_redirect
 
 
 
@@ -109,7 +61,10 @@ def shopify_settings():
             # Embedded mode - redirect to install using client-side redirect
             from flask import url_for
 
-            install_url = url_for("oauth.install", shop=shop, host=host)
+            try:
+                install_url = url_for("oauth.install", shop=shop, host=host)
+            except Exception:
+                install_url = f"/install?shop={shop}&host={host}"
             # Use App Bridge compliant redirect
             redirect_html = f"""<!DOCTYPE html>
 <html>
@@ -178,21 +133,23 @@ def connect_store():
                 user = store.user
     except Exception as e:
         logger.error(f"Error finding user in connect_store: {e}", exc_info=True)
-        settings_url = url_for(
-            "shopify.shopify_settings",
-            error="Authentication error occurred. Please try again.",
-            shop=shop,
-            host=host,
-        )
+        from urllib.parse import urlencode
+        params = {
+            "error": "Authentication error occurred. Please try again.",
+            "shop": shop or "",
+            "host": host or ""
+        }
+        settings_url = url_for("shopify.shopify_settings") + '?' + urlencode({k: v for k, v in params.items() if v})
         return safe_redirect(settings_url, shop=shop, host=host)
 
     if not user:
-        settings_url = url_for(
-            "shopify.shopify_settings",
-            error="Authentication required",
-            shop=shop,
-            host=host,
-        )
+        from urllib.parse import urlencode
+        params = {
+            "error": "Authentication required",
+            "shop": shop or "",
+            "host": host or ""
+        }
+        settings_url = url_for("shopify.shopify_settings") + '?' + urlencode({k: v for k, v in params.items() if v})
         return safe_redirect(settings_url, shop=shop, host=host)
 
     # Input validation

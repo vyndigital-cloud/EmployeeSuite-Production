@@ -1,13 +1,5 @@
 from typing import Optional
 
-try:
-    from flask import redirect
-except ImportError:
-    # Handle case where Flask is not available during static analysis
-    def redirect(url):
-        return url
-
-
 def normalize_shop_url(shop_url: Optional[str]) -> Optional[str]:
     """Centralized shop URL normalization - prevents OAuth failures"""
     if not shop_url:
@@ -41,6 +33,13 @@ def safe_redirect(url: str, shop: Optional[str] = None, host: Optional[str] = No
     Safe redirect for Shopify embedded apps.
     Uses standard HTTP redirect - Shopify handles iframe navigation.
     """
+    # Import inside function to avoid circular imports
+    try:
+        from flask import redirect
+    except ImportError:
+        # Fallback if Flask is not available
+        return url
+    
     # For Shopify OAuth URLs, always use standard redirect
     # Shopify's OAuth flow handles the iframe breaking automatically
     if "myshopify.com" in url or "shopify.com" in url:

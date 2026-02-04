@@ -65,42 +65,7 @@ if not SHOPIFY_API_KEY:
 APP_URL = os.getenv("SHOPIFY_APP_URL", "https://employeesuite-production.onrender.com")
 
 
-def safe_redirect(url, shop=None, host=None):
-    """Safe redirect for embedded/standalone contexts - App Bridge compliant"""
-    from urllib.parse import quote
-    
-    is_embedded = bool(host) or bool(shop) or request.args.get("embedded") == "1"
-    if is_embedded:
-        # Ensure URL is properly encoded for JavaScript
-        safe_url = quote(url, safe=':/?#[]@!$&\'()*+,;=')
-        redirect_html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Redirecting...</title>
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-    <script>
-        (function() {{
-            var targetUrl = '{safe_url}';
-            if (targetUrl.includes('myshopify.com') || targetUrl.includes('shopify.com')) {{
-                if (window.shopify && window.shopify.Redirect) {{
-                    window.shopify.Redirect.dispatch(window.shopify.Redirect.Action.REMOTE, targetUrl);
-                }} else {{
-                    window.location.href = targetUrl;
-                }}
-            }} else {{
-                window.location.href = targetUrl;
-            }}
-        }})();
-    </script>
-</head>
-<body>
-    <p>Redirecting... <a href="{safe_url}">Click here if not redirected</a></p>
-</body>
-</html>"""
-        return Response(redirect_html, mimetype="text/html")
-    else:
-        return redirect(url)
+from utils import safe_redirect
 
 
 # Plan configuration (Production Price: $39/month - competitive pricing)

@@ -661,16 +661,16 @@ def _handle_oauth_callback():
 
     # After OAuth completes, redirect appropriately
     if host:
-        # Embedded: redirect back into Shopify admin so app loads in iframe
-        # Reverting to API Key URL - most reliable post-OAuth redirect
+        # For embedded apps, redirect to the app within Shopify admin
         admin_url = f"https://{shop}/admin/apps/{SHOPIFY_API_KEY}"
-        logger.info(
-            f"OAuth complete (embedded), redirecting to Shopify admin: {admin_url}"
-        )
+        logger.info(f"OAuth complete (embedded), redirecting to: {admin_url}")
         return redirect(admin_url)
     else:
-        # Standalone: redirect directly to dashboard
-        dashboard_url = f"/dashboard?shop={shop}"
+        # For standalone, redirect to dashboard with shop parameter
+        try:
+            dashboard_url = url_for("core.home", shop=shop)
+        except Exception:
+            dashboard_url = f"/dashboard?shop={shop}"
         logger.info(f"OAuth complete (standalone), redirecting to: {dashboard_url}")
         return redirect(dashboard_url)
 
