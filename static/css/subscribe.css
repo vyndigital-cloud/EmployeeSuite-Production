@@ -36,7 +36,7 @@ body {
     justify-content: center;
     padding: 2rem 1rem;
     background: radial-gradient(circle at top right, rgba(0, 128, 96, 0.05), transparent 40%),
-                radial-gradient(circle at bottom left, rgba(0, 128, 96, 0.05), transparent 40%);
+        radial-gradient(circle at bottom left, rgba(0, 128, 96, 0.05), transparent 40%);
 }
 
 .container {
@@ -160,32 +160,39 @@ body {
 }
 
 /* Features List */
+.features-list-container {
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid #f1f1f1;
+}
+
 .features-list {
     list-style: none;
     display: grid;
     gap: 1rem;
-    margin-bottom: 2.5rem;
 }
 
 .feature-item {
     display: flex;
     align-items: center;
     gap: 12px;
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: var(--text-main);
+    font-weight: 500;
 }
 
 .check-icon {
     width: 20px;
     height: 20px;
-    background: #e3fcef;
-    color: var(--primary);
+    background: var(--primary);
+    color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 12px;
 }
 
 /* CTA Button */
@@ -247,23 +254,50 @@ body {
 
 /* Animations */
 @keyframes fadeInDown {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 /* Mobile Responsiveness */
 @media (max-width: 600px) {
-    .main-title { font-size: 2rem; }
-    .card-content { padding: 1.5rem; }
-    .price-value { font-size: 2.5rem; }
+    .main-title {
+        font-size: 2rem;
+    }
+
+    .card-content {
+        padding: 1.5rem;
+    }
+
+    .price-value {
+        font-size: 2.5rem;
+    }
 }

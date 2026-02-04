@@ -51,17 +51,22 @@
                             <span class="period">/mo</span>
                         </div>
                     </div>
-                    <ul class="features-list">
-                        {% for feature in features %}
-                        <li class="feature-item">
-                            <div class="check-icon"><i class="ph-bold ph-check"></i></div>
-                            <span>{{ feature|replace('✅ ', '')|replace('🤖 ', '')|replace('📊 ', '')|replace('📦 ',
-                                '')|replace('💰 ', '')|replace('📥 ', '')|replace('🔄 ', '')|replace('📱 ',
-                                '')|replace('⚡ ', '')|replace('🎯 ', '')|replace('📈 ', '')|replace('🛡️ ',
-                                '')|replace('💬 ', '') }}</span>
-                        </li>
-                        {% endfor %}
-                    </ul>
+                    <div class="features-list-container">
+                        <ul class="features-list">
+                            {% for feature in features %}
+                            <li class="feature-item">
+                                <div class="check-icon">
+                                    <svg width="12" height="12" viewBox="0 0 256 256" fill="currentColor">
+                                        <path
+                                            d="M229.66,55.51a8,8,0,0,0-11.32.79L94.55,183.76,37.66,131a8,8,0,0,0-10.89,11.75l62.43,58a8,8,0,0,0,11.37-.53L230.45,66.84A8,8,0,0,0,229.66,55.51Z">
+                                        </path>
+                                    </svg>
+                                </div>
+                                <span>{{ feature }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
                     {% if error %}
                     <div
                         style="background: #fff4f4; color: #d72c0d; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; text-align: center; border: 1px solid #fecaca;">
