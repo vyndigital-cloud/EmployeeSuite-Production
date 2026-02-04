@@ -586,6 +586,7 @@ def create_shopify_store(
 # Subscription Plan Types
 PLAN_FREE = 'free'
 PLAN_PRO = 'pro'
+PLAN_MANUAL = 'manual'
 
 # Plan Pricing (Updated for Production: $39/month single plan)
 PLAN_PRICES = {
