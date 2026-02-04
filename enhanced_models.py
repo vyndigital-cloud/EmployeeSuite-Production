@@ -12,7 +12,7 @@ try:
         get_user_settings, is_automated_plan, is_pro_or_higher,
         can_export_csv, can_auto_download, can_scheduled_reports,
         can_multi_store, get_stores_limit, get_data_days_limit,
-        PLAN_MANUAL
+        PLAN_MANUAL, PLAN_AUTOMATED
     )
     
     # Try to import PLAN_PRICES, with fallback

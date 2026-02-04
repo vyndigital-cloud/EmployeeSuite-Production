@@ -587,6 +587,7 @@ def create_shopify_store(
 PLAN_FREE = 'free'
 PLAN_PRO = 'pro'
 PLAN_MANUAL = 'manual'
+PLAN_AUTOMATED = 'automated'
 
 # Plan Pricing (Updated for Production: $39/month single plan)
 PLAN_PRICES = {
