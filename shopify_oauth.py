@@ -649,7 +649,31 @@ def _handle_oauth_callback():
     # Store user_id in session for embedded apps (backup auth method)
     session["user_id"] = user.id
     session["_authenticated"] = True
-    session["shop"] = shop  # Store shop in session for easy access
+
+    # Store host if available (for embedded apps)
+    if host:
+        session["host"] = host
+        session["embedded"] = True
+        session["is_embedded"] = True  # Additional flag
+
+    # Force session save immediately
+    try:
+        session.permanent = True
+        session.modified = True
+        # Additional session data for debugging
+        session["oauth_completed"] = True
+        from datetime import datetime
+        session["last_oauth"] = datetime.utcnow().isoformat()
+    except Exception as session_error:
+        logger.error(f"Session save error: {session_error}")
+
+    logger.info(
+        f"✅ Session bulletproofed: shop={shop}, user_id={user.id}, host={bool(host) if host else False}"
+    )
+    logger.info(f"✅ Session keys stored: {list(session.keys())}")
+
+    # Register mandatory compliance webhooks (Shopify requirement)
+    register_compliance_webhooks(shop, access_token)
 
     logger.info(
         f"Session refreshed for user {user.id} (email: {user.email}) after OAuth callback - embedded: {is_embedded}"
