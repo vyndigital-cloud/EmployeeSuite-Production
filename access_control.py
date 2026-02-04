@@ -17,6 +17,11 @@ def require_access(f):
             return jsonify({"error": "Authentication required", "success": False}), 401
 
         if not current_user.has_access():
+            # Check if this is a browser request expecting HTML
+            from flask import request, redirect, url_for
+            if request.accept_mimetypes.accept_html and not request.is_json:
+                return redirect(url_for('billing.subscribe', error="Subscription required"))
+                
             return jsonify(
                 {
                     "error": "Subscription required",
