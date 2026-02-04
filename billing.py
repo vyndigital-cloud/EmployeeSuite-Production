@@ -579,7 +579,7 @@ def create_charge():
     # Simple CSRF protection
     if not validate_csrf_token():
         logger.warning(f"CSRF validation failed for billing request from shop: {shop}")
-        return redirect("/billing?error=invalid_request")
+        return redirect("/billing/subscribe?error=invalid_request")
 
     host = request.form.get("host") or request.args.get("host", "")
 
