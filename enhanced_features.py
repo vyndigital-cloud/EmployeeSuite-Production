@@ -18,7 +18,7 @@ from enhanced_models import (
 )
 from date_filtering import parse_date_range, filter_orders_by_date, get_date_range_options
 from order_processing import process_orders
-from inventory import check_inventory
+from inventory import update_inventory
 from reporting import generate_report
 from data_encryption import encrypt_access_token, decrypt_access_token
 from logging_config import logger
@@ -428,7 +428,7 @@ def send_scheduled_report(report):
             reports_data['orders'] = orders_result
         
         if report.report_type in ['inventory', 'all']:
-            inventory_result = check_inventory(user_id=report.user_id)
+            inventory_result = update_inventory(user_id=report.user_id)
             reports_data['inventory'] = inventory_result
         
         if report.report_type in ['revenue', 'all']:
@@ -562,7 +562,7 @@ def get_comprehensive_dashboard():
         
         # Try to get inventory
         try:
-            inventory_result = check_inventory()
+            inventory_result = update_inventory()
             results['inventory'] = inventory_result
         except Exception as e:
             error_msg = str(e)
@@ -644,7 +644,7 @@ def api_process_orders():
 def api_update_inventory():
     """API endpoint for inventory check"""
     try:
-        result = check_inventory(user_id=current_user.id)
+        result = update_inventory(user_id=current_user.id)
         if result.get('success'):
             return result['html']
         else:
