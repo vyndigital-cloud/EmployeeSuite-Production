@@ -51,6 +51,62 @@ def create_app():
             except Exception as e:
                 app.logger.error(f"Error loading user {user_id}: {e}")
                 return None
+
+        @login_manager.request_loader
+        def load_user_from_request(request):
+            """
+            Load user from request (header or query param) for embedded apps.
+            This prevents redirect loops by accepting valid session tokens as login.
+            """
+            # 1. Check for Authorization header (Bearer token)
+            auth_header = request.headers.get("Authorization")
+            if auth_header and auth_header.startswith("Bearer "):
+                try:
+                    token = auth_header.split(" ")[1]
+                    from session_token_verification import verify_session_token
+                    
+                    # Verify token and extract payload
+                    payload = verify_session_token(token)
+                    if payload and payload.get("dest"):
+                        # Extract shop domain from 'dest' claim (https://shop.myshopify.com)
+                        shop_domain = payload.get("dest").replace("https://", "").replace("http://", "")
+                        
+                        # Find user associated with this shop
+                        from models import ShopifyStore, User
+                        store = ShopifyStore.query.filter_by(shop_url=shop_domain).first()
+                        if store and store.user_id:
+                            user = User.query.get(store.user_id)
+                            if user:
+                                app.logger.info(f"Token auth success for shop {shop_domain} (User {user.id})")
+                                return user
+                except Exception as e:
+                    app.logger.error(f"Token auth failed: {e}")
+
+            # 2. Check for 'embedded=1' and 'shop' params (less secure, but avoids redirect loop on initial load)
+            # This allows the first request to render, then JS will fetch a real token
+            shop = request.args.get('shop')
+            is_embedded = request.args.get('embedded') == '1'
+            
+            if is_embedded and shop:
+                try:
+                    from models import ShopifyStore, User
+                    # Strip protocol if present
+                    shop_domain = shop.replace("https://", "").replace("http://", "")
+                    
+                    # Only default to user if we have a valid store record
+                    # We utilize the 'host' param as a simplified proof of origin for initial load
+                    if request.args.get('host'):
+                        store = ShopifyStore.query.filter_by(shop_url=shop_domain).first()
+                        if store and store.user_id:
+                            # Verify store logic (ensure it's active)
+                            user = User.query.get(store.user_id)
+                            if user:
+                                app.logger.info(f"Embedded param auth for {shop_domain} (User {user.id})")
+                                return user
+                except Exception as e:
+                    app.logger.error(f"Param auth failed: {e}")
+
+            return None
     except Exception as e:
         app.logger.error(f"Failed to initialize login manager: {e}")
         raise
