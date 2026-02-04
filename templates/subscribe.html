@@ -51,21 +51,101 @@
                             <span class="period">/mo</span>
                         </div>
                     </div>
-                    <div class="features-list-container">
-                        <ul class="features-list">
-                            {% for feature in features %}
-                            <li class="feature-item">
-                                <div class="check-icon">
-                                    <svg width="12" height="12" viewBox="0 0 256 256" fill="currentColor">
-                                        <path
-                                            d="M229.66,55.51a8,8,0,0,0-11.32.79L94.55,183.76,37.66,131a8,8,0,0,0-10.89,11.75l62.43,58a8,8,0,0,0,11.37-.53L230.45,66.84A8,8,0,0,0,229.66,55.51Z">
-                                        </path>
-                                    </svg>
-                                </div>
-                                <span>{{ feature }}</span>
-                            </li>
-                            {% endfor %}
-                        </ul>
+                    <div class="comparison-container">
+                        <table class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th>Feature</th>
+                                    <th>Free Trial (7 days)</th>
+                                    <th class="pro-col">Pro Subscription</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Store Connections</td>
+                                    <td>1 store</td>
+                                    <td class="pro-col">Unlimited stores</td>
+                                </tr>
+                                <tr>
+                                    <td>Data History</td>
+                                    <td>7 days</td>
+                                    <td class="pro-col">Unlimited</td>
+                                </tr>
+                                <tr>
+                                    <td>CSV Exports</td>
+                                    <td>
+                                        <svg width="16" height="16" viewBox="0 0 256 256" fill="#ef4444">
+                                            <path
+                                                d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z">
+                                            </path>
+                                        </svg>
+                                    </td>
+                                    <td class="pro-col">
+                                        <svg width="16" height="16" viewBox="0 0 256 256" fill="#22c55e">
+                                            <path
+                                                d="M229.66,55.51a8,8,0,0,0-11.32.79L94.55,183.76,37.66,131a8,8,0,0,0-10.89,11.75l62.43,58a8,8,0,0,0,11.37-.53L230.45,66.84A8,8,0,0,0,229.66,55.51Z">
+                                            </path>
+                                        </svg>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Auto-Downloads</td>
+                                    <td><svg width="16" height="16" viewBox="0 0 256 256" fill="#ef4444">
+                                            <path
+                                                d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z">
+                                            </path>
+                                        </svg></td>
+                                    <td class="pro-col"><svg width="16" height="16" viewBox="0 0 256 256"
+                                            fill="#22c55e">
+                                            <path
+                                                d="M229.66,55.51a8,8,0,0,0-11.32.79L94.55,183.76,37.66,131a8,8,0,0,0-10.89,11.75l62.43,58a8,8,0,0,0,11.37-.53L230.45,66.84A8,8,0,0,0,229.66,55.51Z">
+                                            </path>
+                                        </svg></td>
+                                </tr>
+                                <tr>
+                                    <td>Scheduled Reports</td>
+                                    <td><svg width="16" height="16" viewBox="0 0 256 256" fill="#ef4444">
+                                            <path
+                                                d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z">
+                                            </path>
+                                        </svg></td>
+                                    <td class="pro-col"><svg width="16" height="16" viewBox="0 0 256 256"
+                                            fill="#22c55e">
+                                            <path
+                                                d="M229.66,55.51a8,8,0,0,0-11.32.79L94.55,183.76,37.66,131a8,8,0,0,0-10.89,11.75l62.43,58a8,8,0,0,0,11.37-.53L230.45,66.84A8,8,0,0,0,229.66,55.51Z">
+                                            </path>
+                                        </svg></td>
+                                </tr>
+                                <tr>
+                                    <td>Email Reports</td>
+                                    <td><svg width="16" height="16" viewBox="0 0 256 256" fill="#ef4444">
+                                            <path
+                                                d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z">
+                                            </path>
+                                        </svg></td>
+                                    <td class="pro-col"><svg width="16" height="16" viewBox="0 0 256 256"
+                                            fill="#22c55e">
+                                            <path
+                                                d="M229.66,55.51a8,8,0,0,0-11.32.79L94.55,183.76,37.66,131a8,8,0,0,0-10.89,11.75l62.43,58a8,8,0,0,0,11.37-.53L230.45,66.84A8,8,0,0,0,229.66,55.51Z">
+                                            </path>
+                                        </svg></td>
+                                </tr>
+                                <tr>
+                                    <td>SMS Reports</td>
+                                    <td><svg width="16" height="16" viewBox="0 0 256 256" fill="#ef4444">
+                                            <path
+                                                d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z">
+                                            </path>
+                                        </svg></td>
+                                    <td class="pro-col"><svg width="16" height="16" viewBox="0 0 256 256"
+                                            fill="#22c55e">
+                                            <path
+                                                d="M229.66,55.51a8,8,0,0,0-11.32.79L94.55,183.76,37.66,131a8,8,0,0,0-10.89,11.75l62.43,58a8,8,0,0,0,11.37-.53L230.45,66.84A8,8,0,0,0,229.66,55.51Z">
+                                            </path>
+                                        </svg></td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                     {% if error %}
                     <div
