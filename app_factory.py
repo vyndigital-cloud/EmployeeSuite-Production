@@ -93,11 +93,18 @@ def create_app():
         except (ImportError, AttributeError) as e:
             failed_blueprints.append(f"{blueprint_name}: {str(e)}")
             app.logger.warning(f"❌ Could not register blueprint {blueprint_name} from {module_name}: {e}")
+        except Exception as e:
+            # Catch any other blueprint registration errors
+            failed_blueprints.append(f"{blueprint_name}: CRITICAL ERROR - {str(e)}")
+            app.logger.error(f"💥 CRITICAL ERROR registering blueprint {blueprint_name}: {e}")
+            # Don't raise here - continue with other blueprints
     
     app.logger.info(f"Blueprint registration complete: {len(registered_blueprints)} successful, {len(failed_blueprints)} failed")
     
     if failed_blueprints:
         app.logger.warning(f"Failed blueprints: {failed_blueprints}")
+        # Store failed blueprints info for debugging
+        app.config['FAILED_BLUEPRINTS'] = failed_blueprints
     
     # Enhanced error handlers
     @app.errorhandler(500)
@@ -138,6 +145,19 @@ def create_app():
             <p>The page you're looking for doesn't exist.</p>
             <a href="/">Return to Dashboard</a>
             """), 404
+    
+    # Debug route to see startup issues
+    @app.route('/debug/startup')
+    def debug_startup():
+        """Debug route to see startup issues"""
+        from flask import jsonify
+        return jsonify({
+            'registered_blueprints': registered_blueprints,
+            'failed_blueprints': failed_blueprints,
+            'config_keys': list(app.config.keys()),
+            'environment': os.getenv('ENVIRONMENT'),
+            'database_url': app.config.get('SQLALCHEMY_DATABASE_URI', 'Not set')
+        })
     
     return app
 

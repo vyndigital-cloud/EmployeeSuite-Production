@@ -101,12 +101,76 @@ if missing_vars:
     logger.warning("App may not function properly without these variables")
 
 
+# Create the app with better error handling
+app = None
+startup_error_details = None
+
 try:
     logger.info("Attempting to create app via app_factory.create_app()")
     from app_factory import create_app
     app = create_app()
     logger.info("App created successfully via app_factory")
+    
+    # Log successful startup
+    error_logger.log_system_event("APP_STARTUP_SUCCESS", {
+        'method': 'app_factory.create_app',
+        'environment': os.getenv('ENVIRONMENT', 'unknown')
+    })
+        
+except Exception as startup_error:
+    startup_error_details = str(startup_error)
+    logger.error(f"App factory failed with error: {startup_error}")
+    logger.error(f"Traceback: {traceback.format_exc()}")
+    error_logger.log_error(startup_error, "STARTUP_ERROR")
 
+    # Try startup.py as backup
+    try:
+        logger.info("Trying startup.create_app() as backup")
+        from startup import create_app as startup_create_app
+        app = startup_create_app()
+        logger.info("App created successfully via startup.py")
+        error_logger.log_system_event("APP_STARTUP_FALLBACK", {
+            'method': 'startup.create_app'
+        })
+    except Exception as factory_error:
+        logger.error(f"Startup factory also failed: {factory_error}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        error_logger.log_error(factory_error, "FACTORY_ERROR")
+
+        # Ultimate fallback with detailed error info
+        logger.info("Using ultimate fallback Flask app")
+        from flask import Flask, jsonify
+        app = Flask(__name__)
+        
+        app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'fallback-secret-key')
+        
+        error_logger.log_system_event("APP_STARTUP_ULTIMATE_FALLBACK")
+        
+        @app.route("/")
+        def home():
+            return jsonify({
+                "status": "fallback app running", 
+                "error": "main app failed to start",
+                "startup_error": startup_error_details,
+                "factory_error": str(factory_error)
+            })
+
+        @app.route("/health")
+        def health():
+            return jsonify({
+                "status": "fallback healthy",
+                "errors": {
+                    "startup_error": startup_error_details,
+                    "factory_error": str(factory_error)
+                }
+            })
+
+        @app.route("/ready")
+        def ready():
+            return jsonify({"status": "ready", "timestamp": datetime.now().isoformat()})
+
+# Only add the enhanced error handlers and routes if we have a successful app
+if app and startup_error_details is None:
     # Enhanced error handlers
     @app.errorhandler(500)
     def internal_error(error):
@@ -193,60 +257,6 @@ try:
         except Exception as e:
             logger.error(f"Error adding GDPR headers: {e}")
             return response
-    
-    # Log successful startup
-    error_logger.log_system_event("APP_STARTUP_SUCCESS", {
-        'method': 'startup.create_app',
-        'environment': os.getenv('ENVIRONMENT', 'unknown')
-    })
-        
-except Exception as startup_error:
-    error_logger.log_error(startup_error, "STARTUP_ERROR")
-
-    # Try app_factory as backup
-    try:
-        logger.info("Trying app_factory.create_app() as backup")
-        from app_factory import create_app
-        app = create_app()
-        error_logger.log_system_event("APP_STARTUP_FALLBACK", {
-            'method': 'app_factory.create_app'
-        })
-    except Exception as factory_error:
-        error_logger.log_error(factory_error, "FACTORY_ERROR")
-        logger.error(f"App factory failed: {factory_error}")
-
-        # Ultimate fallback
-        logger.info("Using ultimate fallback Flask app")
-        from flask import Flask, jsonify
-        app = Flask(__name__)
-        
-        app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'fallback-secret-key')
-        
-        error_logger.log_system_event("APP_STARTUP_ULTIMATE_FALLBACK")
-        
-        # Register GDPR webhook handlers even in fallback mode
-        try:
-            from webhook_shopify import webhook_shopify_bp
-            app.register_blueprint(webhook_shopify_bp)
-        except ImportError as e:
-            logger.warning(f"Could not import webhook_shopify module: {e}")
-
-        @app.errorhandler(500)
-        def internal_error(error):
-            error_logger.log_error(error, "FALLBACK_ERROR")
-            return jsonify({'error': 'Application startup failed', 'details': str(error)}), 500
-
-        @app.route("/")
-        def home():
-            return jsonify({"status": "fallback app running", "error": "main app failed to start"})
-
-        @app.route("/health")
-        def health():
-            return jsonify({"status": "fallback healthy"})
-
-        @app.route("/ready")
-        def ready():
-            return jsonify({"status": "ready", "timestamp": datetime.now().isoformat()})
 
     # Add API routes
     @app.route('/api/process_orders')
