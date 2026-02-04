@@ -62,7 +62,11 @@
 <header class="header-section">
     <div class="logo-area">
         <div class="brand-badge">
-            <i class="ph-bold ph-gear"></i>
+            <svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor">
+                <path
+                    d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z">
+                </path>
+            </svg>
             <span>Settings</span>
         </div>
     </div>
@@ -76,7 +80,11 @@
     <div class="banner success"
         style="background: #e3fcef; border: 1px solid #b2f5d1; padding: 16px; border-radius: 12px; animation: fadeInDown 0.5s ease-out;">
         <div style="display: flex; align-items: center; gap: 12px;">
-            <i class="ph-bold ph-check-circle" style="font-size: 20px; color: #008060;"></i>
+            <svg width="20" height="20" viewBox="0 0 256 256" fill="#008060">
+                <path
+                    d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm45.66-93.66a8,8,0,0,1,0,11.32l-32,32a8,8,0,0,1-11.32-11.32L142.69,144H112a40,40,0,0,0-40,40,8,8,0,0,1-16,0,56.06,56.06,0,0,1,56-56h30.69L130.34,115.31a8,8,0,0,1,11.32-11.32Z">
+                </path>
+            </svg>
             <div>
                 <strong style="display: block; margin-bottom: 2px; color: #008060; font-size: 14px;">{{ success
                     }}</strong>
@@ -89,7 +97,11 @@
     <div class="banner error"
         style="background: #fff4f4; border: 1px solid #fecaca; padding: 16px; border-radius: 12px; animation: fadeInDown 0.5s ease-out;">
         <div style="display: flex; align-items: center; gap: 12px;">
-            <i class="ph-bold ph-warning-circle" style="font-size: 20px; color: #d72c0d;"></i>
+            <svg width="20" height="20" viewBox="0 0 256 256" fill="#d72c0d">
+                <path
+                    d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z">
+                </path>
+            </svg>
             <div style="color: #d72c0d; font-size: 14px;">{{ error }}</div>
         </div>
     </div>
@@ -99,14 +111,21 @@
     <div class="card">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
             <div style="display: flex; align-items: center; gap: 12px;">
-                <div class="card-icon" style="margin-bottom: 0; width: 40px; height: 40px; font-size: 20px;"><i
-                        class="ph-bold ph-crown"></i></div>
+                <div class="card-icon"><svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor">
+                        <path
+                            d="M232,88.66a16,16,0,0,0-16-16H183.42L161.6,31.62a16,16,0,0,0-27.2,0L112.58,72.66H40a16,16,0,0,0-16,16V208a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V88.66ZM216,208H40V88.66H216V208Z">
+                        </path>
+                    </svg></div>
                 <div>
                     <h2 class="card-title" style="margin: 0; font-size: 16px;">Subscription</h2>
                     <p style="font-size: 13px; color: var(--text-sub);">Your plan details</p>
                 </div>
             </div>
-            <span class="status-active"><i class="ph-bold ph-check"></i> Active</span>
+            <span class="status-active"><svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor">
+                    <path
+                        d="M229.66,55.51a8,8,0,0,0-11.32.79L94.55,183.76,37.66,131a8,8,0,0,0-10.89,11.75l62.43,58a8,8,0,0,0,11.37-.53L230.45,66.84A8,8,0,0,0,229.66,55.51Z">
+                    </path>
+                </svg> Active</span>
         </div>
 
         <div class="info-grid">
@@ -126,7 +145,11 @@
             <button type="submit" class="nav-btn"
                 style="color: #d72c0d; width: 100%; text-align: left; padding: 0; background: none; margin-top: 16px;"
                 onclick="return confirm('Cancel subscription? You will lose access to all features.')">
-                <i class="ph-bold ph-x-circle"></i> Cancel Subscription
+                <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
+                    <path
+                        d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm37.66-130.34a8,8,0,0,1,0,11.32L139.31,128l26.35,26.34a8,8,0,0,1-11.32,11.32L128,139.31l-26.34,26.35a8,8,0,0,1-11.32-11.32L116.69,128,90.34,101.66a8,8,0,0,1,11.32-11.32L128,116.69l26.34-26.35A8,8,0,0,1,165.66,95.66Z">
+                    </path>
+                </svg> Cancel Subscription
             </button>
         </form>
     </div>
@@ -136,14 +159,19 @@
     <div class="card">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
             <div style="display: flex; align-items: center; gap: 12px;">
-                <div class="card-icon" style="margin-bottom: 0; width: 40px; height: 40px; font-size: 20px;"><i
-                        class="ph-bold ph-storefront"></i></div>
+                <div class="card-icon"><svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor">
+                        <path
+                            d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,160H40V56H216V200ZM176,88a48,48,0,0,1-96,0,8,8,0,0,1,16,0,32,32,0,0,0,64,0,8,8,0,0,1,16,0Z">
+                        </path>
+                    </svg></div>
                 <div>
                     <h2 class="card-title" style="margin: 0; font-size: 16px;">Shopify Store</h2>
                     <p style="font-size: 13px; color: var(--text-sub);">Connection status</p>
                 </div>
             </div>
-            <span class="status-connected"><i class="ph-bold ph-link"></i> Connected</span>
+            <span class="status-connected"><svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor">
+                    <path d="M136,80a8,8,0,0,0-8,8V200a8,8,0,0,0,16,0V88A8,8,0,0,0,136,80Z"></path>
+                </svg> Connected</span>
         </div>
 
         <div class="info-grid">
@@ -161,7 +189,11 @@
                     <a href="https://admin.shopify.com/store/{{ store.shop_url.replace('.myshopify.com', '') }}"
                         target="_blank" rel="noopener noreferrer"
                         style="color: var(--primary); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
-                        Open <i class="ph-bold ph-arrow-square-out"></i>
+                        Open <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor">
+                            <path
+                                d="M224,104a8,8,0,0,1-16,0V59.31l-74.34,74.35a8,8,0,0,1-11.32-11.32L196.69,48H152a8,8,0,0,1,0-16h64a8,8,0,0,1,8,8Zm-40,24a8,8,0,0,0-8,8v72H48V80h72a8,8,0,0,0,0-16H48A16,16,0,0,0,32,80V208a16,16,0,0,0,16,16H176a16,16,0,0,0,16-16V136A8,8,0,0,0,184,128Z">
+                            </path>
+                        </svg>
                     </a>
                 </span>
             </div>
@@ -173,7 +205,11 @@
             <button type="submit" class="cta-button"
                 style="background: white; color: #d72c0d; border: 1px solid #fecaca; width: 100%; justify-content: center;"
                 onclick="return confirm('Disconnect store?')">
-                <i class="ph-bold ph-plugs"></i> Disconnect Store
+                <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
+                    <path
+                        d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,160H40V56H216V200Z">
+                    </path>
+                </svg> Disconnect Store
             </button>
         </form>
     </div>
@@ -207,7 +243,11 @@
                 </div>
                 <button type="submit" class="cta-button">
                     <span>Connect with Shopify</span>
-                    <i class="ph-bold ph-arrow-right"></i>
+                    <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
+                        <path
+                            d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z">
+                        </path>
+                    </svg>
                 </button>
             </form>
         </div>
@@ -217,7 +257,11 @@
             <summary
                 style="font-size: 13px; font-weight: 500; color: var(--text-sub); cursor: pointer; padding: 12px; border: 1px solid var(--border); border-radius: 8px; list-style: none; display: flex; align-items: center; justify-content: space-between;">
                 <span>🔧 Advanced: Connect with Access Token</span>
-                <i class="ph-bold ph-caret-down"></i>
+                <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor">
+                    <path
+                        d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z">
+                    </path>
+                </svg>
             </summary>
             <div
                 style="margin-top: 12px; padding: 20px; background: #fff; border: 1px solid var(--border); border-radius: 8px;">

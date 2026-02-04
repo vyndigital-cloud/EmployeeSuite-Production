@@ -83,7 +83,11 @@
 <div class="card">
     <div
         style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border);">
-        <div class="card-icon"><i class="ph-bold ph-plus"></i></div>
+        <div class="card-icon"><svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor">
+                <path
+                    d="M224,128a8,8,0,0,1-8,8H136v48a8,8,0,0,1-16,0V136H72a8,8,0,0,1,0-16h48V72a8,8,0,0,1,16,0v48h48A8,8,0,0,1,224,128Z">
+                </path>
+            </svg></div>
         <div class="card-title" style="margin: 0; font-size: 16px;">Create New Scheduled Report</div>
     </div>
 
@@ -123,7 +127,11 @@
             <button type="submit" class="btn-primary" id="create-btn"
                 style="width: auto; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;">
                 <span>Create Scheduled Report</span>
-                <i class="ph-bold ph-paper-plane-right"></i>
+                <svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor">
+                    <path
+                        d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z">
+                    </path>
+                </svg>
             </button>
         </div>
     </form>
@@ -131,11 +139,19 @@
 
 <div style="margin-top: 40px;">
     <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-        <i class="ph-bold ph-list-dashes"></i> Active Scheduled Reports
+        <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
+            <path
+                d="M40,128a8,8,0,0,1,8-8h160a8,8,0,0,1,0,16H48A8,8,0,0,1,40,128ZM48,72H208a8,8,0,0,0,0-16H48a8,8,0,0,0,0,16Zm160,112H48a8,8,0,0,0,0,16H208a8,8,0,0,0,0-16Z">
+            </path>
+        </svg> Active Scheduled Reports
     </h3>
     <div id="reports-container">
         <div class="card" style="text-align: center; padding: 40px; color: var(--text-sub);">
-            <i class="ph-duotone ph-spinner ph-spin" style="font-size: 24px; margin-bottom: 12px; display: block;"></i>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"
+                style="animation: spin 1s linear infinite; margin-bottom: 12px; display: block; margin: 0 auto 12px auto;">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+            </svg>
             Loading reports...
         </div>
     </div>
@@ -152,7 +168,7 @@
             ? 'padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm);'
             : 'padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm);';
 
-        const icon = type === 'success' ? '<i class="ph-bold ph-check-circle"></i>' : '<i class="ph-bold ph-warning-circle"></i>';
+        const icon = type === 'success' ? '<svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm45.66-93.66a8,8,0,0,1,0,11.32l-32,32a8,8,0,0,1-11.32-11.32L142.69,144H112a40,40,0,0,0-40,40,8,8,0,0,1-16,0,56.06,56.06,0,0,1,56-56h30.69L130.34,115.31a8,8,0,0,1,11.32-11.32Z"></path></svg>' : '<svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z"></path></svg>';
         alert.innerHTML = icon + '<span>' + message + '</span>';
 
         container.innerHTML = '';
@@ -172,7 +188,7 @@
             if (!data.reports || data.reports.length === 0) {
                 container.innerHTML = `
                     <div class="card" style="text-align: center; padding: 40px; color: var(--text-sub);">
-                        <i class="ph-duotone ph-calendar-x" style="font-size: 32px; margin-bottom: 16px; opacity: 0.5;"></i>
+                        <svg width="32" height="32" viewBox="0 0 256 256" fill="currentColor" style="margin-bottom: 16px; opacity: 0.5;"><path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Zm-34.34-85.66L116,179.9l-29.66-29.66a8,8,0,0,0-11.32,11.32l35.32,35.32a8,8,0,0,0,11.32,0l63.32-63.32a8,8,0,0,0-11.32-11.32Z"></path></svg>
                         <p>No scheduled reports yet.</p>
                     </div>`;
                 return;
@@ -180,20 +196,20 @@
 
             container.innerHTML = data.reports.map(report => `
                 <div class="card" style="padding: 24px; display: flex; align-items: center; gap: 24px; margin-bottom: 20px;">
-                    <div class="card-icon" style="margin-bottom: 0; width: 48px; height: 48px; font-size: 24px;"><i class="ph-bold ph-file-text"></i></div>
+                    <div class="card-icon" style="margin-bottom: 0; width: 48px; height: 48px; font-size: 24px;"><svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"></path></svg></div>
                     
                     <div style="flex: 1;">
                         <h3 style="font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 4px;">
                             ${report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1)} Report
                         </h3>
                         <div style="font-size: 14px; color: var(--text-sub); display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
-                            <span style="display: flex; align-items: center; gap: 6px;"><i class="ph-bold ph-clock"></i> ${report.frequency.charAt(0).toUpperCase() + report.frequency.slice(1)} @ ${report.delivery_time}</span>
-                            <span style="display: flex; align-items: center; gap: 6px;"><i class="ph-bold ph-envelope-simple"></i> ${report.delivery_email}</span>
+                            <span style="display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm64-88H128a8,8,0,0,1-8-8V48a8,8,0,0,1,16,0v64h56a8,8,0,0,1,0,16Z"></path></svg> ${report.frequency.charAt(0).toUpperCase() + report.frequency.slice(1)} @ ${report.delivery_time}</span>
+                            <span style="display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M224,48H32a8,8,0,0,0-8,8V192a8,8,0,0,0,8,8H224a8,8,0,0,0,8-8V56A8,8,0,0,0,224,48Zm-8,144H40V74.19l75.47,65a16,16,0,0,0,21.06,0L216,74.19V192Zm-9.15-128H49.15l78.85,67.89Z"></path></svg> ${report.delivery_email}</span>
                         </div>
                     </div>
 
                     <button class="nav-btn" style="color: #ef4444; border-color: #fecaca; background: #fff; padding: 10px 16px;" onclick="deleteReport(${report.id})">
-                        <i class="ph-bold ph-trash"></i> Delete
+                        <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"></path></svg> Delete
                     </button>
                 </div>
             `).join('');
@@ -230,7 +246,7 @@
         const data = Object.fromEntries(formData);
 
         btn.disabled = true;
-        btn.innerHTML = 'Creating... <i class="ph-bold ph-spinner ph-spin"></i>';
+        btn.innerHTML = 'Creating... <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>';
 
         try {
             const response = await fetch('/api/scheduled-reports', {
