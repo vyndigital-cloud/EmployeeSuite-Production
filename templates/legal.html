@@ -1,165 +1,103 @@
-{% extends "layout_polaris.html" %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block extra_head %}
-<style>
-    .legal-container {
-        max-width: 800px;
-        margin: 0 auto;
-    }
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Employee Suite</title>
 
-    .legal-header {
-        text-align: center;
-        margin-bottom: 40px;
-    }
+    <!-- Shopify App Bridge -->
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <script>
+        var host = "{{ host }}";
+        var shop = "{{ shop }}";
+        if (host) {
+            var AppBridge = window['app-bridge'];
+            var createApp = AppBridge.default;
+            var app = createApp({
+                apiKey: "{{ config_api_key }}",
+                host: host,
+                forceRedirect: true
+            });
+        }
+    </script>
 
-    .legal-header h1 {
-        font-size: 28px;
-        font-weight: 700;
-        color: var(--text-main);
-        margin-bottom: 8px;
-    }
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
-    .legal-content-card {
-        background: #fff;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 40px;
-        line-height: 1.8;
-        color: var(--text-main);
-        font-size: 15px;
-    }
+    <style>
+        .legal-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
 
-    .legal-content-card h2 {
-        font-size: 18px;
-        font-weight: 600;
-        color: var(--text-main);
-        margin: 32px 0 16px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
+        .legal-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
 
-    .legal-content-card h2:first-child {
-        margin-top: 0;
-    }
+        .legal-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
 
-    .legal-content-card p {
-        margin-bottom: 16px;
-        color: var(--text-sub);
-    }
+        .legal-content {
+            background: #fff;
+            border-radius: 12px;
+            padding: 40px;
+            border: 1px solid #e1e3e5;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            line-height: 1.8;
+            color: #4b5563;
+        }
 
-    .legal-content-card ul,
-    .legal-content-card ol {
-        margin-bottom: 16px;
-        padding-left: 24px;
-        color: var(--text-sub);
-    }
+        .legal-content h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #111;
+            margin: 32px 0 16px;
+        }
 
-    .legal-content-card li {
-        margin-bottom: 8px;
-    }
+        .legal-content p {
+            margin-bottom: 16px;
+        }
 
-    .legal-footer {
-        margin-top: 40px;
-        text-align: center;
-        border-top: 1px solid var(--border);
-        padding-top: 24px;
-        color: var(--text-sub);
-        font-size: 14px;
-    }
-</style>
-{% endblock %}
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            text-decoration: none;
+            margin-top: 40px;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
 
-{% block content %}
-<div class="legal-container">
-    <header class="legal-header">
-        <h1>{{ title }}</h1>
-    </header>
+        .back-link:hover {
+            color: #1a1a1a;
+        }
+    </style>
+</head>
 
-    <div class="legal-content-card">
-        {% if 'Privacy' in title %}
-        <p><strong>Last updated: January 2025</strong></p>
-        <p>Employee Suite ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains
-            how we collect, use, and safeguard your information when you use our Shopify application.</p>
+<body>
+    <div class="legal-container">
+        <header class="legal-header">
+            <h1>{{ title }}</h1>
+        </header>
 
-        <h2>Information We Collect</h2>
-        <p>We collect information you provide directly to us, such as when you create an account, connect your Shopify
-            store, or contact us for support.</p>
-        <ul>
-            <li><strong>Store Data:</strong> We access your Shopify store data including orders, products, and inventory
-                as necessary to provide our services.</li>
-            <li><strong>Usage Information:</strong> We collect information about how you use our application, including
-                features accessed and actions taken.</li>
-        </ul>
+        <div class="legal-content">
+            {{ content|safe }}
+        </div>
 
-        <h2>How We Use Your Information</h2>
-        <p>We use the information we collect to:</p>
-        <ul>
-            <li>Provide, maintain, and improve our services</li>
-            <li>Process transactions and send related information</li>
-            <li>Send technical notices and support messages</li>
-            <li>Respond to your comments and questions</li>
-        </ul>
-
-        <h2>Data Security</h2>
-        <p>We implement appropriate security measures to protect your personal information against unauthorized access,
-            alteration, disclosure, or destruction. Your data is encrypted at rest and in transit.</p>
-
-        <h2>Third-Party Services</h2>
-        <p>Our application integrates with Shopify and may use other third-party services (such as analytics providers).
-            These services have their own privacy policies.</p>
-
-        <h2>Contact Us</h2>
-        <p>If you have any questions about this Privacy Policy, please contact us at <a
-                href="mailto:support@employeesuite.com"
-                style="color: var(--primary); text-decoration: none;">support@employeesuite.com</a>.</p>
-
-        {% elif 'Terms' in title %}
-        <p><strong>Last updated: January 2025</strong></p>
-        <p>These Terms of Service ("Terms") govern your use of Employee Suite ("Service") operated by Employee Suite
-            ("us", "we", or "our").</p>
-
-        <h2>Acceptance of Terms</h2>
-        <p>By accessing and using this service, you accept and agree to be bound by the terms and provision of this
-            agreement.</p>
-
-        <h2>Use License</h2>
-        <p>Permission is granted to temporarily use Employee Suite for personal, non-commercial transitory viewing only.
-            You may not:</p>
-        <ul>
-            <li>Modify or copy the materials;</li>
-            <li>Use the materials for any commercial purpose, or for any public display (commercial or non-commercial);
-            </li>
-            <li>Attempt to decompile or reverse engineer any software contained on Employee Suite's web site;</li>
-        </ul>
-
-        <h2>Disclaimer</h2>
-        <p>The information on this application is provided on an 'as is' basis. To the fullest extent permitted by law,
-            this Company excludes all representations, warranties, conditions and terms.</p>
-
-        <h2>Limitations</h2>
-        <p>In no event shall Employee Suite or its suppliers be liable for any damages (including, without limitation,
-            damages for loss of data or profit, or due to business interruption) arising out of the use or inability to
-            use the materials on Employee Suite's application.</p>
-
-        <h2>Privacy Policy</h2>
-        <p>Your privacy is important to us. Please review our Privacy Policy, which also governs your use of the
-            Service.</p>
-
-        <h2>Modifications</h2>
-        <p>Employee Suite may revise these terms of service at any time without notice. By using this application, you
-            are agreeing to be bound by the then current version of these terms of service.</p>
-
-        <h2>Contact Information</h2>
-        <p>If you have any questions about these Terms, please contact us at <a href="mailto:support@employeesuite.com"
-                style="color: var(--primary); text-decoration: none;">support@employeesuite.com</a>.</p>
-
-        {% else %}
-        {{ content|safe }}
-        {% endif %}
+        <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="back-link">
+            <i class="ph-bold ph-arrow-left"></i>
+            Back to Dashboard
+        </a>
     </div>
+</body>
 
-    <div class="legal-footer">
-        <p>© 2026 Employee Suite. All rights reserved.</p>
-    </div>
-</div>
-{% endblock %}
+</html>
