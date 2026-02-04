@@ -198,55 +198,71 @@ body {
 /* Comparison Table */
 .comparison-container {
     margin-bottom: 2rem;
-    overflow-x: auto;
-    border-radius: 8px;
-    border: 1px solid var(--border);
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid rgba(225, 227, 229, 0.8);
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .comparison-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 0.95rem;
     text-align: left;
 }
 
 .comparison-table th,
 .comparison-table td {
-    padding: 12px 16px;
+    padding: 16px 20px;
     border-bottom: 1px solid var(--border);
+    transition: background-color 0.2s ease;
 }
 
 .comparison-table th {
-    background: #f9fafb;
+    background: #f8fafc;
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-sub);
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .comparison-table td {
     color: var(--text-main);
+    vertical-align: middle;
+}
+
+/* Row Hover Effect */
+.comparison-table tr:hover td {
+    background-color: #f9fafb;
 }
 
 .comparison-table tr:last-child td {
     border-bottom: none;
 }
 
+/* Pro Column Highlight */
 .comparison-table .pro-col {
-    background: #f0fdf4;
-    /* Light green background for Pro column */
+    background: linear-gradient(to bottom, #f0fdf4, #f7fee7);
     font-weight: 600;
+    color: var(--primary-dark);
+    position: relative;
+    border-left: 1px solid #dcfce7;
 }
 
 .comparison-table th.pro-col {
+    background: #ecfdf5;
     color: var(--primary);
-    background: #e3fcef;
+    border-bottom: 2px solid #34d399;
 }
 
 /* Icons in table */
 .comparison-table svg {
     vertical-align: middle;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.05));
 }
 
 /* CTA Button */
