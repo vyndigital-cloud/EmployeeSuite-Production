@@ -851,14 +851,6 @@ def privacy():
     """)
 
 
-@core_bp.route("/install")
-def install_redirect():
-    """Redirect to OAuth install"""
-    shop = request.args.get("shop", "")
-    host = request.args.get("host", "")
-    return redirect(url_for("oauth.install", shop=shop, host=host))
-
-
 # ---------------------------------------------------------------------------
 # Core API Endpoints
 # ---------------------------------------------------------------------------
