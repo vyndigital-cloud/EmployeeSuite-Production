@@ -235,6 +235,37 @@ function showLoading(message) {
     document.getElementById('output').innerHTML = '<div class="loading"><div class="spinner"></div><div class="loading-text">' + message + '</div></div>';
 }
 
+// Global function to show subscribe prompt
+window.showSubscribePrompt = function() {
+    var outputEl = document.getElementById('output');
+    if (!outputEl) return;
+    
+    // Get shop/host params for URL
+    var params = new URLSearchParams(window.location.search);
+    var shop = params.get('shop') || window.SHOP_PARAM || '';
+    var host = params.get('host') || window.HOST_PARAM || '';
+    
+    var subscribeUrl = '/subscribe';
+    var sep = '?';
+    if (shop) { subscribeUrl += sep + 'shop=' + encodeURIComponent(shop); sep = '&'; }
+    if (host) { subscribeUrl += sep + 'host=' + encodeURIComponent(host); }
+    
+    outputEl.innerHTML = `
+        <div style="padding: 40px; background: #fff; border-radius: 16px; border: 1px solid #e5e7eb; text-align: center; animation: fadeIn 0.3s ease-in; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+            <div style="margin-bottom: 20px; display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background: #FEF2F2; border-radius: 50%;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+            </div>
+            <h3 style="color: #111827; margin-bottom: 8px; font-size: 20px; font-weight: 700;">Subscription Required</h3>
+            <p style="color: #6B7280; margin-bottom: 24px; font-size: 15px; line-height: 1.5;">This feature is available with Employee Suite Pro. Subscribe to unlock full access.</p>
+            <a href="${subscribeUrl}" onclick="openPage('${subscribeUrl}'); return false;" style="display: inline-block; background: #2563EB; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.2s; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">Upgrade Now →</a>
+            <p style="color: #9CA3AF; margin-top: 16px; font-size: 13px;">$39/month • 7-day money-back guarantee</p>
+        </div>
+    `;
+};
+
 function cancelPreviousRequest(requestType) {
     if (activeRequests[requestType] && activeRequests[requestType].abort) {
         activeRequests[requestType].abort();
@@ -286,6 +317,8 @@ window.processOrders = function(button) {
             
             if (d.success) {
                 document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Orders Loaded</h3><div style="margin-top: 12px;">' + (d.html || d.message || 'Orders processed successfully') + '</div></div>';
+            } else if (d.action === 'subscribe') {
+                window.showSubscribePrompt();
             } else {
                 document.getElementById('output').innerHTML = '<div style="color: #dc2626;">' + (d.error || 'Failed to load orders') + '</div>';
             }
@@ -341,6 +374,8 @@ window.updateInventory = function(button) {
             
             if (d.success) {
                 document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Inventory Updated</h3><div style="margin-top: 12px;">' + (d.html || d.message || 'Inventory updated successfully') + '</div></div>';
+            } else if (d.action === 'subscribe') {
+                window.showSubscribePrompt();
             } else {
                 document.getElementById('output').innerHTML = '<div style="color: #dc2626;">' + (d.error || 'Failed to update inventory') + '</div>';
             }
@@ -396,6 +431,8 @@ window.generateReport = function(button) {
             
             if (d.success) {
                 document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Revenue Report Generated</h3><div style="margin-top: 12px;">' + (d.html || d.message || 'Report generated successfully') + '</div></div>';
+            } else if (d.action === 'subscribe') {
+                window.showSubscribePrompt();
             } else {
                 document.getElementById('output').innerHTML = '<div style="color: #dc2626;">' + (d.error || 'Failed to generate report') + '</div>';
             }
