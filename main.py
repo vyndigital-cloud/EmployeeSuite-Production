@@ -104,6 +104,7 @@ if missing_vars:
 # Create the app with better error handling
 app = None
 startup_error_details = None
+factory_error_details = None
 
 try:
     logger.info("Attempting to create app via app_factory.create_app()")
@@ -133,6 +134,7 @@ except Exception as startup_error:
             'method': 'startup.create_app'
         })
     except Exception as factory_error:
+        factory_error_details = str(factory_error)
         logger.error(f"Startup factory also failed: {factory_error}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         error_logger.log_error(factory_error, "FACTORY_ERROR")
@@ -152,7 +154,7 @@ except Exception as startup_error:
                 "status": "fallback app running", 
                 "error": "main app failed to start",
                 "startup_error": startup_error_details,
-                "factory_error": str(factory_error)
+                "factory_error": factory_error_details
             })
 
         @app.route("/health")
@@ -161,7 +163,7 @@ except Exception as startup_error:
                 "status": "fallback healthy",
                 "errors": {
                     "startup_error": startup_error_details,
-                    "factory_error": str(factory_error)
+                    "factory_error": factory_error_details
                 }
             })
 
