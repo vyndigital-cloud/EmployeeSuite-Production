@@ -67,8 +67,12 @@ APP_URL = os.getenv("SHOPIFY_APP_URL", "https://employeesuite-production.onrende
 
 def safe_redirect(url, shop=None, host=None):
     """Safe redirect for embedded/standalone contexts - App Bridge compliant"""
+    from urllib.parse import quote
+    
     is_embedded = bool(host) or bool(shop) or request.args.get("embedded") == "1"
     if is_embedded:
+        # Ensure URL is properly encoded for JavaScript
+        safe_url = quote(url, safe=':/?#[]@!$&\'()*+,;=')
         redirect_html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -77,7 +81,7 @@ def safe_redirect(url, shop=None, host=None):
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <script>
         (function() {{
-            var targetUrl = '{url}';
+            var targetUrl = '{safe_url}';
             if (targetUrl.includes('myshopify.com') || targetUrl.includes('shopify.com')) {{
                 if (window.shopify && window.shopify.Redirect) {{
                     window.shopify.Redirect.dispatch(window.shopify.Redirect.Action.REMOTE, targetUrl);
@@ -91,7 +95,7 @@ def safe_redirect(url, shop=None, host=None):
     </script>
 </head>
 <body>
-    <p>Redirecting... <a href="{url}">Click here if not redirected</a></p>
+    <p>Redirecting... <a href="{safe_url}">Click here if not redirected</a></p>
 </body>
 </html>"""
         return Response(redirect_html, mimetype="text/html")
@@ -646,13 +650,7 @@ def create_charge():
         pass
 
     if not user:
-        subscribe_url = url_for(
-            "billing.subscribe",
-            error="Please connect your Shopify store first.",
-            shop=shop,
-            host=host,
-            plan=plan_type,
-        )
+        subscribe_url = f"/billing/subscribe?error=Please connect your Shopify store first.&shop={shop}&host={host}&plan={plan_type}"
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
     # Try to find the specific store for this shop first
@@ -687,12 +685,7 @@ def create_charge():
     
     if not access_token:
         logger.error(f"Store {shop_url} has no valid access token")
-        settings_url = url_for(
-            "shopify.shopify_settings",
-            error="Store not connected. Please reconnect.",
-            shop=shop_url,
-            host=host,
-        )
+        settings_url = "/settings?error=Store not connected. Please reconnect.&shop=" + shop_url + "&host=" + host
         return safe_redirect(settings_url, shop=shop_url, host=host)
 
     # Optional: Test the connection with a simple API call
@@ -702,12 +695,7 @@ def create_charge():
         test_result = client.execute_query("query { shop { name } }")
         if "error" in test_result:
             logger.error(f"Store {shop_url} connection test failed: {test_result['error']}")
-            settings_url = url_for(
-                "shopify.shopify_settings",
-                error="Store connection issue. Please reconnect.",
-                shop=shop_url,
-                host=host,
-            )
+            settings_url = "/settings?error=Store connection issue. Please reconnect.&shop=" + shop_url + "&host=" + host
             return safe_redirect(settings_url, shop=shop_url, host=host)
     except Exception as e:
         logger.warning(f"Store connection test failed for {shop_url}: {e}")
@@ -733,7 +721,7 @@ def create_charge():
         ):
             store.disconnect()
             db.session.commit()
-            install_url = url_for("oauth.install", shop=shop_url, host=host)
+            install_url = f"/install?shop={shop_url}&host={host}"
             return render_template_string(f"""
             <!DOCTYPE html>
             <html><head><meta charset="utf-8"><title>Redirecting...</title>
@@ -780,13 +768,7 @@ def confirm_charge():
 
     if not charge_id:
         logger.warning("No charge_id in billing confirm callback")
-        subscribe_url = url_for(
-            "billing.subscribe",
-            error="Missing charge information",
-            shop=shop,
-            host=host,
-            plan=plan_type,
-        )
+        subscribe_url = f"/billing/subscribe?error=Missing charge information&shop={shop}&host={host}&plan={plan_type}"
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
     # Find user
@@ -815,25 +797,13 @@ def confirm_charge():
 
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if not store:
-        subscribe_url = url_for(
-            "billing.subscribe",
-            error="Store not found",
-            shop=shop,
-            host=host,
-            plan=plan_type,
-        )
+        subscribe_url = f"/billing/subscribe?error=Store not found&shop={shop}&host={host}&plan={plan_type}"
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
     shop_url = store.shop_url
     access_token = store.get_access_token()
     if not access_token:
-        subscribe_url = url_for(
-            "billing.subscribe",
-            error="Store not properly connected.",
-            shop=shop,
-            host=host,
-            plan=plan_type,
-        )
+        subscribe_url = f"/billing/subscribe?error=Store not properly connected.&shop={shop}&host={host}&plan={plan_type}"
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
     status_result = get_charge_status(shop_url, access_token, charge_id)
@@ -841,13 +811,7 @@ def confirm_charge():
     if not status_result.get("success"):
         store.charge_id = None
         db.session.commit()
-        subscribe_url = url_for(
-            "billing.subscribe",
-            error="Could not verify subscription.",
-            shop=shop,
-            host=host,
-            plan=plan_type,
-        )
+        subscribe_url = f"/billing/subscribe?error=Could not verify subscription.&shop={shop}&host={host}&plan={plan_type}"
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
     status = status_result.get("status", "")
@@ -861,26 +825,14 @@ def confirm_charge():
             )
             if not store:
                 db.session.rollback()
-                subscribe_url = url_for(
-                    "billing.subscribe",
-                    error="Store not found",
-                    shop=shop,
-                    host=host,
-                    plan=plan_type,
-                )
+                subscribe_url = f"/billing/subscribe?error=Store not found&shop={shop}&host={host}&plan={plan_type}"
                 return safe_redirect(subscribe_url, shop=shop, host=host)
 
             locked_access_token = store.get_access_token()
             if not locked_access_token:
                 logger.error(f"No access token found for store {shop_url} during charge confirmation for user {user.id}")
                 db.session.rollback()
-                subscribe_url = url_for(
-                    "billing.subscribe",
-                    error="Store not properly connected",
-                    shop=shop,
-                    host=host,
-                    plan=plan_type,
-                )
+                subscribe_url = f"/billing/subscribe?error=Store not properly connected&shop={shop}&host={host}&plan={plan_type}"
                 return safe_redirect(subscribe_url, shop=shop, host=host)
 
             activate_result = activate_recurring_charge(
@@ -940,24 +892,12 @@ def confirm_charge():
             else:
                 db.session.rollback()
                 logger.error(f"Failed to activate charge for user {user.id}, shop {shop_url}: {activate_result.get('error')}")
-                subscribe_url = url_for(
-                    "billing.subscribe",
-                    error="Failed to activate subscription",
-                    shop=shop,
-                    host=host,
-                    plan=plan_type,
-                )
+                subscribe_url = f"/billing/subscribe?error=Failed to activate subscription&shop={shop}&host={host}&plan={plan_type}"
                 return safe_redirect(subscribe_url, shop=shop, host=host)
         except Exception as e:
             db.session.rollback()
             logger.error(f"Error in charge activation for user {user.id}, shop {shop_url}: {e}", exc_info=True)
-            subscribe_url = url_for(
-                "billing.subscribe",
-                error="Error processing subscription",
-                shop=shop,
-                host=host,
-                plan=plan_type,
-            )
+            subscribe_url = f"/billing/subscribe?error=Error processing subscription&shop={shop}&host={host}&plan={plan_type}"
             return safe_redirect(subscribe_url, shop=shop, host=host)
 
     elif status == "active":
@@ -983,35 +923,17 @@ def confirm_charge():
         except Exception as e:
             db.session.rollback()
             logger.error(f"Database error marking subscription active for user {user.id}, shop {shop_url}: {e}")
-            subscribe_url = url_for(
-                "billing.subscribe",
-                error="Error processing subscription",
-                shop=shop,
-                host=host,
-                plan=plan_type,
-            )
+            subscribe_url = f"/billing/subscribe?error=Error processing subscription&shop={shop}&host={host}&plan={plan_type}"
             return safe_redirect(subscribe_url, shop=shop, host=host)
 
     elif status == "declined":
         logger.info(f"Merchant declined subscription for {shop_url}")
-        subscribe_url = url_for(
-            "billing.subscribe",
-            error="Subscription was declined",
-            shop=shop,
-            host=host,
-            plan=plan_type,
-        )
+        subscribe_url = f"/billing/subscribe?error=Subscription was declined&shop={shop}&host={host}&plan={plan_type}"
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
     else:
         logger.warning(f"Unexpected charge status '{status}' for {shop_url}")
-        subscribe_url = url_for(
-            "billing.subscribe",
-            error=f"Subscription status: {status}",
-            shop=shop,
-            host=host,
-            plan=plan_type,
-        )
+        subscribe_url = f"/billing/subscribe?error=Subscription status: {status}&shop={shop}&host={host}&plan={plan_type}"
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
 
@@ -1037,22 +959,12 @@ def cancel_subscription():
         pass
 
     if not user:
-        settings_url = url_for(
-            "shopify.shopify_settings",
-            error="Authentication required",
-            shop=shop,
-            host=host,
-        )
+        settings_url = f"/settings?error=Authentication required&shop={shop}&host={host}"
         return safe_redirect(settings_url, shop=shop, host=host)
 
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if not store or not store.charge_id:
-        settings_url = url_for(
-            "shopify.shopify_settings",
-            error="No active subscription found",
-            shop=shop,
-            host=host,
-        )
+        settings_url = f"/settings?error=No active subscription found&shop={shop}&host={host}"
         return safe_redirect(settings_url, shop=shop, host=host)
 
     url = f"https://{store.shop_url}/admin/api/{SHOPIFY_API_VERSION}/recurring_application_charges/{store.charge_id}.json"
@@ -1068,27 +980,15 @@ def cancel_subscription():
             store.charge_id = None
             db.session.commit()
             logger.info(f"Subscription cancelled for {store.shop_url}")
-            settings_url = url_for(
-                "shopify.shopify_settings",
-                success="Subscription cancelled",
-                shop=shop,
-                host=host,
-            )
+            settings_url = f"/settings?success=Subscription cancelled&shop={shop}&host={host}"
             return safe_redirect(settings_url, shop=shop, host=host)
         else:
             logger.error(f"Failed to cancel subscription: {response.status_code}")
-            settings_url = url_for(
-                "shopify.shopify_settings",
-                error="Failed to cancel subscription",
-                shop=shop,
-                host=host,
-            )
+            settings_url = f"/settings?error=Failed to cancel subscription&shop={shop}&host={host}"
             return safe_redirect(settings_url, shop=shop, host=host)
     except Exception as e:
         logger.error(f"Error cancelling subscription: {e}")
-        settings_url = url_for(
-            "shopify.shopify_settings", error=str(e), shop=shop, host=host
-        )
+        settings_url = f"/settings?error={str(e)}&shop={shop}&host={host}"
         return safe_redirect(settings_url, shop=shop, host=host)
 
 
