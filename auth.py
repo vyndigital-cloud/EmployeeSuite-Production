@@ -6,6 +6,7 @@ from flask import (
     current_app,
     jsonify,  # Add this import
     redirect,
+    render_template,  # Changed from render_template_string
     render_template_string,
     request,
     session,
@@ -40,147 +41,6 @@ def get_bcrypt():
     return Bcrypt(current_app)
 
 
-LOGIN_HTML = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Login - Employee Suite</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f6f6f7;
-            color: #202223;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 24px;
-            line-height: 1.5;
-        }
-        .login-container { width: 100%; max-width: 400px; }
-        .logo { text-align: center; font-size: 18px; font-weight: 600; color: #202223; margin-bottom: 40px; letter-spacing: -0.2px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .card {
-            background: #ffffff;
-            border: 1px solid #e1e3e5;
-            border-radius: 8px;
-            padding: 32px;
-        }
-        .card-title { font-size: 24px; font-weight: 600; color: #202223; margin-bottom: 24px; letter-spacing: -0.3px; }
-        .form-group { margin-bottom: 20px; }
-        .form-label { display: block; font-size: 13px; font-weight: 500; color: #202223; margin-bottom: 6px; }
-        .form-input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #e1e3e5;
-            border-radius: 6px;
-            font-size: 14px;
-            font-family: inherit;
-            background: #ffffff;
-            transition: border-color 0.15s;
-        }
-        .form-input:focus {
-            outline: none;
-            border-color: #008060;
-            box-shadow: 0 0 0 1px #008060;
-        }
-        .btn {
-            width: 100%;
-            padding: 10px 16px;
-            background: #008060;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            margin-top: 8px;
-            transition: background 0.15s;
-        }
-        .btn:hover {
-            background: #006e52;
-        }
-        .banner-error {
-            background: #fff4f4;
-            border: 1px solid #fecaca;
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            color: #d72c0d;
-            font-weight: 400;
-        }
-        .footer-link { text-align: center; margin-top: 24px; font-size: 14px; color: #6d7175; }
-        .footer-link a { color: #008060; text-decoration: none; font-weight: 500; }
-        .footer-link a:hover { text-decoration: underline; }
-
-        /* Mobile */
-        @media (max-width: 768px) {
-            body { padding: 20px; }
-            .card { padding: 24px; }
-            .card-title { font-size: 20px; }
-        }
-        @media (max-width: 480px) {
-            .card { padding: 20px; }
-            .card-title { font-size: 18px; }
-        }
-
-    </style>
-</head>
-<body>
-    <div class="login-container">
-        <div style="text-align: center; margin-bottom: 24px;">
-            <a href="/" style="display: inline-block; text-decoration: none;">
-                <img src="https://i.imgur.com/ujCMb8G.png" alt="Employee Suite" style="width: 160px; height: 160px; filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(114, 176, 94, 0.8)); animation: pulse-glow 3s ease-in-out infinite; cursor: pointer;">
-            </a>
-        </div>
-        <style>
-            @keyframes pulse-glow {
-                0%, 100% {
-                    filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(114, 176, 94, 0.8));
-                    transform: scale(1);
-                }
-                50% {
-                    filter: drop-shadow(0 0 60px rgba(255, 255, 255, 1)) drop-shadow(0 0 30px rgba(114, 176, 94, 1));
-                    transform: scale(1.05);
-                }
-            }
-        </style>
-        <div class="card">
-            <h1 class="card-title">Login</h1>
-            {% if error %}
-            <div class="banner-error">{{ error }}</div>
-            {% endif %}
-            <form method="POST">
-                {% if shop %}<input type="hidden" name="shop" value="{{ shop }}">{% endif %}
-                {% if host %}<input type="hidden" name="host" value="{{ host }}">{% endif %}
-                {% if embedded %}<input type="hidden" name="embedded" value="{{ embedded }}">{% endif %}
-                <div class="form-group">
-                    <label class="form-label">Email</label>
-                    <input type="email" name="email" class="form-input" required{% if not embedded %} autofocus{% endif %}>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Password</label>
-                    <input type="password" name="password" class="form-input" required>
-                </div>
-                <button type="submit" class="btn">Login</button>
-            </form>
-        </div>
-        <div class="footer-link">
-            Don't have an account? <a href="{{ url_for('auth.register') }}">Sign up</a>
-        </div>
-        <div class="footer-link" style="margin-top: 12px;">
-            <a href="{{ url_for('auth.forgot_password') }}">Forgot password?</a>
-        </div>
-        <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
-            <a href="/terms" style="color: #999;">Terms</a> • <a href="/privacy" style="color: #999;">Privacy</a>
-        </div>
-    </div>
-</body>
-</html>
-"""
 
 REGISTER_HTML = """
 <!DOCTYPE html>
@@ -402,8 +262,8 @@ def login():
 
         # Input validation
         if not email or not password:
-            return render_template_string(
-                LOGIN_HTML,
+            return render_template(
+                "auth/login.html",
                 error="Email and password are required",
                 shop=shop,
                 embedded=embedded,
@@ -411,8 +271,8 @@ def login():
             )
 
         if not validate_email(email):
-            return render_template_string(
-                LOGIN_HTML,
+            return render_template(
+                "auth/login.html",
                 error="Invalid email format",
                 shop=shop,
                 embedded=embedded,
@@ -445,8 +305,8 @@ def login():
                     user = User.query.filter_by(email=email).first()
                 except Exception as fallback_error:
                     logger.error(f"SQLite fallback also failed: {fallback_error}")
-                    return render_template_string(
-                        LOGIN_HTML,
+                    return render_template(
+                        "auth/login.html",
                         error="Database connection error. Please try again in a moment.",
                         shop=shop,
                         embedded=embedded,
@@ -454,8 +314,8 @@ def login():
                     )
             else:
                 logger.error(f"Database error: {db_error}")
-                return render_template_string(
-                    LOGIN_HTML,
+                return render_template(
+                    "auth/login.html",
                     error="Database error. Please try again.",
                     shop=shop,
                     embedded=embedded,
@@ -463,8 +323,8 @@ def login():
                 )
 
         if not user:
-            return render_template_string(
-                LOGIN_HTML,
+            return render_template(
+                "auth/login.html",
                 error="Invalid email or password",
                 shop=shop,
                 embedded=embedded,
@@ -472,8 +332,8 @@ def login():
             )
 
         if not user.password_hash:
-            return render_template_string(
-                LOGIN_HTML,
+            return render_template(
+                "auth/login.html",
                 error="Invalid email or password",
                 shop=shop,
                 embedded=embedded,
@@ -482,8 +342,8 @@ def login():
 
         bcrypt = get_bcrypt()
         if not bcrypt:
-            return render_template_string(
-                LOGIN_HTML,
+            return render_template(
+                "auth/login.html",
                 error="System error. Please try again.",
                 shop=shop,
                 embedded=embedded,
@@ -493,8 +353,8 @@ def login():
         try:
             password_valid = bcrypt.check_password_hash(user.password_hash, password)
         except Exception:
-            return render_template_string(
-                LOGIN_HTML,
+            return render_template(
+                "auth/login.html",
                 error="System error. Please try again.",
                 shop=shop,
                 embedded=embedded,
@@ -543,8 +403,8 @@ def login():
                 pass
             return redirect(url_for("dashboard"))
 
-        return render_template_string(
-            LOGIN_HTML,
+        return render_template(
+            "auth/login.html",
             error="Invalid email or password",
             shop=shop,
             embedded=embedded,
@@ -552,7 +412,7 @@ def login():
         )
 
     # GET request - render login page with embedded params preserved
-    return render_template_string(LOGIN_HTML, shop=shop, embedded=embedded, host=host)
+    return render_template("auth/login.html", shop=shop, embedded=embedded, host=host)
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
