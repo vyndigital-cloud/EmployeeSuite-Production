@@ -73,6 +73,7 @@ def create_app():
         ('shopify_routes', 'shopify_bp'),
         ('billing', 'billing_bp'),
         ('features_pages', 'features_pages_bp'),
+        ('features_routes', 'features_bp'),
         ('legal_routes', 'legal_bp'),
         ('gdpr_compliance', 'gdpr_bp'),
         ('webhook_shopify', 'webhook_shopify_bp'),

@@ -12,7 +12,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-features_bp = Blueprint("features", __name__, url_prefix="/features")
+features_bp = Blueprint("features_api", __name__, url_prefix="/features")
 
 
 @features_bp.route("/api/trigger-report-email", methods=["POST"])

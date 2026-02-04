@@ -315,13 +315,6 @@ if app and startup_error_details is None:
             error_logger.log_error(e, "API_GENERATE_REPORT")
             return jsonify({"success": False, "error": str(e)}), 500
 
-    # Register features blueprint
-    try:
-        from features_routes import features_bp
-        app.register_blueprint(features_bp)
-        logger.info("Features blueprint registered successfully")
-    except ImportError as e:
-        logger.error(f"Failed to import features blueprint: {e}")
 
 
 
