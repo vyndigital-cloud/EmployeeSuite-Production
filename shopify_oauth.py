@@ -605,6 +605,7 @@ def _handle_oauth_callback():
         session.modified = True
         # Additional session data for debugging
         session["oauth_completed"] = True
+        from datetime import datetime
         session["last_oauth"] = datetime.utcnow().isoformat()
     except Exception as session_error:
         logger.error(f"Session save error: {session_error}")
@@ -668,6 +669,7 @@ def _handle_oauth_callback():
     else:
         # For standalone, redirect to dashboard with shop parameter
         try:
+            from flask import url_for
             dashboard_url = url_for("core.home", shop=shop)
         except Exception:
             dashboard_url = f"/dashboard?shop={shop}"
