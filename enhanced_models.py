@@ -27,7 +27,7 @@ except ImportError as e:
     
     PLAN_FREE = "free"
     PLAN_PRO = "pro"
-    PLAN_PRICES = {"pro": 39.00, "business": 99.00}
+    PLAN_PRICES = {"pro": 39.00}
     PLAN_FEATURES = {}
     
     class UserSettings:

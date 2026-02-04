@@ -754,8 +754,12 @@ def get_user_plan_type(user):
 
 def get_plan_features(user):
     """Get features dict for user's plan"""
-    plan_type = get_user_plan_type(user)
-    return PLAN_FEATURES.get(plan_type, PLAN_FEATURES[PLAN_FREE])
+    if user.is_subscribed:
+        return PLAN_FEATURES[PLAN_PRO]
+    elif user.is_trial_active():
+        return PLAN_FEATURES[PLAN_PRO]  # Trial gets Pro features
+    else:
+        return PLAN_FEATURES[PLAN_FREE]  # Expired trial gets no features
 
 def get_user_settings(user):
     """Get or create user settings"""
@@ -775,20 +779,35 @@ def is_pro_or_higher(user):
     return user.is_subscribed
 
 def can_export_csv(user):
-    """Check if user can export CSV files - requires paid subscription"""
-    return user.is_subscribed
+    """Check if user can export CSV files"""
+    features = get_plan_features(user)
+    return features.get('csv_exports', False)
 
 def can_auto_download(user):
-    """Check if user can use auto-download - requires paid subscription"""
-    return user.is_subscribed
+    """Check if user can use auto-download"""
+    features = get_plan_features(user)
+    return features.get('auto_download', False)
 
 def can_scheduled_reports(user):
-    """Check if user can use scheduled reports - requires paid subscription"""
-    return user.is_subscribed
+    """Check if user can use scheduled reports"""
+    features = get_plan_features(user)
+    return features.get('scheduled_reports', False)
+
+def can_email_reports(user):
+    """Check if user can use email reports"""
+    features = get_plan_features(user)
+    return features.get('email_reports', False)
+
+def can_sms_reports(user):
+    """Check if user can use SMS reports"""
+    features = get_plan_features(user)
+    return features.get('sms_reports', False)
 
 def can_multi_store(user):
-    """Check if user can connect multiple stores - requires paid subscription"""
-    return user.is_subscribed
+    """Check if user can connect multiple stores"""
+    features = get_plan_features(user)
+    stores_limit = features.get('stores_limit', 1)
+    return stores_limit == -1 or stores_limit > 1
 
 def get_stores_limit(user):
     """Get max stores allowed for user's plan"""
