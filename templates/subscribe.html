@@ -163,7 +163,8 @@
                         <input type="hidden" name="host" value="{{ host }}">
                         <input type="hidden" name="plan" value="{{ plan }}">
 
-                        <button type="submit" class="cta-button" style="margin-bottom: 12px;">
+                        <button type="submit" class="cta-button" style="margin-bottom: 12px;" {% if not shop %}disabled
+                            title="Store context missing" {% endif %}>
                             <span>Start 7-Day Free Trial</span>
                             <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
                                 <path
@@ -180,7 +181,8 @@
                         <input type="hidden" name="plan" value="{{ plan }}">
                         <input type="hidden" name="skip_trial" value="true">
 
-                        <button type="submit" class="cta-button" style="background: #0ea5e9; border-color: #0ea5e9;">
+                        <button type="submit" class="cta-button" style="background: #0ea5e9; border-color: #0ea5e9;" {%
+                            if not shop %}disabled title="Store context missing" {% endif %}>
                             <span>Purchase Now - ${{ price }}/month</span>
                             <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
                                 <path
@@ -189,6 +191,12 @@
                             </svg>
                         </button>
                     </form>
+                    {% if not shop %}
+                    <div style="text-align: center; margin-top: 10px;">
+                        <a href="/login" style="color: #0ea5e9; text-decoration: none; font-size: 14px;">Please login to
+                            subscribe</a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             <div class="footer-actions">
