@@ -538,6 +538,19 @@ def _handle_oauth_callback():
     session.permanent = True
     session.modified = True
 
+    # Handle redirect after OAuth - check if this is an embedded app (App Store installation)
+    # Shopify sends 'host' parameter for embedded apps
+    # Extract host BEFORE using it for login logic
+    host = request.args.get("host")
+
+    # Also check state for host (in case it was passed through from install endpoint)
+    state = request.args.get("state", "")
+    if state and "||" in state and not host:
+        # State contains shop||host format
+        parts = state.split("||", 1)
+        if len(parts) == 2:
+            host = unquote(parts[1])
+
     # Store shop context in session with multiple keys for reliability
     session["shop"] = shop
     session["current_shop"] = shop  # Backup key
@@ -595,6 +608,7 @@ def _handle_oauth_callback():
     session["user_id"] = user.id
     session["_authenticated"] = True
     session["oauth_completed"] = True
+    from datetime import datetime
     session["last_oauth"] = datetime.utcnow().isoformat()
 
     if host:
@@ -606,9 +620,6 @@ def _handle_oauth_callback():
     session.modified = True
 
     logger.info(f"✅ OAuth complete: user {user.id}, shop {shop}, embedded: {bool(host)}")
-
-    # Register mandatory compliance webhooks (Shopify requirement)
-    register_compliance_webhooks(shop, access_token)
 
     logger.info(
         f"Session refreshed for user {user.id} (email: {user.email}) after OAuth callback - embedded: {is_embedded}"
