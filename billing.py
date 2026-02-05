@@ -68,6 +68,17 @@ APP_URL = os.getenv("SHOPIFY_APP_URL", "https://employeesuite-production.onrende
 from utils import safe_redirect
 
 
+def csrf_token():
+    """Generate CSRF token for templates"""
+    try:
+        from flask import session
+        if 'csrf_token' not in session:
+            session['csrf_token'] = secrets.token_urlsafe(32)
+        return session['csrf_token']
+    except:
+        return ''
+
+
 # Plan configuration (Production Price: $39/month - competitive pricing)
 PLANS = {
     "pro": {
@@ -548,7 +559,7 @@ def subscribe():
             # Add these missing variables for JavaScript
             "user_authenticated": user is not None,
             "store_connected": has_store,
-            "csrf_token": session.get('csrf_token', ''),
+            "csrf_token": csrf_token,
         }
 
         # Always render subscribe template - never redirect from this route
@@ -579,7 +590,7 @@ def subscribe():
             "has_store": False,
             "user_authenticated": False,
             "store_connected": False,
-            "csrf_token": '',
+            "csrf_token": csrf_token,
         }
         return render_template("subscribe.html", **error_vars)
 
