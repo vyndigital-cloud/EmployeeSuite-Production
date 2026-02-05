@@ -505,30 +505,50 @@ def delete_user(user_id):
     """Delete a user and their associated data"""
     try:
         import os
+        from flask import current_app
+        
         # Enforce password protection - require ADMIN_PASSWORD to be set
         admin_password = os.getenv('ADMIN_PASSWORD')
         if not admin_password:
+            current_app.logger.error("ADMIN_PASSWORD not set")
             return "Admin access is disabled. ADMIN_PASSWORD environment variable is not set.", 403
         
         if not session.get('admin_logged_in'):
+            current_app.logger.warning(f"Unauthorized delete attempt for user {user_id}")
             return redirect(url_for('admin.login'))
         
+        current_app.logger.info(f"Attempting to delete user {user_id}")
         user = User.query.get(user_id)
-        if user:
-            try:
-                # Delete associated stores
-                ShopifyStore.query.filter_by(user_id=user.id).delete()
-                # Delete user
-                email = user.email
-                db.session.delete(user)
-                db.session.commit()
-                return redirect(url_for('admin.dashboard') + f'?deleted={email}')
-            except Exception as delete_error:
-                db.session.rollback()
-                current_app.logger.error(f"Error deleting user {user_id}: {delete_error}")
-                return redirect(url_for('admin.dashboard') + f'?error=Failed to delete user')
-        else:
+        
+        if not user:
+            current_app.logger.error(f"User {user_id} not found")
             return redirect(url_for('admin.dashboard') + '?error=User not found')
+        
+        try:
+            email = user.email
+            current_app.logger.info(f"Deleting user: {email} (ID: {user_id})")
+            
+            # Delete subscription plans using raw SQL to avoid schema issues
+            from sqlalchemy import text
+            db.session.execute(text("DELETE FROM subscription_plans WHERE user_id = :user_id"), {"user_id": user_id})
+            current_app.logger.info(f"Deleted subscription plans for user {email}")
+            
+            # Delete associated stores
+            stores_deleted = ShopifyStore.query.filter_by(user_id=user.id).delete()
+            current_app.logger.info(f"Deleted {stores_deleted} stores for user {email}")
+            
+            # Delete user
+            db.session.delete(user)
+            db.session.commit()
+            
+            current_app.logger.info(f"Successfully deleted user {email}")
+            return redirect(url_for('admin.dashboard') + f'?deleted={email}')
+            
+        except Exception as delete_error:
+            db.session.rollback()
+            current_app.logger.error(f"Error deleting user {user_id}: {delete_error}", exc_info=True)
+            return redirect(url_for('admin.dashboard') + f'?error=Database error: {str(delete_error)}')
+            
     except Exception as e:
+        current_app.logger.error(f"Unexpected error in delete_user: {e}", exc_info=True)
         return redirect(url_for('admin.dashboard') + f'?error={str(e)}')
-
