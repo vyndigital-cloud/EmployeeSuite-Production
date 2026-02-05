@@ -47,20 +47,36 @@ def shopify_settings():
     try:
         if current_user.is_authenticated:
             user = current_user
+            logger.debug(f"Found authenticated user: {user.id}")
         elif shop:
             # Try to find user from shop (for embedded apps)
             store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
             if store and store.user:
                 user = store.user
+                logger.debug(f"Found user via shop lookup: {user.id} for shop {shop}")
+            else:
+                # Try to find any store for this shop (including inactive ones)
+                store = ShopifyStore.query.filter_by(shop_url=shop).first()
+                if store and store.user:
+                    user = store.user
+                    logger.debug(f"Found user via inactive store lookup: {user.id} for shop {shop}")
     except Exception as e:
         logger.error(f"Error finding user in shopify_settings: {e}", exc_info=True)
-        # Continue with user=None, will redirect to appropriate auth flow
+        user = None
 
-    # If no user found, redirect to login (don't redirect to install - causes loops)
+    # If no user found, redirect to appropriate auth flow
     if not user:
-        # Redirect to login for both embedded and standalone
-        from flask import redirect, url_for
-        return redirect(url_for("auth.login"))
+        if shop:
+            # For embedded apps, redirect to install to start OAuth
+            install_url = f"/install?shop={shop}"
+            if host:
+                install_url += f"&host={host}"
+            logger.info(f"No user found for shop {shop}, redirecting to install")
+            return redirect(install_url)
+        else:
+            # For standalone, redirect to login
+            logger.info("No user found and no shop context, redirecting to login")
+            return redirect(url_for("auth.login"))
 
     # Get user's store
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
@@ -200,10 +216,22 @@ def connect_store():
         
         if "error" in result or "errors" in result:
             error_msg = result.get("error", "Token validation failed")
+            if "errors" in result:
+                error_msg = "; ".join([e.get("message", str(e)) for e in result["errors"]])
+            
             logger.warning(f"Access token test failed for {shop_url}: {error_msg}")
+            
+            # Check for specific error types
+            if "401" in str(error_msg) or "unauthorized" in error_msg.lower():
+                error_display = 'Access token is invalid or expired. Please generate a new token from your Shopify admin.'
+            elif "403" in str(error_msg) or "forbidden" in error_msg.lower():
+                error_display = 'Access token lacks required permissions. Please ensure it has read_orders, read_products, and read_inventory permissions.'
+            else:
+                error_display = f'Token validation failed: {error_msg}. Please use the "Quick Connect" OAuth method instead.'
+            
             settings_url = url_for(
                 "shopify.shopify_settings",
-                error=f'Access token validation failed: {error_msg}. Please use the "Quick Connect" OAuth method instead.',
+                error=error_display,
                 shop=shop,
                 host=host,
             )
@@ -215,7 +243,7 @@ def connect_store():
             logger.warning(f"Access token test returned no shop data for {shop_url}")
             settings_url = url_for(
                 "shopify.shopify_settings",
-                error="Access token validation failed - no shop data returned. Please check your token.",
+                error="Access token validation failed - no shop data returned. Please check your token permissions.",
                 shop=shop,
                 host=host,
             )
@@ -225,9 +253,10 @@ def connect_store():
 
     except Exception as e:
         logger.error(f"Error validating access token: {e}", exc_info=True)
+        error_msg = "Access token validation failed due to connection error. Please try the OAuth connection method instead."
         settings_url = url_for(
             "shopify.shopify_settings",
-            error="Access token validation failed. Please use the OAuth connection method instead.",
+            error=error_msg,
             shop=shop,
             host=host,
         )

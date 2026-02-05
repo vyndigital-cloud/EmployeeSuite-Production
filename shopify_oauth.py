@@ -109,63 +109,23 @@ def install():
 
     shop = request.args.get("shop", "").strip()
     if not shop:
-        from flask import render_template_string
-
-        return render_template_string("""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <title>Install Employee Suite</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <style>
-                body {
-                    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 100vh;
-                    margin: 0;
-                    background: #f6f6f7;
-                }
-                .container {
-                    text-align: center;
-                    padding: 40px 24px;
-                    max-width: 500px;
-                }
-                .title {
-                    font-size: 18px;
-                    font-weight: 600;
-                    color: #202223;
-                    margin-bottom: 12px;
-                }
-                .message {
-                    font-size: 14px;
-                    color: #6d7175;
-                    line-height: 1.5;
-                    margin-bottom: 24px;
-                }
-                .btn {
-                    display: inline-block;
-                    padding: 10px 20px;
-                    background: #008060;
-                    color: #fff;
-                    border-radius: 6px;
-                    text-decoration: none;
-                    font-size: 14px;
-                    font-weight: 500;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="title">Shop parameter required</div>
-                <div class="message">Please install Employee Suite from your Shopify admin panel, or include your shop domain in the URL.</div>
-                <a href="/settings/shopify" class="btn">Go to Settings</a>
-            </div>
-        </body>
-        </html>
-        """), 400
+        # Try to get shop from referrer or session
+        referrer = request.headers.get('Referer', '')
+        if 'shop=' in referrer:
+            import urllib.parse
+            parsed = urllib.parse.urlparse(referrer)
+            query_params = urllib.parse.parse_qs(parsed.query)
+            if 'shop' in query_params:
+                shop = query_params['shop'][0]
+        
+        # Try session as fallback
+        if not shop:
+            shop = session.get('shop', '')
+        
+        # If still no shop, redirect to settings instead of showing form
+        if not shop:
+            logger.warning("Install route accessed without shop parameter")
+            return redirect("/settings/shopify?error=Please enter your shop domain to connect")
 
     # Normalize shop domain - professional consistent normalization
     shop = (
@@ -600,26 +560,31 @@ def _handle_oauth_callback():
     is_embedded = bool(host)
     login_user(user, remember=not is_embedded)
 
-    # Store critical session data
-    session.permanent = True
-    session["shop"] = shop
-    session["current_shop"] = shop
-    session["shop_domain"] = shop.replace("https://", "").replace("http://", "")
-    session["user_id"] = user.id
-    session["_authenticated"] = True
-    session["oauth_completed"] = True
-    from datetime import datetime
-    session["last_oauth"] = datetime.utcnow().isoformat()
+    # Store critical session data with error handling
+    try:
+        session.permanent = True
+        session["shop"] = shop
+        session["current_shop"] = shop
+        session["shop_domain"] = shop.replace("https://", "").replace("http://", "")
+        session["user_id"] = user.id
+        session["_authenticated"] = True
+        session["oauth_completed"] = True
+        from datetime import datetime
+        session["last_oauth"] = datetime.utcnow().isoformat()
 
-    if host:
-        session["host"] = host
-        session["embedded"] = True
-        session["is_embedded"] = True
+        if host:
+            session["host"] = host
+            session["embedded"] = True
+            session["is_embedded"] = True
 
-    # Force session save
-    session.modified = True
-
-    logger.info(f"✅ OAuth complete: user {user.id}, shop {shop}, embedded: {bool(host)}")
+        # Force session save
+        session.modified = True
+        
+        logger.info(f"✅ OAuth complete: user {user.id}, shop {shop}, embedded: {bool(host)}")
+        
+    except Exception as session_error:
+        logger.error(f"Session management error: {session_error}")
+        # Continue anyway - don't fail OAuth on session issues
 
     logger.info(
         f"Session refreshed for user {user.id} (email: {user.email}) after OAuth callback - embedded: {is_embedded}"
@@ -632,17 +597,13 @@ def _handle_oauth_callback():
 
     # After OAuth completes, redirect appropriately
     if host:
-        # For embedded apps, redirect to the app within Shopify admin
-        admin_url = f"https://{shop}/admin/apps/{SHOPIFY_API_KEY}"
-        logger.info(f"OAuth complete (embedded), redirecting to: {admin_url}")
-        return redirect(admin_url)
+        # For embedded apps, redirect to dashboard with proper parameters
+        dashboard_url = f"/dashboard?shop={shop}&host={host}"
+        logger.info(f"OAuth complete (embedded), redirecting to: {dashboard_url}")
+        return redirect(dashboard_url)
     else:
         # For standalone, redirect to dashboard with shop parameter
-        try:
-            from flask import url_for
-            dashboard_url = url_for("core.home", shop=shop)
-        except Exception:
-            dashboard_url = f"/dashboard?shop={shop}"
+        dashboard_url = f"/dashboard?shop={shop}"
         logger.info(f"OAuth complete (standalone), redirecting to: {dashboard_url}")
         return redirect(dashboard_url)
 
