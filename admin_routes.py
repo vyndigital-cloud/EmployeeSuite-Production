@@ -528,7 +528,7 @@ def delete_user(user_id):
             email = user.email
             current_app.logger.info(f"Deleting user: {email} (ID: {user_id})")
             
-            # Delete all related data using raw SQL to avoid schema issues
+            # Use completely raw SQL to avoid ORM lazy-loading issues
             from sqlalchemy import text
             
             # Delete scheduled reports
@@ -539,12 +539,12 @@ def delete_user(user_id):
             db.session.execute(text("DELETE FROM subscription_plans WHERE user_id = :user_id"), {"user_id": user_id})
             current_app.logger.info(f"Deleted subscription plans for user {email}")
             
-            # Delete Shopify stores (has CASCADE so should auto-delete, but being explicit)
-            stores_deleted = ShopifyStore.query.filter_by(user_id=user.id).delete()
-            current_app.logger.info(f"Deleted {stores_deleted} stores for user {email}")
+            # Delete Shopify stores
+            db.session.execute(text("DELETE FROM shopify_stores WHERE user_id = :user_id"), {"user_id": user_id})
+            current_app.logger.info(f"Deleted stores for user {email}")
             
-            # Delete user
-            db.session.delete(user)
+            # Delete user (raw SQL to avoid ORM)
+            db.session.execute(text("DELETE FROM users WHERE id = :user_id"), {"user_id": user_id})
             db.session.commit()
             
             current_app.logger.info(f"Successfully deleted user {email}")
@@ -553,7 +553,11 @@ def delete_user(user_id):
         except Exception as delete_error:
             db.session.rollback()
             current_app.logger.error(f"Error deleting user {user_id}: {delete_error}", exc_info=True)
-            return redirect(url_for('admin.dashboard') + f'?error=Database error: {str(delete_error)}')
+            # URL-encode the error message to avoid newline issues
+            import urllib.parse
+            error_msg = urllib.parse.quote(f"Failed to delete user: {str(delete_error)[:100]}")
+            return redirect(url_for('admin.dashboard') + f'?error={error_msg}')
+            
             
     except Exception as e:
         current_app.logger.error(f"Unexpected error in delete_user: {e}", exc_info=True)
