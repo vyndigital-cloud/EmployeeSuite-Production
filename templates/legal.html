@@ -26,59 +26,93 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <style>
+        /* Force reset for legal pages to ensure visibility */
+        body {
+            background: #f0f2f5 !important;
+            color: #202223 !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow-x: hidden;
+        }
+
+        /* Hide any global overlays that might interfere */
+        body::before,
+        body::after {
+            display: none !important;
+        }
+
         .legal-container {
             max-width: 800px;
-            margin: 40px auto;
+            margin: 60px auto;
             padding: 0 24px;
+            position: relative;
+            z-index: 1000;
+            /* Ensure it floats above everything */
         }
 
         .legal-header {
             text-align: center;
-            margin-bottom: 48px;
+            margin-bottom: 40px;
         }
 
         .legal-header h1 {
-            font-size: 32px;
-            font-weight: 700;
-            color: #1a1a1a;
+            font-size: 36px;
+            font-weight: 800;
+            color: #1a1a1a !important;
             margin-bottom: 12px;
-            letter-spacing: -0.5px;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
         }
 
         .legal-content {
-            background: #fff;
+            background: #ffffff !important;
             border-radius: 12px;
-            padding: 40px;
-            border: 1px solid #e1e3e5;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            padding: 48px;
+            border: 1px solid #dcdcdc !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
             line-height: 1.8;
-            color: #4b5563;
+            color: #333333 !important;
+            font-size: 16px;
         }
 
-        .legal-content h2 {
-            font-size: 20px;
-            font-weight: 600;
-            color: #111;
-            margin: 32px 0 16px;
+        .legal-content h2,
+        .legal-content h3 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #000000 !important;
+            margin: 40px 0 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f1f1f1;
         }
 
-        .legal-content p {
+        .legal-content p,
+        .legal-content li {
             margin-bottom: 16px;
+            color: #444444 !important;
+        }
+
+        .legal-content ul {
+            padding-left: 24px;
+            margin-bottom: 24px;
         }
 
         .back-link {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            color: #666;
+            color: #555 !important;
             text-decoration: none;
             margin-top: 40px;
-            font-size: 14px;
+            font-size: 15px;
+            font-weight: 500;
             transition: color 0.2s;
+            padding: 10px 0;
         }
 
         .back-link:hover {
-            color: #1a1a1a;
+            color: #000 !important;
+            text-decoration: underline;
         }
     </style>
 </head>
