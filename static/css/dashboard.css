@@ -497,6 +497,21 @@ body.embedded .header {
     color: white;
 }
 
+.banner-action.urgent {
+    background: #ea580c;
+    color: white;
+    border-color: transparent;
+    font-weight: 700;
+    box-shadow: 0 2px 4px rgba(234, 88, 12, 0.2);
+}
+
+.banner-action.urgent:hover {
+    background: #c2410c;
+    color: white;
+    box-shadow: 0 4px 6px rgba(194, 65, 12, 0.3);
+    transform: translateY(-1px);
+}
+
 /* --- Output Section --- */
 .output-container {
     background: var(--bg-card);
