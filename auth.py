@@ -18,12 +18,17 @@ from flask_login import login_required, login_user, logout_user
 # Add error handling for imports
 try:
     from email_service import send_password_reset_email, send_welcome_email
-except ImportError:
-
+    EMAIL_SERVICE_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Email service not available: {e}")
+    EMAIL_SERVICE_AVAILABLE = False
+    
     def send_welcome_email(email):
+        logger.info(f"Email service disabled - would send welcome email to {email}")
         return True
 
     def send_password_reset_email(email, token):
+        logger.info(f"Email service disabled - would send password reset to {email}")
         return True
 
 
@@ -456,10 +461,15 @@ def register():
         db.session.commit()
 
         # Send welcome email
-        try:
-            send_welcome_email(email)
-        except Exception:
-            pass  # Don't block signup if email fails
+        if EMAIL_SERVICE_AVAILABLE:
+            try:
+                send_welcome_email(email)
+                logger.info(f"Welcome email sent to {email}")
+            except Exception as e:
+                logger.error(f"Failed to send welcome email to {email}: {e}")
+                # Don't fail registration if email fails
+        else:
+            logger.info(f"Email service disabled - welcome email not sent to {email}")
 
         # Register: Use remember cookie for standalone, session tokens for embedded
         is_embedded = request.args.get("embedded") == "1" or request.args.get("host")
@@ -677,7 +687,7 @@ def forgot_password():
         user = User.query.filter_by(email=email).first()
 
         # Always show success message (security: don't reveal if email exists)
-        if user:
+        if user and EMAIL_SERVICE_AVAILABLE:
             # Generate reset token
             reset_token = secrets.token_urlsafe(32)
             user.reset_token = reset_token
@@ -687,8 +697,9 @@ def forgot_password():
             # Send reset email
             try:
                 send_password_reset_email(email, reset_token)
-            except Exception:
-                pass  # Don't reveal if email failed
+                logger.info(f"Password reset email sent to {email}")
+            except Exception as e:
+                logger.error(f"Failed to send password reset email to {email}: {e}")
 
         return render_template_string(
             FORGOT_PASSWORD_HTML,

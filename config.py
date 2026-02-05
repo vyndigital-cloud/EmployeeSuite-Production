@@ -47,6 +47,27 @@ AUTO_SCALING_ENGINE_OPTIONS = {
     "echo": False,         # Disable SQL logging for speed
 }
 
+def validate_email_config():
+    """Validate email configuration on startup"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    issues = []
+    
+    if not get_config_safe("SENDGRID_API_KEY"):
+        issues.append("SENDGRID_API_KEY not set")
+    
+    if not get_config_safe("SMTP_USERNAME") and not get_config_safe("SENDGRID_API_KEY"):
+        issues.append("No email service configured (neither SendGrid nor SMTP)")
+    
+    if issues:
+        logger.warning(f"Email configuration issues: {', '.join(issues)}")
+    
+    return len(issues) == 0
+
+# Call this in app startup
+EMAIL_CONFIG_VALID = validate_email_config()
+
 class ConfigValidationError(Exception):
     pass
 """

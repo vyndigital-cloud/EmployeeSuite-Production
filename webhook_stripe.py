@@ -48,70 +48,102 @@ def stripe_webhook():
 
 def handle_payment_failed(invoice):
     """Handle failed payment - lock user out"""
-    customer_id = invoice.get('customer')
-    
-    user = User.query.filter_by(stripe_customer_id=customer_id).first()
-    if not user:
-        logger.warning(f"User not found for customer {customer_id}")
-        return
-    
-    # Lock user out
-    user.is_subscribed = False
-    db.session.commit()
-    
-    # Send email notification
     try:
-        send_payment_failed(user.email)
+        customer_id = invoice.get('customer')
+        if not customer_id:
+            logger.error("No customer ID in payment failed webhook")
+            return
+        
+        user = User.query.filter_by(stripe_customer_id=customer_id).first()
+        if not user:
+            logger.warning(f"User not found for customer {customer_id}")
+            return
+        
+        # Lock user out
+        user.is_subscribed = False
+        db.session.commit()
+        
+        # Send email notification
+        try:
+            if send_payment_failed(user.email):
+                logger.info(f"Payment failed email sent to {user.email}")
+            else:
+                logger.error(f"Failed to send payment failed email to {user.email}")
+        except Exception as e:
+            logger.error(f"Failed to send payment failed email: {e}")
+        
+        logger.warning(f"Payment failed for {user.email} - access revoked")
+        
     except Exception as e:
-        logger.error(f"Failed to send payment failed email: {e}")
-    
-    logger.warning(f"Payment failed for {user.email} - access revoked")
+        logger.error(f"Error handling payment failed webhook: {e}")
 
 def handle_payment_succeeded(invoice):
     """Handle successful payment - ensure user has access"""
-    customer_id = invoice.get('customer')
-    
-    user = User.query.filter_by(stripe_customer_id=customer_id).first()
-    if not user:
-        logger.warning(f"User not found for customer {customer_id}")
-        return
-    
-    # Ensure user is marked as subscribed
-    if not user.is_subscribed:
-        user.is_subscribed = True
-        db.session.commit()
-        logger.info(f"Payment succeeded for {user.email} - access granted")
+    try:
+        customer_id = invoice.get('customer')
+        if not customer_id:
+            logger.error("No customer ID in payment succeeded webhook")
+            return
+        
+        user = User.query.filter_by(stripe_customer_id=customer_id).first()
+        if not user:
+            logger.warning(f"User not found for customer {customer_id}")
+            return
+        
+        # Ensure user is marked as subscribed
+        if not user.is_subscribed:
+            user.is_subscribed = True
+            db.session.commit()
+            logger.info(f"Payment succeeded for {user.email} - access granted")
+            
+    except Exception as e:
+        logger.error(f"Error handling payment succeeded webhook: {e}")
 
 def handle_subscription_deleted(subscription):
     """Handle subscription cancellation from Stripe dashboard"""
-    customer_id = subscription.get('customer')
-    
-    user = User.query.filter_by(stripe_customer_id=customer_id).first()
-    if not user:
-        logger.warning(f"User not found for customer {customer_id}")
-        return
-    
-    # Revoke access
-    user.is_subscribed = False
-    db.session.commit()
-    
-    logger.info(f"Subscription deleted for {user.email} - access revoked")
+    try:
+        customer_id = subscription.get('customer')
+        if not customer_id:
+            logger.error("No customer ID in subscription deleted webhook")
+            return
+        
+        user = User.query.filter_by(stripe_customer_id=customer_id).first()
+        if not user:
+            logger.warning(f"User not found for customer {customer_id}")
+            return
+        
+        # Revoke access
+        user.is_subscribed = False
+        db.session.commit()
+        
+        logger.info(f"Subscription deleted for {user.email} - access revoked")
+        
+    except Exception as e:
+        logger.error(f"Error handling subscription deleted webhook: {e}")
 
 def handle_subscription_updated(subscription):
     """Handle subscription updates (plan changes, etc)"""
-    customer_id = subscription.get('customer')
-    status = subscription.get('status')
-    
-    user = User.query.filter_by(stripe_customer_id=customer_id).first()
-    if not user:
-        logger.warning(f"User not found for customer {customer_id}")
-        return
-    
-    # Update subscription status based on Stripe status
-    if status in ['active', 'trialing']:
-        user.is_subscribed = True
-    else:
-        user.is_subscribed = False
-    
-    db.session.commit()
-    logger.info(f"Subscription updated for {user.email} - status: {status}")
+    try:
+        customer_id = subscription.get('customer')
+        status = subscription.get('status')
+        
+        if not customer_id:
+            logger.error("No customer ID in subscription updated webhook")
+            return
+        
+        user = User.query.filter_by(stripe_customer_id=customer_id).first()
+        if not user:
+            logger.warning(f"User not found for customer {customer_id}")
+            return
+        
+        # Update subscription status based on Stripe status
+        if status in ['active', 'trialing']:
+            user.is_subscribed = True
+        else:
+            user.is_subscribed = False
+        
+        db.session.commit()
+        logger.info(f"Subscription updated for {user.email} - status: {status}")
+        
+    except Exception as e:
+        logger.error(f"Error handling subscription updated webhook: {e}")
