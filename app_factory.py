@@ -135,6 +135,7 @@ def create_app():
         ('webhook_shopify', 'webhook_shopify_bp'),
         ('faq_routes', 'faq_bp'),
         ('enhanced_features', 'enhanced_bp'),
+        ('admin_routes', 'admin_bp'),
     ]
     
     registered_blueprints = []
