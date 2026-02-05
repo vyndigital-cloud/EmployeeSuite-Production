@@ -213,7 +213,7 @@ if app and startup_error_details is None:
         )
 
     # Error dashboard route
-    @app.route('/admin/errors')
+    @app.route('/system/errors')
     @log_errors("ADMIN_ERROR")
     def view_errors():
         """Admin route to view recent errors"""
@@ -236,7 +236,7 @@ if app and startup_error_details is None:
             return jsonify({'error': 'Failed to retrieve errors'}), 500
 
     # Performance dashboard route
-    @app.route('/admin/performance')
+    @app.route('/system/performance')
     @log_errors("ADMIN_PERFORMANCE")
     def view_performance():
         """Admin route to view performance metrics"""
