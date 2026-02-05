@@ -210,45 +210,48 @@
 
             <!-- Alerts/Banners -->
             {% if not has_access %}
-            <div class="banner banner-warning">
-                <div style="flex: 1;">
-                    <div class="banner-content-title" style="color: #92400e;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="8" x2="12" y2="12"></line>
-                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            <div class="banner">
+                <div class="banner-content">
+                    <div class="banner-icon">
+                        <svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor">
+                            <path
+                                d="M232,88.66a16,16,0,0,0-16-16H183.42L161.6,31.62a16,16,0,0,0-27.2,0L112.58,72.66H40a16,16,0,0,0-16,16V208a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V88.66ZM216,208H40V88.66H216V208Z">
+                            </path>
                         </svg>
-                        Action Required: Subscription Expired
                     </div>
-                    <p class="banner-content-text">
-                        Your trial has ended. Subscribe to Employee Suite Pro to regain access to all features.
-                    </p>
+                    <div class="banner-text">
+                        <h3>Subscription Expired</h3>
+                        <p>Your trial has ended. Subscribe to Employee Suite Pro to regain access.</p>
+                    </div>
                 </div>
-                <a href="#" onclick="openPage('/subscribe'); return false;" class="banner-action urgent">
-                    Subscribe Now
-                </a>
+                <div class="banner-actions">
+                    <a href="#" onclick="openPage('/subscribe'); return false;" class="banner-action urgent">
+                        Subscribe Now
+                    </a>
+                </div>
             </div>
             {% endif %}
 
             {% if not has_shopify %}
-            <div class="banner banner-info">
-                <div style="flex: 1;">
-                    <div class="banner-content-title" style="color: #0369a1;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            <div class="banner">
+                <div class="banner-content">
+                    <div class="banner-icon">
+                        <svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor">
+                            <path
+                                d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,160H40V56H216V200ZM176,88a48,48,0,0,1-96,0,8,8,0,0,1,16,0,32,32,0,0,0,64,0,8,8,0,0,1,16,0Z">
+                            </path>
                         </svg>
-                        Connect your Shopify Store
                     </div>
-                    <p class="banner-content-text">
-                        Get started in 30 seconds. Connect your store to unlock full functionality.
-                    </p>
+                    <div class="banner-text">
+                        <h3>Shopify Store</h3>
+                        <p>Connect your store to unlock features.</p>
+                    </div>
                 </div>
-                <a href="#" onclick="openPage('/settings/shopify'); return false;" class="banner-action primary">
-                    Connect Store →
-                </a>
+                <div class="banner-actions">
+                    <a href="#" onclick="openPage('/settings/shopify'); return false;" class="banner-action primary">
+                        Connect Store
+                    </a>
+                </div>
             </div>
             {% endif %}
 

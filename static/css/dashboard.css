@@ -415,40 +415,48 @@ body.embedded .header {
 
 /* --- Banners --- */
 /* --- Banners (Redesigned) --- */
+/* --- Banners (Pro Row Style) --- */
 .banner {
     background: #ffffff;
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
+    border-radius: var(--radius);
+    padding: 20px 24px;
     margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
-    flex-wrap: wrap;
-    gap: 16px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    gap: 20px;
+    transition: all 0.2s ease;
 }
 
 .banner:hover {
-    transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
 }
 
-.banner-warning {
-    background: #fffbeb;
-    border-color: #fef3c7;
+.banner-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
 }
 
-.banner-info {
-    background: #f0f9ff;
-    border-color: #e0f2fe;
-    border-left: 4px solid #0ea5e9;
+.banner-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: #f1f2f3;
+    color: var(--text-sub);
+    flex-shrink: 0;
 }
 
-.banner-content-title {
-    margin: 0 0 4px 0;
-    font-size: 15px;
+.banner-text h3 {
+    margin: 0;
+    font-size: 16px;
     font-weight: 600;
     color: var(--text-main);
     display: flex;
@@ -456,60 +464,98 @@ body.embedded .header {
     gap: 8px;
 }
 
-.banner-content-text {
-    margin: 0;
+.banner-text p {
+    margin: 4px 0 0 0;
     font-size: 14px;
     color: var(--text-sub);
-    line-height: 1.5;
+}
+
+.banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .banner-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.banner-action.primary {
     background: white;
     color: var(--text-main);
     border: 1px solid var(--border);
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    text-decoration: none;
-    white-space: nowrap;
-    transition: all 0.2s;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-.banner-action:hover {
-    background: #f9fafb;
-    border-color: #d1d5db;
-    transform: none;
-    color: var(--text-main);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
-}
-
-/* Specific overrides for primary actions in banners */
-.banner-action.primary {
-    background: var(--primary);
-    color: white;
-    border-color: transparent;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .banner-action.primary:hover {
-    background: var(--primary-dark);
-    color: white;
+    background: #f9fafb;
+    border-color: #d1d5db;
 }
 
-.banner-action.urgent {
-    background: #ea580c;
-    color: white;
-    border-color: transparent;
+/* Pro Hero Banner (Centered) */
+.banner-pro-hero {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 48px 32px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.banner-pro-hero h2 {
+    font-size: 24px;
     font-weight: 700;
-    box-shadow: 0 2px 4px rgba(234, 88, 12, 0.2);
+    color: var(--text-main);
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+.banner-pro-hero p {
+    font-size: 15px;
+    color: var(--text-sub);
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+.banner-pro-hero .banner-actions {
+    margin-top: 16px;
+    border-top: none;
+    padding-top: 0;
+    justify-content: center;
+    gap: 12px;
+}
+
+/* Updated Urgent Action - Pro Style (Light Green) */
+.banner-action.urgent {
+    background: #e3fcef;
+    color: #008060;
+    border: 1px solid transparent;
+    font-weight: 600;
+    box-shadow: none;
+    padding: 10px 24px;
+    font-size: 15px;
 }
 
 .banner-action.urgent:hover {
-    background: #c2410c;
-    color: white;
-    box-shadow: 0 4px 6px rgba(194, 65, 12, 0.3);
+    background: #c3fce3;
+    color: #008060;
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 128, 96, 0.15);
 }
 
 /* --- Output Section --- */
