@@ -405,7 +405,7 @@ def login():
                 session.modified = True
             except Exception:
                 pass
-            return redirect(url_for("dashboard"))
+            return redirect(url_for("core.dashboard"))
 
         return render_template(
             "auth/login.html",
@@ -479,7 +479,7 @@ def register():
         )  # No remember cookie in embedded mode
         session.permanent = True
         session.modified = True  # Force immediate session save (Safari compatibility)
-        dashboard_url = url_for("dashboard")
+        dashboard_url = url_for("core.dashboard")
         if shop:
             dashboard_url += f"?shop={shop}"
             if host:
