@@ -6,6 +6,7 @@ Production Main Entry Point - Bulletproof (Verified)
 import os
 import sys
 import logging
+import json
 from pathlib import Path
 from datetime import datetime
 
@@ -233,6 +234,139 @@ if app and startup_error_details is None:
         except Exception as e:
             error_logger.log_error(e, "ADMIN_DASHBOARD_ERROR")
             return jsonify({'error': 'Failed to retrieve errors'}), 500
+
+    # Performance dashboard route
+    @app.route('/admin/performance')
+    @log_errors("ADMIN_PERFORMANCE")
+    def view_performance():
+        """Admin route to view performance metrics"""
+        from flask import session, jsonify, render_template_string
+        try:
+            # Simple authentication check
+            if not session.get('user_id'):
+                return jsonify({'error': 'Unauthorized'}), 401
+            
+            # Get cache efficiency data
+            try:
+                from performance import get_cache_efficiency
+                cache_data = get_cache_efficiency()
+            except ImportError:
+                cache_data = {
+                    "cache_efficiency": {
+                        "cache_size": 0,
+                        "hit_rate": 0,
+                        "memory_usage_mb": 0.0,
+                        "total_hits": 0,
+                        "total_requests": 0
+                    },
+                    "current_tier": "standard",
+                    "max_load_seen": 0.0,
+                    "scaling_thresholds": {},
+                    "status": "healthy"
+                }
+            
+            # Check if request wants JSON
+            if request.headers.get('Content-Type') == 'application/json' or request.args.get('format') == 'json':
+                return jsonify(cache_data)
+            
+            # Return HTML dashboard
+            html_template = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Performance Dashboard</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 20px; background: #f6f6f7; }
+                    .container { max-width: 1200px; margin: 0 auto; }
+                    .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                    .metric { display: inline-block; margin: 10px 20px 10px 0; }
+                    .metric-value { font-size: 24px; font-weight: bold; color: #008060; }
+                    .metric-label { font-size: 14px; color: #6d7175; }
+                    .status-healthy { color: #008060; }
+                    .status-warning { color: #ff8c00; }
+                    .status-error { color: #d72c0d; }
+                    .refresh-btn { background: #008060; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>Performance Dashboard</h1>
+                    
+                    <div class="card">
+                        <h2>System Status: <span class="status-{{ status_class }}">{{ status|upper }}</span></h2>
+                        <button class="refresh-btn" onclick="location.reload()">Refresh</button>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Cache Performance</h3>
+                        <div class="metric">
+                            <div class="metric-value">{{ hit_rate }}%</div>
+                            <div class="metric-label">Hit Rate</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">{{ cache_size }}</div>
+                            <div class="metric-label">Cache Size</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">{{ memory_usage }}MB</div>
+                            <div class="metric-label">Memory Usage</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">{{ total_requests }}</div>
+                            <div class="metric-label">Total Requests</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>System Metrics</h3>
+                        <div class="metric">
+                            <div class="metric-value">{{ current_tier|upper }}</div>
+                            <div class="metric-label">Current Tier</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">{{ max_load }}</div>
+                            <div class="metric-label">Max Load Seen</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Raw Data</h3>
+                        <pre style="background: #f6f6f7; padding: 15px; border-radius: 4px; overflow-x: auto;">{{ raw_data }}</pre>
+                    </div>
+                </div>
+                
+                <script>
+                    // Auto-refresh every 30 seconds
+                    setTimeout(function() {
+                        location.reload();
+                    }, 30000);
+                </script>
+            </body>
+            </html>
+            """
+            
+            # Prepare template variables
+            cache_eff = cache_data.get('cache_efficiency', {})
+            status = cache_data.get('status', 'unknown')
+            
+            template_vars = {
+                'status': status,
+                'status_class': 'healthy' if status == 'healthy' else 'warning' if status == 'degraded' else 'error',
+                'hit_rate': int(cache_eff.get('hit_rate', 0)),
+                'cache_size': cache_eff.get('cache_size', 0),
+                'memory_usage': round(cache_eff.get('memory_usage_mb', 0.0), 2),
+                'total_requests': cache_eff.get('total_requests', 0),
+                'current_tier': cache_data.get('current_tier', 'unknown'),
+                'max_load': cache_data.get('max_load_seen', 0.0),
+                'raw_data': json.dumps(cache_data, indent=2)
+            }
+            
+            return render_template_string(html_template, **template_vars)
+            
+        except Exception as e:
+            error_logger.log_error(e, "ADMIN_PERFORMANCE_ERROR")
+            return jsonify({'error': 'Failed to retrieve performance data'}), 500
     
     # Add Protected Customer Data compliance headers
     @app.after_request
