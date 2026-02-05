@@ -323,6 +323,7 @@ def home():
         # PERFORMANCE: Skip heavy database queries for initial load
         shop = request.args.get("shop")
         host = request.args.get("host")
+        embedded = request.args.get("embedded")
 
         # Store in session immediately
         if shop:
@@ -331,6 +332,19 @@ def home():
         if host:
             session["host"] = host
             session.permanent = True
+
+        # CRITICAL: For embedded apps without a connected store, redirect to OAuth
+        if shop and host and embedded:
+            try:
+                store = db.session.query(ShopifyStore).filter_by(shop_url=shop, is_active=True).first()
+                if not store:
+                    # No active store found - need to install via OAuth
+                    logger.info(f"Embedded app accessed without active store for {shop}, redirecting to install")
+                    install_url = f"/install?shop={shop}&host={host}"
+                    return redirect(install_url)
+            except Exception as db_error:
+                logger.error(f"Database error checking store: {db_error}")
+                # Continue anyway - might be a temporary DB issue
 
         # Local dev mode - instant response
         if os.getenv("ENVIRONMENT") != "production" and not shop:
