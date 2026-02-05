@@ -56,14 +56,27 @@ function initializeAppBridge() {
         return;
     }
 
-    // App Bridge v4: exposes window.shopify automatically
+    // App Bridge v4: Wait for shopify object and get session token
     var initAttempts = 0;
     var maxAttempts = 50;
 
     function init() {
         initAttempts++;
-        if (window.shopify) {
+        if (window.shopify && window.shopify.idToken) {
             window.shopifyApp = window.shopify;
+            
+            // CRITICAL: Get session token for API authentication
+            try {
+                window.sessionToken = window.shopify.idToken();
+                console.log('Session token retrieved successfully');
+                
+                // Override fetch to automatically include session token
+                setupSessionTokenFetch();
+                
+            } catch (e) {
+                console.error('Failed to get session token:', e);
+            }
+            
             window.appBridgeReady = true;
             return;
         }
@@ -75,6 +88,28 @@ function initializeAppBridge() {
         setTimeout(init, 100);
     }
     init();
+}
+
+function setupSessionTokenFetch() {
+    // Store original fetch
+    var originalFetch = window.fetch;
+    
+    // Override fetch to include session token
+    window.fetch = function(url, options) {
+        options = options || {};
+        
+        // Only add token for API calls to our server
+        if (url.startsWith('/api/') || url.startsWith('/admin/')) {
+            options.headers = options.headers || {};
+            
+            // Add session token if available
+            if (window.sessionToken) {
+                options.headers['Authorization'] = 'Bearer ' + window.sessionToken;
+            }
+        }
+        
+        return originalFetch.call(this, url, options);
+    };
 }
 
 // Error logging functionality
@@ -299,13 +334,29 @@ window.processOrders = function(button) {
         signal: controller.signal
     };
     
-    if (window.ID_TOKEN) {
-        fetchOptions.headers = { 'Authorization': 'Bearer ' + window.ID_TOKEN };
+    // CRITICAL: Add session token for embedded apps
+    if (window.sessionToken) {
+        fetchOptions.headers = fetchOptions.headers || {};
+        fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
     }
     
     fetch(apiUrl, fetchOptions)
         .then(r => {
             if (controller.signal.aborted) return null;
+            
+            // Handle session token expiry
+            if (r.status === 401 && window.shopify && window.shopify.idToken) {
+                // Refresh token and retry
+                try {
+                    window.sessionToken = window.shopify.idToken();
+                    // Retry the request with new token
+                    fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
+                    return fetch(apiUrl, fetchOptions);
+                } catch (e) {
+                    console.error('Token refresh failed:', e);
+                }
+            }
+            
             if (!r.ok) throw new Error('Request failed');
             return r.json();
         })
@@ -356,13 +407,29 @@ window.updateInventory = function(button) {
         signal: controller.signal
     };
     
-    if (window.ID_TOKEN) {
-        fetchOptions.headers = { 'Authorization': 'Bearer ' + window.ID_TOKEN };
+    // CRITICAL: Add session token for embedded apps
+    if (window.sessionToken) {
+        fetchOptions.headers = fetchOptions.headers || {};
+        fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
     }
     
     fetch(apiUrl, fetchOptions)
         .then(r => {
             if (controller.signal.aborted) return null;
+            
+            // Handle session token expiry
+            if (r.status === 401 && window.shopify && window.shopify.idToken) {
+                // Refresh token and retry
+                try {
+                    window.sessionToken = window.shopify.idToken();
+                    // Retry the request with new token
+                    fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
+                    return fetch(apiUrl, fetchOptions);
+                } catch (e) {
+                    console.error('Token refresh failed:', e);
+                }
+            }
+            
             if (!r.ok) throw new Error('Request failed');
             return r.json();
         })
@@ -413,13 +480,29 @@ window.generateReport = function(button) {
         signal: controller.signal
     };
     
-    if (window.ID_TOKEN) {
-        fetchOptions.headers = { 'Authorization': 'Bearer ' + window.ID_TOKEN };
+    // CRITICAL: Add session token for embedded apps
+    if (window.sessionToken) {
+        fetchOptions.headers = fetchOptions.headers || {};
+        fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
     }
     
     fetch(apiUrl, fetchOptions)
         .then(r => {
             if (controller.signal.aborted) return null;
+            
+            // Handle session token expiry
+            if (r.status === 401 && window.shopify && window.shopify.idToken) {
+                // Refresh token and retry
+                try {
+                    window.sessionToken = window.shopify.idToken();
+                    // Retry the request with new token
+                    fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
+                    return fetch(apiUrl, fetchOptions);
+                } catch (e) {
+                    console.error('Token refresh failed:', e);
+                }
+            }
+            
             if (!r.ok) throw new Error('Request failed');
             return r.json();
         })

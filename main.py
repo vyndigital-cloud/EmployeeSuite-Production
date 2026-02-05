@@ -265,6 +265,7 @@ if app and startup_error_details is None:
 
     # Add API routes
     @app.route('/api/process_orders')
+    @verify_session_token
     @log_errors("API_PROCESS_ORDERS")
     def api_process_orders():
         """API endpoint for processing orders"""
@@ -283,6 +284,7 @@ if app and startup_error_details is None:
             return jsonify({"success": False, "error": str(e)}), 500
 
     @app.route('/api/update_inventory')
+    @verify_session_token
     @log_errors("API_UPDATE_INVENTORY")
     def api_update_inventory():
         """API endpoint for updating inventory"""
@@ -301,6 +303,7 @@ if app and startup_error_details is None:
             return jsonify({"success": False, "error": str(e)}), 500
 
     @app.route('/api/generate_report')
+    @verify_session_token
     @log_errors("API_GENERATE_REPORT")
     def api_generate_report():
         """API endpoint for generating revenue report"""
