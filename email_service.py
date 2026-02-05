@@ -117,7 +117,7 @@ def send_welcome_email(user_email):
                 subject=subject,
                 html_content=html_content,
             )
-            sg = SendGridAPIClient(SENDGRID_API_KEY)
+            sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
             response = sg.send(message)
             logger.info(f"SendGrid email sent to {user_email}, status: {response.status_code}")
             return True
@@ -180,7 +180,7 @@ def send_trial_expiry_warning(user_email, days_left):
                 subject=subject,
                 html_content=html_content,
             )
-            sg = SendGridAPIClient(SENDGRID_API_KEY)
+            sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
             response = sg.send(message)
             logger.info(f"Trial warning email sent to {user_email}, status: {response.status_code}")
             return True
@@ -329,7 +329,7 @@ def send_password_reset_email(user_email, reset_token):
                 subject=subject,
                 html_content=html_content,
             )
-            sg = SendGridAPIClient(SENDGRID_API_KEY)
+            sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
             response = sg.send(message)
             logger.info(f"Password reset email sent to {user_email}, status: {response.status_code}")
             return True
@@ -383,7 +383,7 @@ def send_payment_failed(user_email):
                 subject=subject,
                 html_content=html_content,
             )
-            sg = SendGridAPIClient(SENDGRID_API_KEY)
+            sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
             response = sg.send(message)
             logger.info(f"Payment failed email sent to {user_email}, status: {response.status_code}")
             return True
