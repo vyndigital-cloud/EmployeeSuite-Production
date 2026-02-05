@@ -147,9 +147,9 @@ def send_trial_expiry_warning(user_email, days_left):
             <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px 0;">
                 <p style="color: #92400e; font-weight: 600;">Don't lose access to:</p>
                 <ul style="color: #92400e;">
-                    <li>AI-Powered Stockout Predictions</li>
+                    <li>Smart Low Stock Alerts</li>
                     <li>Real-Time Inventory Dashboard</li>
-                    <li>Revenue Analytics & Forecasting</li>
+                    <li>Revenue Analytics & Reporting</li>
                 </ul>
             </div>
 
@@ -193,9 +193,9 @@ def send_payment_success(user_email):
             <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
                 <p style="color: #166534; font-weight: 600;">You now have unlimited access to:</p>
                 <ul style="color: #166534;">
-                    <li>🤖 AI-Powered Stockout Predictions</li>
+                    <li>📦 Smart Low Stock Alerts</li>
                     <li>📊 Real-Time Inventory Dashboard</li>
-                    <li>💰 Revenue Analytics & Forecasting</li>
+                    <li>💰 Revenue Analytics & Reporting</li>
                     <li>📥 Unlimited CSV Exports</li>
                     <li>💬 Priority Email Support</li>
                 </ul>
