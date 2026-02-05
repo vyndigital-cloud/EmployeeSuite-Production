@@ -4,6 +4,9 @@ Email service with optional SendGrid dependency
 
 import logging
 import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 logger = logging.getLogger(__name__)
 
@@ -19,50 +22,108 @@ except ImportError:
     logger.warning("SendGrid not available - email functionality disabled")
     SENDGRID_AVAILABLE = False
 
+# SMTP Configuration (fallback when SendGrid unavailable)
+SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
+SMTP_USERNAME = os.getenv('SMTP_USERNAME')
+SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
+FROM_EMAIL = os.getenv('FROM_EMAIL', 'adam@golproductions.com')
+
+SMTP_AVAILABLE = bool(SMTP_USERNAME and SMTP_PASSWORD)
+
+# Log email service status
+if SENDGRID_AVAILABLE:
+    logger.info("SendGrid email service available")
+elif SMTP_AVAILABLE:
+    logger.info("SMTP email service available as fallback")
+else:
+    logger.warning("No email service configured - emails will be logged only")
+
+
+def send_smtp_email(to_email, subject, html_content):
+    """Send email via SMTP as fallback"""
+    if not SMTP_AVAILABLE:
+        return False
+    
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = FROM_EMAIL
+        msg['To'] = to_email
+        
+        html_part = MIMEText(html_content, 'html')
+        msg.attach(html_part)
+        
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SMTP_USERNAME, SMTP_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        
+        logger.info(f"SMTP email sent successfully to {to_email}")
+        return True
+    except Exception as e:
+        logger.error(f"SMTP email error: {e}")
+        return False
+
 
 def send_welcome_email(user_email):
     """Send welcome email when user signs up"""
-    if not SENDGRID_AVAILABLE:
+    html_content = f"""
+    <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #171717;">Welcome to Employee Suite!</h1>
+        <p style="font-size: 16px; color: #525252; line-height: 1.6;">Your 7-day free trial has started.</p>
+
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h2 style="font-size: 18px; color: #171717;">Quick Start:</h2>
+            <ol style="color: #525252; line-height: 1.8;">
+                <li>Login to your dashboard</li>
+                <li>Go to Settings → Connect your Shopify store</li>
+                <li>Start automating inventory tracking</li>
+            </ol>
+        </div>
+
+        <a href="https://employeesuite-production.onrender.com/dashboard"
+           style="display: inline-block; background: #171717; color: white; padding: 12px 24px;
+                  text-decoration: none; border-radius: 6px; margin: 20px 0;">
+            Go to Dashboard
+        </a>
+
+        <p style="font-size: 14px; color: #737373; margin-top: 30px;">
+            Questions? Reply to this email or visit our FAQ.
+        </p>
+    </div>
+    """
+
+    if not SENDGRID_AVAILABLE and not SMTP_AVAILABLE:
         logger.info(f"Email disabled - would send welcome email to {user_email}")
         return True
 
-    message = Mail(
-        from_email=("adam@golproductions.com", "Employee Suite"),
-        to_emails=user_email,
-        subject="Welcome to Employee Suite - Your Trial Has Started",
-        html_content=f"""
-        <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #171717;">Welcome to Employee Suite!</h1>
-            <p style="font-size: 16px; color: #525252; line-height: 1.6;">Your 7-day free trial has started.</p>
-
-            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h2 style="font-size: 18px; color: #171717;">Quick Start:</h2>
-                <ol style="color: #525252; line-height: 1.8;">
-                    <li>Login to your dashboard</li>
-                    <li>Go to Settings → Connect your Shopify store</li>
-                    <li>Start automating inventory tracking</li>
-                </ol>
-            </div>
-
-            <a href="https://employeesuite-production.onrender.com/dashboard"
-               style="display: inline-block; background: #171717; color: white; padding: 12px 24px;
-                      text-decoration: none; border-radius: 6px; margin: 20px 0;">
-                Go to Dashboard
-            </a>
-
-            <p style="font-size: 14px; color: #737373; margin-top: 30px;">
-                Questions? Reply to this email or visit our FAQ.
-            </p>
-        </div>
-        """,
-    )
+    subject = "Welcome to Employee Suite - Your Trial Has Started"
 
     try:
-        sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
-        sg.send(message)
-        return True
+        if SENDGRID_AVAILABLE:
+            message = Mail(
+                from_email=("adam@golproductions.com", "Employee Suite"),
+                to_emails=user_email,
+                subject=subject,
+                html_content=html_content,
+            )
+            sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
+            response = sg.send(message)
+            logger.info(f"SendGrid email sent to {user_email}, status: {response.status_code}")
+            return True
+        elif SMTP_AVAILABLE:
+            return send_smtp_email(user_email, subject, html_content)
     except Exception as e:
-        logger.error(f"Email error: {e}")
+        logger.error(f"SendGrid email error: {e}")
+        # Try SMTP fallback
+        if SMTP_AVAILABLE:
+            logger.info("Trying SMTP fallback...")
+            try:
+                return send_smtp_email(user_email, subject, html_content)
+            except Exception as smtp_error:
+                logger.error(f"SMTP fallback also failed: {smtp_error}")
         return False
 
 
