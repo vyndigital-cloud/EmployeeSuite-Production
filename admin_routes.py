@@ -5,6 +5,11 @@ from datetime import datetime
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
+# Add a simple test route to verify blueprint is working
+@admin_bp.route('/test')
+def test():
+    return "Admin blueprint is working!"
+
 ADMIN_LOGIN_HTML = '''
 <!DOCTYPE html>
 <html>
@@ -398,20 +403,23 @@ ADMIN_DASHBOARD_HTML = '''
 
 @admin_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        import os
-        admin_password = os.getenv('ADMIN_PASSWORD')
-        
-        # Enforce password protection - require ADMIN_PASSWORD to be set
-        if not admin_password:
-            return render_template_string(ADMIN_LOGIN_HTML, error="Admin access is disabled. ADMIN_PASSWORD environment variable is not set.")
-        
-        password = request.form.get('password', '')
-        if password and password == admin_password:
-            session['admin_logged_in'] = True
-            return redirect(url_for('admin.dashboard'))
-        return render_template_string(ADMIN_LOGIN_HTML, error="Invalid password")
-    return render_template_string(ADMIN_LOGIN_HTML)
+    try:
+        if request.method == 'POST':
+            import os
+            admin_password = os.getenv('ADMIN_PASSWORD')
+            
+            # Enforce password protection - require ADMIN_PASSWORD to be set
+            if not admin_password:
+                return render_template_string(ADMIN_LOGIN_HTML, error="Admin access is disabled. ADMIN_PASSWORD environment variable is not set.")
+            
+            password = request.form.get('password', '')
+            if password and password == admin_password:
+                session['admin_logged_in'] = True
+                return redirect(url_for('admin.dashboard'))
+            return render_template_string(ADMIN_LOGIN_HTML, error="Invalid password")
+        return render_template_string(ADMIN_LOGIN_HTML)
+    except Exception as e:
+        return f"Admin login error: {str(e)}", 500
 
 @admin_bp.route('/logout')
 def logout():
@@ -420,43 +428,46 @@ def logout():
 
 @admin_bp.route('/')
 def dashboard():
-    import os
-    # Enforce password protection - require ADMIN_PASSWORD to be set
-    admin_password = os.getenv('ADMIN_PASSWORD')
-    if not admin_password:
-        return "Admin access is disabled. ADMIN_PASSWORD environment variable is not set.", 403
-    
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin.login'))
-    
-    users = User.query.all()
-    total_users = len(users)
-    subscribed_users = len([u for u in users if u.is_subscribed])
-    trial_users = len([u for u in users if u.is_trial_active()])
-    total_stores = ShopifyStore.query.filter_by(is_active=True).count()
-    
-    return render_template_string(
-        ADMIN_DASHBOARD_HTML,
-        users=users,
-        total_users=total_users,
-        subscribed_users=subscribed_users,
-        trial_users=trial_users,
-        total_stores=total_stores
-    )
+    try:
+        import os
+        # Enforce password protection - require ADMIN_PASSWORD to be set
+        admin_password = os.getenv('ADMIN_PASSWORD')
+        if not admin_password:
+            return "Admin access is disabled. ADMIN_PASSWORD environment variable is not set.", 403
+        
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin.login'))
+        
+        users = User.query.all()
+        total_users = len(users)
+        subscribed_users = len([u for u in users if u.is_subscribed])
+        trial_users = len([u for u in users if u.is_trial_active()])
+        total_stores = ShopifyStore.query.filter_by(is_active=True).count()
+        
+        return render_template_string(
+            ADMIN_DASHBOARD_HTML,
+            users=users,
+            total_users=total_users,
+            subscribed_users=subscribed_users,
+            trial_users=trial_users,
+            total_stores=total_stores
+        )
+    except Exception as e:
+        return f"Admin dashboard error: {str(e)}", 500
 
 @admin_bp.route('/delete-user/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
     """Delete a user and their associated data"""
-    import os
-    # Enforce password protection - require ADMIN_PASSWORD to be set
-    admin_password = os.getenv('ADMIN_PASSWORD')
-    if not admin_password:
-        return "Admin access is disabled. ADMIN_PASSWORD environment variable is not set.", 403
-    
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin.login'))
-    
     try:
+        import os
+        # Enforce password protection - require ADMIN_PASSWORD to be set
+        admin_password = os.getenv('ADMIN_PASSWORD')
+        if not admin_password:
+            return "Admin access is disabled. ADMIN_PASSWORD environment variable is not set.", 403
+        
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin.login'))
+        
         user = User.query.get(user_id)
         if user:
             # Delete associated stores
