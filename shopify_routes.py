@@ -55,43 +55,11 @@ def shopify_settings():
         logger.error(f"Error finding user in shopify_settings: {e}", exc_info=True)
         # Continue with user=None, will redirect to appropriate auth flow
 
-    # If no user found, redirect to install (for embedded) or show message
+    # If no user found, redirect to login (don't redirect to install - causes loops)
     if not user:
-        if shop and host:
-            # Embedded mode - redirect to install using client-side redirect
-            from flask import url_for
-
-            try:
-                install_url = url_for("oauth.install", shop=shop, host=host)
-            except Exception:
-                install_url = f"/install?shop={shop}&host={host}"
-            # Use App Bridge compliant redirect
-            redirect_html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Install Required</title>
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-    <script>
-        // App Bridge compliant redirect for embedded apps
-        if (window.shopify && window.shopify.Redirect) {{
-            window.shopify.Redirect.dispatch(window.shopify.Redirect.Action.APP, '{install_url}');
-        }} else {{
-            window.location.href = '{install_url}';
-        }}
-    </script>
-</head>
-<body>
-    <p>Redirecting to install...</p>
-    <a href="{install_url}">Click here if redirect doesn't work</a>
-</body>
-</html>"""
-            return redirect_html
-        else:
-            # Standalone mode - redirect to login
-            from flask import redirect, url_for
-
-            return redirect(url_for("auth.login"))
+        # Redirect to login for both embedded and standalone
+        from flask import redirect, url_for
+        return redirect(url_for("auth.login"))
 
     # Get user's store
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
