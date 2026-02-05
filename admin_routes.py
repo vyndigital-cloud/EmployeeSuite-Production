@@ -1,3 +1,4 @@
+import os
 from flask import Blueprint, render_template_string, request, redirect, url_for, session
 from models import db, User, ShopifyStore
 from datetime import datetime
