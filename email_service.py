@@ -335,6 +335,14 @@ def send_password_reset_email(user_email, reset_token):
             return True
         except Exception as e:
             logger.error(f"SendGrid email error: {e}")
+            # Log detailed error information for debugging
+            if hasattr(e, 'body'):
+                try:
+                    logger.error(f"SendGrid error body: {e.body.decode() if isinstance(e.body, bytes) else e.body}")
+                except:
+                    pass
+            if hasattr(e, 'status_code'):
+                logger.error(f"SendGrid status code: {e.status_code}")
             # Fall through to SMTP
     
     if SMTP_AVAILABLE:
