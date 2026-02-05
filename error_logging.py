@@ -137,40 +137,54 @@ class ErrorLogger:
         return context
     
     def log_error(self, error, error_type="GENERAL", additional_context=None):
-        """Log an error with full context"""
+        """Log an error with full context - optimized"""
         try:
-            context = self.get_context_info()
-            if additional_context:
-                context.update(additional_context)
-                
+            # Only get context if we're actually going to use it
+            context = None
+            if additional_context or error_type in ['CRITICAL', 'DATABASE_ERROR', 'STARTUP_ERROR']:
+                context = self.get_context_info()
+                if additional_context:
+                    context.update(additional_context)
+            
+            # Simplified error info for memory efficiency
             error_info = {
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'error_type': error_type,
-                'error_message': str(error),
-                'error_class': error.__class__.__name__,
-                'traceback': traceback.format_exc(),
-                'context': context
+                'error_message': str(error)[:500],  # Limit message length
+                'error_class': error.__class__.__name__
             }
             
-            # Add to memory buffer
+            # Only add full traceback for critical errors
+            if error_type in ['CRITICAL', 'DATABASE_ERROR', 'STARTUP_ERROR']:
+                error_info['traceback'] = traceback.format_exc()
+                
+            if context:
+                error_info['context'] = context
+            
+            # Thread-safe buffer update
             with self.lock:
                 self.error_buffer.append(error_info)
             
-            # Log to appropriate logger
-            error_msg = f"[{error_type}] {str(error)} | Context: {json.dumps(context, default=str)}"
+            # Efficient logging message
+            if context:
+                error_msg = f"[{error_type}] {str(error)[:200]} | Context: {json.dumps(context, default=str)[:300]}"
+            else:
+                error_msg = f"[{error_type}] {str(error)[:200]}"
             
+            # Route to appropriate logger
             if error_type in ['API_ERROR', 'SHOPIFY_ERROR', 'GRAPHQL_ERROR']:
                 self.api_logger.error(error_msg)
             else:
                 self.error_logger.error(error_msg)
                 
-            # Always log critical errors to console
+            # Console output only for critical errors
             if error_type in ['CRITICAL', 'DATABASE_ERROR', 'STARTUP_ERROR']:
                 print(f"🚨 CRITICAL ERROR: {error_msg}")
                 
         except Exception as logging_error:
-            # Fallback logging if our logging fails
+            # Minimal fallback logging
             print(f"ERROR LOGGING FAILED: {logging_error}")
-            print(f"ORIGINAL ERROR: {error}")
+            print(f"ORIGINAL ERROR: {str(error)[:100]}")
             
     def log_api_call(self, endpoint, method, status_code, response_time=None, error=None):
         """Log API calls and responses"""

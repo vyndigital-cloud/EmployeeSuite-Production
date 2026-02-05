@@ -189,35 +189,13 @@ except Exception as startup_error:
 
 # Only add the enhanced error handlers and routes if we have a successful app
 if app and startup_error_details is None:
-    # Enhanced error handlers
-    @app.errorhandler(500)
-    def internal_error(error):
-        error_logger.log_error(error, "INTERNAL_SERVER_ERROR")
-        from flask import jsonify
-        from datetime import datetime
-        return jsonify({
-            'error': 'Internal Server Error',
-            'message': 'Error has been logged and will be investigated',
-            'error_id': datetime.now().strftime('%Y%m%d_%H%M%S')
-        }), 500
-    
-    @app.errorhandler(404)
-    def not_found_error(error):
-        error_logger.log_error(error, "NOT_FOUND")
-        from flask import jsonify
-        return jsonify({
-            'error': 'Not Found',
-            'message': 'The requested resource was not found'
-        }), 404
-    
-    @app.errorhandler(403)
-    def forbidden_error(error):
-        error_logger.log_error(error, "FORBIDDEN")
-        from flask import jsonify
-        return jsonify({
-            'error': 'Forbidden',
-            'message': 'Access denied'
-        }), 403
+    # Register centralized error handlers
+    try:
+        from error_handlers import register_errors
+        register_errors(app)
+        logger.info("Error handlers registered successfully")
+    except ImportError as e:
+        logger.warning(f"Could not register error handlers: {e}")
 
     # Log all requests
     @app.before_request

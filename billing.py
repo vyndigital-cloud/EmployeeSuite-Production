@@ -50,8 +50,20 @@ except ImportError as e:
 from logging_config import logger
 from models import ShopifyStore, User, db
 from shopify_utils import normalize_shop_url
+from error_logging import error_logger
 
 billing_bp = Blueprint("billing", __name__)
+
+def handle_billing_error(error, shop="", host="", plan_type="pro"):
+    """Centralized billing error handler"""
+    error_logger.log_error(error, "BILLING_ERROR", {
+        'shop': shop,
+        'plan_type': plan_type
+    })
+    
+    formatted_error = format_billing_error(str(error))
+    subscribe_url = f"/billing/subscribe?error={formatted_error}&shop={shop}&host={host}&plan={plan_type}"
+    return safe_redirect(subscribe_url, shop=shop, host=host)
 
 # Shopify Billing API configuration
 from config import SHOPIFY_API_VERSION
@@ -797,16 +809,7 @@ def create_charge():
             </head><body><p>Redirecting...</p></body></html>
             """)
 
-        formatted_error = format_billing_error(error_msg)
-        return redirect(
-            url_for(
-                "billing.subscribe",
-                error=formatted_error,
-                shop=shop_url,
-                host=host,
-                plan=plan_type,
-            )
-        )
+        return handle_billing_error(Exception(error_msg), shop_url, host, plan_type)
 
     store.charge_id = str(result["charge_id"])
     db.session.commit()
