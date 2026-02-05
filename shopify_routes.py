@@ -262,35 +262,91 @@ def connect_store():
         )
         return safe_redirect(settings_url, shop=shop, host=host)
 
-    # Encrypt the token before storing (CRITICAL: same as OAuth flow)
-    from data_encryption import encrypt_access_token
+    # Check if user already has an active store
+    existing_store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
+    if existing_store:
+        # Check if it's the same shop
+        if existing_store.shop_url == shop_url:
+            # Update existing store with new token
+            try:
+                from data_encryption import encrypt_access_token
+                encrypted_token = encrypt_access_token(access_token)
+                if encrypted_token is None:
+                    logger.warning("Encryption failed for manual token, storing as plaintext")
+                    encrypted_token = access_token
+                
+                existing_store.access_token = encrypted_token
+                existing_store.is_active = True
+                existing_store.is_installed = True
+                existing_store.uninstalled_at = None
+                db.session.commit()
+                
+                logger.info(f"Updated existing store connection for {shop_url}")
+                settings_url = url_for(
+                    "shopify.shopify_settings",
+                    success="Store connection updated successfully!",
+                    shop=shop,
+                    host=host,
+                )
+                return safe_redirect(settings_url, shop=shop, host=host)
+            except Exception as e:
+                logger.error(f"Error updating existing store: {e}")
+                db.session.rollback()
+                settings_url = url_for(
+                    "shopify.shopify_settings",
+                    error="Failed to update store connection. Please try again.",
+                    shop=shop,
+                    host=host,
+                )
+                return safe_redirect(settings_url, shop=shop, host=host)
+        else:
+            # Different shop - user needs to disconnect first
+            settings_url = url_for(
+                "shopify.shopify_settings",
+                error=f"You already have a connected store ({existing_store.shop_url}). Please disconnect it first to connect a different store.",
+                shop=shop,
+                host=host,
+            )
+            return safe_redirect(settings_url, shop=shop, host=host)
 
-    encrypted_token = encrypt_access_token(access_token)
+    # Create new store connection
+    try:
+        from data_encryption import encrypt_access_token
+        encrypted_token = encrypt_access_token(access_token)
+        if encrypted_token is None:
+            logger.warning("Encryption failed for manual token, storing as plaintext")
+            encrypted_token = access_token
 
-    # If encryption failed (returned None), store plaintext with warning (for backwards compatibility)
-    if encrypted_token is None:
-        logger.warning(
-            f"Encryption failed for manual token, storing as plaintext (ENCRYPTION_KEY may not be set)"
+        new_store = ShopifyStore(
+            user_id=user.id, 
+            shop_url=shop_url, 
+            access_token=encrypted_token, 
+            is_active=True,
+            is_installed=True
         )
-        encrypted_token = access_token
 
-    new_store = ShopifyStore(
-        user_id=user.id, shop_url=shop_url, access_token=encrypted_token, is_active=True
-    )
+        db.session.add(new_store)
+        db.session.commit()
 
-    db.session.add(new_store)
-    db.session.commit()
-
-    logger.info(
-        f"Manual access token connection successful for {shop_url} by user {user.id}"
-    )
-    settings_url = url_for(
-        "shopify.shopify_settings",
-        success="Store connected successfully!",
-        shop=shop,
-        host=host,
-    )
-    return safe_redirect(settings_url, shop=shop, host=host)
+        logger.info(f"Manual access token connection successful for {shop_url} by user {user.id}")
+        settings_url = url_for(
+            "shopify.shopify_settings",
+            success="Store connected successfully!",
+            shop=shop,
+            host=host,
+        )
+        return safe_redirect(settings_url, shop=shop, host=host)
+        
+    except Exception as e:
+        logger.error(f"Error creating store connection: {e}")
+        db.session.rollback()
+        settings_url = url_for(
+            "shopify.shopify_settings",
+            error="Failed to create store connection. Please try again.",
+            shop=shop,
+            host=host,
+        )
+        return safe_redirect(settings_url, shop=shop, host=host)
 
 
 @shopify_bp.route("/settings/shopify/disconnect", methods=["POST"])
