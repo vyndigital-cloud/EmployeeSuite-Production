@@ -97,12 +97,8 @@ body {
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(225, 227, 229, 0.5);
-    position: sticky;
     top: 0;
     z-index: 100;
-}
-
-z-index: 100;
 }
 
 body.embedded .header {
@@ -418,59 +414,87 @@ body.embedded .header {
 }
 
 /* --- Banners --- */
+/* --- Banners (Redesigned) --- */
 .banner {
-    background: rgba(255, 255, 255, 0.8);
+    background: #ffffff;
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px 20px;
-    margin-bottom: 32px;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    backdrop-filter: blur(5px);
-    animation: fadeIn 0.8s ease 0.3s backwards;
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
     flex-wrap: wrap;
     gap: 16px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.banner:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .banner-warning {
-    background: #fffbf0;
-    border-color: #fde6a8;
+    background: #fffbeb;
+    border-color: #fef3c7;
 }
 
 .banner-info {
-    border-left: 3px solid var(--primary);
+    background: #f0f9ff;
+    border-color: #e0f2fe;
+    border-left: 4px solid #0ea5e9;
 }
 
-.banner-content h3 {
-    font-size: 1rem;
+.banner-content-title {
+    margin: 0 0 4px 0;
+    font-size: 15px;
     font-weight: 600;
     color: var(--text-main);
-    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.banner-content p {
-    font-size: 0.9rem;
+.banner-content-text {
+    margin: 0;
+    font-size: 14px;
     color: var(--text-sub);
+    line-height: 1.5;
 }
 
 .banner-action {
-    background: var(--primary);
-    color: #fff;
+    background: white;
+    color: var(--text-main);
+    border: 1px solid var(--border);
     padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 0.9rem;
+    border-radius: 6px;
+    font-size: 13px;
     font-weight: 600;
     text-decoration: none;
     white-space: nowrap;
     transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .banner-action:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    transform: none;
+    color: var(--text-main);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* Specific overrides for primary actions in banners */
+.banner-action.primary {
+    background: var(--primary);
+    color: white;
+    border-color: transparent;
+}
+
+.banner-action.primary:hover {
     background: var(--primary-dark);
-    transform: translateY(-1px);
-    color: #fff;
+    color: white;
 }
 
 /* --- Output Section --- */

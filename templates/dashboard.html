@@ -210,59 +210,45 @@
 
             <!-- Alerts/Banners -->
             {% if not has_access %}
-            <div class="banner-pro" style="
-                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-                border-radius: 16px;
-                padding: 24px;
-                margin-bottom: 32px;
-                box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                color: white;
-                flex-wrap: wrap;
-                gap: 16px;
-            ">
+            <div class="banner banner-warning">
                 <div style="flex: 1;">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                        <span
-                            style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Action
-                            Required</span>
-                        <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: white;">Subscription Expired
-                        </h3>
+                    <div class="banner-content-title" style="color: #92400e;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        Action Required: Subscription Expired
                     </div>
-                    <p style="margin: 0; color: #cbd5e1; font-size: 15px; line-height: 1.5;">Your trial has ended.
-                        Subscribe to Employee Suite Pro to regain access to advanced analytics and automated reporting.
+                    <p class="banner-content-text">
+                        Your trial has ended. Subscribe to Employee Suite Pro to regain access to all features.
                     </p>
                 </div>
-                <a href="#" onclick="openPage('/subscribe'); return false;" style="
-                    background: #008060;
-                    color: white;
-                    padding: 12px 24px;
-                    border-radius: 8px;
-                    text-decoration: none;
-                    font-weight: 600;
-                    font-size: 15px;
-                    box-shadow: 0 4px 12px rgba(0, 128, 96, 0.3);
-                    transition: all 0.2s;
-                    white-space: nowrap;
-                ">Unlock Pro Features</a>
+                <a href="#" onclick="openPage('/subscribe'); return false;" class="banner-action primary">
+                    Unlock Pro Features
+                </a>
             </div>
             {% endif %}
 
-
-
             {% if not has_shopify %}
-            <div class="banner banner-info"
-                style="justify-content: center; text-align: center; flex-direction: column; gap: 12px; border-left: 1px solid #e1e3e5;">
-                <div class="banner-content">
-                    <h3 style="margin-bottom: 6px;">Connect your Shopify store</h3>
-                    <p>Get started in 30 seconds. Connect your store to unlock full functionality.</p>
+            <div class="banner banner-info">
+                <div style="flex: 1;">
+                    <div class="banner-content-title" style="color: #0369a1;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
+                        Connect your Shopify Store
+                    </div>
+                    <p class="banner-content-text">
+                        Get started in 30 seconds. Connect your store to unlock full functionality.
+                    </p>
                 </div>
-                <a href="#" onclick="openPage('/settings/shopify'); return false;" class="banner-action">Connect
-                    Store
-                    →</a>
+                <a href="#" onclick="openPage('/settings/shopify'); return false;" class="banner-action primary">
+                    Connect Store →
+                </a>
             </div>
             {% endif %}
 
