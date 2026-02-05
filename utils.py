@@ -1,31 +1,36 @@
 from typing import Optional
 
-def normalize_shop_url(shop_url: Optional[str]) -> Optional[str]:
-    """Centralized shop URL normalization - prevents OAuth failures"""
-    if not shop_url:
-        return None
+# Import centralized normalize_shop_url from shopify_utils to avoid duplication
+try:
+    from shopify_utils import normalize_shop_url
+except ImportError:
+    # Fallback implementation if shopify_utils is not available
+    def normalize_shop_url(shop_url: Optional[str]) -> Optional[str]:
+        """Fallback shop URL normalization"""
+        if not shop_url:
+            return None
 
-    # Remove protocol and www
-    shop_url = (
-        shop_url.lower()
-        .replace("https://", "")
-        .replace("http://", "")
-        .replace("www.", "")
-        .strip()
-    )
+        # Remove protocol and www
+        shop_url = (
+            shop_url.lower()
+            .replace("https://", "")
+            .replace("http://", "")
+            .replace("www.", "")
+            .strip()
+        )
 
-    # Handle path components
-    if "/" in shop_url:
-        shop_url = shop_url.split("/")[0]
+        # Handle path components
+        if "/" in shop_url:
+            shop_url = shop_url.split("/")[0]
 
-    # Ensure .myshopify.com suffix
-    if not shop_url.endswith(".myshopify.com"):
-        if "." not in shop_url:
-            shop_url = f"{shop_url}.myshopify.com"
-        elif not shop_url.endswith(".myshopify.com"):
-            raise ValueError("Invalid shop URL format")
+        # Ensure .myshopify.com suffix
+        if not shop_url.endswith(".myshopify.com"):
+            if "." not in shop_url:
+                shop_url = f"{shop_url}.myshopify.com"
+            elif not shop_url.endswith(".myshopify.com"):
+                raise ValueError("Invalid shop URL format")
 
-    return shop_url
+        return shop_url
 
 
 def safe_redirect(url: str, shop: Optional[str] = None, host: Optional[str] = None):

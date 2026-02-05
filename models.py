@@ -272,7 +272,7 @@ class ShopifyStore(db.Model, TimestampMixin):
     @validates("shop_url")
     def validate_shop_url(self, key: str, shop_url: str) -> str:
         """Validate and normalize shop URL"""
-        from utils import normalize_shop_url
+        from shopify_utils import normalize_shop_url
 
         return normalize_shop_url(shop_url)
 
