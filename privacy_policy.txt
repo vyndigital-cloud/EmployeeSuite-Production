@@ -1,33 +1,52 @@
 PRIVACY POLICY
 
-Last updated: January 2025
+Last updated: February 05, 2026
 
-Employee Suite ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our Shopify application.
+Employee Suite ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our Shopify application "Employee Suite".
 
-INFORMATION WE COLLECT
+1. INFORMATION WE COLLECT
 
-We collect information you provide directly to us, such as when you create an account, connect your Shopify store, or contact us for support.
+We collect information you provide directly to us and information about your use of the application.
 
-Store Data: We access your Shopify store data including orders, products, and inventory as necessary to provide our services.
+Personal Information:
+- Contact information (name, email address) provided during account creation or support requests.
+- Shopify store details (store URL, shop owner name, email, timezone).
 
-Usage Information: We collect information about how you use our application, including features accessed and actions taken.
+Store Data:
+We access the following data from your Shopify store as necessary to provide our services:
+- Products and Inventory: To analyze stock levels and predict stockouts.
+- Orders: To analyze sales trends and revenue for reporting.
+- Customers: Access is limited to necessary order fulfillment data and is processed securely.
 
-HOW WE USE YOUR INFORMATION
+2. HOW WE USE YOUR INFORMATION
 
 We use the information we collect to:
-- Provide, maintain, and improve our services
-- Process transactions and send related information
-- Send technical notices and support messages
-- Respond to your comments and questions
+- Provide, maintain, and improve our services.
+- Analyze trends and usage to provide inventory and revenue insights.
+- Send technical notices, updates, security alerts, and administrative messages.
+- Respond to your comments, questions, and customer service requests.
 
-DATA SECURITY
+3. DATA RETENTION
 
-We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.
+We retain your personal information and store data only as long as necessary to provide the Service, or as required by law.
+- Upon uninstallation, we will remove your store access token.
+- Historical data reports may be retained for a limited period to allow for re-installation recovery, or deleted immediately upon request.
 
-THIRD-PARTY SERVICES
+4. DATA SHARING
 
-Our application integrates with Shopify and may use other third-party services. These services have their own privacy policies.
+We do not sell your personal data. We may share information with third-party vendors who allow us to provide the Service (e.g., hosting providers like Render, email services like SendGrid), solely for the purpose of enabling them to provide services to us.
 
-CONTACT US
+5. SECURITY
 
-If you have any questions about this Privacy Policy, please contact us at support@employeesuite.com.
+We implement industry-standard security measures, including encryption of access tokens and secure HTTPS connections, to protect your information against unauthorized access, alteration, disclosure, or destruction.
+
+6. YOUR RIGHTS
+
+You have the right to access, correct, update, or request deletion of your personal information. You may contact us at the email below to exercise these rights.
+
+7. CONTACT US
+
+If you have any questions about this Privacy Policy, please contact us at:
+
+Email: adam@golproductions.com
+Address: Hammond Park, WA

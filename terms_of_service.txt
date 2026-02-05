@@ -1,33 +1,43 @@
 TERMS OF SERVICE
 
-Last updated: January 2025
+Last updated: February 05, 2026
 
-These Terms of Service ("Terms") govern your use of Employee Suite ("Service") operated by Employee Suite ("us", "we", or "our").
+These Terms of Service ("Terms") govern your use of the "Employee Suite" application ("Service") operated by Employee Suite ("us", "we", or "our").
 
-ACCEPTANCE OF TERMS
+1. ACCEPTANCE OF TERMS
 
-By accessing and using this service, you accept and agree to be bound by the terms and provision of this agreement.
+By installing, accessing, or using this Service, you agree to be bound by these Terms. If you disagree with any part of the terms, you may not access the Service.
 
-USE LICENSE
+2. DESCRIPTION OF SERVICE
 
-Permission is granted to temporarily use Employee Suite for personal, non-commercial transitory viewing only.
+Employee Suite provides inventory management, revenue analytics, and reporting tools for Shopify merchants. We act as a data processor for the data you process through your Shopify store.
 
-DISCLAIMER
+3. SUBSCRIPTIONS AND BILLING
 
-The information on this application is provided on an 'as is' basis. To the fullest extent permitted by law, this Company excludes all representations, warranties, conditions and terms.
+- The Service is billed on a subscription basis ("Subscription(s)").
+- You will be billed in advance on a recurring and periodic basis (monthly) via Shopify's Billing API.
+- A free trial period of 7 days is available for new users.
+- You may cancel your Subscription at any time through the application settings or your Shopify Admin.
 
-LIMITATIONS
+4. USER ACCOUNTS
 
-In no event shall Employee Suite or its suppliers be liable for any damages arising out of the use or inability to use the materials on Employee Suite's application.
+When you create an account with us, you must provide information that is accurate, complete, and current. Failure to do so constitutes a breach of the Terms, which may result in immediate termination of your account.
 
-PRIVACY POLICY
+5. INTELLECTUAL PROPERTY
 
-Your privacy is important to us. Please review our Privacy Policy, which also governs your use of the Service.
+The Service and its original content, features, and functionality are and will remain the exclusive property of Employee Suite and its licensors.
 
-MODIFICATIONS
+6. LIMITATION OF LIABILITY
 
-Employee Suite may revise these terms of service at any time without notice. By using this application, you are agreeing to be bound by the then current version of these terms of service.
+In no event shall Employee Suite, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from (i) your access to or use of or inability to access or use the Service; (ii) any conduct or content of any third party on the Service.
 
-CONTACT INFORMATION
+7. CHANGES
 
-If you have any questions about these Terms, please contact us at support@employeesuite.com.
+We reserve the right, at our sole discretion, to modify or replace these Terms at any time. We will provide notice of any material changes via the application or email.
+
+8. CONTACT INFORMATION
+
+If you have any questions about these Terms, please contact us at:
+
+Email: adam@golproductions.com
+Address: Hammond Park, WA
