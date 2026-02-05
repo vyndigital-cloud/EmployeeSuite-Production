@@ -800,6 +800,41 @@ def confirm_charge():
                 subscribe_url = f"/billing/subscribe?error=Store not properly connected&shop={shop}&host={host}&plan={plan_type}"
                 return safe_redirect(subscribe_url, shop=shop, host=host)
 
+            # FIX: Race condition - immediately grant access
+            # Don't wait for webhook which might be delayed
+            user.is_subscribed = True
+            store.charge_id = charge_id
+            
+            # Update enhanced models if present
+            try:
+                from enhanced_models import SubscriptionPlan as ESubscriptionPlan
+                e_plan = ESubscriptionPlan.query.filter_by(user_id=user.id).first()
+                if not e_plan:
+                    e_plan = ESubscriptionPlan(user_id=user.id, plan_type="manual", price_usd=39.00)
+                    db.session.add(e_plan)
+                e_plan.status = 'active'
+                e_plan.charge_id = charge_id
+            except ImportError:
+                pass
+                
+            db.session.commit()
+            logger.info(f"Charge {charge_id} confirmed for {shop_url}. Access granted immediately.")
+
+            return render_template_string(SUCCESS_HTML, 
+                                        dashboard_url=f"/dashboard?shop={shop}&host={host}",
+                                        trial_end_date=(datetime.now() + timedelta(days=7)).strftime('%B %d, %Y'))
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error activating subscription: {e}")
+            subscribe_url = f"/billing/subscribe?error=Activation failed. Please contact support.&shop={shop}&host={host}&plan={plan_type}"
+            return safe_redirect(subscribe_url, shop=shop, host=host)
+    else:
+        # Charge declined or expired
+        store.charge_id = None
+        db.session.commit()
+        subscribe_url = f"/billing/subscribe?error=Subscription was not accepted&shop={shop}&host={host}&plan={plan_type}"
+        return safe_redirect(subscribe_url, shop=shop, host=host)
+
             activate_result = activate_recurring_charge(
                 shop_url, locked_access_token, charge_id
             )

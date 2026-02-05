@@ -28,25 +28,7 @@ logger = logging.getLogger(__name__)
 core_bp = Blueprint("core", __name__)
 
 
-def require_access(f):
-    """Simple access control"""
-    from functools import wraps
-
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated:
-            return jsonify({"error": "Authentication required", "success": False}), 401
-        if not current_user.has_access():
-            return jsonify(
-                {
-                    "error": "Subscription required",
-                    "success": False,
-                    "action": "subscribe",
-                }
-            ), 403
-        return f(*args, **kwargs)
-
-    return decorated_function
+from access_control import require_access
 
 
 # Deferred imports moved inside functions for faster startup
