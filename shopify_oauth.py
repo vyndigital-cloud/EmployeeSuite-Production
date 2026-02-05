@@ -798,10 +798,9 @@ def register_compliance_webhooks(shop, access_token):
                 )
             elif response.status_code == 404:
                 # GDPR compliance webhooks must be registered in Partners Dashboard, not via Admin API
-                # This is expected for Partner apps - webhooks are already configured in app manifest
-                logger.warning(
-                    f"Webhook registration failed for {webhook['topic']}: "
-                    f"{response.status_code} - {response.text[:200]}"
+                # This is EXPECTED for Partner apps - webhooks are configured in shopify.app.toml
+                logger.info(
+                    f"Webhook {webhook['topic']} configured via Partners Dashboard (404 from API is expected)"
                 )
             else:
                 logger.warning(
