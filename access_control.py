@@ -20,7 +20,10 @@ def require_access(f):
             # Check if this is a browser request expecting HTML
             from flask import request, redirect, url_for
             if request.accept_mimetypes.accept_html and not request.is_json:
-                return redirect(url_for('billing.subscribe', error="Subscription required"))
+                # Capture params to preserve context
+                shop = request.args.get('shop')
+                host = request.args.get('host')
+                return redirect(url_for('billing.subscribe', error="Subscription required", shop=shop, host=host))
                 
             return jsonify(
                 {
