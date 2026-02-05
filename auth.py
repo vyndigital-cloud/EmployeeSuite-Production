@@ -15,6 +15,10 @@ from flask import (
 from flask_bcrypt import Bcrypt
 from flask_login import login_required, login_user, logout_user
 
+from input_validation import sanitize_input, validate_email
+from logging_config import logger
+from models import User, db
+
 # Add error handling for imports
 try:
     from email_service import send_password_reset_email, send_welcome_email
@@ -30,11 +34,6 @@ except ImportError as e:
     def send_password_reset_email(email, token):
         logger.info(f"Email service disabled - would send password reset to {email}")
         return True
-
-
-from input_validation import sanitize_input, validate_email
-from logging_config import logger
-from models import User, db
 
 auth_bp = Blueprint("auth", __name__)
 
