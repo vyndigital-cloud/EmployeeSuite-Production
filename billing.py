@@ -613,6 +613,9 @@ def create_charge():
         logger.warning("Billing request missing shop parameter")
         return redirect("/billing/subscribe?error=Missing store context. Please try logging in again.")
 
+    host = request.form.get("host") or request.args.get("host", "")
+    plan_type = request.form.get("plan") or request.args.get("plan", "pro")
+
     # Enhanced CSRF protection for billing flows
     csrf_valid = validate_csrf_token()
     if not csrf_valid:
@@ -625,10 +628,6 @@ def create_charge():
             error_msg = "Security validation failed. Please try again."
             subscribe_url = f"/billing/subscribe?error={error_msg}&shop={shop}&host={host}&plan={plan_type}"
             return safe_redirect(subscribe_url, shop=shop, host=host)
-
-    host = request.form.get("host") or request.args.get("host", "")
-
-    plan_type = request.form.get("plan") or request.args.get("plan", "pro")
 
     # Find user - improved logic for embedded apps
     user = None
