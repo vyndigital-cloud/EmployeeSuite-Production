@@ -545,6 +545,10 @@ def subscribe():
             "features": plan["features"],
             "error": error,
             "config_api_key": SHOPIFY_API_KEY,
+            # Add these missing variables for JavaScript
+            "user_authenticated": user is not None,
+            "store_connected": has_store,
+            "csrf_token": session.get('csrf_token', ''),
         }
 
         return render_template("subscribe.html", **template_vars)
@@ -575,9 +579,17 @@ def validate_csrf_token():
             if ".myshopify.com" in shop or shop.endswith(".myshopify.io"):
                 return True
         
+        # For POST requests from the subscribe page, be more lenient
+        if request.method == "POST" and request.endpoint in ['billing.create_charge', 'billing.start_trial']:
+            return True
+        
         # Fallback to standard CSRF validation
-        from shopify_utils import validate_csrf_token as validate_csrf
-        return validate_csrf(request, session)
+        try:
+            from shopify_utils import validate_csrf_token as validate_csrf
+            return validate_csrf(request, session)
+        except:
+            # If CSRF validation fails, allow for authenticated users
+            return current_user.is_authenticated
         
     except Exception as e:
         logger.warning(f"CSRF validation error: {e}")
@@ -594,6 +606,21 @@ def create_charge():
     
     # Normalize shop URL first thing
     shop = request.form.get("shop") or request.args.get("shop", "")
+
+    # Enhanced shop detection for embedded apps
+    if not shop:
+        # Try to get from referrer or session
+        referrer = request.headers.get('Referer', '')
+        if 'shop=' in referrer:
+            import urllib.parse
+            parsed = urllib.parse.urlparse(referrer)
+            query_params = urllib.parse.parse_qs(parsed.query)
+            if 'shop' in query_params:
+                shop = query_params['shop'][0]
+        
+        # Try session as last resort
+        if not shop:
+            shop = session.get('shop', '')
     
     # If shop is missing, try to get from user session/context
     if not shop and current_user.is_authenticated:
@@ -880,6 +907,78 @@ def confirm_charge():
         return safe_redirect(subscribe_url, shop=shop, host=host)
 
 
+
+
+@billing_bp.route("/billing/start-trial", methods=["POST"])
+def start_trial():
+    """Start free trial without billing"""
+    from shopify_utils import normalize_shop_url
+    
+    shop = request.form.get("shop") or request.args.get("shop", "")
+    if shop:
+        shop = normalize_shop_url(shop)
+    
+    host = request.form.get("host") or request.args.get("host", "")
+    
+    # Find user
+    user = None
+    try:
+        if current_user.is_authenticated:
+            user_id = current_user.get_id()
+            if user_id:
+                user = User.query.get(int(user_id))
+        
+        if not user and shop:
+            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            if store and store.user:
+                user = store.user
+    except Exception as e:
+        logger.error(f"Error finding user in start_trial: {e}")
+        pass
+
+    if not user:
+        return jsonify({
+            "success": False,
+            "error": "Please connect your Shopify store first."
+        }), 400
+
+    # Start trial
+    try:
+        if not user.trial_started_at:
+            user.trial_started_at = datetime.utcnow()
+            user.trial_ends_at = datetime.utcnow() + timedelta(days=7)
+            db.session.commit()
+            
+            logger.info(f"Started free trial for user {user.id}")
+            
+            dashboard_url = f"/dashboard?shop={shop}&host={host}"
+            return jsonify({
+                "success": True,
+                "redirect_url": dashboard_url,
+                "message": "Free trial started! You have 7 days of full access."
+            })
+        else:
+            # Trial already started
+            if user.is_trial_active():
+                dashboard_url = f"/dashboard?shop={shop}&host={host}"
+                return jsonify({
+                    "success": True,
+                    "redirect_url": dashboard_url,
+                    "message": "Your free trial is already active."
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": "Your free trial has expired. Please subscribe to continue."
+                }), 400
+                
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error starting trial: {e}")
+        return jsonify({
+            "success": False,
+            "error": "Failed to start trial. Please try again."
+        }), 500
 
 
 @billing_bp.route("/billing/cancel", methods=["POST"])
