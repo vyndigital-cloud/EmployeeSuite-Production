@@ -783,54 +783,7 @@ def settings_redirect():
     return redirect(url_for("shopify.shopify_settings", shop=shop, host=host))
 
 
-@core_bp.route("/terms")
-def terms():
-    """Terms of service page"""
-    return render_template_string("""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Terms of Service - Employee Suite</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px 20px; line-height: 1.6; }
-            h1 { color: #202223; margin-bottom: 24px; }
-            .back-link { color: #008060; text-decoration: none; font-weight: 500; }
-            .back-link:hover { text-decoration: underline; }
-        </style>
-    </head>
-    <body>
-        <a href="{{ url_for('core.home') }}" class="back-link">← Back to Dashboard</a>
-        <h1>Terms of Service</h1>
-        <p>Terms of service content will be added here.</p>
-    </body>
-    </html>
-    """)
 
-
-@core_bp.route("/privacy")
-def privacy():
-    """Privacy policy page"""
-    return render_template_string("""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Privacy Policy - Employee Suite</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px 20px; line-height: 1.6; }
-            h1 { color: #202223; margin-bottom: 24px; }
-            .back-link { color: #008060; text-decoration: none; font-weight: 500; }
-            .back-link:hover { text-decoration: underline; }
-        </style>
-    </head>
-    <body>
-        <a href="{{ url_for('core.home') }}" class="back-link">← Back to Dashboard</a>
-        <h1>Privacy Policy</h1>
-        <p>Privacy policy content will be added here.</p>
-    </body>
-    </html>
-    """)
 
 
 # ---------------------------------------------------------------------------
