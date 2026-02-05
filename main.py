@@ -27,6 +27,22 @@ try:
 except ImportError as e:
     logger.error(f"Error logging import failed: {e}")
     # Create a fallback error logger
+
+# Import session token verification
+try:
+    from session_token_verification import verify_session_token
+    logger.info("Session token verification imported successfully")
+except ImportError as e:
+    logger.error(f"Session token verification import failed: {e}")
+    # Create a fallback decorator
+    def verify_session_token(func):
+        return func
+
+# Create a fallback error logger
+try:
+    # Check if error_logger was imported successfully
+    error_logger
+except NameError:
     class FallbackErrorLogger:
         def __init__(self):
             self.errors = []
