@@ -3,7 +3,7 @@ from flask import Blueprint, render_template_string, request, redirect, url_for,
 from models import db, User, ShopifyStore
 from datetime import datetime
 
-admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+admin_bp = Blueprint('admin', __name__, url_prefix='/admin-panel')
 
 # Add a simple test route to verify blueprint is working
 @admin_bp.route('/test')
