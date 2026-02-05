@@ -136,6 +136,7 @@ def create_app():
         ('faq_routes', 'faq_bp'),
         ('enhanced_features', 'enhanced_bp'),
         ('admin_routes', 'admin_bp'),
+        ('diagnostic_routes', 'diagnostic_bp'),
     ]
     
     registered_blueprints = []
