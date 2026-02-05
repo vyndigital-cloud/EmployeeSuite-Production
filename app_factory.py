@@ -30,11 +30,38 @@ def create_app():
     try:
         from models import db
         db.init_app(app)
+        
+        # Auto-run database migrations on startup (production-safe)
+        with app.app_context():
+            try:
+                from sqlalchemy import inspect, text
+                inspector = inspect(db.engine)
+                columns = [col['name'] for col in inspector.get_columns('users')]
+                
+                if 'trial_started_at' not in columns:
+                    app.logger.info("🔧 Adding missing trial_started_at column...")
+                    db.session.execute(text("""
+                        ALTER TABLE users 
+                        ADD COLUMN trial_started_at TIMESTAMP WITH TIME ZONE
+                    """))
+                    db.session.commit()
+                    app.logger.info("✅ Successfully added trial_started_at column")
+                else:
+                    app.logger.debug("✅ Database schema up to date")
+            except Exception as migration_error:
+                app.logger.warning(f"Migration check failed (non-critical): {migration_error}")
+                # Don't crash the app if migration fails - it might already exist
+                try:
+                    db.session.rollback()
+                except:
+                    pass
+                    
     except ImportError:
         # Fallback database initialization
         from flask_sqlalchemy import SQLAlchemy
         db = SQLAlchemy()
         db.init_app(app)
+
     
     # Initialize login manager
     try:
