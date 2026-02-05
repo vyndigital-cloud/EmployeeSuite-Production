@@ -198,6 +198,14 @@ if app and startup_error_details is None:
     except ImportError as e:
         logger.warning(f"Could not register error handlers: {e}")
 
+    # Redirect /admin to actual admin panel (override Render's scaling endpoint)
+    @app.route('/admin')
+    @app.route('/admin/')
+    def redirect_admin():
+        """Redirect /admin to /system-admin/login"""
+        from flask import redirect
+        return redirect('/system-admin/login', code=302)
+    
     # Log all requests
     @app.before_request
     def log_request():
