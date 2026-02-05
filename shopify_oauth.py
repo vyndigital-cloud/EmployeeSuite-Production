@@ -433,89 +433,39 @@ def _handle_oauth_callback():
         logger.warning(f"Failed to parse shop_id from GID: {shop_gid}")
 
     # Check if user is already logged in (e.g., manually connecting from settings page)
-    # If logged in, use their account; otherwise create/find shop-based user for App Store installs
     user = None
     try:
         if current_user.is_authenticated:
-            # CRITICAL: Get the actual User object from database, NOT the LocalProxy
-            # Using current_user directly causes RecursionError when accessing user.id later
             user_id = current_user.get_id()
             if user_id:
                 user = User.query.get(int(user_id))
                 if user:
-                    logger.info(
-                        f"OAuth callback: Using existing logged-in user {user.email} (ID: {user.id})"
-                    )
+                    logger.info(f"OAuth callback: Using existing logged-in user {user.email} (ID: {user.id})")
     except Exception as e:
-        # current_user not loaded yet or not authenticated - will create/find shop-based user
         logger.debug(f"Could not get current_user: {e}")
         pass
 
     if not user:
-        # No logged-in user - this is likely an App Store installation
-        # Get or create user (for App Store, use shop domain as identifier)
-        # CRITICAL: Ensure database columns exist before querying
+        # For OAuth connections, create/find user based on shop domain
+        shop_email = f"{shop}@shopify.com"
         try:
-            # Check if required columns exist by attempting a simple query
-            db.session.execute(db.text("SELECT 1 FROM users LIMIT 1"))
-        except Exception as init_err:
-            logger.warning(f"Database initialization check failed: {init_err}")
-
-        try:
-            user = User.query.filter_by(email=f"{shop}@shopify.com").first()
-        except Exception as query_err:
-            # If query fails due to missing columns, try to add them and retry
-            if (
-                "does not exist" in str(query_err).lower()
-                or "undefinedcolumn" in str(query_err).lower()
-            ):
-                logger.warning(
-                    f"Query failed due to missing columns, attempting to fix: {query_err}"
+            user = User.query.filter_by(email=shop_email).first()
+            if not user:
+                from datetime import datetime, timedelta, timezone
+                user = User(
+                    email=shop_email,
+                    password_hash="oauth_user",  # OAuth users don't need passwords
+                    trial_started_at=datetime.now(timezone.utc),
+                    trial_ends_at=datetime.now(timezone.utc) + timedelta(days=7),
                 )
-                try:
-                    from sqlalchemy import text
-
-                    # Add missing last_login column (PostgreSQL doesn't support IF NOT EXISTS in ALTER TABLE)
-                    try:
-                        db.session.execute(
-                            text("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
-                        )
-                        db.session.commit()
-                    except Exception as add_err:
-                        if (
-                            "already exists" in str(add_err).lower()
-                            or "duplicate" in str(add_err).lower()
-                        ):
-                            db.session.rollback()
-                            logger.debug("Column last_login already exists")
-                        else:
-                            raise
-                    logger.info("✅ Added missing last_login column on-the-fly")
-                    # Retry query
-                    user = User.query.filter_by(email=f"{shop}@shopify.com").first()
-                except Exception as fix_err:
-                    logger.error(f"Failed to fix missing columns: {fix_err}")
-                    raise query_err  # Re-raise original error
+                db.session.add(user)
+                db.session.commit()
+                logger.info(f"OAuth callback: Created new shop-based user {user.email} (ID: {user.id})")
             else:
-                raise  # Re-raise if it's a different error
-
-        if not user:
-            from datetime import datetime, timedelta, timezone
-
-            user = User(
-                email=f"{shop}@shopify.com",
-                password_hash="",  # OAuth users don't have passwords
-                trial_ends_at=datetime.now(timezone.utc) + timedelta(days=7),
-            )
-            db.session.add(user)
-            db.session.commit()
-            logger.info(
-                f"OAuth callback: Created new shop-based user {user.email} (ID: {user.id})"
-            )
-        else:
-            logger.info(
-                f"OAuth callback: Found existing shop-based user {user.email} (ID: {user.id})"
-            )
+                logger.info(f"OAuth callback: Found existing shop-based user {user.email} (ID: {user.id})")
+        except Exception as e:
+            logger.error(f"Error creating/finding user: {e}")
+            return "Failed to create user account", 500
 
     # CRITICAL: Log which API key was used to generate this access_token
     current_api_key = os.getenv("SHOPIFY_API_KEY", "NOT_SET")
@@ -532,55 +482,57 @@ def _handle_oauth_callback():
             f"OAUTH COMPLETE: WARNING - API key is NOT SET or invalid! current_api_key={current_api_key}"
         )
 
-    # Store Shopify credentials with shop_id
-    # CRITICAL: Find store by shop_url AND user_id to ensure we update the correct store
-    # This prevents updating stores owned by different users
+    # Store Shopify credentials with proper error handling
     store = ShopifyStore.query.filter_by(shop_url=shop, user_id=user.id).first()
-    if not store:
-        # If not found with user_id, check if store exists for this shop (might be from old flow)
-        store = ShopifyStore.query.filter_by(shop_url=shop).first()
 
     if store:
-        # CRITICAL: Always update access_token when reconnecting
-        # Encrypt the token before storing
-        from data_encryption import encrypt_access_token
+        # Update existing store
+        try:
+            from data_encryption import encrypt_access_token
+            encrypted_token = encrypt_access_token(access_token)
+            if encrypted_token is None:
+                logger.warning("Encryption failed for token, storing as plaintext")
+                encrypted_token = access_token
 
-        encrypted_token = encrypt_access_token(access_token)
-
-        # If encryption failed (returned None), store plaintext with warning
-        if encrypted_token is None:
-            logger.warning("Encryption failed for token, storing as plaintext")
-            encrypted_token = access_token
-
-        store.access_token = encrypted_token
-        store.shop_id = shop_id
-        store.is_active = True  # CRITICAL: Set store as active
-        store.uninstalled_at = None  # CRITICAL: Clear uninstalled timestamp
-        store.user_id = user.id
-        logger.info(
-            f"Updated existing store {shop} - set is_active=True, cleared uninstalled_at"
-        )
+            store.access_token = encrypted_token
+            store.shop_id = shop_id
+            store.is_active = True
+            store.is_installed = True
+            store.uninstalled_at = None
+            logger.info(f"Updated existing store {shop} - set is_active=True")
+        except Exception as e:
+            logger.error(f"Error updating store: {e}")
+            return "Failed to update store connection", 500
     else:
         # Create new store
-        from data_encryption import encrypt_access_token
+        try:
+            from data_encryption import encrypt_access_token
+            encrypted_token = encrypt_access_token(access_token)
+            if encrypted_token is None:
+                logger.warning("Encryption failed for token, storing as plaintext")
+                encrypted_token = access_token
 
-        encrypted_token = encrypt_access_token(access_token)
-        if encrypted_token is None:
-            logger.warning("Encryption failed for token, storing as plaintext")
-            encrypted_token = access_token
+            store = ShopifyStore(
+                user_id=user.id,
+                shop_url=shop,
+                shop_id=shop_id,
+                access_token=encrypted_token,
+                is_active=True,
+                is_installed=True,
+                uninstalled_at=None,
+            )
+            db.session.add(store)
+            logger.info(f"Created new store {shop} - set is_active=True")
+        except Exception as e:
+            logger.error(f"Error creating store: {e}")
+            return "Failed to create store connection", 500
 
-        store = ShopifyStore(
-            user_id=user.id,
-            shop_url=shop,
-            shop_id=shop_id,
-            access_token=encrypted_token,
-            is_active=True,  # CRITICAL: New stores are active
-            uninstalled_at=None,  # CRITICAL: Explicitly set to None
-        )
-        db.session.add(store)
-        logger.info(f"Created new store {shop} - set is_active=True")
-
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error saving store to database: {e}")
+        return "Failed to save store connection", 500
 
     # BULLETPROOF: Persist shop and host in session for subsequent requests
     session.permanent = True
@@ -631,46 +583,29 @@ def _handle_oauth_callback():
         if len(parts) == 2:
             host = unquote(parts[1])
 
-    # CRITICAL: Always log user in/refresh session after store connection
-    # This ensures session is maintained even if user was already logged in
-    # For OAuth (embedded apps), use session tokens, not remember cookies
-    # Session tokens are primary auth for embedded apps, cookies are secondary
-    is_embedded = bool(host)  # If host is present, this is embedded
+    # Always log user in after successful OAuth
+    is_embedded = bool(host)
+    login_user(user, remember=not is_embedded)
 
-    # Always call login_user to refresh/maintain session, even if already logged in
-    # This is critical after store reconnection to prevent session expiration
-    login_user(user, remember=not is_embedded)  # No remember cookie for embedded apps
-
-    # Force session to be saved and marked as modified
-    # This ensures the session cookie is refreshed and doesn't expire
+    # Store critical session data
     session.permanent = True
-    session.modified = True  # Force immediate session save (Safari compatibility)
-
-    # Store user_id in session for embedded apps (backup auth method)
+    session["shop"] = shop
+    session["current_shop"] = shop
+    session["shop_domain"] = shop.replace("https://", "").replace("http://", "")
     session["user_id"] = user.id
     session["_authenticated"] = True
+    session["oauth_completed"] = True
+    session["last_oauth"] = datetime.utcnow().isoformat()
 
-    # Store host if available (for embedded apps)
     if host:
         session["host"] = host
         session["embedded"] = True
-        session["is_embedded"] = True  # Additional flag
+        session["is_embedded"] = True
 
-    # Force session save immediately
-    try:
-        session.permanent = True
-        session.modified = True
-        # Additional session data for debugging
-        session["oauth_completed"] = True
-        from datetime import datetime
-        session["last_oauth"] = datetime.utcnow().isoformat()
-    except Exception as session_error:
-        logger.error(f"Session save error: {session_error}")
+    # Force session save
+    session.modified = True
 
-    logger.info(
-        f"✅ Session bulletproofed: shop={shop}, user_id={user.id}, host={bool(host) if host else False}"
-    )
-    logger.info(f"✅ Session keys stored: {list(session.keys())}")
+    logger.info(f"✅ OAuth complete: user {user.id}, shop {shop}, embedded: {bool(host)}")
 
     # Register mandatory compliance webhooks (Shopify requirement)
     register_compliance_webhooks(shop, access_token)

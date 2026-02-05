@@ -181,10 +181,9 @@ def connect_store():
         return safe_redirect(settings_url, shop=shop, host=host)
 
     # Validate the access_token works with current API key by testing a simple API call
-    # Validate the access_token works with current API key by testing a simple API call
     try:
         from shopify_graphql import ShopifyGraphQLClient
-
+        
         # Use GraphQL to validate token (modern approach)
         graphql_client = ShopifyGraphQLClient(shop_url, access_token)
         query = """
@@ -197,24 +196,41 @@ def connect_store():
         }
         """
         result = graphql_client.execute_query(query)
-
-        if "error" in result:
-            # Invalid token - might be from old app
-            logger.warning(
-                f"Access token test failed for {shop_url}: {result['error']}"
-            )
+        
+        if "error" in result or "errors" in result:
+            error_msg = result.get("error", "Token validation failed")
+            logger.warning(f"Access token test failed for {shop_url}: {error_msg}")
             settings_url = url_for(
                 "shopify.shopify_settings",
-                error=f'Access token validation failed: {result["error"]}. Please use the "Quick Connect" OAuth method instead.',
+                error=f'Access token validation failed: {error_msg}. Please use the "Quick Connect" OAuth method instead.',
                 shop=shop,
                 host=host,
             )
             return safe_redirect(settings_url, shop=shop, host=host)
+        
+        # Verify we got shop data
+        shop_data = result.get("shop")
+        if not shop_data or not shop_data.get("name"):
+            logger.warning(f"Access token test returned no shop data for {shop_url}")
+            settings_url = url_for(
+                "shopify.shopify_settings",
+                error="Access token validation failed - no shop data returned. Please check your token.",
+                shop=shop,
+                host=host,
+            )
+            return safe_redirect(settings_url, shop=shop, host=host)
+            
+        logger.info(f"Access token validated successfully for {shop_url}")
 
     except Exception as e:
         logger.error(f"Error validating access token: {e}", exc_info=True)
-        # Continue anyway - validation is optional for manual token entry
-        logger.warning("Access token validation failed but continuing with manual entry")
+        settings_url = url_for(
+            "shopify.shopify_settings",
+            error="Access token validation failed. Please use the OAuth connection method instead.",
+            shop=shop,
+            host=host,
+        )
+        return safe_redirect(settings_url, shop=shop, host=host)
 
     # Encrypt the token before storing (CRITICAL: same as OAuth flow)
     from data_encryption import encrypt_access_token
@@ -291,11 +307,16 @@ def disconnect_store():
     if store:
         try:
             # Use model method for consistent state management
-            store.disconnect()
+            store.is_active = False
+            store.is_installed = False
+            store.uninstalled_at = datetime.now(timezone.utc)
+            store.charge_id = None
+            # Clear access token to force reconnection
+            store.access_token = ""
+            
             db.session.commit()
-            logger.info(
-                f"Store {store.shop_url} disconnected and access_token cleared for user {user.id}"
-            )
+            logger.info(f"Store {store.shop_url} disconnected for user {user.id}")
+            
             settings_url = url_for(
                 "shopify.shopify_settings",
                 success="Store disconnected successfully! You can now reconnect with the new Partners app.",
@@ -305,10 +326,7 @@ def disconnect_store():
             return safe_redirect(settings_url, shop=shop, host=host)
         except Exception as e:
             logger.error(f"Error disconnecting store: {e}", exc_info=True)
-            try:
-                db.session.rollback()
-            except Exception as rollback_error:
-                logger.error(f"Failed to rollback database session: {rollback_error}")
+            db.session.rollback()
             settings_url = url_for(
                 "shopify.shopify_settings",
                 error="Error disconnecting store. Please try again.",
