@@ -528,12 +528,18 @@ def delete_user(user_id):
             email = user.email
             current_app.logger.info(f"Deleting user: {email} (ID: {user_id})")
             
-            # Delete subscription plans using raw SQL to avoid schema issues
+            # Delete all related data using raw SQL to avoid schema issues
             from sqlalchemy import text
+            
+            # Delete scheduled reports
+            db.session.execute(text("DELETE FROM scheduled_reports WHERE user_id = :user_id"), {"user_id": user_id})
+            current_app.logger.info(f"Deleted scheduled reports for user {email}")
+            
+            # Delete subscription plans
             db.session.execute(text("DELETE FROM subscription_plans WHERE user_id = :user_id"), {"user_id": user_id})
             current_app.logger.info(f"Deleted subscription plans for user {email}")
             
-            # Delete associated stores
+            # Delete Shopify stores (has CASCADE so should auto-delete, but being explicit)
             stores_deleted = ShopifyStore.query.filter_by(user_id=user.id).delete()
             current_app.logger.info(f"Deleted {stores_deleted} stores for user {email}")
             
