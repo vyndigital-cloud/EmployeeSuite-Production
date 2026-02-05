@@ -259,7 +259,25 @@
                     <input type="hidden" name="host" value="{{ request.args.get('host') }}">
                     {% endif %}
                 </div>
-                <button type="submit" class="cta-button">
+                <button type="submit" style="
+                        width: 100%;
+                        padding: 12px 20px;
+                        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        font-size: 15px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                    "
+                    onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.35)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(16, 185, 129, 0.25)';">
                     <span>Connect with Shopify</span>
                     <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
                         <path
@@ -301,7 +319,25 @@
                             style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;">
                     </div>
 
-                    <button type="submit" class="cta-button" style="width: 100%; justify-content: center;">
+                    <button type="submit" style="
+                            width: 100%;
+                            padding: 12px 20px;
+                            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 15px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.2s ease;
+                            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 8px;
+                        "
+                        onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.35)';"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(16, 185, 129, 0.25)';">
                         Connect Store
                     </button>
                 </form>
