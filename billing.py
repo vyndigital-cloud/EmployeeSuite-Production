@@ -648,7 +648,6 @@ def create_charge():
     if not shop and current_user.is_authenticated:
         # Try to find store for current user
         try:
-            from models import ShopifyStore
             store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
             if store:
                 shop = store.shop_url
