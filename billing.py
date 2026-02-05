@@ -551,15 +551,37 @@ def subscribe():
             "csrf_token": session.get('csrf_token', ''),
         }
 
-        return render_template("subscribe.html", **template_vars)
+        # Always render subscribe template - never redirect from this route
+        try:
+            return render_template("subscribe.html", **template_vars)
+        except Exception as template_error:
+            logger.error(f"Template rendering error: {template_error}")
+            # Fallback to basic error response
+            return f"Subscribe page error: {error or 'Unknown error'}", 500
             
     except Exception as e:
         logger.error(f"Critical error in subscribe route: {e}", exc_info=True)
-        return jsonify({
-            "error": "Subscribe page temporarily unavailable",
-            "message": "Please try again in a moment",
-            "error_id": datetime.now().strftime('%Y%m%d_%H%M%S')
-        }), 500
+        # Return subscribe template even on error - don't return JSON
+        error_vars = {
+            "error": "Subscribe page temporarily unavailable. Please try again.",
+            "shop": shop or "",
+            "host": host or "",
+            "plan": plan_type,
+            "plan_name": PLANS.get(plan_type, PLANS["pro"])["name"],
+            "price": int(PLANS.get(plan_type, PLANS["pro"])["price"]),
+            "features": PLANS.get(plan_type, PLANS["pro"])["features"],
+            "config_api_key": SHOPIFY_API_KEY,
+            # Set safe defaults for all required template variables
+            "trial_active": False,
+            "has_access": False,
+            "days_left": 0,
+            "is_subscribed": False,
+            "has_store": False,
+            "user_authenticated": False,
+            "store_connected": False,
+            "csrf_token": '',
+        }
+        return render_template("subscribe.html", **error_vars)
 
 
 def validate_csrf_token():
