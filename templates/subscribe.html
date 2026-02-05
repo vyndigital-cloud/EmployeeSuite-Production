@@ -157,7 +157,7 @@
                         {{ error }}
                     </div>
                     {% endif %}
-                    <form method="POST" action="/create-charge">
+                    <form method="POST" action="/create-charge" target="_top">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                         <input type="hidden" name="shop" value="{{ shop }}">
                         <input type="hidden" name="host" value="{{ host }}">
@@ -174,7 +174,7 @@
                         </button>
                         <p class="guarantee-text" style="margin-bottom: 16px;">No commitment. Cancel anytime.</p>
                     </form>
-                    <form method="POST" action="/create-charge">
+                    <form method="POST" action="/create-charge" target="_top">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                         <input type="hidden" name="shop" value="{{ shop }}">
                         <input type="hidden" name="host" value="{{ host }}">
