@@ -18,6 +18,7 @@ _CONFIG_CACHE = {
     "APP_URL": os.getenv("APP_URL", os.getenv("SHOPIFY_APP_URL", "https://employeesuite-production.onrender.com")),
     "DEBUG": os.getenv("DEBUG", "False").lower() == "true",
     "ENCRYPTION_KEY": os.getenv("ENCRYPTION_KEY", ""),
+    "SENDGRID_API_KEY": os.getenv("SENDGRID_API_KEY", ""),
 }
 
 # Fast config access
@@ -34,6 +35,7 @@ config = _CONFIG_CACHE
 SHOPIFY_API_VERSION = _CONFIG_CACHE["SHOPIFY_API_VERSION"]
 DEBUG_MODE = _CONFIG_CACHE["DEBUG"]
 ENCRYPTION_KEY = _CONFIG_CACHE["ENCRYPTION_KEY"]
+SENDGRID_API_KEY = _CONFIG_CACHE["SENDGRID_API_KEY"]
 
 # Optimized database settings
 AUTO_SCALING_ENGINE_OPTIONS = {
