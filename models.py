@@ -49,6 +49,9 @@ class User(UserMixin, db.Model, TimestampMixin):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # Trial and subscription
+    trial_started_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     trial_ends_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc) + timedelta(days=7),
@@ -121,7 +124,10 @@ class User(UserMixin, db.Model, TimestampMixin):
 
     def is_trial_active(self) -> bool:
         """Check if user's trial is still active"""
-        if not self.trial_ends_at or self.is_subscribed:
+        if self.is_subscribed:
+            return False
+            
+        if not self.trial_started_at or not self.trial_ends_at:
             return False
 
         now = datetime.now(timezone.utc)
@@ -488,37 +494,32 @@ def _add_column(table: str, column: str, col_type: str) -> None:
 
 
 def run_migrations(app) -> None:
-    """Run database migrations - DISABLED to prevent startup timeouts"""
-    # DISABLED: These migration checks are causing Gunicorn worker timeouts
-    # All required columns now exist in production database
-    logger.info("Database migration checks disabled to prevent startup timeouts")
-    return
+    """Run database migrations"""
+    with app.app_context():
+        try:
+            # Users table migrations
+            _add_column("users", "trial_started_at", "TIMESTAMP")
+            _add_column("users", "email_verified", "BOOLEAN DEFAULT FALSE")
+            _add_column("users", "is_active", "BOOLEAN DEFAULT TRUE")
+            _add_column("users", "last_login", "TIMESTAMP")
+            _add_column("users", "reset_token", "VARCHAR(100)")
+            _add_column("users", "reset_token_expires", "TIMESTAMP")
 
-    # Original migration code commented out to prevent startup delays
-    # with app.app_context():
-    #     try:
-    #         # Users table migrations
-    #         _add_column("users", "email_verified", "BOOLEAN DEFAULT FALSE")
-    #         _add_column("users", "is_active", "BOOLEAN DEFAULT TRUE")
-    #         _add_column("users", "last_login", "TIMESTAMP")
-    #         _add_column("users", "reset_token", "VARCHAR(100)")
-    #         _add_column("users", "reset_token_expires", "TIMESTAMP")
-    #
-    #         # ShopifyStore table migrations
-    #         _add_column("shopify_stores", "shop_name", "VARCHAR(255)")
-    #         _add_column("shopify_stores", "shop_id", "BIGINT")
-    #         _add_column("shopify_stores", "charge_id", "VARCHAR(255)")
-    #         _add_column("shopify_stores", "uninstalled_at", "TIMESTAMP")
-    #         _add_column("shopify_stores", "shop_domain", "VARCHAR(255)")
-    #         _add_column("shopify_stores", "shop_email", "VARCHAR(255)")
-    #         _add_column("shopify_stores", "shop_timezone", "VARCHAR(255)")
-    #         _add_column("shopify_stores", "shop_currency", "VARCHAR(255)")
-    #         _add_column("shopify_stores", "billing_plan", "VARCHAR(255)")
-    #         _add_column("shopify_stores", "scopes_granted", "VARCHAR(500)")
-    #         _add_column("shopify_stores", "is_installed", "BOOLEAN DEFAULT TRUE")
-    #
-    #     except Exception as e:
-    #         logger.error(f"Migration failed: {e}")
+            # ShopifyStore table migrations
+            _add_column("shopify_stores", "shop_name", "VARCHAR(255)")
+            _add_column("shopify_stores", "shop_id", "BIGINT")
+            _add_column("shopify_stores", "charge_id", "VARCHAR(255)")
+            _add_column("shopify_stores", "uninstalled_at", "TIMESTAMP")
+            _add_column("shopify_stores", "shop_domain", "VARCHAR(255)")
+            _add_column("shopify_stores", "shop_email", "VARCHAR(255)")
+            _add_column("shopify_stores", "shop_timezone", "VARCHAR(255)")
+            _add_column("shopify_stores", "shop_currency", "VARCHAR(255)")
+            _add_column("shopify_stores", "billing_plan", "VARCHAR(255)")
+            _add_column("shopify_stores", "scopes_granted", "VARCHAR(500)")
+            _add_column("shopify_stores", "is_installed", "BOOLEAN DEFAULT TRUE")
+
+        except Exception as e:
+            logger.error(f"Migration failed: {e}")
 
 
 # Utility functions

@@ -535,15 +535,29 @@ def subscribe():
             shop = store.shop_url
 
         # Calculate user status with safety checks
-        trial_active = user.is_trial_active() if user else False
-        has_access = user.has_access() if user else False
+        trial_active = False
+        has_access = False
         days_left = 0
-        if user and trial_active and hasattr(user, 'trial_ends_at') and user.trial_ends_at:
-            try:
-                days_left = (user.trial_ends_at - datetime.utcnow()).days
-                days_left = max(0, days_left)
-            except (AttributeError, TypeError):
-                days_left = 0
+
+        if user:
+            # Check subscription status
+            has_access = user.has_access()
+            
+            # Check trial status
+            if user.trial_started_at and not user.is_subscribed:
+                trial_active = user.is_trial_active()
+                if trial_active and user.trial_ends_at:
+                    try:
+                        now = datetime.utcnow()
+                        trial_end = user.trial_ends_at
+                        if trial_end.tzinfo is None:
+                            trial_end = trial_end.replace(tzinfo=timezone.utc)
+                            now = now.replace(tzinfo=timezone.utc)
+                        
+                        days_left = (trial_end - now).days
+                        days_left = max(0, days_left)
+                    except (AttributeError, TypeError):
+                        days_left = 0
         
         # Determine error message
         error = request.args.get("error")
@@ -889,48 +903,43 @@ def confirm_charge():
 
     if status.lower() in ["accepted", "active"]:
         try:
-            store = (
-                ShopifyStore.query.with_for_update()
-                .filter_by(shop_url=shop_url, user_id=user.id)
-                .first()
-            )
-            if not store:
-                db.session.rollback()
-                subscribe_url = f"/billing/subscribe?error=Store not found&shop={shop}&host={host}&plan={plan_type}"
-                return safe_redirect(subscribe_url, shop=shop, host=host)
+            # Use database transaction for consistency
+            with db.session.begin():
+                store = (
+                    ShopifyStore.query.with_for_update()
+                    .filter_by(shop_url=shop_url, user_id=user.id)
+                    .first()
+                )
+                if not store:
+                    raise Exception("Store not found during confirmation")
 
-            locked_access_token = store.get_access_token()
-            if not locked_access_token:
-                logger.error(f"No access token found for store {shop_url} during charge confirmation for user {user.id}")
-                db.session.rollback()
-                subscribe_url = f"/billing/subscribe?error=Store not properly connected&shop={shop}&host={host}&plan={plan_type}"
-                return safe_redirect(subscribe_url, shop=shop, host=host)
-
-            # FIX: Race condition - immediately grant access
-            # Don't wait for webhook which might be delayed
-            user.is_subscribed = True
-            store.charge_id = charge_id
-            
-            # Update enhanced models if present
-            try:
-                from enhanced_models import SubscriptionPlan as ESubscriptionPlan
-                e_plan = ESubscriptionPlan.query.filter_by(user_id=user.id).first()
-                if not e_plan:
-                    e_plan = ESubscriptionPlan(user_id=user.id, plan_type="manual", price_usd=39.00)
-                    db.session.add(e_plan)
-                e_plan.status = 'active'
-                e_plan.charge_id = charge_id
-            except ImportError:
-                pass
+                # Immediately grant subscription access
+                user.is_subscribed = True
+                store.charge_id = charge_id
                 
-            db.session.commit()
-            logger.info(f"Charge {charge_id} confirmed for {shop_url}. Access granted immediately.")
+                # Update enhanced models if present
+                try:
+                    from enhanced_models import SubscriptionPlan as ESubscriptionPlan
+                    e_plan = ESubscriptionPlan.query.filter_by(user_id=user.id).first()
+                    if not e_plan:
+                        e_plan = ESubscriptionPlan(
+                            user_id=user.id, 
+                            plan_type="pro", 
+                            price_usd=39.00
+                        )
+                        db.session.add(e_plan)
+                    e_plan.status = 'active'
+                    e_plan.charge_id = charge_id
+                except ImportError:
+                    pass
+                    
+            logger.info(f"Charge {charge_id} confirmed for {shop_url}. Subscription activated.")
 
             return render_template_string(SUCCESS_HTML, 
                                         dashboard_url=f"/dashboard?shop={shop}&host={host}",
                                         trial_end_date=(datetime.now() + timedelta(days=7)).strftime('%B %d, %Y'))
+                                        
         except Exception as e:
-            db.session.rollback()
             logger.error(f"Error activating subscription: {e}")
             subscribe_url = f"/billing/subscribe?error=Activation failed. Please contact support.&shop={shop}&host={host}&plan={plan_type}"
             return safe_redirect(subscribe_url, shop=shop, host=host)
@@ -977,11 +986,23 @@ def start_trial():
             "error": "Please connect your Shopify store first."
         }), 400
 
-    # Start trial
+    # Check if user already has an active subscription
+    if user.is_subscribed:
+        dashboard_url = f"/dashboard?shop={shop}&host={host}"
+        return jsonify({
+            "success": True,
+            "redirect_url": dashboard_url,
+            "message": "You already have an active subscription."
+        })
+
+    # Start trial logic
     try:
+        now = datetime.utcnow()
+        
         if not user.trial_started_at:
-            user.trial_started_at = datetime.utcnow()
-            user.trial_ends_at = datetime.utcnow() + timedelta(days=7)
+            # First time starting trial
+            user.trial_started_at = now
+            user.trial_ends_at = now + timedelta(days=7)
             db.session.commit()
             
             logger.info(f"Started free trial for user {user.id}")
@@ -993,7 +1014,7 @@ def start_trial():
                 "message": "Free trial started! You have 7 days of full access."
             })
         else:
-            # Trial already started
+            # Trial was already started - check if still active
             if user.is_trial_active():
                 dashboard_url = f"/dashboard?shop={shop}&host={host}"
                 return jsonify({
@@ -1002,9 +1023,10 @@ def start_trial():
                     "message": "Your free trial is already active."
                 })
             else:
+                # Trial has expired
                 return jsonify({
                     "success": False,
-                    "error": "Your free trial has expired. Please subscribe to continue."
+                    "error": "Your free trial has expired. Please subscribe to continue using Employee Suite Pro."
                 }), 400
                 
     except Exception as e:
