@@ -613,7 +613,7 @@ PLAN_FEATURES = {
     PLAN_PRO: {
         'name': 'Employee Suite Pro',
         'price': 39,
-        'stores_limit': 1,  # Single store focus
+        'stores_limit': -1,  # Unlimited stores
         'data_days': -1,    # Unlimited historical data
         'csv_exports': True,
         'auto_download': True,
