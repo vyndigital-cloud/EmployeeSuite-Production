@@ -240,7 +240,7 @@ if app and startup_error_details is None:
     @log_errors("ADMIN_PERFORMANCE")
     def view_performance():
         """Admin route to view performance metrics"""
-        from flask import session, jsonify, render_template_string
+        from flask import session, jsonify, render_template_string, request
         try:
             # Simple authentication check
             if not session.get('user_id'):
