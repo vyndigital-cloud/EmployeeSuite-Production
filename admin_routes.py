@@ -5,6 +5,17 @@ from datetime import datetime
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/system-admin')
 
+def safe_call(obj, method_name, default=False):
+    """Safely call a method on an object"""
+    try:
+        if hasattr(obj, method_name):
+            method = getattr(obj, method_name)
+            if callable(method):
+                return method()
+        return default
+    except:
+        return default
+
 # Add a simple test route to verify blueprint is working
 @admin_bp.route('/test')
 def test():
@@ -367,7 +378,7 @@ ADMIN_DASHBOARD_HTML = '''
                         <td>
                             {% if user.is_subscribed %}
                             <span class="badge badge-success">Active</span>
-                            {% elif user.is_trial_active() %}
+                            {% elif safe_call(user, 'is_trial_active') %}
                             <span class="badge badge-warning">Trial</span>
                             {% else %}
                             <span class="badge badge-error">Expired</span>
@@ -376,7 +387,7 @@ ADMIN_DASHBOARD_HTML = '''
                         <td>
                             {% if user.trial_ends_at %}
                                 <div style="font-size: 13px;">{{ user.trial_ends_at.strftime('%b %d') }}</div>
-                                {% if user.is_trial_active() %}
+                                {% if safe_call(user, 'is_trial_active') %}
                                 <div style="font-size: 11px; color: #d97706;">Ends soon</div>
                                 {% else %}
                                 <div style="font-size: 11px; color: #991b1b;">Ended</div>
@@ -441,9 +452,30 @@ def dashboard():
         try:
             users = User.query.all()
             total_users = len(users)
-            subscribed_users = len([u for u in users if hasattr(u, 'is_subscribed') and u.is_subscribed])
-            trial_users = len([u for u in users if hasattr(u, 'is_trial_active') and u.is_trial_active()])
+            
+            # Safe attribute checking
+            subscribed_users = 0
+            trial_users = 0
+            
+            for user in users:
+                # Check subscription status safely
+                if hasattr(user, 'is_subscribed'):
+                    try:
+                        if user.is_subscribed:
+                            subscribed_users += 1
+                    except:
+                        pass
+                
+                # Check trial status safely
+                if hasattr(user, 'is_trial_active'):
+                    try:
+                        if callable(user.is_trial_active) and user.is_trial_active():
+                            trial_users += 1
+                    except:
+                        pass
+            
             total_stores = ShopifyStore.query.filter_by(is_active=True).count()
+            
         except Exception as db_error:
             current_app.logger.error(f"Database query error in admin dashboard: {db_error}")
             users = []
@@ -452,15 +484,18 @@ def dashboard():
             trial_users = 0
             total_stores = 0
         
-        return render_template_string(
-            ADMIN_DASHBOARD_HTML,
-            users=users,
-            total_users=total_users,
-            subscribed_users=subscribed_users,
-            trial_users=trial_users,
-            total_stores=total_stores,
-            url_for=url_for
-        )
+        # Add this before the render_template_string call
+        template_context = {
+            'users': users,
+            'total_users': total_users,
+            'subscribed_users': subscribed_users,
+            'trial_users': trial_users,
+            'total_stores': total_stores,
+            'url_for': url_for,
+            'safe_call': safe_call
+        }
+
+        return render_template_string(ADMIN_DASHBOARD_HTML, **template_context)
     except Exception as e:
         current_app.logger.error(f"Admin dashboard error: {str(e)}")
         return f"Admin dashboard error: {str(e)}", 500
