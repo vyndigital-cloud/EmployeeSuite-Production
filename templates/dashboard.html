@@ -208,47 +208,7 @@
             </header>
 
             <!-- Alerts/Banners -->
-            {% if not has_access %}
-            <div class="banner-pro" style="
-                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-                border-radius: 16px;
-                padding: 24px;
-                margin-bottom: 32px;
-                box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                color: white;
-                flex-wrap: wrap;
-                gap: 16px;
-            ">
-                <div style="flex: 1;">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                        <span
-                            style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Action
-                            Required</span>
-                        <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: white;">Subscription Expired
-                        </h3>
-                    </div>
-                    <p style="margin: 0; color: #cbd5e1; font-size: 15px; line-height: 1.5;">Your trial has ended.
-                        Subscribe to Employee Suite Pro to regain access to advanced analytics and automated reporting.
-                    </p>
-                </div>
-                <a href="#" onclick="openPage('/subscribe'); return false;" style="
-                    background: #008060;
-                    color: white;
-                    padding: 12px 24px;
-                    border-radius: 8px;
-                    text-decoration: none;
-                    font-weight: 600;
-                    font-size: 15px;
-                    box-shadow: 0 4px 12px rgba(0, 128, 96, 0.3);
-                    transition: all 0.2s;
-                    white-space: nowrap;
-                ">Unlock Pro Features</a>
-            </div>
-            {% endif %}
+
 
 
             {% if not has_shopify %}
