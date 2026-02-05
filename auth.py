@@ -486,8 +486,15 @@ def register():
 @auth_bp.route("/logout")
 @login_required
 def logout():
+    # Capture params before logout clears session/user context
+    shop = request.args.get("shop")
+    host = request.args.get("host")
+    embedded = request.args.get("embedded")
+    
     logout_user()
-    return redirect(url_for("auth.login"))
+    
+    # Pass params back to login route so it can handle embedded redirect
+    return redirect(url_for("auth.login", shop=shop, host=host, embedded=embedded))
 
 
 FORGOT_PASSWORD_HTML = """
