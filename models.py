@@ -613,8 +613,8 @@ PLAN_FEATURES = {
     PLAN_PRO: {
         'name': 'Employee Suite Pro',
         'price': 39,
-        'stores_limit': -1,  # Unlimited
-        'data_days': -1,     # Unlimited
+        'stores_limit': 1,  # Single store focus
+        'data_days': -1,    # Unlimited historical data
         'csv_exports': True,
         'auto_download': True,
         'scheduled_reports': True,
@@ -666,11 +666,11 @@ class SubscriptionPlan(db.Model):
     plan_type = db.Column(db.String(20), nullable=False)  # 'manual' or 'automated'
     price_usd = db.Column(db.Numeric(10, 2), nullable=False)
     
-    # Plan features (all enabled for single paid plan)
-    multi_store_enabled = db.Column(db.Boolean, default=True)
-    staff_connections_enabled = db.Column(db.Boolean, default=True)
+    # Plan features (focused on single store automation)
     automated_reports_enabled = db.Column(db.Boolean, default=True)
     scheduled_delivery_enabled = db.Column(db.Boolean, default=True)
+    csv_exports_enabled = db.Column(db.Boolean, default=True)
+    priority_support_enabled = db.Column(db.Boolean, default=True)
     
     # Shopify billing
     charge_id = db.Column(db.String(255), nullable=True, index=True)
