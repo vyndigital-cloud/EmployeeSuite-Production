@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, render_template_string, request, redirect, url_for, session
+from flask import Blueprint, render_template_string, request, redirect, url_for, session, current_app
 from models import db, User, ShopifyStore
 from datetime import datetime
 
@@ -438,11 +438,19 @@ def dashboard():
         if not session.get('admin_logged_in'):
             return redirect(url_for('admin.login'))
         
-        users = User.query.all()
-        total_users = len(users)
-        subscribed_users = len([u for u in users if u.is_subscribed])
-        trial_users = len([u for u in users if u.is_trial_active()])
-        total_stores = ShopifyStore.query.filter_by(is_active=True).count()
+        try:
+            users = User.query.all()
+            total_users = len(users)
+            subscribed_users = len([u for u in users if hasattr(u, 'is_subscribed') and u.is_subscribed])
+            trial_users = len([u for u in users if hasattr(u, 'is_trial_active') and u.is_trial_active()])
+            total_stores = ShopifyStore.query.filter_by(is_active=True).count()
+        except Exception as db_error:
+            current_app.logger.error(f"Database query error in admin dashboard: {db_error}")
+            users = []
+            total_users = 0
+            subscribed_users = 0
+            trial_users = 0
+            total_stores = 0
         
         return render_template_string(
             ADMIN_DASHBOARD_HTML,
@@ -450,9 +458,11 @@ def dashboard():
             total_users=total_users,
             subscribed_users=subscribed_users,
             trial_users=trial_users,
-            total_stores=total_stores
+            total_stores=total_stores,
+            url_for=url_for
         )
     except Exception as e:
+        current_app.logger.error(f"Admin dashboard error: {str(e)}")
         return f"Admin dashboard error: {str(e)}", 500
 
 @admin_bp.route('/delete-user/<int:user_id>', methods=['POST'])
@@ -470,13 +480,18 @@ def delete_user(user_id):
         
         user = User.query.get(user_id)
         if user:
-            # Delete associated stores
-            ShopifyStore.query.filter_by(user_id=user.id).delete()
-            # Delete user
-            email = user.email
-            db.session.delete(user)
-            db.session.commit()
-            return redirect(url_for('admin.dashboard') + f'?deleted={email}')
+            try:
+                # Delete associated stores
+                ShopifyStore.query.filter_by(user_id=user.id).delete()
+                # Delete user
+                email = user.email
+                db.session.delete(user)
+                db.session.commit()
+                return redirect(url_for('admin.dashboard') + f'?deleted={email}')
+            except Exception as delete_error:
+                db.session.rollback()
+                current_app.logger.error(f"Error deleting user {user_id}: {delete_error}")
+                return redirect(url_for('admin.dashboard') + f'?error=Failed to delete user')
         else:
             return redirect(url_for('admin.dashboard') + '?error=User not found')
     except Exception as e:
