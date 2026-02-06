@@ -198,6 +198,30 @@ if app and startup_error_details is None:
     except ImportError as e:
         logger.warning(f"Could not register error handlers: {e}")
 
+    # Register OAuth blueprint
+    try:
+        from shopify_oauth import oauth_bp
+        app.register_blueprint(oauth_bp)
+        logger.info("OAuth blueprint registered successfully")
+    except ImportError as e:
+        logger.error(f"Could not register OAuth blueprint: {e}")
+
+    # Register Shopify routes blueprint
+    try:
+        from shopify_routes import shopify_bp
+        app.register_blueprint(shopify_bp)
+        logger.info("Shopify routes blueprint registered successfully")
+    except ImportError as e:
+        logger.error(f"Could not register Shopify routes blueprint: {e}")
+
+    # Register auth blueprint
+    try:
+        from auth import auth_bp
+        app.register_blueprint(auth_bp)
+        logger.info("Auth blueprint registered successfully")
+    except ImportError as e:
+        logger.error(f"Could not register auth blueprint: {e}")
+
     # Redirect /admin to actual admin panel (override Render's scaling endpoint)
     @app.route('/admin')
     @app.route('/admin/')
