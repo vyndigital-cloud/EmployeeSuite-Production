@@ -198,6 +198,20 @@ if app and startup_error_details is None:
     except ImportError as e:
         logger.warning(f"Could not register error handlers: {e}")
 
+    # Debug route to verify OAuth routes are registered
+    @app.route('/debug/routes')
+    def debug_routes():
+        """Debug route to see all registered routes"""
+        from flask import jsonify
+        routes = []
+        for rule in app.url_map.iter_rules():
+            routes.append({
+                'endpoint': rule.endpoint,
+                'methods': list(rule.methods),
+                'rule': str(rule)
+            })
+        return jsonify(routes)
+
     # Redirect /admin to actual admin panel (override Render's scaling endpoint)
     @app.route('/admin')
     @app.route('/admin/')
