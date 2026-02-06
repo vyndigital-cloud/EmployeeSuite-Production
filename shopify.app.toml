@@ -37,7 +37,7 @@ use_legacy_install_flow = false
 
 [auth]
 redirect_urls = [
-  "https://employeesuite-production.onrender.com/auth/callback"
+  "https://employeesuite-production.onrender.com/oauth/auth/callback"
 ]
 
 [pos]
