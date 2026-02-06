@@ -11,7 +11,7 @@ from config import SHOPIFY_API_VERSION
 from logging_config import logger
 from models import ShopifyStore, User, db
 
-oauth_bp = Blueprint("oauth", __name__, url_prefix="")
+oauth_bp = Blueprint("oauth", __name__, url_prefix="/oauth")
 
 SHOPIFY_API_KEY = os.getenv("SHOPIFY_API_KEY")
 SHOPIFY_API_SECRET = os.getenv("SHOPIFY_API_SECRET")
@@ -38,7 +38,7 @@ SCOPES = "read_orders,read_products,read_inventory"  # GraphQL API doesn't need 
 REDIRECT_URI = (
     os.getenv(
         "SHOPIFY_REDIRECT_URI",
-        "https://employeesuite-production.onrender.com/auth/callback",
+        "https://employeesuite-production.onrender.com/oauth/auth/callback",
     )
     .strip()
     .strip('"')

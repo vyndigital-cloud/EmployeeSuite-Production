@@ -68,8 +68,10 @@ def shopify_settings():
     # If no user found, redirect to appropriate auth flow
     if not user:
         if shop:
-            # Build install URL using url_for to ensure correct route
-            install_url = url_for("oauth.install", shop=shop, host=host) if host else url_for("oauth.install", shop=shop)
+            # Direct URL construction - bypasses url_for issues
+            install_url = f"/oauth/install?shop={shop}"
+            if host:
+                install_url += f"&host={host}"
             logger.info(f"No user found for shop {shop}, redirecting to OAuth install: {install_url}")
             return redirect(install_url)
         else:

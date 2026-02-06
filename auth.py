@@ -223,12 +223,10 @@ def login():
     # If we have shop (from params or extracted), redirect to OAuth
     if is_embedded and shop:
         # Redirect to OAuth install flow (Shopify's embedded auth)
-        # Note: redirect and url_for are already imported at top of file
-        install_url = (
-            url_for("oauth.install", shop=shop, host=host)
-            if host
-            else url_for("oauth.install", shop=shop)
-        )
+        # Direct URL construction with new OAuth prefix
+        install_url = f"/oauth/install?shop={shop}"
+        if host:
+            install_url += f"&host={host}"
         logger.info(f"Embedded app login request - redirecting to OAuth: {install_url}")
         # Use safe_redirect for embedded apps to break out of iframe
         from utils import safe_redirect
@@ -660,11 +658,9 @@ def forgot_password():
     if is_embedded and shop:
         from flask import redirect, url_for
 
-        install_url = (
-            url_for("oauth.install", shop=shop, host=host)
-            if host
-            else url_for("oauth.install", shop=shop)
-        )
+        install_url = f"/oauth/install?shop={shop}"
+        if host:
+            install_url += f"&host={host}"
         logger.info(
             f"Embedded app forgot-password request - redirecting to OAuth: {install_url}"
         )
