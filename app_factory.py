@@ -152,7 +152,7 @@ def create_app():
     blueprints_to_register = [
         ('core_routes', 'core_bp'),
         ('auth', 'auth_bp'), 
-        ('shopify_oauth', 'oauth_bp'),  # This should register the OAuth callback route
+        ('shopify_oauth', 'oauth_bp'),  # OAuth blueprint with /install and /auth/callback routes
         ('shopify_routes', 'shopify_bp'),
         ('billing', 'billing_bp'),
         ('features_pages', 'features_pages_bp'),
@@ -262,16 +262,25 @@ def create_app():
         """Debug route to see all registered routes"""
         from flask import jsonify
         routes = []
+        oauth_routes = []
         for rule in app.url_map.iter_rules():
-            routes.append({
+            route_info = {
                 'endpoint': rule.endpoint,
                 'methods': list(rule.methods),
                 'rule': str(rule)
-            })
+            }
+            routes.append(route_info)
+            
+            # Track OAuth-related routes specifically
+            if 'oauth' in rule.endpoint or '/install' in str(rule) or '/callback' in str(rule) or '/auth/callback' in str(rule):
+                oauth_routes.append(route_info)
+        
         return jsonify({
             'total_routes': len(routes),
-            'routes': routes,
-            'oauth_callback_exists': any('/auth/callback' in str(rule) for rule in app.url_map.iter_rules())
+            'oauth_routes': oauth_routes,
+            'oauth_callback_exists': any('/auth/callback' in str(rule) for rule in app.url_map.iter_rules()),
+            'install_route_exists': any('/install' in str(rule) for rule in app.url_map.iter_rules()),
+            'all_routes': routes
         })
     
     return app
