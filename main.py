@@ -399,6 +399,18 @@ if app and startup_error_details is None:
             logger.error(f"Error adding GDPR headers: {e}")
             return response
 
+    # Add fallback OAuth callback route in case blueprint fails
+    @app.route('/auth/callback')
+    def fallback_oauth_callback():
+        """Fallback OAuth callback route"""
+        try:
+            # Try to import and use the OAuth blueprint handler
+            from shopify_oauth import _handle_oauth_callback
+            return _handle_oauth_callback()
+        except Exception as e:
+            logger.error(f"Fallback OAuth callback failed: {e}")
+            return f"OAuth callback error: {str(e)}", 500
+
     # Add API routes
     @app.route('/api/process_orders')
     @verify_session_token

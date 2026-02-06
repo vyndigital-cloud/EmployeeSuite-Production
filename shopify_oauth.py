@@ -11,7 +11,7 @@ from config import SHOPIFY_API_VERSION
 from logging_config import logger
 from models import ShopifyStore, User, db
 
-oauth_bp = Blueprint("oauth", __name__)
+oauth_bp = Blueprint("oauth", __name__, url_prefix="")
 
 SHOPIFY_API_KEY = os.getenv("SHOPIFY_API_KEY")
 SHOPIFY_API_SECRET = os.getenv("SHOPIFY_API_SECRET")

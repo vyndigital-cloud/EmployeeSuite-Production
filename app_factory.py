@@ -256,6 +256,24 @@ def create_app():
             'database_url': app.config.get('SQLALCHEMY_DATABASE_URI', 'Not set')
         })
     
+    # Debug route to check OAuth routes
+    @app.route('/debug/routes')
+    def debug_routes():
+        """Debug route to see all registered routes"""
+        from flask import jsonify
+        routes = []
+        for rule in app.url_map.iter_rules():
+            routes.append({
+                'endpoint': rule.endpoint,
+                'methods': list(rule.methods),
+                'rule': str(rule)
+            })
+        return jsonify({
+            'total_routes': len(routes),
+            'routes': routes,
+            'oauth_callback_exists': any('/auth/callback' in str(rule) for rule in app.url_map.iter_rules())
+        })
+    
     return app
 
 def create_fortress_app():
