@@ -301,6 +301,7 @@ def install():
 
 
 @oauth_bp.route("/auth/callback")
+@oauth_bp.route("/callback")  # Add alternative route for compatibility
 def callback():
     """Handle Shopify OAuth callback"""
     import traceback

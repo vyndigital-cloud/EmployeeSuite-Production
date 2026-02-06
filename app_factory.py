@@ -152,7 +152,7 @@ def create_app():
     blueprints_to_register = [
         ('core_routes', 'core_bp'),
         ('auth', 'auth_bp'), 
-        ('shopify_oauth', 'oauth_bp'),
+        ('shopify_oauth', 'oauth_bp'),  # This should register the OAuth callback route
         ('shopify_routes', 'shopify_bp'),
         ('billing', 'billing_bp'),
         ('features_pages', 'features_pages_bp'),
@@ -177,9 +177,19 @@ def create_app():
             app.register_blueprint(blueprint)
             registered_blueprints.append(blueprint_name)
             app.logger.info(f"✅ Registered blueprint: {blueprint_name}")
+            
+            # Special logging for OAuth blueprint
+            if blueprint_name == 'oauth_bp':
+                app.logger.info(f"✅ OAuth blueprint registered - /auth/callback route should be available")
+                
         except (ImportError, AttributeError) as e:
             failed_blueprints.append(f"{blueprint_name}: {str(e)}")
             app.logger.warning(f"❌ Could not register blueprint {blueprint_name} from {module_name}: {e}")
+            
+            # Special handling for OAuth blueprint failure
+            if blueprint_name == 'oauth_bp':
+                app.logger.error(f"❌ CRITICAL: OAuth blueprint failed to register - /auth/callback will return 404!")
+                
         except Exception as e:
             # Catch any other blueprint registration errors
             failed_blueprints.append(f"{blueprint_name}: CRITICAL ERROR - {str(e)}")
