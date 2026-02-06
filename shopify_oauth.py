@@ -629,17 +629,17 @@ def _handle_oauth_callback():
     else:
         logger.info(f"OAuth login for standalone access (cookie auth)")
 
-    # After OAuth completes, redirect appropriately
+    # After OAuth completes, redirect to settings with success message
     if host:
-        # For embedded apps, redirect to dashboard with proper parameters
-        dashboard_url = f"/dashboard?shop={shop}&host={host}"
-        logger.info(f"OAuth complete (embedded), redirecting to: {dashboard_url}")
-        return redirect(dashboard_url)
+        # For embedded apps, redirect to settings with success
+        settings_url = f"/settings/shopify?success=Store connected successfully!&shop={shop}&host={host}"
+        logger.info(f"OAuth complete (embedded), redirecting to settings: {settings_url}")
+        return redirect(settings_url)
     else:
-        # For standalone, redirect to dashboard with shop parameter
-        dashboard_url = f"/dashboard?shop={shop}"
-        logger.info(f"OAuth complete (standalone), redirecting to: {dashboard_url}")
-        return redirect(dashboard_url)
+        # For standalone, redirect to settings with success
+        settings_url = f"/settings/shopify?success=Store connected successfully!&shop={shop}"
+        logger.info(f"OAuth complete (standalone), redirecting to settings: {settings_url}")
+        return redirect(settings_url)
 
 
 def verify_hmac(params):
