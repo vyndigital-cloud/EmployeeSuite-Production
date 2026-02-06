@@ -69,11 +69,10 @@ def shopify_settings():
     if not user:
         if shop:
             try:
-                # Use proper Flask URL routing
+                # Build install URL directly - url_for is failing to resolve oauth.install
+                install_url = f"/install?shop={shop}"
                 if host:
-                    install_url = url_for("oauth.install", shop=shop, host=host)
-                else:
-                    install_url = url_for("oauth.install", shop=shop)
+                    install_url += f"&host={host}"
                 logger.info(f"No user found for shop {shop}, redirecting to OAuth install: {install_url}")
                 return redirect(install_url)
             except Exception as e:
