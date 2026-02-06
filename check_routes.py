@@ -1,73 +1,64 @@
+"""
+Diagnostic script to check all routes and configurations
+Run this to see what's working and what's not
+"""
+from app_factory import create_app
 
-import sys
-import os
-import unittest
-from unittest.mock import patch, MagicMock
+def check_routes():
+    """Check all registered routes"""
+    app = create_app()
+    
+    print("\n" + "="*60)
+    print("REGISTERED ROUTES")
+    print("="*60)
+    
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append({
+            'endpoint': rule.endpoint,
+            'methods': ','.join(rule.methods - {'HEAD', 'OPTIONS'}),
+            'path': str(rule)
+        })
+    
+    # Sort by path
+    routes.sort(key=lambda x: x['path'])
+    
+    # Print routes
+    for route in routes:
+        print(f"{route['methods']:12} {route['path']:40} -> {route['endpoint']}")
+    
+    print(f"\nTotal routes: {len(routes)}")
+    
+    # Check critical routes
+    print("\n" + "="*60)
+    print("CRITICAL ROUTES CHECK")
+    print("="*60)
+    
+    critical_routes = [
+        '/install',
+        '/auth/callback',
+        '/settings/shopify',
+        '/settings/shopify/connect',
+        '/settings/shopify/disconnect',
+        '/ping',
+        '/test-embed',
+        '/',
+    ]
+    
+    for path in critical_routes:
+        found = any(str(rule) == path for rule in app.url_map.iter_rules())
+        status = "✅" if found else "❌"
+        print(f"{status} {path}")
+    
+    # Check blueprints
+    print("\n" + "="*60)
+    print("REGISTERED BLUEPRINTS")
+    print("="*60)
+    
+    for name, blueprint in app.blueprints.items():
+        print(f"✅ {name}")
+    
+    print(f"\nTotal blueprints: {len(app.blueprints)}")
 
-# Mock environment before importing app
-os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
-os.environ['SECRET_KEY'] = 'testing-secret'
-os.environ['SHOPIFY_API_KEY'] = 'test-key'
-os.environ['SHOPIFY_API_SECRET'] = 'test-secret'
-
-# Mock Shopify verification
-sys.modules['session_token_verification'] = MagicMock()
-sys.modules['session_token_verification'].verify_session_token = lambda x: x
-
-try:
-    from main import app
-    from models import db, User
-except ImportError as e:
-    print(f"FAILED to import app: {e}")
-    sys.exit(1)
-
-class TestRoutes(unittest.TestCase):
-    def setUp(self):
-        app.config['TESTING'] = True
-        app.config['WTF_CSRF_ENABLED'] = False
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-        self.client = app.test_client()
-        with app.app_context():
-            db.create_all()
-            # Create test user
-            user = User(shopify_id=12345, email="test@example.com")
-            db.session.add(user)
-            db.session.commit()
-
-    def test_health_check(self):
-        print("\nTesting /health...")
-        response = self.client.get('/health')
-        print(f"Status: {response.status_code}")
-        if response.status_code == 200:
-             print("✅ Health Check Passed")
-        else:
-             print(f"❌ Health Check Failed: {response.json}")
-
-    def test_dashboard_access_no_auth(self):
-        print("\nTesting /dashboard (No Auth)...")
-        # Should redirect or error depending on implementation
-        try:
-            response = self.client.get('/dashboard')
-            print(f"Status: {response.status_code}")
-            # Likely 401, 302, or 500 if auth is strict
-        except Exception as e:
-            print(f"❌ Dashboard Error: {e}")
-
-    def test_api_process_orders(self):
-        print("\nTesting /api/process_orders...")
-        with self.client.session_transaction() as sess:
-            sess['user_id'] = 1
-            sess['shop_id'] = 12345
-        
-        try:
-            response = self.client.get('/api/process_orders')
-            print(f"Status: {response.status_code}")
-            if response.status_code == 200:
-                print("✅ API Process Orders Passed")
-            else:
-                print(f"❌ API Process Orders Failed: {response.get_json() if response.is_json else response.data}")
-        except Exception as e:
-             print(f"❌ API Error: {e}")
-
-if __name__ == '__main__':
-    unittest.main(failfast=False)
+if __name__ == "__main__":
+    check_routes()
