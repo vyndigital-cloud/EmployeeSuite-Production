@@ -354,24 +354,27 @@ def disconnect_store():
     """Disconnect store - works in both embedded and standalone modes"""
     from shopify_utils import normalize_shop_url
     
-    shop = request.form.get("shop") or request.args.get("shop", "")
+    shop = request.form.get("shop") or request.args.get("shop") or session.get("shop", "")
     if shop:
         shop = normalize_shop_url(shop)
 
-    host = request.form.get("host") or request.args.get("host", "")
+    host = request.form.get("host") or request.args.get("host") or session.get("host", "")
 
-    # Get authenticated user (works for both embedded and standalone)
+    # Get authenticated user - PRIORITIZE current_user
     user = None
     try:
         if current_user.is_authenticated:
             user = current_user
+            logger.info(f"Disconnect: Using authenticated user {user.id}")
         elif shop:
             # Try to find user from shop (for embedded apps)
             store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
             if store and store.user:
                 user = store.user
+                logger.info(f"Disconnect: Found user {user.id} via shop {shop}")
     except Exception as e:
         logger.error(f"Error finding user in disconnect_store: {e}", exc_info=True)
+        db.session.rollback()
         settings_url = url_for(
             "shopify.shopify_settings",
             error="Authentication error occurred. Please try again.",
@@ -381,49 +384,62 @@ def disconnect_store():
         return safe_redirect(settings_url, shop=shop, host=host)
 
     if not user:
+        logger.warning(f"Disconnect failed: No user found (shop={shop})")
         settings_url = url_for(
             "shopify.shopify_settings",
-            error="Authentication required",
+            error="Please log in to disconnect your store.",
             shop=shop,
             host=host,
         )
         return safe_redirect(settings_url, shop=shop, host=host)
 
+    # Find the user's active store
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
-    if store:
-        try:
-            # Use model method for consistent state management
-            store.is_active = False
-            store.is_installed = False
-            store.uninstalled_at = datetime.now(timezone.utc)
-            store.charge_id = None
-            # Clear access token to force reconnection
-            store.access_token = ""
-            
-            db.session.commit()
-            logger.info(f"Store {store.shop_url} disconnected for user {user.id}")
-            
-            settings_url = url_for(
-                "shopify.shopify_settings",
-                success="Store disconnected successfully! You can now reconnect with the new Partners app.",
-                shop=shop,
-                host=host,
-            )
-            return safe_redirect(settings_url, shop=shop, host=host)
-        except Exception as e:
-            logger.error(f"Error disconnecting store: {e}", exc_info=True)
-            db.session.rollback()
-            settings_url = url_for(
-                "shopify.shopify_settings",
-                error="Error disconnecting store. Please try again.",
-                shop=shop,
-                host=host,
-            )
-            return safe_redirect(settings_url, shop=shop, host=host)
-    settings_url = url_for(
-        "shopify.shopify_settings", error="No active store found.", shop=shop, host=host
-    )
-    return safe_redirect(settings_url, shop=shop, host=host)
+    if not store:
+        logger.warning(f"Disconnect: No active store for user {user.id}")
+        settings_url = url_for(
+            "shopify.shopify_settings", 
+            error="No active store found to disconnect.", 
+            shop=shop, 
+            host=host
+        )
+        return safe_redirect(settings_url, shop=shop, host=host)
+
+    try:
+        # Disconnect the store
+        store.is_active = False
+        store.is_installed = False
+        store.uninstalled_at = datetime.now(timezone.utc)
+        store.charge_id = None
+        # Clear access token to force reconnection
+        store.access_token = ""
+        
+        db.session.commit()
+        logger.info(f"✅ Store {store.shop_url} disconnected successfully for user {user.id}")
+        
+        # Clear session data
+        session.pop('shop', None)
+        session.pop('host', None)
+        session.pop('embedded', None)
+        
+        settings_url = url_for(
+            "shopify.shopify_settings",
+            success="Store disconnected successfully! You can now reconnect.",
+            shop="",
+            host="",
+        )
+        return safe_redirect(settings_url, shop="", host="")
+        
+    except Exception as e:
+        logger.error(f"❌ Error disconnecting store: {e}", exc_info=True)
+        db.session.rollback()
+        settings_url = url_for(
+            "shopify.shopify_settings",
+            error=f"Error disconnecting store: {str(e)}",
+            shop=shop,
+            host=host,
+        )
+        return safe_redirect(settings_url, shop=shop, host=host)
 
 
 @shopify_bp.route("/settings/shopify/cancel", methods=["POST"])
