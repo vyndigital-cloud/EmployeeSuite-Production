@@ -1,6 +1,6 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "${SHOPIFY_API_KEY}"
+client_id = "8c81ac3ce59f720a139b52f0c7b2ec32"
 name = "Employee Suite"
 application_url = "https://employeesuite-production.onrender.com"
 embedded = true
