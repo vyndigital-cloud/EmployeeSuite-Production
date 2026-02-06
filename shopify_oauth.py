@@ -38,7 +38,7 @@ SCOPES = "read_orders,read_products,read_inventory"  # GraphQL API doesn't need 
 REDIRECT_URI = (
     os.getenv(
         "SHOPIFY_REDIRECT_URI",
-        "https://employeesuite-production.onrender.com/auth/callback",
+        "https://employeesuite-production.onrender.com/oauth/auth/callback",
     )
     .strip()
     .strip('"')
