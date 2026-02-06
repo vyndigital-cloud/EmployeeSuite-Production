@@ -777,15 +777,15 @@ def _handle_oauth_callback():
     logger.info(f"   - Session established: {session.get('oauth_completed', False)}")
 
     if host:
-        # For embedded apps, redirect to dashboard within Shopify admin iframe
-        dashboard_url = f"/dashboard?success=Store connected successfully!&shop={shop}&host={host}"
-        logger.info(
-            f"➡️ OAuth complete (embedded), redirecting to dashboard: {dashboard_url[:80]}..."
-        )
+        # For embedded apps, use App Bridge redirect (not server-side redirect)
+        # This prevents the /apps// double slash issue in Shopify Admin
+        logger.info(f"➡️ OAuth complete (embedded), rendering App Bridge redirect page")
         logger.info("=== OAUTH CALLBACK DEBUG END ===")
-        from utils import safe_redirect
-
-        return safe_redirect(dashboard_url, shop=shop, host=host)
+        return render_template('oauth_redirect.html', 
+                              shop=shop, 
+                              host=host,
+                              redirect_path='/settings/shopify',
+                              success_message='Store connected successfully!')
     else:
         # For standalone, redirect to dashboard with success message
         dashboard_url = (
