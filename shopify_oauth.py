@@ -777,25 +777,25 @@ def _handle_oauth_callback():
     logger.info(f"   - Session established: {session.get('oauth_completed', False)}")
 
     if host:
-        # For embedded apps, use safe_redirect to handle iframe navigation properly
-        settings_url = f"/settings/shopify?success=Store connected successfully!&shop={shop}&host={host}"
+        # For embedded apps, redirect to dashboard within Shopify admin iframe
+        dashboard_url = f"/dashboard?success=Store connected successfully!&shop={shop}&host={host}"
         logger.info(
-            f"\u27a1\ufe0f OAuth complete (embedded), redirecting to: {settings_url[:80]}..."
+            f"➡️ OAuth complete (embedded), redirecting to dashboard: {dashboard_url[:80]}..."
         )
         logger.info("=== OAUTH CALLBACK DEBUG END ===")
         from utils import safe_redirect
 
-        return safe_redirect(settings_url, shop=shop, host=host)
+        return safe_redirect(dashboard_url, shop=shop, host=host)
     else:
-        # For standalone, redirect to settings with success
-        settings_url = (
-            f"/settings/shopify?success=Store connected successfully!&shop={shop}"
+        # For standalone, redirect to dashboard with success message
+        dashboard_url = (
+            f"/dashboard?success=Store connected successfully!&shop={shop}"
         )
         logger.info(
-            f"\u27a1\ufe0f OAuth complete (standalone), redirecting to: {settings_url}"
+            f"➡️ OAuth complete (standalone), redirecting to dashboard: {dashboard_url}"
         )
         logger.info("=== OAUTH CALLBACK DEBUG END ===")
-        return redirect(settings_url)
+        return redirect(dashboard_url)
 
 
 def verify_hmac(params):
