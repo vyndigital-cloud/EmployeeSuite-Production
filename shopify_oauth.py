@@ -50,6 +50,7 @@ ACCESS_MODE = "offline"
 
 
 @oauth_bp.route("/install")
+@oauth_bp.route("/oauth/install")  # Alternative route for compatibility with settings page
 def install():
     """Initiate Shopify OAuth - Professional error handling"""
     
