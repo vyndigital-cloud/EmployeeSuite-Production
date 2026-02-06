@@ -6,6 +6,7 @@ from flask import (
     redirect,
     render_template_string,
     request,
+    session,
     url_for,
 )
 from flask_login import current_user, login_required
