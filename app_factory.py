@@ -172,14 +172,33 @@ def create_app():
     
     for module_name, blueprint_name in blueprints_to_register:
         try:
+            # DEBUGGING: Log detailed blueprint registration
+            app.logger.info(f"🔍 Attempting to register {blueprint_name} from {module_name}")
+            
             module = __import__(module_name)
             blueprint = getattr(module, blueprint_name)
+            
+            # DEBUGGING: Log blueprint details before registration
+            app.logger.info(f"🔍 Blueprint {blueprint_name} details:")
+            app.logger.info(f"  - Name: {blueprint.name}")
+            app.logger.info(f"  - URL prefix: {blueprint.url_prefix}")
+            app.logger.info(f"  - Routes: {[str(rule) for rule in blueprint.deferred_functions]}")
+            
             app.register_blueprint(blueprint)
             registered_blueprints.append(blueprint_name)
             app.logger.info(f"✅ Registered blueprint: {blueprint_name}")
             
-            # Special logging for OAuth blueprint
+            # DEBUGGING: Special OAuth blueprint verification
             if blueprint_name == 'oauth_bp':
+                app.logger.info(f"🔍 OAuth blueprint registered successfully")
+                app.logger.info(f"  - Blueprint name: {blueprint.name}")
+                app.logger.info(f"  - URL prefix: {blueprint.url_prefix}")
+                
+                # Check if routes are actually registered
+                oauth_routes = [rule for rule in app.url_map.iter_rules() if 'oauth' in rule.endpoint]
+                app.logger.info(f"  - OAuth routes found: {len(oauth_routes)}")
+                for route in oauth_routes:
+                    app.logger.info(f"    * {route.endpoint}: {route.rule} {list(route.methods)}")
                 app.logger.info(f"✅ OAuth blueprint registered - /auth/callback route should be available")
                 
         except (ImportError, AttributeError) as e:
@@ -282,6 +301,67 @@ def create_app():
             'install_route_exists': any('/install' in str(rule) for rule in app.url_map.iter_rules()),
             'all_routes': routes
         })
+    
+    @app.route('/debug/oauth-status')
+    def debug_oauth_status():
+        """Debug OAuth blueprint and route status"""
+        from flask import jsonify
+        
+        # Check if OAuth blueprint is registered
+        oauth_blueprint_registered = any(bp.name == 'oauth' for bp in app.blueprints.values())
+        
+        # Find all OAuth-related routes
+        oauth_routes = []
+        install_routes = []
+        callback_routes = []
+        
+        for rule in app.url_map.iter_rules():
+            route_info = {
+                'endpoint': rule.endpoint,
+                'rule': str(rule),
+                'methods': list(rule.methods)
+            }
+            
+            if 'oauth' in rule.endpoint:
+                oauth_routes.append(route_info)
+            if 'install' in str(rule):
+                install_routes.append(route_info)
+            if 'callback' in str(rule):
+                callback_routes.append(route_info)
+        
+        return jsonify({
+            'oauth_blueprint_registered': oauth_blueprint_registered,
+            'oauth_routes_count': len(oauth_routes),
+            'oauth_routes': oauth_routes,
+            'install_routes': install_routes,
+            'callback_routes': callback_routes,
+            'auth_callback_exists': any('/auth/callback' in str(rule) for rule in app.url_map.iter_rules()),
+            'environment_vars': {
+                'SHOPIFY_API_KEY_set': bool(os.getenv('SHOPIFY_API_KEY')),
+                'SHOPIFY_API_SECRET_set': bool(os.getenv('SHOPIFY_API_SECRET')),
+                'REDIRECT_URI': os.getenv('SHOPIFY_REDIRECT_URI', 'not_set')
+            }
+        })
+    
+    @app.before_request
+    def debug_all_requests():
+        """Debug all incoming requests to identify 404s"""
+        if request.path.startswith('/install') or request.path.startswith('/auth/callback') or request.path.startswith('/callback'):
+            app.logger.info(f"🔍 CRITICAL ROUTE REQUEST: {request.method} {request.path}")
+            app.logger.info(f"  - Full URL: {request.url}")
+            app.logger.info(f"  - Args: {dict(request.args)}")
+            app.logger.info(f"  - Headers: {dict(request.headers)}")
+            app.logger.info(f"  - Referrer: {request.referrer}")
+
+    @app.after_request
+    def debug_responses(response):
+        """Debug responses for OAuth routes"""
+        if request.path.startswith('/install') or request.path.startswith('/auth/callback') or request.path.startswith('/callback'):
+            app.logger.info(f"🔍 CRITICAL ROUTE RESPONSE: {response.status_code} for {request.path}")
+            if response.status_code == 404:
+                app.logger.error(f"❌ 404 ERROR: Route {request.path} not found!")
+                app.logger.error(f"  - Available routes: {[str(rule) for rule in app.url_map.iter_rules()]}")
+        return response
     
     return app
 

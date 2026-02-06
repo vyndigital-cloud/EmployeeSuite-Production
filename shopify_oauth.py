@@ -52,6 +52,22 @@ ACCESS_MODE = "offline"
 @oauth_bp.route("/install")
 def install():
     """Initiate Shopify OAuth - Professional error handling"""
+    
+    # DEBUGGING: Log all request details
+    logger.info("=== OAUTH INSTALL DEBUG START ===")
+    logger.info(f"Request method: {request.method}")
+    logger.info(f"Request URL: {request.url}")
+    logger.info(f"Request args: {dict(request.args)}")
+    logger.info(f"Request headers: {dict(request.headers)}")
+    logger.info(f"Request referrer: {request.referrer}")
+    logger.info(f"Request remote_addr: {request.remote_addr}")
+    logger.info(f"Session data: {dict(session)}")
+    
+    # DEBUGGING: Check environment variables
+    logger.info(f"SHOPIFY_API_KEY set: {bool(SHOPIFY_API_KEY)}")
+    logger.info(f"SHOPIFY_API_SECRET set: {bool(SHOPIFY_API_SECRET)}")
+    logger.info(f"REDIRECT_URI: {REDIRECT_URI}")
+    
     # CRITICAL: Check API credentials before proceeding
     if not SHOPIFY_API_KEY or not SHOPIFY_API_SECRET:
         from flask import render_template_string
@@ -306,12 +322,29 @@ def callback():
     """Handle Shopify OAuth callback"""
     import traceback
 
+    # DEBUGGING: Log all callback details
+    logger.info("=== OAUTH CALLBACK DEBUG START ===")
+    logger.info(f"Callback URL: {request.url}")
+    logger.info(f"Callback args: {dict(request.args)}")
+    logger.info(f"Callback headers: {dict(request.headers)}")
+    logger.info(f"Session before callback: {dict(session)}")
+    
+    # Check if this is a 404 scenario
+    logger.info(f"Route matched: oauth.callback")
+    logger.info(f"Blueprint registered: {oauth_bp.name}")
+
     # Log all received parameters for debugging
     logger.info(f"OAuth callback received parameters: {dict(request.args)}")
 
     try:
-        return _handle_oauth_callback()
+        result = _handle_oauth_callback()
+        logger.info("=== OAUTH CALLBACK DEBUG SUCCESS ===")
+        return result
     except Exception as e:
+        logger.error("=== OAUTH CALLBACK DEBUG EXCEPTION ===")
+        logger.error(f"Exception type: {type(e).__name__}")
+        logger.error(f"Exception message: {str(e)}")
+        logger.error(f"Exception traceback: {traceback.format_exc()}")
         error_trace = traceback.format_exc()
         logger.error(f"OAuth callback EXCEPTION: {str(e)}")
         logger.error(f"Full traceback:\n{error_trace}")
