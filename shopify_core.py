@@ -87,6 +87,7 @@ def init_shopify(app):
     from models import db, User, ShopifyStore
     from auth import auth_bp
     from shopify_oauth import oauth_bp
+    from oauth_diagnostics import diagnostics_bp
     from shopify_routes import shopify_bp
     from billing import billing_bp
     from admin_routes import admin_bp

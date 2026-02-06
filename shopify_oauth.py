@@ -381,6 +381,20 @@ def callback():
     """Handle Shopify OAuth callback"""
     import traceback
 
+    # CRITICAL: Reject bot/crawler requests that aren't legitimate OAuth callbacks
+    # Bots often hit callback URLs with Range headers or missing OAuth parameters
+    user_agent = request.headers.get("User-Agent", "")
+    has_range_header = "Range" in request.headers
+    has_oauth_params = bool(request.args.get("code") and request.args.get("shop"))
+    
+    # If this looks like a bot request (has Range header or generic User-Agent) and missing OAuth params
+    if (has_range_header or "bot" in user_agent.lower() or "crawler" in user_agent.lower()) and not has_oauth_params:
+        logger.info(f"🤖 Rejected bot/crawler request to OAuth callback")
+        logger.info(f"   - User-Agent: {user_agent[:50]}")
+        logger.info(f"   - Has Range header: {has_range_header}")
+        logger.info(f"   - Has OAuth params: {has_oauth_params}")
+        return "Not Found", 404
+
     # DEBUGGING: Log all callback details
     logger.info("=== OAUTH CALLBACK DEBUG START ===")
     logger.info(f"Callback URL: {request.url}")

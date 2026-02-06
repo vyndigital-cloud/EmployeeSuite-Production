@@ -153,6 +153,7 @@ def create_app():
         ('core_routes', 'core_bp'),
         ('auth', 'auth_bp'), 
         ('shopify_oauth', 'oauth_bp'),  # OAuth blueprint with /install and /auth/callback routes
+        ('oauth_diagnostics', 'diagnostics_bp'),  # OAuth diagnostics tool
         ('shopify_routes', 'shopify_bp'),
         ('billing', 'billing_bp'),
         ('features_pages', 'features_pages_bp'),
