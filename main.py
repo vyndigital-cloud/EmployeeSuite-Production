@@ -188,16 +188,17 @@ except Exception as startup_error:
         def ready():
             return jsonify({"status": "ready", "timestamp": datetime.now().isoformat()})
 
+# CRITICAL: Register OAuth blueprint ALWAYS (even if there were startup issues)
+# This ensures OAuth routes are available for Shopify redirects
+try:
+    from shopify_oauth import oauth_bp
+    app.register_blueprint(oauth_bp)
+    logger.info("✅ OAuth blueprint registered successfully")
+except ImportError as e:
+    logger.error(f"❌ Could not register OAuth blueprint: {e}")
+
 # Only add the enhanced error handlers and routes if we have a successful app
 if app and startup_error_details is None:
-    # Register OAuth blueprint FIRST (highest priority)
-    try:
-        from shopify_oauth import oauth_bp
-        app.register_blueprint(oauth_bp)
-        logger.info("✅ OAuth blueprint registered successfully")
-    except ImportError as e:
-        logger.error(f"❌ Could not register OAuth blueprint: {e}")
-
     # Register other blueprints after OAuth
     try:
         from auth import auth_bp
