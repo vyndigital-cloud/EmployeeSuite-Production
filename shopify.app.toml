@@ -2,7 +2,7 @@
 
 client_id = "8c81ac3ce59f720a139b52f0c7b2ec32"
 name = "Employee Suite"
-handle = "employee-suite-7"
+handle = "employee-suite-7-10"
 application_url = "https://employeesuite-production.onrender.com"
 embedded = true
 

@@ -50,10 +50,12 @@ ACCESS_MODE = "offline"
 
 
 @oauth_bp.route("/install")
-@oauth_bp.route("/oauth/install")  # Alternative route for compatibility with settings page
+@oauth_bp.route(
+    "/oauth/install"
+)  # Alternative route for compatibility with settings page
 def install():
     """Initiate Shopify OAuth - Professional error handling"""
-    
+
     # DEBUGGING: Log all request details
     logger.info("=== OAUTH INSTALL DEBUG START ===")
     logger.info(f"Request method: {request.method}")
@@ -63,12 +65,12 @@ def install():
     logger.info(f"Request referrer: {request.referrer}")
     logger.info(f"Request remote_addr: {request.remote_addr}")
     logger.info(f"Session data: {dict(session)}")
-    
+
     # DEBUGGING: Check environment variables
     logger.info(f"SHOPIFY_API_KEY set: {bool(SHOPIFY_API_KEY)}")
     logger.info(f"SHOPIFY_API_SECRET set: {bool(SHOPIFY_API_SECRET)}")
     logger.info(f"REDIRECT_URI: {REDIRECT_URI}")
-    
+
     # CRITICAL: Check API credentials before proceeding
     if not SHOPIFY_API_KEY or not SHOPIFY_API_SECRET:
         from flask import render_template_string
@@ -126,35 +128,42 @@ def install():
 
     shop = request.args.get("shop", "").strip()
     logger.info(f"📥 OAuth Install: Initial shop parameter: '{shop}'")
-    
+
     if not shop:
         logger.warning("⚠️ No shop parameter in request, attempting fallback methods")
         # Try to get shop from referrer or session
-        referrer = request.headers.get('Referer', '')
-        if 'shop=' in referrer:
-            logger.info(f"🔍 Attempting to extract shop from referrer: {referrer[:100]}...")
+        referrer = request.headers.get("Referer", "")
+        if "shop=" in referrer:
+            logger.info(
+                f"🔍 Attempting to extract shop from referrer: {referrer[:100]}..."
+            )
             import urllib.parse
+
             parsed = urllib.parse.urlparse(referrer)
             query_params = urllib.parse.parse_qs(parsed.query)
-            if 'shop' in query_params:
-                shop = query_params['shop'][0]
+            if "shop" in query_params:
+                shop = query_params["shop"][0]
                 logger.info(f"✅ Extracted shop from referrer: {shop}")
-        
+
         # Try session as fallback
         if not shop:
-            shop = session.get('shop', '')
+            shop = session.get("shop", "")
             if shop:
                 logger.info(f"✅ Retrieved shop from session: {shop}")
             else:
                 logger.warning("⚠️ No shop found in session either")
-        
+
         # If still no shop, redirect to settings instead of showing form
         if not shop:
-            logger.error("❌ OAuth Install FAILED: No shop parameter provided via URL, referrer, or session")
+            logger.error(
+                "❌ OAuth Install FAILED: No shop parameter provided via URL, referrer, or session"
+            )
             logger.error(f"   - Request URL: {request.url}")
             logger.error(f"   - Referrer: {request.referrer}")
             logger.error(f"   - Session keys: {list(session.keys())}")
-            return redirect("/settings/shopify?error=Please enter your shop domain to connect")
+            return redirect(
+                "/settings/shopify?error=Please enter your shop domain to connect"
+            )
 
     # Normalize shop domain - professional consistent normalization
     original_shop = shop
@@ -165,15 +174,19 @@ def install():
         .replace("www.", "")
         .strip()
     )
-    
+
     # Validate shop domain before proceeding
     if "onrender.com" in shop or "employeesuite" in shop:
         logger.error(f"❌ OAuth Install FAILED: Invalid shop domain detected")
         logger.error(f"   - User entered: '{original_shop}'")
         logger.error(f"   - After normalization: '{shop}'")
-        logger.error(f"   - This appears to be the app's own domain, not a Shopify store!")
-        return redirect("/settings/shopify?error=Invalid shop domain. Please enter your Shopify store domain (e.g., yourstore.myshopify.com), not your app URL.")
-    
+        logger.error(
+            f"   - This appears to be the app's own domain, not a Shopify store!"
+        )
+        return redirect(
+            "/settings/shopify?error=Invalid shop domain. Please enter your Shopify store domain (e.g., yourstore.myshopify.com), not your app URL."
+        )
+
     if not shop.endswith(".myshopify.com") and "." not in shop:
         shop = f"{shop}.myshopify.com"
         logger.info(f"🔧 Auto-added .myshopify.com suffix: {shop}")
@@ -263,7 +276,7 @@ def install():
     logger.info(f"   - Target: {auth_url}")
     logger.info(f"   - Redirect URI: {REDIRECT_URI}")
     logger.info(f"   - State: {state_data}")
-    
+
     # Log scope parameter to verify it's in the URL
     scope_in_url = f"scope={quote(SCOPES, safe='')}" in query_string
     logger.info(f"OAuth install: Scope parameter in URL: {scope_in_url}")
@@ -273,14 +286,19 @@ def install():
         )
     else:
         logger.info(f"✅ OAuth install: Scope parameter correctly included in URL")
-    
+
     # Final validation before redirect
-    if not full_auth_url.startswith("https://") or ".myshopify.com" not in full_auth_url:
+    if (
+        not full_auth_url.startswith("https://")
+        or ".myshopify.com" not in full_auth_url
+    ):
         logger.error(f"❌ CRITICAL: Generated invalid OAuth URL!")
         logger.error(f"   - URL: {full_auth_url[:200]}...")
         logger.error(f"   - Shop: {shop}")
         logger.error(f"   - This will fail - aborting OAuth flow")
-        return redirect("/settings/shopify?error=Failed to generate valid OAuth URL. Please check your shop domain.")
+        return redirect(
+            "/settings/shopify?error=Failed to generate valid OAuth URL. Please check your shop domain."
+        )
 
     # CRITICAL: Also check if we're being accessed from admin.shopify.com (embedded context)
     # Even if host param is missing, if Referer is from admin.shopify.com, we're in an iframe
@@ -369,7 +387,7 @@ def callback():
     logger.info(f"Callback args: {dict(request.args)}")
     logger.info(f"Callback headers: {dict(request.headers)}")
     logger.info(f"Session before callback: {dict(session)}")
-    
+
     # Check if this is a 404 scenario
     logger.info(f"Route matched: oauth.callback")
     logger.info(f"Blueprint registered: {oauth_bp.name}")
@@ -406,7 +424,7 @@ def _handle_oauth_callback():
     shop = request.args.get("shop")
     code = request.args.get("code")
     state = request.args.get("state")
-    
+
     logger.info(f"📥 OAuth Callback: Received parameters")
     logger.info(f"   - Shop: {shop}")
     logger.info(f"   - Code: {'present (' + code[:10] + '...)' if code else 'MISSING'}")
@@ -428,7 +446,9 @@ def _handle_oauth_callback():
         logger.error("❌ OAuth callback FAILED: HMAC verification failed")
         logger.error(f"   - Shop: {shop}")
         logger.error(f"   - Received HMAC: {request.args.get('hmac', 'NONE')}")
-        logger.error(f"   - This could indicate a security issue or misconfigured API secret")
+        logger.error(
+            f"   - This could indicate a security issue or misconfigured API secret"
+        )
         return "HMAC verification failed", 403
     logger.info("✅ HMAC verification successful")
 
@@ -456,7 +476,7 @@ def _handle_oauth_callback():
     )
     if not shop.endswith(".myshopify.com") and "." not in shop:
         shop = f"{shop}.myshopify.com"
-    
+
     if original_shop != shop:
         logger.info(f"🔧 Normalized shop domain: '{original_shop}' → '{shop}'")
 
@@ -469,7 +489,7 @@ def _handle_oauth_callback():
         logger.error(f"   - Code was present: {bool(code)}")
         logger.error(f"   - Check if API credentials are correct")
         return "Failed to get access token", 500
-    
+
     logger.info(f"✅ Access token received successfully (length: {len(access_token)})")
 
     logger.info(
@@ -480,7 +500,7 @@ def _handle_oauth_callback():
     # Get shop information to extract shop_id
     logger.info(f"🏪 Fetching shop information...")
     shop_info = get_shop_info(shop, access_token)
-    
+
     if shop_info:
         logger.info(f"✅ Shop info retrieved: {shop_info.get('name', 'Unknown')}")
     else:
@@ -503,7 +523,9 @@ def _handle_oauth_callback():
             if user_id:
                 user = User.query.get(int(user_id))
                 if user:
-                    logger.info(f"👤 OAuth callback: Using existing logged-in user {user.email} (ID: {user.id})")
+                    logger.info(
+                        f"👤 OAuth callback: Using existing logged-in user {user.email} (ID: {user.id})"
+                    )
     except Exception as e:
         logger.debug(f"Could not get current_user: {e}")
         pass
@@ -517,6 +539,7 @@ def _handle_oauth_callback():
             if not user:
                 logger.info(f"🆕 Creating new user for shop {shop}")
                 from datetime import datetime, timedelta, timezone
+
                 user = User(
                     email=shop_email,
                     password_hash="oauth_user",  # OAuth users don't need passwords
@@ -525,9 +548,13 @@ def _handle_oauth_callback():
                 )
                 db.session.add(user)
                 db.session.commit()
-                logger.info(f"✅ Created new shop-based user {user.email} (ID: {user.id})")
+                logger.info(
+                    f"✅ Created new shop-based user {user.email} (ID: {user.id})"
+                )
             else:
-                logger.info(f"✅ Found existing shop-based user {user.email} (ID: {user.id})")
+                logger.info(
+                    f"✅ Found existing shop-based user {user.email} (ID: {user.id})"
+                )
         except Exception as e:
             logger.error(f"❌ Error creating/finding user: {e}")
             logger.error(f"   - Shop: {shop}")
@@ -559,6 +586,7 @@ def _handle_oauth_callback():
         logger.info(f"🔄 Updating existing store connection for {shop}")
         try:
             from data_encryption import encrypt_access_token
+
             encrypted_token = encrypt_access_token(access_token)
             if encrypted_token is None:
                 logger.warning("⚠️ Encryption failed for token, storing as plaintext")
@@ -581,6 +609,7 @@ def _handle_oauth_callback():
         logger.info(f"🆕 Creating new store connection for {shop}")
         try:
             from data_encryption import encrypt_access_token
+
             encrypted_token = encrypt_access_token(access_token)
             if encrypted_token is None:
                 logger.warning("⚠️ Encryption failed for token, storing as plaintext")
@@ -651,6 +680,7 @@ def _handle_oauth_callback():
         # Additional session data for debugging
         session["oauth_completed"] = True
         from datetime import datetime
+
         session["last_oauth"] = datetime.utcnow().isoformat()
     except Exception as session_error:
         logger.error(f"Session save error: {session_error}")
@@ -690,6 +720,7 @@ def _handle_oauth_callback():
         session["_authenticated"] = True
         session["oauth_completed"] = True
         from datetime import datetime
+
         session["last_oauth"] = datetime.utcnow().isoformat()
 
         if host:
@@ -699,9 +730,11 @@ def _handle_oauth_callback():
 
         # Force session save
         session.modified = True
-        
-        logger.info(f"✅ OAuth complete: user {user.id}, shop {shop}, embedded: {bool(host)}")
-        
+
+        logger.info(
+            f"✅ OAuth complete: user {user.id}, shop {shop}, embedded: {bool(host)}"
+        )
+
     except Exception as session_error:
         logger.error(f"Session management error: {session_error}")
         # Continue anyway - don't fail OAuth on session issues
@@ -723,17 +756,25 @@ def _handle_oauth_callback():
     logger.info(f"   - Store ID: {store.id if store else 'N/A'}")
     logger.info(f"   - Embedded: {is_embedded}")
     logger.info(f"   - Session established: {session.get('oauth_completed', False)}")
-    
+
     if host:
-        # For embedded apps, redirect to settings with success
+        # For embedded apps, use safe_redirect to handle iframe navigation properly
         settings_url = f"/settings/shopify?success=Store connected successfully!&shop={shop}&host={host}"
-        logger.info(f"\u27a1\ufe0f OAuth complete (embedded), redirecting to: {settings_url[:80]}...")
+        logger.info(
+            f"\u27a1\ufe0f OAuth complete (embedded), redirecting to: {settings_url[:80]}..."
+        )
         logger.info("=== OAUTH CALLBACK DEBUG END ===")
-        return redirect(settings_url)
+        from utils import safe_redirect
+
+        return safe_redirect(settings_url, shop=shop, host=host)
     else:
         # For standalone, redirect to settings with success
-        settings_url = f"/settings/shopify?success=Store connected successfully!&shop={shop}"
-        logger.info(f"\u27a1\ufe0f OAuth complete (standalone), redirecting to: {settings_url}")
+        settings_url = (
+            f"/settings/shopify?success=Store connected successfully!&shop={shop}"
+        )
+        logger.info(
+            f"\u27a1\ufe0f OAuth complete (standalone), redirecting to: {settings_url}"
+        )
         logger.info("=== OAUTH CALLBACK DEBUG END ===")
         return redirect(settings_url)
 
