@@ -250,7 +250,8 @@
                 Connect your store in seconds. We'll redirect you to Shopify to authorize.
             </p>
 
-            <form method="GET" action="/oauth/install" style="display: flex; gap: 12px; align-items: center;">
+            <form method="GET" action="/oauth/install" style="display: flex; gap: 12px; align-items: center;"
+                onsubmit="return validateShopDomain(event)">
                 <div style="flex: 1; min-width: 250px;">
                     <input type="text" id="shop_oauth" name="shop" placeholder="yourstore.myshopify.com" required
                         style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;">
@@ -285,6 +286,37 @@
                     </svg>
                 </button>
             </form>
+
+            <script>
+                function validateShopDomain(event) {
+                    const input = document.getElementById('shop_oauth');
+                    let shop = input.value.trim().toLowerCase();
+
+                    // Remove protocol and www if present
+                    shop = shop.replace(/^https?:\/\//, '').replace(/^www\./, '');
+
+                    // Check if user entered their own app domain
+                    if (shop.includes('employeesuite-production.onrender.com') || shop.includes('onrender.com')) {
+                        alert('❌ Invalid shop domain!\n\nPlease enter your SHOPIFY store domain, not your app URL.\n\nExample: yourstore.myshopify.com');
+                        input.focus();
+                        return false;
+                    }
+
+                    // Check if it's a valid Shopify domain format
+                    if (!shop.includes('.myshopify.com') && !shop.match(/^[a-z0-9-]+$/)) {
+                        alert('❌ Invalid shop domain!\n\nPlease enter a valid Shopify store domain.\n\nExamples:\n• yourstore.myshopify.com\n• yourstore');
+                        input.focus();
+                        return false;
+                    }
+
+                    // Auto-add .myshopify.com if not present
+                    if (!shop.includes('.')) {
+                        input.value = shop + '.myshopify.com';
+                    }
+
+                    return true;
+                }
+            </script>
         </div>
 
         <!-- Manual Connection -->
