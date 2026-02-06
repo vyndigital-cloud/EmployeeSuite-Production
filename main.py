@@ -190,21 +190,6 @@ except Exception as startup_error:
 
 # Only add the enhanced error handlers and routes if we have a successful app
 if app and startup_error_details is None:
-    # Register other blueprints after OAuth
-    try:
-        from auth import auth_bp
-        app.register_blueprint(auth_bp, url_prefix='/auth')
-        logger.info("✅ Auth blueprint registered successfully")
-    except ImportError as e:
-        logger.error(f"Could not register auth blueprint: {e}")
-
-    try:
-        from shopify_routes import shopify_bp
-        app.register_blueprint(shopify_bp)
-        logger.info("✅ Shopify blueprint registered successfully")
-    except ImportError as e:
-        logger.error(f"Could not register shopify blueprint: {e}")
-
     # Register centralized error handlers
     try:
         from error_handlers import register_errors
