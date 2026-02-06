@@ -406,13 +406,13 @@ def disconnect_store():
         return safe_redirect(settings_url, shop=shop, host=host)
 
     try:
-        # Disconnect the store
+        # Disconnect the store - mark as inactive but keep token for potential reconnection
         store.is_active = False
         store.is_installed = False
         store.uninstalled_at = datetime.now(timezone.utc)
         store.charge_id = None
-        # Clear access token to force reconnection
-        store.access_token = ""
+        # Don't clear access_token - it has a validator that prevents empty values
+        # The is_active=False flag is sufficient to disconnect
         
         db.session.commit()
         logger.info(f"✅ Store {store.shop_url} disconnected successfully for user {user.id}")
