@@ -333,6 +333,35 @@ def home():
             session["host"] = host
             session.permanent = True
 
+        # CRITICAL: For embedded apps, use App Bridge to redirect properly
+        if host and not shop:
+            # Shopify is loading the app embedded but didn't pass shop parameter
+            # Use App Bridge to get the shop from the host parameter
+            return render_template_string("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const host = "{{ host }}";
+                        const urlParams = new URLSearchParams(window.location.search);
+                        
+                        // Try to get shop from URL or redirect to get it
+                        if (!urlParams.get('shop')) {
+                            // Redirect to force shop parameter
+                            const shopifyHost = atob(host).split('/')[2];
+                            window.top.location.href = `https://${shopifyHost}/admin/apps`;
+                        }
+                    });
+                </script>
+            </head>
+            <body>
+                <p>Loading Employee Suite...</p>
+            </body>
+            </html>
+            """, host=host)
+
         # CRITICAL: For embedded apps without a connected store, redirect to OAuth
         if shop and host and embedded:
             try:
