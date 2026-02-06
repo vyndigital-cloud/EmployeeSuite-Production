@@ -382,17 +382,22 @@ def callback():
     import traceback
 
     # CRITICAL: Reject bot/crawler requests that aren't legitimate OAuth callbacks
-    # Bots often hit callback URLs with Range headers or missing OAuth parameters
+    # Bots often hit callback URLs with Range headers or missing/empty OAuth parameters
     user_agent = request.headers.get("User-Agent", "")
     has_range_header = "Range" in request.headers
-    has_oauth_params = bool(request.args.get("code") and request.args.get("shop"))
     
-    # If this looks like a bot request (has Range header or generic User-Agent) and missing OAuth params
-    if (has_range_header or "bot" in user_agent.lower() or "crawler" in user_agent.lower()) and not has_oauth_params:
+    # Check for VALID (non-empty) OAuth parameters
+    code = request.args.get("code", "").strip()
+    shop = request.args.get("shop", "").strip()
+    has_valid_oauth_params = bool(code and shop and len(code) > 0 and len(shop) > 0)
+    
+    # If this looks like a bot request (has Range header or generic User-Agent) and missing/empty OAuth params
+    if (has_range_header or "bot" in user_agent.lower() or "crawler" in user_agent.lower()) and not has_valid_oauth_params:
         logger.info(f"🤖 Rejected bot/crawler request to OAuth callback")
         logger.info(f"   - User-Agent: {user_agent[:50]}")
         logger.info(f"   - Has Range header: {has_range_header}")
-        logger.info(f"   - Has OAuth params: {has_oauth_params}")
+        logger.info(f"   - Code param: '{code}' (empty: {len(code) == 0})")
+        logger.info(f"   - Shop param: '{shop}' (empty: {len(shop) == 0})")
         return "Not Found", 404
 
     # DEBUGGING: Log all callback details
