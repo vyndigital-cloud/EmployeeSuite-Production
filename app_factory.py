@@ -346,6 +346,7 @@ def create_app():
     @app.before_request
     def debug_all_requests():
         """Debug all incoming requests to identify 404s"""
+        from flask import request
         if request.path.startswith('/install') or request.path.startswith('/auth/callback') or request.path.startswith('/callback'):
             app.logger.info(f"🔍 CRITICAL ROUTE REQUEST: {request.method} {request.path}")
             app.logger.info(f"  - Full URL: {request.url}")
@@ -356,6 +357,7 @@ def create_app():
     @app.after_request
     def debug_responses(response):
         """Debug responses for OAuth routes"""
+        from flask import request
         if request.path.startswith('/install') or request.path.startswith('/auth/callback') or request.path.startswith('/callback'):
             app.logger.info(f"🔍 CRITICAL ROUTE RESPONSE: {response.status_code} for {request.path}")
             if response.status_code == 404:
