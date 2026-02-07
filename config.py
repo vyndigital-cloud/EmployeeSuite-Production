@@ -20,7 +20,21 @@ _CONFIG_CACHE = {
     "DEBUG": os.getenv("DEBUG", "False").lower() == "true",
     "ENCRYPTION_KEY": os.getenv("ENCRYPTION_KEY", ""),
     "SENDGRID_API_KEY": os.getenv("SENDGRID_API_KEY", ""),
+    
+    # Session Configuration (Server-Side)
+    "SESSION_TYPE": "redis" if os.getenv("REDIS_URL") else "sqlalchemy",
+    "SESSION_PERMANENT": True,
+    "SESSION_USE_SIGNER": True,
+    "SESSION_KEY_PREFIX": "missioncontrol:session:",
+    "SESSION_REDIS": None,  # Will be set in app_factory if using redis
+    # Allow over-riding session type for local/testing
+    "SESSION_TYPE_FORCE": os.getenv("SESSION_TYPE", ""),
 }
+
+# Critical Security Check
+if _CONFIG_CACHE["SECRET_KEY"] == "dev-secret-key-change-in-production" and _CONFIG_CACHE["ENVIRONMENT"] == "production":
+    print("⚠️  WARNING: Running in PRODUCTION with default SECRET_KEY! Sessions will be invalidated on restart!")
+
 
 # Fast config access
 def get_config():

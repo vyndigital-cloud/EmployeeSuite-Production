@@ -31,7 +31,34 @@ def create_app():
         'REMEMBER_COOKIE_SECURE': True,
         'REMEMBER_COOKIE_HTTPONLY': True,
         'REMEMBER_COOKIE_DURATION': 2592000,  # 30 days
+        
+        # Server-side Session Config
+        'SESSION_TYPE': os.getenv('SESSION_TYPE', 'sqlalchemy'), # Default to DB if not set
+        'SESSION_PERMANENT': True,
+        'SESSION_USE_SIGNER': True,
+        'SESSION_KEY_PREFIX': 'missioncontrol:session:',
     })
+    
+    # Initialize Server-Side Sessions
+    try:
+        from flask_session import Session
+        import redis
+        
+        if os.getenv('REDIS_URL'):
+            app.config['SESSION_TYPE'] = 'redis'
+            app.config['SESSION_REDIS'] = redis.from_url(os.getenv('REDIS_URL'))
+            app.logger.info("🚀 Using REDIS for session storage")
+        else:
+            app.config['SESSION_TYPE'] = 'sqlalchemy'
+            from models import db
+            app.config['SESSION_SQLALCHEMY'] = db
+            app.config['SESSION_SQLALCHEMY_TABLE'] = 'sessions'
+            app.logger.info("💾 Using DATABASE (SQLAlchemy) for session storage")
+            
+        Session(app)
+    except Exception as e:
+        app.logger.warning(f"Failed to initialize server-side sessions, falling back to client-side: {e}")
+
     
     # Initialize database with error handling
     try:
