@@ -782,27 +782,12 @@ def _handle_oauth_callback():
         logger.info(f"➡️ OAuth complete (embedded), returning inline frame escape HTML")
         logger.info("=== OAUTH CALLBACK DEBUG END ===")
         
-        # Safe base64 decode with padding fix
+        # Decode host to construct full URL
         import base64
         
-        # Fix base64 padding (Shopify often truncates the padding)
-        host_padded = host
-        missing_padding = len(host_padded) % 4
-        if missing_padding:
-            host_padded += '=' * (4 - missing_padding)
-            logger.info(f"   Added {4 - missing_padding} padding characters to host")
-        
-        try:
-            # Decode the now-safe host string
-            decoded_host = base64.b64decode(host_padded).decode('utf-8')
-            logger.info(f"   Successfully decoded host: {decoded_host}")
-        except Exception as e:
-            logger.error(f"   Failed to decode host even with padding: {str(e)}")
-            # Fallback to sensible default if decoding fails completely
-            store_name = shop.split('.')[0] if '.' in shop else shop
-            decoded_host = f"admin.shopify.com/store/{store_name}"
-            logger.warning(f"   Using fallback decoded_host: {decoded_host}")
-        
+        # Add padding if needed (base64 strings must be multiples of 4)
+        host_padded = host + '=' * (4 - len(host) % 4) if len(host) % 4 else host
+        decoded_host = base64.b64decode(host_padded).decode('utf-8')
         clean_host = decoded_host.rstrip('/')
         
         # Construct the full Shopify Admin URL
