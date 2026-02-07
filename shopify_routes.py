@@ -362,7 +362,8 @@ def connect_store():
 
 @shopify_bp.route("/settings/shopify/disconnect", methods=["POST"])
 def disconnect_store():
-    """Disconnect store - works in both embedded and standalone modes"""
+    """Disconnect store - HARD CLEAR of all session data"""
+    from flask_login import logout_user
     from shopify_utils import normalize_shop_url
     
     shop = request.form.get("shop") or request.args.get("shop") or session.get("shop", "")
@@ -386,35 +387,26 @@ def disconnect_store():
     except Exception as e:
         logger.error(f"Error finding user in disconnect_store: {e}", exc_info=True)
         db.session.rollback()
-        settings_url = url_for(
-            "shopify.shopify_settings",
-            error="Authentication error occurred. Please try again.",
-            shop=shop,
-            host=host,
-        )
-        return safe_redirect(settings_url, shop=shop, host=host)
+        # HARD CLEAR even on error
+        logout_user()
+        session.clear()
+        return redirect(url_for("shopify.shopify_settings", error="Authentication error occurred. Please try again."))
 
     if not user:
         logger.warning(f"Disconnect failed: No user found (shop={shop})")
-        settings_url = url_for(
-            "shopify.shopify_settings",
-            error="Please log in to disconnect your store.",
-            shop=shop,
-            host=host,
-        )
-        return safe_redirect(settings_url, shop=shop, host=host)
+        # HARD CLEAR
+        logout_user()
+        session.clear()
+        return redirect(url_for("shopify.shopify_settings", error="Please log in to disconnect your store."))
 
     # Find the user's active store
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if not store:
         logger.warning(f"Disconnect: No active store for user {user.id}")
-        settings_url = url_for(
-            "shopify.shopify_settings", 
-            error="No active store found to disconnect.", 
-            shop=shop, 
-            host=host
-        )
-        return safe_redirect(settings_url, shop=shop, host=host)
+        # HARD CLEAR
+        logout_user()
+        session.clear()
+        return redirect(url_for("shopify.shopify_settings", error="No active store found to disconnect."))
 
     try:
         # Disconnect the store - mark as inactive but keep token for potential reconnection
@@ -426,31 +418,24 @@ def disconnect_store():
         # The is_active=False flag is sufficient to disconnect
         
         db.session.commit()
-        logger.info(f"✅ Store {store.shop_url} disconnected successfully for user {user.id}")
+        logger.info(f"Store {store.shop_url} disconnected successfully for user {user.id}")
         
-        # Clear session data
-        session.pop('shop', None)
-        session.pop('host', None)
-        session.pop('embedded', None)
+        # HARD CLEAR: Logout user and nuke ALL session data
+        logout_user()
+        session.clear()
         
-        settings_url = url_for(
-            "shopify.shopify_settings",
-            success="Store disconnected successfully! You can now reconnect.",
-            shop="",
-            host="",
-        )
-        return safe_redirect(settings_url, shop="", host="")
+        logger.info("Session cleared - user logged out")
+        
+        # Redirect WITHOUT shop/host parameters to avoid App Bridge 404
+        return redirect(url_for("shopify.shopify_settings", success="Store disconnected successfully! You can now reconnect."))
         
     except Exception as e:
-        logger.error(f"❌ Error disconnecting store: {e}", exc_info=True)
+        logger.error(f"Error disconnecting store: {e}", exc_info=True)
         db.session.rollback()
-        settings_url = url_for(
-            "shopify.shopify_settings",
-            error=f"Error disconnecting store: {str(e)}",
-            shop=shop,
-            host=host,
-        )
-        return safe_redirect(settings_url, shop=shop, host=host)
+        # HARD CLEAR even on error
+        logout_user()
+        session.clear()
+        return redirect(url_for("shopify.shopify_settings", error=f"Error disconnecting store: {str(e)}"))
 
 
 @shopify_bp.route("/settings/shopify/cancel", methods=["POST"])

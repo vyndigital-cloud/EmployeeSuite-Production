@@ -768,7 +768,7 @@ def _handle_oauth_callback():
         logger.info(f"OAuth login for standalone access (cookie auth)")
 
     # After OAuth completes, redirect to settings with success message
-    logger.info("\ud83c\udf89 ===== OAUTH FLOW COMPLETED SUCCESSFULLY =====")
+    logger.info("===== OAUTH FLOW COMPLETED SUCCESSFULLY =====")
     logger.info(f"   - Shop: {shop}")
     logger.info(f"   - User ID: {user.id}")
     logger.info(f"   - User Email: {user.email}")
