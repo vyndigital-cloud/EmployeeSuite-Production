@@ -102,7 +102,7 @@ def create_app():
             # 2. STOP THE HIJACK: Only auto-login User 4 if NO session exists
             # and we are NOT in the middle of an OAuth callback
             shop = request.args.get('shop')
-            if shop and request.args.get('hmac') and request.endpoint != 'shopify.callback':
+            if shop and request.args.get('hmac') and request.endpoint != 'oauth.callback':
                 return User.query.filter_by(shop_url=shop, is_owner=True).first()
             
             return None
