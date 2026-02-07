@@ -394,25 +394,28 @@ def disconnect_store():
     except Exception as e:
         logger.error(f"Error finding user in disconnect_store: {e}", exc_info=True)
         db.session.rollback()
-        # HARD CLEAR even on error
-        logout_user()
-        session.clear()
+        # SELECTIVE CLEAR even on error - keep user logged in
+        shopify_keys = ['current_shop', 'access_token', 'shop_domain', 'shop_url', 'host', 'hmac']
+        for key in shopify_keys:
+            session.pop(key, None)
         return redirect(url_for("shopify.shopify_settings", error="Authentication error occurred. Please try again."))
 
     if not user:
         logger.warning(f"Disconnect failed: No user found (shop={shop})")
-        # HARD CLEAR
-        logout_user()
-        session.clear()
+        # SELECTIVE CLEAR - keep user logged in
+        shopify_keys = ['current_shop', 'access_token', 'shop_domain', 'shop_url', 'host', 'hmac']
+        for key in shopify_keys:
+            session.pop(key, None)
         return redirect(url_for("shopify.shopify_settings", error="Please log in to disconnect your store."))
 
     # Find the user's active store
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if not store:
         logger.warning(f"Disconnect: No active store for user {user.id}")
-        # HARD CLEAR
-        logout_user()
-        session.clear()
+        # SELECTIVE CLEAR - keep user logged in
+        shopify_keys = ['current_shop', 'access_token', 'shop_domain', 'shop_url', 'host', 'hmac']
+        for key in shopify_keys:
+            session.pop(key, None)
         return redirect(url_for("shopify.shopify_settings", error="No active store found to disconnect."))
 
     try:
@@ -427,11 +430,13 @@ def disconnect_store():
         db.session.commit()
         logger.info(f"Store {store.shop_url} disconnected successfully for user {user.id}")
         
-        # HARD CLEAR: Logout user and nuke ALL session data
-        logout_user()
-        session.clear()
+        # SELECTIVE CLEAR: Remove only Shopify-specific session keys
+        # Keep user logged in (preserve _user_id, _fresh, etc.)
+        shopify_keys = ['current_shop', 'access_token', 'shop_domain', 'shop_url', 'host', 'hmac']
+        for key in shopify_keys:
+            session.pop(key, None)
         
-        logger.info("Session cleared - user logged out")
+        logger.info(f"Shopify session keys cleared - user {user.id} remains logged in")
         
         # Redirect WITHOUT shop/host parameters to avoid App Bridge 404
         return redirect(url_for("shopify.shopify_settings", success="Store disconnected successfully! You can now reconnect."))
@@ -439,9 +444,10 @@ def disconnect_store():
     except Exception as e:
         logger.error(f"Error disconnecting store: {e}", exc_info=True)
         db.session.rollback()
-        # HARD CLEAR even on error
-        logout_user()
-        session.clear()
+        # SELECTIVE CLEAR even on error - keep user logged in
+        shopify_keys = ['current_shop', 'access_token', 'shop_domain', 'shop_url', 'host', 'hmac']
+        for key in shopify_keys:
+            session.pop(key, None)
         return redirect(url_for("shopify.shopify_settings", error=f"Error disconnecting store: {str(e)}"))
 
 
