@@ -779,9 +779,9 @@ def _handle_oauth_callback():
     # Check if embedded parameter was explicitly passed in callback
     # Don't check headers - just use the explicit parameter
     callback_embedded = request.args.get('embedded') == '1'
-    logger.info(f\"   - Callback has embedded=1: {callback_embedded}\")
+    logger.info(f"   - Callback has embedded=1: {callback_embedded}")
     
-    if host and is_embedded:
+    if callback_embedded and host:
         # For embedded apps, return inline HTML that immediately escapes the iframe
         # This bypasses Shopify's React router which tries to route /apps//auth/callback
         logger.info(f"➡️ OAuth complete (embedded), returning inline frame escape HTML")
