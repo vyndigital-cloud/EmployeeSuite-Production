@@ -776,12 +776,11 @@ def _handle_oauth_callback():
     logger.info(f"   - Embedded: {is_embedded}")
     logger.info(f"   - Session established: {session.get('oauth_completed', False)}")
 
-    # Check if embedded parameter was explicitly passed in callback
-    # Don't check headers - just use the explicit parameter
-    callback_embedded = request.args.get('embedded') == '1'
-    logger.info(f"   - Callback has embedded=1: {callback_embedded}")
+    # CRITICAL: If host parameter is present, we MUST use App Bridge redirect
+    # Shopify requires this for all embedded app requests
+    logger.info(f"   - Host parameter present: {bool(host)}")
     
-    if callback_embedded and host:
+    if host:
         # For embedded apps, return inline HTML that immediately escapes the iframe
         # This bypasses Shopify's React router which tries to route /apps//auth/callback
         logger.info(f"➡️ OAuth complete (embedded), returning inline frame escape HTML")
@@ -825,11 +824,9 @@ def _handle_oauth_callback():
 </body>
 </html>"""
     else:
-        # For standalone, redirect to settings page with success message
+        # For standalone (no host parameter), use standard Flask redirect
         settings_url = f"/settings/shopify?success=Store+connected+successfully!&shop={shop}"
-        if host:
-            settings_url += f"&host={host}"
-        logger.info(f"➡️ OAuth complete (standalone), redirecting to: {settings_url}")
+        logger.info(f"➡️ OAuth complete (standalone, no host) - using Flask redirect to: {settings_url}")
         logger.info("=== OAUTH CALLBACK DEBUG END ===")
         return redirect(settings_url)
 
