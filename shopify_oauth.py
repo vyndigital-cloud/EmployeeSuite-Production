@@ -4,7 +4,7 @@ import os
 from urllib.parse import quote, unquote
 
 import requests
-from flask import Blueprint, redirect, request, session
+from flask import Blueprint, redirect, request, session, render_template
 from flask_login import current_user, login_user
 
 from config import SHOPIFY_API_VERSION
