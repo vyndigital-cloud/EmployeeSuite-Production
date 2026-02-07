@@ -776,8 +776,10 @@ def _handle_oauth_callback():
     logger.info(f"   - Embedded: {is_embedded}")
     logger.info(f"   - Session established: {session.get('oauth_completed', False)}")
 
-    # Check if this is truly an embedded request or just has host parameter
-    is_embedded = request.args.get('embedded') == '1' or request.headers.get('Sec-Fetch-Dest') == 'iframe'
+    # Check if embedded parameter was explicitly passed in callback
+    # Don't check headers - just use the explicit parameter
+    callback_embedded = request.args.get('embedded') == '1'
+    logger.info(f\"   - Callback has embedded=1: {callback_embedded}\")
     
     if host and is_embedded:
         # For embedded apps, return inline HTML that immediately escapes the iframe
