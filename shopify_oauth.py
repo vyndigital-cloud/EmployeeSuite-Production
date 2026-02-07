@@ -776,7 +776,10 @@ def _handle_oauth_callback():
     logger.info(f"   - Embedded: {is_embedded}")
     logger.info(f"   - Session established: {session.get('oauth_completed', False)}")
 
-    if host:
+    # Check if this is truly an embedded request or just has host parameter
+    is_embedded = request.args.get('embedded') == '1' or request.headers.get('Sec-Fetch-Dest') == 'iframe'
+    
+    if host and is_embedded:
         # For embedded apps, return inline HTML that immediately escapes the iframe
         # This bypasses Shopify's React router which tries to route /apps//auth/callback
         logger.info(f"➡️ OAuth complete (embedded), returning inline frame escape HTML")
@@ -820,15 +823,13 @@ def _handle_oauth_callback():
 </body>
 </html>"""
     else:
-        # For standalone, redirect to dashboard with success message
-        dashboard_url = (
-            f"/dashboard?success=Store connected successfully!&shop={shop}"
-        )
-        logger.info(
-            f"➡️ OAuth complete (standalone), redirecting to dashboard: {dashboard_url}"
-        )
+        # For standalone, redirect to settings page with success message
+        settings_url = f"/settings/shopify?success=Store+connected+successfully!&shop={shop}"
+        if host:
+            settings_url += f"&host={host}"
+        logger.info(f"➡️ OAuth complete (standalone), redirecting to: {settings_url}")
         logger.info("=== OAUTH CALLBACK DEBUG END ===")
-        return redirect(dashboard_url)
+        return redirect(settings_url)
 
 
 def verify_hmac(params):
