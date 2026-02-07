@@ -157,56 +157,72 @@
     </div>
 
     <script>
-        // App Bridge 4 redirect for embedded apps
+        // Manual Frame Escape - bypasses App Bridge WebSocket issues
+        // Constructs the full Shopify Admin URL and redirects the parent window
         (function () {
             try {
-                var AppBridge = window['app-bridge'];
-                if (!AppBridge) {
-                    console.error('App Bridge not loaded');
-                    fallbackRedirect();
-                    return;
+                // Decode the host parameter to get the Shopify Admin base URL
+                var host = '{{ host }}';
+                var shop = '{{ shop }}';
+                var appHandle = '{{ config.SHOPIFY_APP_HANDLE }}';
+                var redirectPath = '{{ redirect_path }}';
+                var successMessage = '{{ success_message }}';
+
+                console.log('Manual Frame Escape initiated');
+                console.log('Host (encoded):', host);
+                console.log('Shop:', shop);
+                console.log('App Handle:', appHandle);
+                console.log('Redirect Path:', redirectPath);
+
+                // Decode the base64-encoded host parameter
+                var decodedHost = atob(host);
+                console.log('Decoded Host:', decodedHost);
+
+                // Construct the full Shopify Admin URL
+                // Format: https://admin.shopify.com/store/{store}/apps/{app-handle}{path}
+                var storeName = shop.replace('.myshopify.com', '');
+                var fullUrl = 'https://' + decodedHost + '/apps/' + appHandle + redirectPath;
+
+                // Add query parameters
+                var params = new URLSearchParams({
+                    success: successMessage,
+                    shop: shop,
+                    host: host
+                });
+
+                fullUrl += '?' + params.toString();
+
+                console.log('Full redirect URL:', fullUrl);
+
+                // Escape the iframe and redirect the parent window
+                // This bypasses App Bridge entirely
+                if (window.top) {
+                    console.log('Redirecting parent window...');
+                    window.top.location.href = fullUrl;
+                } else {
+                    console.log('Fallback: redirecting current window...');
+                    window.location.href = fullUrl;
                 }
 
-                var createApp = AppBridge.createApp;
-                var Redirect = AppBridge.actions.Redirect;
-
-                var app = createApp({
-                    apiKey: '{{ config.SHOPIFY_API_KEY }}',
-                    host: '{{ host }}'
-                });
-
-                var redirect = Redirect.create(app);
-
-                // Build the redirect path with parameters
-                var redirectPath = '{{ redirect_path }}';
-                var params = new URLSearchParams({
-                    success: '{{ success_message }}',
-                    shop: '{{ shop }}',
-                    host: '{{ host }}'
-                });
-
-                var fullPath = redirectPath + '?' + params.toString();
-
-                console.log('App Bridge redirecting to:', fullPath);
-
-                // Use App Bridge to navigate within Shopify Admin
-                redirect.dispatch(Redirect.Action.APP, fullPath);
-
             } catch (error) {
-                console.error('App Bridge redirect failed:', error);
-                fallbackRedirect();
-            }
+                console.error('Manual frame escape failed:', error);
 
-            function fallbackRedirect() {
-                // Fallback: direct navigation if App Bridge fails
-                console.log('Using fallback redirect');
+                // Ultimate fallback: try relative redirect
                 var redirectPath = '{{ redirect_path }}';
                 var params = new URLSearchParams({
                     success: '{{ success_message }}',
                     shop: '{{ shop }}',
                     host: '{{ host }}'
                 });
-                window.location.href = redirectPath + '?' + params.toString();
+
+                var fallbackUrl = redirectPath + '?' + params.toString();
+                console.log('Using fallback URL:', fallbackUrl);
+
+                if (window.top) {
+                    window.top.location.href = fallbackUrl;
+                } else {
+                    window.location.href = fallbackUrl;
+                }
             }
         })();
     </script>
