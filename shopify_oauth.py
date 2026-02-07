@@ -777,15 +777,45 @@ def _handle_oauth_callback():
     logger.info(f"   - Session established: {session.get('oauth_completed', False)}")
 
     if host:
-        # For embedded apps, use App Bridge redirect (not server-side redirect)
-        # This prevents the /apps// double slash issue in Shopify Admin
-        logger.info(f"➡️ OAuth complete (embedded), rendering App Bridge redirect page")
+        # For embedded apps, return inline HTML that immediately escapes the iframe
+        # This bypasses Shopify's React router which tries to route /apps//auth/callback
+        logger.info(f"➡️ OAuth complete (embedded), returning inline frame escape HTML")
         logger.info("=== OAUTH CALLBACK DEBUG END ===")
-        return render_template('oauth_redirect.html', 
-                              shop=shop, 
-                              host=host,
-                              redirect_path='/settings/shopify',
-                              success_message='Store connected successfully!')
+        
+        # Decode host to construct full URL
+        import base64
+        decoded_host = base64.b64decode(host).decode('utf-8')
+        clean_host = decoded_host.rstrip('/')
+        
+        # Construct the full Shopify Admin URL
+        app_handle = 'employee-suite'
+        redirect_path = '/settings/shopify'
+        full_url = f"https://{clean_host}/apps/{app_handle}{redirect_path}?success=Store+connected+successfully!&shop={shop}&host={host}"
+        
+        logger.info(f"   Constructed URL: {full_url}")
+        
+        # Return minimal HTML that immediately redirects parent window
+        return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Redirecting...</title>
+</head>
+<body>
+    <script>
+        console.log('=== IMMEDIATE FRAME ESCAPE ===');
+        console.log('Target URL: {full_url}');
+        
+        // Immediately escape iframe and redirect parent window
+        if (window.top) {{
+            window.top.location.replace('{full_url}');
+        }} else {{
+            window.location.replace('{full_url}');
+        }}
+    </script>
+    <p>Redirecting...</p>
+</body>
+</html>"""
     else:
         # For standalone, redirect to dashboard with success message
         dashboard_url = (
