@@ -1,0 +1,59 @@
+name: CI - Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+
+    - name: Run smoke tests
+      env:
+        DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db
+        SECRET_KEY: test-secret-key
+        FLASK_ENV: testing
+        SHOPIFY_API_KEY: test_key
+        SHOPIFY_API_SECRET: test_secret
+      run: |
+        pytest tests/test_smoke.py -v --tb=short
+      
+    - name: Check test results
+      if: failure()
+      run: |
+        echo "❌ SMOKE TESTS FAILED - DEPLOYMENT BLOCKED"
+        echo "Fix the failing tests before deploying to production"
+        exit 1

@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: missioncontrol_db
+    environment:
+      POSTGRES_DB: missioncontrol_dev
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpass123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devuser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      target: development
+    container_name: missioncontrol_app
+    environment:
+      DATABASE_URL: postgresql://devuser:devpass123@db:5432/missioncontrol_dev
+      FLASK_ENV: development
+      FLASK_DEBUG: 1
+      SECRET_KEY: dev-secret-key-change-in-production
+      SHOPIFY_API_KEY: ${SHOPIFY_API_KEY}
+      SHOPIFY_API_SECRET: ${SHOPIFY_API_SECRET}
+      SHOPIFY_APP_HANDLE: employee-suite-7
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+      - /app/venv
+      - /app/__pycache__
+    depends_on:
+      db:
+        condition: service_healthy
+    command: python main.py
+
+  redis:
+    image: redis:7-alpine
+    container_name: missioncontrol_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
