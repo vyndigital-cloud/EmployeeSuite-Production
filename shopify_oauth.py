@@ -800,13 +800,13 @@ def _handle_oauth_callback():
         full_url = f"https://{clean_host}/apps/{app_handle}{redirect_path}?success=Store+connected+successfully!&shop={shop}&host={host}"
         
         logger.info(f"   Constructed Shopify Admin URL: {full_url}")
-            # Get API key for App Bridge
-            from flask import current_app
-            api_key = current_app.config.get('SHOPIFY_API_KEY', '')
-            
-            # Return App Bridge redirect HTML that forces parent window navigation
-            # This uses the official Redirect.Action.ADMIN_PATH to break out of OAuth iframe
-            return f"""<!DOCTYPE html>
+        # Get API key for App Bridge
+        from flask import current_app
+        api_key = current_app.config.get('SHOPIFY_API_KEY', '')
+        
+        # Return App Bridge redirect HTML that forces parent window navigation
+        # This uses the official Redirect.Action.ADMIN_PATH to break out of OAuth iframe
+        return f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
