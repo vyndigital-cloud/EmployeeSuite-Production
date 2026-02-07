@@ -24,6 +24,13 @@ def create_app():
         },
         'WTF_CSRF_ENABLED': True,
         'WTF_CSRF_TIME_LIMIT': 3600,
+        # Session cookie configuration for login persistence
+        'SESSION_COOKIE_SECURE': True,  # Only send over HTTPS
+        'SESSION_COOKIE_HTTPONLY': True,  # Prevent JavaScript access
+        'SESSION_COOKIE_SAMESITE': 'Lax',  # Allow cookies on same-site navigation
+        'REMEMBER_COOKIE_SECURE': True,
+        'REMEMBER_COOKIE_HTTPONLY': True,
+        'REMEMBER_COOKIE_DURATION': 2592000,  # 30 days
     })
     
     # Initialize database with error handling
