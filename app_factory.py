@@ -92,12 +92,17 @@ def create_app():
             Load user from request (header or query param) for embedded apps.
             This prevents redirect loops by accepting valid session tokens as login.
             """
-            # CRITICAL: If we already have an authenticated user (e.g., from OAuth),
-            # DO NOT override it with shop parameters from the URL
-            from flask_login import current_user
-            if current_user.is_authenticated:
-                app.logger.info(f"✅ Session exists for User {current_user.id} - preserving session")
-                return current_user
+            # CRITICAL: Check session FIRST before processing shop parameters
+            # Using session.get('_user_id') to avoid RecursionError from current_user
+            from flask import session
+            user_id = session.get('_user_id')
+            if user_id:
+                # Session exists - return that user without processing shop params
+                from models import User
+                user = User.query.get(user_id)
+                if user:
+                    app.logger.info(f"✅ Session exists for User {user.id} - preserving session")
+                    return user
             
             # 1. Check for Authorization header (Bearer token)
             auth_header = request.headers.get("Authorization")
