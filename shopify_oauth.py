@@ -799,30 +799,60 @@ def _handle_oauth_callback():
         redirect_path = '/settings/shopify'
         full_url = f"https://{clean_host}/apps/{app_handle}{redirect_path}?success=Store+connected+successfully!&shop={shop}&host={host}"
         
-        logger.info(f"   Constructed URL: {full_url}")
+        logger.info(f"   Constructed Shopify Admin URL: {full_url}")
         
-        # Return minimal HTML that immediately redirects parent window
+        # Get API key for App Bridge
+        from flask import current_app
+        api_key = current_app.config.get('SHOPIFY_API_KEY', '')
+        
+        # Return aggressive redirect HTML with App Bridge and immediate navigation
         return f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Redirecting...</title>
+    <title>Redirecting to Settings...</title>
+    <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
 </head>
 <body>
+    <p>Finalizing connection... if you are not redirected, <a href="{full_url}" target="_top">click here</a>.</p>
     <script>
-        console.log('=== IMMEDIATE FRAME ESCAPE ===');
+        console.log('=== AGGRESSIVE FRAME ESCAPE ===');
         console.log('Target URL: {full_url}');
         
-        // Immediately escape iframe and redirect parent window
-        if (window.top) {{
-            window.top.location.replace('{full_url}');
-        }} else {{
-            window.location.replace('{full_url}');
+        // Method 1: Immediate top-level navigation (most aggressive)
+        try {{
+            window.top.location.href = '{full_url}';
+        }} catch(e) {{
+            console.error('Method 1 failed:', e);
         }}
+        
+        // Method 2: App Bridge redirect (backup)
+        try {{
+            const AppBridge = window['app-bridge'];
+            if (AppBridge) {{
+                const createApp = AppBridge.default;
+                const app = createApp({{
+                    apiKey: "{api_key}",
+                    host: "{host}",
+                    forceRedirect: true
+                }});
+                console.log('App Bridge initialized');
+            }}
+        }} catch(e) {{
+            console.error('Method 2 failed:', e);
+        }}
+        
+        // Method 3: Fallback with delay
+        setTimeout(function() {{
+            if (window.top) {{
+                window.top.location.replace('{full_url}');
+            }} else {{
+                window.location.replace('{full_url}');
+            }}
+        }}, 100);
     </script>
-    <p>Redirecting...</p>
 </body>
-</html>"""
+</html>""", 200
     else:
         # For standalone (no host parameter), use standard Flask redirect
         settings_url = f"/settings/shopify?success=Store+connected+successfully!&shop={shop}"
