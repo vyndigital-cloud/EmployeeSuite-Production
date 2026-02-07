@@ -74,20 +74,23 @@ def shopify_settings():
         logger.error(f"Error finding user in shopify_settings: {e}", exc_info=True)
         user = None
 
-    # If no user found, redirect to appropriate auth flow
+    # Handle different authentication scenarios
     if not user:
         logger.warning(f"⚠️ NO USER FOUND - Redirecting to auth flow")
         if shop:
-            # Direct URL construction - bypasses url_for issues
+            # Embedded app with shop but no user - start OAuth
             install_url = f"/oauth/install?shop={shop}"
             if host:
                 install_url += f"&host={host}"
             logger.info(f"No user found for shop {shop}, redirecting to OAuth install: {install_url}")
             return redirect(install_url)
         else:
-            # For standalone, redirect to login
+            # No user and no shop - redirect to login
             logger.info(f"No user found and no shop context, redirecting to login")
             return redirect(url_for("auth.login"))
+    
+    # User is authenticated - allow access even without shop (disconnected state)
+    logger.info(f"✅ User {user.id} authenticated - allowing access to settings")
 
     # Get user's store
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
