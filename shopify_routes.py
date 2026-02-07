@@ -9,7 +9,7 @@ from flask import (
     session,
     url_for,
 )
-from flask_login import current_user, login_required
+from flask_login import current_user, login_required, login_user
 
 from config import SHOPIFY_API_VERSION
 
@@ -59,13 +59,17 @@ def shopify_settings():
             store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
             if store and store.user:
                 user = store.user
-                logger.info(f"✅ Found user via shop lookup: {user.id} for shop {shop}")
+                # CRITICAL FIX: Actually log the user in!
+                login_user(user)
+                logger.info(f"✅ Found user via shop lookup: {user.id} for shop {shop} - Logged in successfully")
             else:
                 # Try to find any store for this shop (including inactive ones)
                 store = ShopifyStore.query.filter_by(shop_url=shop).first()
                 if store and store.user:
                     user = store.user
-                    logger.info(f"✅ Found user via inactive store lookup: {user.id} for shop {shop}")
+                    # CRITICAL FIX: Actually log the user in!
+                    login_user(user)
+                    logger.info(f"✅ Found user via inactive store lookup: {user.id} for shop {shop} - Logged in successfully")
                 else:
                     logger.warning(f"❌ No store found for shop: {shop}")
         else:
