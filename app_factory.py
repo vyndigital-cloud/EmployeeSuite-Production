@@ -27,7 +27,7 @@ def create_app():
         # Session cookie configuration for login persistence
         'SESSION_COOKIE_SECURE': True,  # Only send over HTTPS
         'SESSION_COOKIE_HTTPONLY': True,  # Prevent JavaScript access
-        'SESSION_COOKIE_SAMESITE': 'Lax',  # Allow cookies on same-site navigation
+        'SESSION_COOKIE_SAMESITE': 'None',  # Allow cookies in iframes (required for embedded apps)
         'REMEMBER_COOKIE_SECURE': True,
         'REMEMBER_COOKIE_HTTPONLY': True,
         'REMEMBER_COOKIE_DURATION': 2592000,  # 30 days
@@ -121,6 +121,12 @@ def create_app():
             shop = request.args.get('shop')
             is_embedded = request.args.get('embedded') == '1'
             
+            # CRITICAL: Check if we already have a valid session before overwriting with param auth
+            from flask import session
+            if session.get('_user_id'):
+                app.logger.info(f"Existing session found for User {session.get('_user_id')} - skipping param auth to prevent overwrite")
+                return None
+
             if is_embedded and shop:
                 try:
                     from models import ShopifyStore, User
