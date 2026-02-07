@@ -791,7 +791,7 @@ def _handle_oauth_callback():
         clean_host = decoded_host.rstrip('/')
         
         # Construct the full Shopify Admin URL
-        app_handle = 'employee-suite'
+        app_handle = 'employee-suite-7'
         redirect_path = '/settings/shopify'
         full_url = f"https://{clean_host}/apps/{app_handle}{redirect_path}?success=Store+connected+successfully!&shop={shop}&host={host}"
         
