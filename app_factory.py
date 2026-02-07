@@ -92,18 +92,20 @@ def create_app():
             Load user from request - simplified to prevent session hijacking.
             """
             from flask import session
-            from models import User
+            from models import User, ShopifyStore
             
             # 1. STOP THE LOOP: Check the cookie directly, NOT current_user
             user_id = session.get('_user_id')
             if user_id:
                 return User.query.get(int(user_id))
             
-            # 2. STOP THE HIJACK: Only auto-login User 4 if NO session exists
-            # and we are NOT in the middle of an OAuth callback
+            # 2. ONLY if no session, then do the Shopify param check
             shop = request.args.get('shop')
-            if shop and request.args.get('hmac') and request.endpoint != 'oauth.callback':
-                return User.query.filter_by(shop_url=shop, is_owner=True).first()
+            if shop and request.args.get('hmac'):
+                # Find the store, then get the user
+                store = ShopifyStore.query.filter_by(shop_url=shop).first()
+                if store and store.user:
+                    return store.user
             
             return None
     except Exception as e:
