@@ -168,20 +168,24 @@
                 var redirectPath = '{{ redirect_path }}';
                 var successMessage = '{{ success_message }}';
 
-                console.log('Manual Frame Escape initiated');
-                console.log('Host (encoded):', host);
+                console.log('=== MANUAL FRAME ESCAPE DEBUG ===');
+                console.log('Raw Host (base64):', host);
                 console.log('Shop:', shop);
                 console.log('App Handle:', appHandle);
                 console.log('Redirect Path:', redirectPath);
 
                 // Decode the base64-encoded host parameter
+                // This typically contains: "admin.shopify.com/store/employee-suite"
                 var decodedHost = atob(host);
-                console.log('Decoded Host:', decodedHost);
+                console.log('DEBUG - Decoded Host:', decodedHost);
+
+                // Clean up the host - remove any trailing slashes
+                var cleanHost = decodedHost.replace(/\/+$/, '');
+                console.log('DEBUG - Clean Host:', cleanHost);
 
                 // Construct the full Shopify Admin URL
-                // Format: https://admin.shopify.com/store/{store}/apps/{app-handle}{path}
-                var storeName = shop.replace('.myshopify.com', '');
-                var fullUrl = 'https://' + decodedHost + '/apps/' + appHandle + redirectPath;
+                // Pattern: https://admin.shopify.com/store/{store}/apps/{app-handle}{path}
+                var fullUrl = 'https://' + cleanHost + '/apps/' + appHandle + redirectPath;
 
                 // Add query parameters
                 var params = new URLSearchParams({
@@ -192,20 +196,22 @@
 
                 fullUrl += '?' + params.toString();
 
-                console.log('Full redirect URL:', fullUrl);
+                console.log('DEBUG - Final URL:', fullUrl);
+                console.log('ESCAPE INITIATED TO:', fullUrl);
 
                 // Escape the iframe and redirect the parent window
-                // This bypasses App Bridge entirely
+                // Using .replace() instead of .href to prevent back button issues
                 if (window.top) {
-                    console.log('Redirecting parent window...');
-                    window.top.location.href = fullUrl;
+                    console.log('Redirecting parent window with window.top.location.replace()');
+                    window.top.location.replace(fullUrl);
                 } else {
-                    console.log('Fallback: redirecting current window...');
-                    window.location.href = fullUrl;
+                    console.log('Fallback: redirecting current window');
+                    window.location.replace(fullUrl);
                 }
 
             } catch (error) {
-                console.error('Manual frame escape failed:', error);
+                console.error('Manual frame escape FAILED:', error);
+                console.error('Error stack:', error.stack);
 
                 // Ultimate fallback: try relative redirect
                 var redirectPath = '{{ redirect_path }}';
@@ -219,9 +225,9 @@
                 console.log('Using fallback URL:', fallbackUrl);
 
                 if (window.top) {
-                    window.top.location.href = fallbackUrl;
+                    window.top.location.replace(fallbackUrl);
                 } else {
-                    window.location.href = fallbackUrl;
+                    window.location.replace(fallbackUrl);
                 }
             }
         })();
