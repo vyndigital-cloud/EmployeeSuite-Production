@@ -8,6 +8,7 @@ _CONFIG_CACHE = {
     "SECRET_KEY": os.getenv("SECRET_KEY"),  # Must be set in environment
     "SHOPIFY_API_KEY": os.getenv("SHOPIFY_API_KEY", ""),
     "SHOPIFY_API_SECRET": os.getenv("SHOPIFY_API_SECRET", ""),
+    "SHOPIFY_APP_HANDLE": os.getenv("SHOPIFY_APP_HANDLE", "employee-suite-7-10"),  # From shopify.app.toml
     "DATABASE_URL": os.getenv("DATABASE_URL", "sqlite:///app.db"),
     "ENVIRONMENT": os.getenv("ENVIRONMENT", "production"),
     "SQLALCHEMY_DATABASE_URI": os.getenv("DATABASE_URL", "sqlite:///app.db"),
