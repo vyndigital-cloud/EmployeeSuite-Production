@@ -800,13 +800,13 @@ def _handle_oauth_callback():
         full_url = f"https://{clean_host}/apps/{app_handle}{redirect_path}?success=Store+connected+successfully!&shop={shop}&host={host}"
         
         logger.info(f"   Constructed Shopify Admin URL: {full_url}")
-        
-        # Get API key for App Bridge
-        from flask import current_app
-        api_key = current_app.config.get('SHOPIFY_API_KEY', '')
-        
-        # Return aggressive redirect HTML with App Bridge and immediate navigation
-        return f"""<!DOCTYPE html>
+            # Get API key for App Bridge
+            from flask import current_app
+            api_key = current_app.config.get('SHOPIFY_API_KEY', '')
+            
+            # Return App Bridge redirect HTML that forces parent window navigation
+            # This uses the official Redirect.Action.ADMIN_PATH to break out of OAuth iframe
+            return f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -816,40 +816,44 @@ def _handle_oauth_callback():
 <body>
     <p>Finalizing connection... if you are not redirected, <a href="{full_url}" target="_top">click here</a>.</p>
     <script>
-        console.log('=== AGGRESSIVE FRAME ESCAPE ===');
-        console.log('Target URL: {full_url}');
+        console.log('=== APP BRIDGE REDIRECT ===');
+        console.log('Forcing parent window navigation to settings page');
         
-        // Method 1: Immediate top-level navigation (most aggressive)
         try {{
-            window.top.location.href = '{full_url}';
-        }} catch(e) {{
-            console.error('Method 1 failed:', e);
-        }}
-        
-        // Method 2: App Bridge redirect (backup)
-        try {{
+            // Get host from URL params
+            const urlParams = new URLSearchParams(window.location.search);
+            const host = urlParams.get("host") || "{host}";
+            
+            // Initialize App Bridge
             const AppBridge = window['app-bridge'];
-            if (AppBridge) {{
-                const createApp = AppBridge.default;
-                const app = createApp({{
-                    apiKey: "{api_key}",
-                    host: "{host}",
-                    forceRedirect: true
-                }});
-                console.log('App Bridge initialized');
-            }}
+            const app = AppBridge.default({{
+                apiKey: "{api_key}",
+                host: host,
+                forceRedirect: true
+            }});
+            
+            console.log('App Bridge initialized with host:', host);
+            
+            // Use Redirect action to force TOP frame navigation
+            const Redirect = AppBridge.actions.Redirect;
+            const redirect = Redirect.create(app);
+            
+            // This forces the parent Shopify Admin to navigate, killing the OAuth iframe
+            redirect.dispatch(Redirect.Action.ADMIN_PATH, {{
+                path: "/apps/{app_handle}/settings/shopify?success=Store+connected+successfully!&shop={shop}&host={host}"
+            }});
+            
+            console.log('Redirect dispatched to parent window');
         }} catch(e) {{
-            console.error('Method 2 failed:', e);
-        }}
-        
-        // Method 3: Fallback with delay
-        setTimeout(function() {{
-            if (window.top) {{
-                window.top.location.replace('{full_url}');
-            }} else {{
-                window.location.replace('{full_url}');
+            console.error('App Bridge redirect failed:', e);
+            // Fallback: Direct navigation
+            try {{
+                window.top.location.href = '{full_url}';
+            }} catch(e2) {{
+                console.error('Fallback redirect failed:', e2);
+                window.location.href = '{full_url}';
             }}
-        }}, 100);
+        }}
     </script>
 </body>
 </html>""", 200
