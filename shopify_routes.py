@@ -98,17 +98,7 @@ def shopify_settings():
                     f"✅ Found user via shop lookup: {user.id} for shop {shop} - Logged in successfully"
                 )
             else:
-                # Try to find any store for this shop (including inactive ones)
-                store = ShopifyStore.query.filter_by(shop_url=shop).first()
-                if store and store.user:
-                    user = store.user
-                    # CRITICAL FIX: Actually log the user in!
-                    login_user(user)
-                    logger.info(
-                        f"✅ Found user via inactive store lookup: {user.id} for shop {shop} - Logged in successfully"
-                    )
-                else:
-                    logger.warning(f"❌ No store found for shop: {shop}")
+                logger.warning(f"❌ No ACTIVE store found for shop: {shop}")
         except Exception as e:
             logger.error(f"Error finding user in shopify_settings: {e}", exc_info=True)
             user = None
@@ -117,7 +107,9 @@ def shopify_settings():
 
     # Handle different authentication scenarios
     if not user:
-        logger.warning(f"⚠️ shopify_settings: NO USER FOUND")
+        logger.warning(f"⚠️ shopify_settings: NO USER FOUND - Redirecting to install")
+        from shopify_oauth import get_install_url
+        return redirect(url_for("oauth.install", shop=shop, host=host))
 
         # CRITICAL FIX: This should NEVER happen if current_user.is_authenticated was True
         # Log this as a critical error for debugging
