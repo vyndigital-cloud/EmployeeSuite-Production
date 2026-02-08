@@ -314,19 +314,17 @@ def install():
     # If embedded context detected, use JavaScript to breakout of iframe for OAuth
     if is_embedded:
         logger.info(f"➡️ Embedded OAuth install detected for {shop}, using App Bridge v3 breakout")
-        return f"""
+        return f'''
         <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
         <script>
-            var AppBridge = window['app-bridge'];
-            var actions = AppBridge.actions;
-            var app = AppBridge.createApp({{
+            var app = window['app-bridge'].createApp({{
                 apiKey: "{SHOPIFY_API_KEY}",
-                host: "{host}",
+                host: "{host}"
             }});
             window.location.href = "{full_auth_url}";
         </script>
         <p>Redirecting to Shopify for authorization...</p>
-        """, 200
+        ''', 200
 
     # Non-embedded: regular redirect works fine
     logger.info(f"🚀 OAuth Install: Redirecting to Shopify for authorization")

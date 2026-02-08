@@ -41,118 +41,33 @@ def connections_alias():
 @verify_session_token
 def shopify_settings():
     """Shopify settings page - works in both embedded and standalone modes"""
-
-    from session_debug import check_cookie_compatibility, log_session_state
-    from shopify_utils import normalize_shop_url
-
-    # DEBUG: Log session state to diagnose iframe session amnesia
-    log_session_state("shopify_settings - START")
-    cookie_compat = check_cookie_compatibility()
-
-    if cookie_compat.get("cookies_likely_blocked"):
-        logger.error(
-            "🚨 CRITICAL: Cookies likely blocked in this context! "
-            f"HTTPS: {cookie_compat.get('is_https')}, "
-            f"Embedded: {cookie_compat.get('is_embedded')}"
-        )
-        if cookie_compat.get("is_embedded"):
-            from app_bridge_breakout import iframe_safe_redirect
-
-            shop_param = request.args.get("shop")
-            return iframe_safe_redirect(url_for("auth.login"), shop=shop_param)
-
-    # Normalize shop URL
-    shop = request.args.get("shop") or session.get("shop_domain")
-    if shop:
-        shop = normalize_shop_url(shop)
-    
-    # Ensure shop has a default if absolutely missing (needed for App Bridge init)
-    if not shop:
-        shop = "employee-suite.myshopify.com"
-
+    # 1. Extract verified shop from the JWT decorator
+    shop = getattr(request, 'shop_domain', None) or request.args.get("shop")
     host = request.args.get("host") or session.get("host")
+    
+    if not shop:
+        logger.warning("No shop context found in shopify_settings, redirecting to install")
+        from shopify_oauth import get_install_url
+        install_url = get_install_url(None) # get_install_url handles None
+        if host:
+            install_url += f"&host={host}"
+        return redirect(install_url)
 
-    # ============================================================================
-    # CRITICAL FIX: Check Flask-Login session FIRST before ANY other logic
-    # ============================================================================
-    user = None
-
-    # PRIORITY 1: Check current_user.is_authenticated BEFORE anything else
-    if current_user.is_authenticated:
-        user = current_user
-        logger.info(
-            f"✅ shopify_settings: User {user.id} authenticated via Flask-Login - "
-            f"Session _user_id={session.get('_user_id')}, "
-            f"permanent={session.permanent}"
-        )
-
-        # STOP HERE - We have a valid authenticated user
-        # Don't check shop parameters, don't do any other lookups
-        # Just proceed to render the settings page
-
-    # PRIORITY 2: Only if Flask-Login failed, try shop lookup (for embedded apps)
-    elif shop:
-        try:
-            # Try to find user from shop (for embedded apps)
-            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
-            if store and store.user:
-                user = store.user
-                # CRITICAL FIX: Actually log the user in!
-                login_user(user)
-                logger.info(
-                    f"✅ Found user via shop lookup: {user.id} for shop {shop} - Logged in successfully"
-                )
-            else:
-                logger.warning(f"❌ No ACTIVE store found for shop: {shop}")
-        except Exception as e:
-            logger.error(f"Error finding user in shopify_settings: {e}", exc_info=True)
-            user = None
+    # 2. Force identity sync: Ensure Flask-Login matches the JWT shop
+    store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+    
+    if store and store.user:
+        if not current_user.is_authenticated or current_user.id != store.user.id:
+            logger.info(f"Identity Sync: Logging in user {store.user.id} for shop {shop}")
+            login_user(store.user)
+        user = store.user
     else:
-        logger.warning(f"❌ No authenticated user and no shop parameter")
-
-    # Handle different authentication scenarios
-    if not user:
-        logger.warning(f"⚠️ shopify_settings: NO USER FOUND - Redirecting to install")
+        logger.warning(f"No active store found for {shop}, redirecting to install")
         from shopify_oauth import get_install_url
         install_url = get_install_url(shop)
         if host:
             install_url += f"&host={host}"
         return redirect(install_url)
-
-        # CRITICAL FIX: This should NEVER happen if current_user.is_authenticated was True
-        # Log this as a critical error for debugging
-        if current_user.is_authenticated:
-            logger.error(
-                f"🚨 CRITICAL BUG: current_user.is_authenticated=True but user object is None! "
-                f"Session data: _user_id={session.get('_user_id')}, "
-                f"permanent={session.permanent}, "
-                f"keys={list(session.keys())}"
-            )
-            # Force use current_user as fallback
-            user = current_user
-        else:
-            # User is NOT authenticated via Flask-Login either
-            # Import the App Bridge breakout utility
-            from app_bridge_breakout import iframe_safe_redirect
-
-            if shop:
-                # Embedded app with shop but no user - start OAuth
-                install_url = f"/oauth/install?shop={shop}"
-                if host:
-                    install_url += f"&host={host}"
-
-                logger.info(
-                    f"No user found for shop {shop}, redirecting to OAuth: {install_url}"
-                )
-                return iframe_safe_redirect(install_url, shop=shop)
-            else:
-                # No user, no shop, not authenticated - redirect to login
-                logger.info(f"No authentication found, redirecting to login")
-                return iframe_safe_redirect(url_for("auth.login"), shop=None)
-
-    # User is authenticated - allow access even without shop (disconnected state)
-    logger.info(f"✅ User {user.id} authenticated - allowing access to settings")
-
     # Get user's store
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
 
@@ -608,18 +523,16 @@ def disconnect_store():
             host=host,
         )
         
-        return f"""
+        return f'''
             <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
             <script>
-                var AppBridge = window['app-bridge'];
-                var actions = AppBridge.actions;
-                var app = AppBridge.createApp({{
+                var app = window['app-bridge'].createApp({{
                     apiKey: "{current_app.config['SHOPIFY_API_KEY']}",
-                    host: "{host}",
+                    host: "{host}"
                 }});
                 window.location.href = "{target_url}";
             </script>
-        """, 200
+        ''', 200
 
     except Exception as e:
         logger.error(
