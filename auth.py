@@ -13,7 +13,7 @@ from flask import (
     url_for,
 )
 from flask_bcrypt import Bcrypt
-from flask_login import login_required, login_user, logout_user, current_user
+from flask_login import current_user, login_required, login_user, logout_user
 
 from input_validation import sanitize_input, validate_email
 from logging_config import logger
@@ -22,11 +22,12 @@ from models import User, db
 # Add error handling for imports
 try:
     from email_service import send_password_reset_email, send_welcome_email
+
     EMAIL_SERVICE_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Email service not available: {e}")
     EMAIL_SERVICE_AVAILABLE = False
-    
+
     def send_welcome_email(email):
         logger.info(f"Email service disabled - would send welcome email to {email}")
         return True
@@ -34,6 +35,7 @@ except ImportError as e:
     def send_password_reset_email(email, token):
         logger.info(f"Email service disabled - would send password reset to {email}")
         return True
+
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -43,7 +45,6 @@ def get_bcrypt():
     from flask_bcrypt import Bcrypt
 
     return Bcrypt(current_app)
-
 
 
 REGISTER_HTML = """
@@ -286,7 +287,6 @@ def login():
             user = User.query.filter_by(email=email).first()
         except Exception as db_error:
             # If database connection fails, try to fallback to SQLite
-            from models import db
 
             error_msg = str(db_error).lower()
             if (
@@ -369,24 +369,26 @@ def login():
 
             # CRITICAL FIX: Force session persistence BEFORE any redirect
             # Use remember=True for standalone to ensure cookie persistence
-            login_user(user, remember=True)  # Always use remember for better persistence
-            
+            login_user(
+                user, remember=True
+            )  # Always use remember for better persistence
+
             # FORCE SESSION COMMIT - Critical for Safari and cross-route persistence
             session.permanent = True
-            session['_user_id'] = user.id  # Explicitly set user_id
-            session['_fresh'] = True  # Mark session as fresh
+            session["_user_id"] = user.id  # Explicitly set user_id
+            session["_fresh"] = True  # Mark session as fresh
             session.modified = True  # Force immediate session save
-            
+
             # Additional session data for debugging
-            session['login_timestamp'] = datetime.now(timezone.utc).isoformat()
-            session['login_method'] = 'password'
-            
+            session["login_timestamp"] = datetime.now(timezone.utc).isoformat()
+            session["login_method"] = "password"
+
             # CRITICAL: Commit session to database BEFORE redirect
             try:
                 db.session.commit()  # Commit any pending database changes
             except Exception as commit_error:
                 logger.error(f"Database commit error after login: {commit_error}")
-            
+
             logger.info(
                 f"✅ Login successful - User {user.id} - "
                 f"Session committed with _user_id={session.get('_user_id')}, "
@@ -458,7 +460,7 @@ def register():
         bcrypt = get_bcrypt()
         hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
         new_user = User(email=email, password_hash=hashed_password)
-        
+
         # Ensure trial is properly set
         new_user.trial_ends_at = datetime.now(timezone.utc) + timedelta(days=7)
         new_user.is_subscribed = False
@@ -486,9 +488,9 @@ def register():
         )  # No remember cookie in embedded mode
         session.permanent = True
         session.modified = True  # Force immediate session save (Safari compatibility)
-        
+
         logger.info(f"New user registered and logged in - User {new_user.id}")
-        
+
         dashboard_url = url_for("core.dashboard")
         if shop:
             dashboard_url += f"?shop={shop}"
@@ -510,19 +512,19 @@ def logout():
     shop = request.args.get("shop")
     host = request.args.get("host")
     embedded = request.args.get("embedded")
-    
+
     # Log the logout
     user_id = current_user.get_id() if current_user.is_authenticated else "unknown"
     logger.info(f"User {user_id} logging out")
-    
+
     # CRITICAL: Clear Flask-Login session properly
     logout_user()
-    
+
     # Clear all session data to prevent stale sessions
     session.clear()
-    
+
     logger.info(f"User {user_id} logged out successfully - session cleared")
-    
+
     # Pass params back to login route so it can handle embedded redirect
     return redirect(url_for("auth.login", shop=shop, host=host, embedded=embedded))
 
