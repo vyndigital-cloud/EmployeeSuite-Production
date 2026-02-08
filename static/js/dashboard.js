@@ -44,14 +44,25 @@ function initializeApp() {
 
 // Initialize App Bridge for Shopify embedded apps
 function initializeAppBridge() {
+    // App Bridge v4: Get shop and host from URL or App Bridge config
     var urlParams = new URLSearchParams(window.location.search);
     var host = urlParams.get('host');
     var shop = urlParams.get('shop');
 
+    // Robust Fallback: Use window.shopify.config if parameters are missing
+    if (!shop && window.shopify && window.shopify.config) {
+        shop = window.shopify.config.shop;
+        console.log('🔗 Falling back to window.shopify.config.shop:', shop);
+    }
+
+    if (!host && window.shopify && window.shopify.config) {
+        host = window.shopify.config.host;
+        console.log('🔗 Falling back to window.shopify.config.host:', host);
+    }
+
     window.isEmbedded = !!host;
     window.SHOP_PARAM = shop || '';
     window.HOST_PARAM = host || '';
-    window.ID_TOKEN = urlParams.get('id_token') || '';
 
     if (!host) {
         window.shopifyApp = null;

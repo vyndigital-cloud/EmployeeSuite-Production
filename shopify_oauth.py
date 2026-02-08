@@ -127,43 +127,14 @@ def install():
         """), 500
 
     shop = request.args.get("shop", "").strip()
+    if not shop or shop == "None":
+        shop = session.get("shop", "")
+        
     logger.info(f"📥 OAuth Install: Initial shop parameter: '{shop}'")
 
     if not shop:
-        logger.warning("⚠️ No shop parameter in request, attempting fallback methods")
-        # Try to get shop from referrer or session
-        referrer = request.headers.get("Referer", "")
-        if "shop=" in referrer:
-            logger.info(
-                f"🔍 Attempting to extract shop from referrer: {referrer[:100]}..."
-            )
-            import urllib.parse
-
-            parsed = urllib.parse.urlparse(referrer)
-            query_params = urllib.parse.parse_qs(parsed.query)
-            if "shop" in query_params:
-                shop = query_params["shop"][0]
-                logger.info(f"✅ Extracted shop from referrer: {shop}")
-
-        # Try session as fallback
-        if not shop:
-            shop = session.get("shop", "")
-            if shop:
-                logger.info(f"✅ Retrieved shop from session: {shop}")
-            else:
-                logger.warning("⚠️ No shop found in session either")
-
-        # If still no shop, redirect to settings instead of showing form
-        if not shop:
-            logger.error(
-                "❌ OAuth Install FAILED: No shop parameter provided via URL, referrer, or session"
-            )
-            logger.error(f"   - Request URL: {request.url}")
-            logger.error(f"   - Referrer: {request.referrer}")
-            logger.error(f"   - Session keys: {list(session.keys())}")
-            return redirect(
-                "/settings/shopify?error=Please enter your shop domain to connect"
-            )
+        logger.error("❌ OAuth Install FAILED: Missing shop domain")
+        return "Error: Missing shop domain. Please open the app from your Shopify Admin.", 400
 
     # Normalize shop domain - professional consistent normalization
     original_shop = shop

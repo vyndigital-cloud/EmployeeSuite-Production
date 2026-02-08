@@ -322,17 +322,20 @@ def home():
         from models import ShopifyStore, User, db
         
         # PERFORMANCE: Skip heavy database queries for initial load
-        shop = request.args.get("shop")
-        host = request.args.get("host")
+        # Retrieve shop and host from either request arguments or session
+        shop = request.args.get("shop") or session.get("shop")
+        host = request.args.get("host") or session.get("host")
         embedded = request.args.get("embedded")
 
-        # Store in session immediately
+        # Ensure shop domain is stored in session if found
         if shop:
             session["shop"] = shop
             session.permanent = True
         if host:
             session["host"] = host
             session.permanent = True
+            
+        logger.info(f"🏠 Home Route Access: shop={shop}, host={host}")
 
         # CRITICAL: For embedded apps without a connected store, redirect to OAuth
         if shop and host and embedded:
