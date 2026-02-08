@@ -30,6 +30,13 @@ from flask import render_template
 from utils import safe_redirect
 
 
+@shopify_bp.route("/connections", methods=["GET", "POST"])
+@shopify_bp.route("/shopify/connections", methods=["GET", "POST"])
+def connections_alias():
+    """Alias for shopify_settings to fix 404s from frontend"""
+    return shopify_settings()
+
+
 @shopify_bp.route("/settings/shopify")
 def shopify_settings():
     """Shopify settings page - works in both embedded and standalone modes"""

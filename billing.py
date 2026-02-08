@@ -479,7 +479,7 @@ def subscribe():
         if shop:
             shop = normalize_shop_url(shop)
 
-        host = request.args.get("host", "").strip()
+        host = request.args.get("host", "").strip() or session.get("host", "").strip()
         plan_type = request.args.get("plan", "pro")
         
         # Validate plan type
@@ -646,7 +646,7 @@ def validate_csrf_token():
             
         # Check for Shopify-specific parameters that indicate legitimate request
         shop = request.form.get("shop") or request.args.get("shop", "")
-        host = request.form.get("host") or request.args.get("host", "")
+        host = request.form.get("host") or request.args.get("host", "") or session.get("host", "")
         
         # If we have shop and host, this is likely a legitimate Shopify request
         if shop and host:
@@ -714,7 +714,7 @@ def create_charge():
         logger.warning("Billing request missing shop parameter")
         return redirect("/billing/subscribe?error=Missing store context. Please try logging in again.")
 
-    host = request.form.get("host") or request.args.get("host", "")
+    host = request.form.get("host") or request.args.get("host", "") or session.get("host", "")
     plan_type = request.form.get("plan") or request.args.get("plan", "pro")
 
     # Enhanced CSRF protection for billing flows
@@ -862,7 +862,7 @@ def confirm_charge():
     if shop:
         shop = normalize_shop_url(shop)
 
-    host = request.args.get("host", "")
+    host = request.args.get("host", "") or session.get("host", "")
 
     charge_id = request.args.get("charge_id")
     plan_type = request.args.get("plan", "pro")
@@ -978,7 +978,7 @@ def start_trial():
     if shop:
         shop = normalize_shop_url(shop)
     
-    host = request.form.get("host") or request.args.get("host", "")
+    host = request.form.get("host") or request.args.get("host", "") or session.get("host", "")
     
     # Find user
     user = None
@@ -1060,7 +1060,7 @@ def cancel_subscription():
     import requests
 
     shop = request.form.get("shop") or request.args.get("shop", "")
-    host = request.form.get("host") or request.args.get("host", "")
+    host = request.form.get("host") or request.args.get("host", "") or session.get("host", "")
 
     user = None
     try:

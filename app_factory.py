@@ -163,33 +163,44 @@ def create_app():
             from models import ShopifyStore, User
             from shopify_utils import normalize_shop_url
 
-            # 1. Check session cookie first
+            # 1. Check session cookie first - THIS IS THE SOURCE OF TRUTH
             user_id = session.get("_user_id")
             if user_id:
-                user = User.query.get(int(user_id))
-                if user:
-                    return user
+                try:
+                    user = User.query.get(int(user_id))
+                    if user:
+                        return user
+                except Exception:
+                    pass
 
-            # 2. Check HMAC for OAuth flow (fallback)
+            # 2. Check HMAC for OAuth flow (fallback ONLY if no session)
             shop = request.args.get("shop")
             if shop and request.args.get("hmac"):
+                from shopify_oauth import verify_hmac
+                if not verify_hmac(request.args):
+                    app.logger.warning(f"Invalid HMAC attempt for shop: {shop}")
+                    return None
+
                 shop = normalize_shop_url(shop)
-                store = ShopifyStore.query.filter_by(shop_url=shop).first()
+                # Ensure we get the latest active store for this shop
+                store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+                if not store:
+                    # Fallback to most recent store if none are active
+                    store = ShopifyStore.query.filter_by(shop_url=shop).order_by(ShopifyStore.id.desc()).first()
+
                 if store and store.user:
                     # CRITICAL FIX: Explicitly set session for Safari iframe compatibility
                     from flask_login import login_user
 
-                    login_user(
-                        store.user, remember=False
-                    )  # No remember cookie in embedded
+                    login_user(store.user, remember=False)
                     session["shop_domain"] = shop
                     session["_user_id"] = store.user.id
+                    session["shop"] = shop # Ensure shop is also set
                     session.permanent = True
-                    session.modified = True  # Force session write
+                    session.modified = True 
 
                     app.logger.info(
-                        f"🔗 HMAC AUTH SUCCESS: User {store.user.id} authenticated for shop {shop}. "
-                        f"Session explicitly set with SameSite=None support."
+                        f"🔗 HMAC AUTH SUCCESS: User {store.user.id} authenticated for shop {shop}."
                     )
                     return store.user
 
