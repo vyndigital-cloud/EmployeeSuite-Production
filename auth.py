@@ -13,7 +13,7 @@ from flask import (
     url_for,
 )
 from flask_bcrypt import Bcrypt
-from flask_login import login_required, login_user, logout_user
+from flask_login import login_required, login_user, logout_user, current_user
 
 from input_validation import sanitize_input, validate_email
 from logging_config import logger
@@ -380,9 +380,9 @@ def login():
             # For embedded apps, session tokens handle auth - cookies are just for compatibility
             # For standalone, cookies are primary auth method
             if is_embedded:
-                logger.info(f"Login successful for embedded app (session token auth)")
+                logger.info(f"Login successful for embedded app (session token auth) - User {user.id}")
             else:
-                logger.info(f"Login successful for standalone access (cookie auth)")
+                logger.info(f"Login successful for standalone access (cookie auth) - User {user.id}")
 
             # Preserve embedded params if this is an embedded app request
             # For embedded apps, redirect to dashboard with params (dashboard handles embedded better)
@@ -391,7 +391,7 @@ def login():
                 params = {"shop": shop, "embedded": "1"}
                 if host:
                     params["host"] = host
-                dashboard_url = url_for("dashboard", **params)
+                dashboard_url = url_for("core.dashboard", **params)
                 # Use safe_redirect for embedded apps to break out of iframe
                 from utils import safe_redirect
 
@@ -477,6 +477,9 @@ def register():
         )  # No remember cookie in embedded mode
         session.permanent = True
         session.modified = True  # Force immediate session save (Safari compatibility)
+        
+        logger.info(f"New user registered and logged in - User {new_user.id}")
+        
         dashboard_url = url_for("core.dashboard")
         if shop:
             dashboard_url += f"?shop={shop}"
@@ -493,12 +496,23 @@ def register():
 @auth_bp.route("/logout")
 @login_required
 def logout():
-    # Capture params before logout clears session/user context
+    """Logout user - PRESERVE Flask-Login session integrity"""
+    # Capture params before logout
     shop = request.args.get("shop")
     host = request.args.get("host")
     embedded = request.args.get("embedded")
     
+    # Log the logout
+    user_id = current_user.get_id() if current_user.is_authenticated else "unknown"
+    logger.info(f"User {user_id} logging out")
+    
+    # CRITICAL: Clear Flask-Login session properly
     logout_user()
+    
+    # Clear all session data to prevent stale sessions
+    session.clear()
+    
+    logger.info(f"User {user_id} logged out successfully - session cleared")
     
     # Pass params back to login route so it can handle embedded redirect
     return redirect(url_for("auth.login", shop=shop, host=host, embedded=embedded))
@@ -751,6 +765,8 @@ def reset_password():
         user.reset_token = None
         user.reset_token_expires = None
         db.session.commit()
+
+        logger.info(f"Password reset successful for user {user.id}")
 
         return redirect(url_for("auth.login"))
 
