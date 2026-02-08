@@ -16,6 +16,7 @@ _CONFIG_CACHE = {
     "WTF_CSRF_ENABLED": True,
     "MAX_CONTENT_LENGTH": 16 * 1024 * 1024,
     "SHOPIFY_API_VERSION": os.getenv("SHOPIFY_API_VERSION", "2025-10"),
+    "BASE_URL": os.getenv("BASE_URL", os.getenv("APP_URL", "https://employeesuite-production.onrender.com")).rstrip("/"),
     "APP_URL": os.getenv("APP_URL", os.getenv("SHOPIFY_APP_URL", "https://employeesuite-production.onrender.com")).rstrip("/"),
     "DEBUG": os.getenv("DEBUG", "False").lower() == "true",
     "ENCRYPTION_KEY": os.getenv("ENCRYPTION_KEY", ""),

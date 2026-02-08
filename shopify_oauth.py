@@ -784,43 +784,12 @@ def _handle_oauth_callback():
     # Shopify requires this for all embedded app requests
     logger.info(f"   - Host parameter present: {bool(host)}")
 
-    if host:
-        # For embedded apps, return inline HTML that immediately escapes the iframe
-        # This bypasses Shopify's React router which tries to route /apps//auth/callback
-        logger.info(f"➡️ OAuth complete, returning top-level redirect HTML")
-        logger.info("=== OAUTH CALLBACK DEBUG END ===")
-
-        try:
-            import base64
-            # Add padding if needed (base64 strings must be multiples of 4)
-            host_padded = host + "=" * (4 - len(host) % 4) if len(host) % 4 else host
-            decoded_host = base64.b64decode(host_padded).decode("utf-8")
-            clean_host = decoded_host.rstrip("/")
-            app_handle = os.getenv("SHOPIFY_APP_HANDLE", "employee-suite-7")
-            redirect_url = f"https://{clean_host}/apps/{app_handle}/settings/shopify?success=Store+connected+successfully!"
-        except Exception as e:
-            logger.error(f"Error decoding host for redirect: {e}")
-            redirect_url = f"/settings/shopify?success=Store+connected+successfully!&shop={shop}&host={host}"
-    else:
-        # For standalone (no host parameter), use standard Flask redirect
-        redirect_url = f"/settings/shopify?success=Store+connected+successfully!&shop={shop}"
-        logger.info(f"➡️ OAuth complete, returning top-level redirect HTML (standalone)")
-        logger.info("=== OAUTH CALLBACK DEBUG END ===")
-
-    # Return a small HTML string that uses window.top.location.href to escape the iframe
-    return f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <script>
-            window.top.location.href = "{redirect_url}";
-        </script>
-    </head>
-    <body>
-        <p>Redirecting to settings...</p>
-    </body>
-    </html>
-    """
+    from flask import render_template_string
+    return render_template_string("""
+    <script type='text/javascript'>
+      window.top.location.href = "https://admin.shopify.com/store/employee-suite/apps/employee-suite-7/settings/shopify?success=Connected";
+    </script>
+    """)
 
 
 def verify_hmac(params):

@@ -595,15 +595,12 @@ def disconnect_store():
         for key in shopify_keys:
             session.pop(key, None)
 
-        from app_bridge_breakout import iframe_safe_redirect
-
-        return iframe_safe_redirect(
+        return redirect(
             url_for(
                 "shopify.shopify_settings",
                 success="Disconnected.",
                 shop=shop_domain,
-            ),
-            shop=shop_domain,
+            )
         )
 
     except Exception as e:
