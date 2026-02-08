@@ -60,12 +60,16 @@ def shopify_settings():
             shop_param = request.args.get("shop")
             return iframe_safe_redirect(url_for("auth.login"), shop=shop_param)
 
-    # Normalize shop URL first thing
-    shop = request.args.get("shop", "")
+    # Normalize shop URL
+    shop = request.args.get("shop") or session.get("shop_domain")
     if shop:
         shop = normalize_shop_url(shop)
+    
+    # Ensure shop has a default if absolutely missing (needed for App Bridge init)
+    if not shop:
+        shop = "employee-suite.myshopify.com"
 
-    host = request.args.get("host", "")
+    host = request.args.get("host") or session.get("host")
 
     # ============================================================================
     # CRITICAL FIX: Check Flask-Login session FIRST before ANY other logic
@@ -157,7 +161,7 @@ def shopify_settings():
         store=store,
         success=request.args.get("success"),
         error=request.args.get("error"),
-        shop=shop,
+        shop_domain=shop,
         host=host,
         is_subscribed=user.is_subscribed if user else False,
     )
