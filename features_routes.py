@@ -9,6 +9,8 @@ from order_processing import process_orders
 from inventory import update_inventory
 from email_service import send_report_email
 import logging
+from session_token_verification import verify_session_token
+from flask_login import current_user
 
 logger = logging.getLogger(__name__)
 
@@ -16,10 +18,11 @@ features_bp = Blueprint("features_api", __name__, url_prefix="/features")
 
 
 @features_bp.route("/api/trigger-report-email", methods=["POST"])
+@verify_session_token
 def trigger_report_email():
     """Trigger an immediate email report (SOS)"""
     try:
-        user_id = session.get('user_id')
+        user_id = current_user.get_id() or session.get('user_id')
         if not user_id:
             return jsonify({"error": "Not authenticated"}), 401
 
@@ -109,10 +112,11 @@ def comprehensive_dashboard():
 
 
 @features_bp.route("/api/dashboard/comprehensive")
+@verify_session_token
 def comprehensive_dashboard_api():
     """API endpoint for comprehensive dashboard data"""
     try:
-        user_id = session.get('user_id')
+        user_id = current_user.get_id() or session.get('user_id')
         if not user_id:
             return jsonify({"success": False, "error": "Not authenticated"}), 401
 
@@ -181,10 +185,11 @@ def comprehensive_dashboard_api():
 
 
 @features_bp.route("/api/export/orders")
+@verify_session_token
 def export_orders_csv():
     """Export orders as CSV"""
     try:
-        user_id = session.get('user_id')
+        user_id = current_user.get_id() or session.get('user_id')
         if not user_id:
             return jsonify({"error": "Not authenticated"}), 401
 
@@ -236,10 +241,11 @@ def export_orders_csv():
 
 
 @features_bp.route("/api/export/inventory")
+@verify_session_token
 def export_inventory_csv():
     """Export inventory as CSV"""
     try:
-        user_id = session.get('user_id')
+        user_id = current_user.get_id() or session.get('user_id')
         if not user_id:
             return jsonify({"error": "Not authenticated"}), 401
 
@@ -291,10 +297,11 @@ def export_inventory_csv():
 
 
 @features_bp.route("/api/export/revenue")
+@verify_session_token
 def export_revenue_csv():
     """Export revenue as CSV"""
     try:
-        user_id = session.get('user_id')
+        user_id = current_user.get_id() or session.get('user_id')
         if not user_id:
             return jsonify({"error": "Not authenticated"}), 401
 
@@ -352,10 +359,11 @@ def export_revenue_csv():
 
 
 @features_bp.route("/api/scheduled-reports", methods=["GET", "POST"])
+@verify_session_token
 def scheduled_reports_api():
     """Handle scheduled reports API"""
     try:
-        user_id = session.get('user_id')
+        user_id = current_user.get_id() or session.get('user_id')
         if not user_id:
             return jsonify({"error": "Not authenticated"}), 401
 
@@ -412,10 +420,11 @@ def scheduled_reports_api():
 
 
 @features_bp.route("/api/scheduled-reports/<int:report_id>", methods=["DELETE"])
+@verify_session_token
 def delete_scheduled_report(report_id):
     """Delete a scheduled report"""
     try:
-        user_id = session.get('user_id')
+        user_id = current_user.get_id() or session.get('user_id')
         if not user_id:
             return jsonify({"error": "Not authenticated"}), 401
 

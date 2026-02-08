@@ -35,6 +35,9 @@ function initializeApp() {
     
     // Initialize network status
     updateConnectionStatus();
+
+    // Check store connection status via JWT
+    checkStoreStatus();
     
     console.log('Dashboard JavaScript fully initialized');
 }
@@ -90,24 +93,77 @@ function initializeAppBridge() {
     init();
 }
 
+// Replace standard fetch with this Authenticated Fetch
+async function authenticatedFetch(url, options = {}) {
+    // Fallback to standard fetch if not embedded
+    if (!window.isEmbedded || !window.shopify) {
+        return fetch(url, options);
+    }
+
+    try {
+        // Get fresh JWT from Shopify - this is a promise
+        const sessionToken = await window.shopify.idToken();
+
+        options.headers = {
+            ...options.headers,
+            'Authorization': `Bearer ${sessionToken}`,
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+        
+        // Ensure credentials: 'include' is set for cross-origin if needed, 
+        // though session tokens usually replace cookies.
+        options.credentials = options.credentials || 'include';
+        
+        return fetch(url, options);
+    } catch (e) {
+        console.error('Failed to get session token for fetch:', e);
+        return fetch(url, options);
+    }
+}
+
+// Check store connection status via JWT
+function checkStoreStatus() {
+    if (!window.isEmbedded) return;
+
+    authenticatedFetch('/api/store/status')
+        .then(res => res.json())
+        .then(data => {
+            if (data.is_connected) {
+                console.log('Store is connected (verified via JWT)');
+                const connectSec = document.getElementById('connect-section');
+                const mainDash = document.getElementById('main-dash');
+                
+                if (connectSec) connectSec.style.display = 'none';
+                if (mainDash) mainDash.style.display = 'block';
+            } else {
+                console.log('Store is not connected according to API');
+                const connectSec = document.getElementById('connect-section');
+                const mainDash = document.getElementById('main-dash');
+                
+                if (connectSec) connectSec.style.display = 'block';
+                if (mainDash) mainDash.style.display = 'none';
+            }
+        })
+        .catch(err => {
+            console.error('Error checking store status:', err);
+        });
+}
+
 function setupSessionTokenFetch() {
-    // Store original fetch
+    // We use authenticatedFetch directly in new code, 
+    // but we can also patch the global fetch for legacy calls.
     var originalFetch = window.fetch;
     
-    // Override fetch to include session token
-    window.fetch = function(url, options) {
-        options = options || {};
-        
-        // Only add token for API calls to our server
-        if (url.startsWith('/api/') || url.startsWith('/admin/')) {
-            options.headers = options.headers || {};
-            
-            // Add session token if available
-            if (window.sessionToken) {
-                options.headers['Authorization'] = 'Bearer ' + window.sessionToken;
+    window.fetch = async function(url, options) {
+        if (typeof url === 'string' && (url.startsWith('/api/') || url.startsWith('/admin/'))) {
+            // Use our authenticated logic
+            const sessionToken = await window.shopify.idToken().catch(() => null);
+            if (sessionToken) {
+                options = options || {};
+                options.headers = options.headers || {};
+                options.headers['Authorization'] = 'Bearer ' + sessionToken;
             }
         }
-        
         return originalFetch.call(this, url, options);
     };
 }

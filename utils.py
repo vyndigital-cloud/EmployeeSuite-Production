@@ -50,6 +50,26 @@ def safe_redirect(url: str, shop: Optional[str] = None, host: Optional[str] = No
     if "myshopify.com" in url or "shopify.com" in url:
         return redirect(url)
 
-    # For internal app URLs, use standard redirect
-    # The browser/Shopify will handle this correctly
+    # For internal app URLs, ensure shop and host are preserved if provided
+    if "://" not in url and not url.startswith("//"):
+        from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+        
+        parsed = urlparse(url)
+        query_params = parse_qs(parsed.query)
+        
+        if shop and 'shop' not in query_params:
+            query_params['shop'] = [shop]
+        if host and 'host' not in query_params:
+            query_params['host'] = [host]
+            
+        new_query = urlencode(query_params, doseq=True)
+        url = urlunparse((
+            parsed.scheme,
+            parsed.netloc,
+            parsed.path,
+            parsed.params,
+            new_query,
+            parsed.fragment
+        ))
+
     return redirect(url)

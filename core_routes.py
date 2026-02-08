@@ -314,6 +314,7 @@ def get_authenticated_user():
 
 @core_bp.route("/")
 @core_bp.route("/dashboard", endpoint="dashboard")
+@verify_session_token
 def home():
     """Optimized dashboard - target <300ms load time"""
     try:
@@ -1387,7 +1388,7 @@ def export_revenue_csv():
 
 
 @core_bp.route("/api/scheduled-reports/create", methods=["POST"])
-@login_required
+@verify_session_token
 @require_access
 def create_scheduled_report():
     try:
@@ -1425,7 +1426,7 @@ def create_scheduled_report():
 
 
 @core_bp.route("/api/scheduled-reports/list", methods=["GET"])
-@login_required
+@verify_session_token
 @require_access
 def list_scheduled_reports():
     try:
@@ -1454,7 +1455,7 @@ def list_scheduled_reports():
 
 
 @core_bp.route("/api/scheduled-reports/delete/<int:report_id>", methods=["POST"])
-@login_required
+@verify_session_token
 @require_access
 def delete_scheduled_report(report_id):
     try:

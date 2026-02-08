@@ -1,15 +1,15 @@
 from datetime import datetime, timezone
 
 from flask import (
-    Blueprint,
-    Response,
-    flash,
+    jsonify,
     redirect,
+    render_template,
     render_template_string,
     request,
     session,
     url_for,
 )
+from flask import current_app
 from flask_login import current_user, login_required, login_user
 
 from config import SHOPIFY_API_VERSION
@@ -38,6 +38,7 @@ def connections_alias():
 
 
 @shopify_bp.route("/settings/shopify")
+@verify_session_token
 def shopify_settings():
     """Shopify settings page - works in both embedded and standalone modes"""
 
@@ -454,6 +455,7 @@ def connect_store():
 
 
 @shopify_bp.route("/settings/shopify/disconnect", methods=["POST"])
+@verify_session_token
 def disconnect_store():
     """Disconnect store - HARD CLEAR of all session data"""
     from flask_login import logout_user
@@ -479,7 +481,9 @@ def disconnect_store():
             logger.info(f"Disconnect: Using authenticated user {user.id}")
         elif shop:
             # Try to find user from shop (for embedded apps)
-            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+            # HARDENED: Use shop_url from ShopifyStore even if is_active is False
+            # This handles cases where the store might have been partially disconnected
+            store = ShopifyStore.query.filter_by(shop_url=shop).first()
             if store and store.user:
                 user = store.user
                 logger.info(f"Disconnect: Found user {user.id} via shop {shop}")
@@ -491,7 +495,7 @@ def disconnect_store():
                 session["_user_id"] = user.id
                 session["shop_domain"] = shop
                 session.permanent = True
-                logger.info(f"Disconnect: Manually logged in user {user.id} via shop context")
+                logger.info(f"Disconnect: Manually logged in user {user.id} via shop context (Aggressive lookup)")
     except Exception as e:
         logger.error(f"Error finding user in disconnect_store: {e}", exc_info=True)
         db.session.rollback()
@@ -596,14 +600,26 @@ def disconnect_store():
         for key in shopify_keys:
             session.pop(key, None)
 
-        return redirect(
-            url_for(
-                "shopify.shopify_settings",
-                success="Disconnected.",
-                shop=shop_domain,
-                host=host,
-            )
+        # BREAKOUT FIX: Use App Bridge breakout to avoid "Black Screen"
+        target_url = url_for(
+            "shopify.shopify_settings",
+            success="Disconnected.",
+            shop=shop_domain,
+            host=host,
         )
+        
+        return f"""
+            <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+            <script>
+                var AppBridge = window['app-bridge'];
+                var actions = AppBridge.actions;
+                var app = AppBridge.createApp({{
+                    apiKey: "{current_app.config['SHOPIFY_API_KEY']}",
+                    host: "{host}",
+                }});
+                window.location.href = "{target_url}";
+            </script>
+        """, 200
 
     except Exception as e:
         logger.error(
@@ -630,3 +646,31 @@ def disconnect_store():
                 shop=shop,
             )
         )
+
+
+@shopify_bp.route("/api/store/status", methods=["GET"])
+@verify_session_token
+def get_store_status():
+    """Check store connection status using JWT"""
+    from session_token_verification import get_shop_from_session_token
+
+    shop_domain = get_shop_from_session_token()
+
+    if not shop_domain:
+        return jsonify({"is_connected": False, "error": "Missing shop context"}), 400
+
+    store = ShopifyStore.query.filter_by(shop_url=shop_domain).first()
+
+    if store and store.is_active:
+        return (
+            jsonify(
+                {
+                    "is_connected": True,
+                    "shop": shop_domain,
+                    "message": "Store is active",
+                }
+            ),
+            200,
+        )
+
+    return jsonify({"is_connected": False}), 200

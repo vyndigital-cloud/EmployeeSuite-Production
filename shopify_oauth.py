@@ -4,10 +4,10 @@ import os
 from urllib.parse import quote, unquote
 
 import requests
-from flask import Blueprint, redirect, render_template, request, session
+from flask import Blueprint, current_app, redirect, render_template, request, session
 from flask_login import current_user, login_user
 
-from config import SHOPIFY_API_VERSION
+from config import SHOPIFY_API_VERSION, config
 from logging_config import logger
 from models import ShopifyStore, User, db
 
@@ -311,25 +311,44 @@ def install():
             is_embedded = True
             logger.info(f"Detected embedded context from Referer: {referer[:50]}...")
 
-    # SIMPLEST SOLUTION: If embedded, show a link that opens in new window
-    # No JavaScript, no redirects, no App Bridge complexity - just a simple link
-    # This avoids ALL iframe loading issues
     # If embedded context detected, use JavaScript to breakout of iframe for OAuth
     if is_embedded:
-        logger.info(f"➡️ Embedded OAuth install detected for {shop}, using window.top.location.href breakout")
-        from flask import render_template_string
-        return render_template_string(f"""
-        <script type='text/javascript'>
-          window.top.location.href = "{full_auth_url}";
+        logger.info(f"➡️ Embedded OAuth install detected for {shop}, using App Bridge v3 breakout")
+        return f"""
+        <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+        <script>
+            var AppBridge = window['app-bridge'];
+            var actions = AppBridge.actions;
+            var app = AppBridge.createApp({{
+                apiKey: "{SHOPIFY_API_KEY}",
+                host: "{host}",
+            }});
+            window.location.href = "{full_auth_url}";
         </script>
         <p>Redirecting to Shopify for authorization...</p>
-        """)
+        """, 200
 
     # Non-embedded: regular redirect works fine
     logger.info(f"🚀 OAuth Install: Redirecting to Shopify for authorization")
     logger.info(f"   - Shop: {shop}")
     logger.info(f"   - URL: {full_auth_url[:100]}...")
     logger.info("=== OAUTH INSTALL DEBUG END ===")
+    
+    if is_embedded:
+        # Extra safety: even if it reached here, if is_embedded is true, use breakout
+        return f"""
+        <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+        <script>
+            var AppBridge = window['app-bridge'];
+            var actions = AppBridge.actions;
+            var app = AppBridge.createApp({{
+                apiKey: "{SHOPIFY_API_KEY}",
+                host: "{host}",
+            }});
+            window.location.href = "{full_auth_url}";
+        </script>
+        """, 200
+        
     return redirect(full_auth_url)
 
 
@@ -743,12 +762,16 @@ def _handle_oauth_callback():
     # Shopify requires this for all embedded app requests
     logger.info(f"   - Host parameter present: {bool(host)}")
 
-    from flask import render_template_string
-    return render_template_string("""
-    <script type='text/javascript'>
-      window.top.location.href = "https://admin.shopify.com/store/employee-suite/apps/employee-suite-7/settings/shopify?success=Connected";
-    </script>
-    """)
+    # CRITICAL: Use the robust oauth_redirect.html template instead of hardcoded JS
+    # This correctly handles shop and host parameters for App Bridge frame escape
+    return render_template(
+        "oauth_redirect.html",
+        shop=shop,
+        host=host,
+        redirect_path="/settings/shopify",
+        success_message="Connected",
+        config=config
+    )
 
 
 def verify_hmac(params):

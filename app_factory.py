@@ -36,12 +36,12 @@ def create_app():
             # Session cookie configuration for login persistence
             "SESSION_COOKIE_SECURE": True,  # Only send over HTTPS
             "SESSION_COOKIE_HTTPONLY": True,  # Prevent JavaScript access
-            "SESSION_COOKIE_SAMESITE": "Lax",  # CRITICAL FIX: Lax for standalone Safari compatibility
+            "SESSION_COOKIE_SAMESITE": "None",  # CRITICAL FIX: None for cross-site compatibility
             "SESSION_COOKIE_DOMAIN": None,  # Don't restrict domain for flexibility
             "SESSION_COOKIE_PATH": "/",  # Available on all paths
             "REMEMBER_COOKIE_SECURE": True,
             "REMEMBER_COOKIE_HTTPONLY": True,
-            "REMEMBER_COOKIE_SAMESITE": "Lax",  # CRITICAL FIX: Lax for standalone Safari compatibility
+            "REMEMBER_COOKIE_SAMESITE": "None",  # CRITICAL FIX: None for cross-site compatibility
             "REMEMBER_COOKIE_DURATION": 2592000,  # 30 days
             "SESSION_COOKIE_NAME": "__Host-session",
             "PERMANENT_SESSION_LIFETIME": timedelta(days=30),
@@ -535,13 +535,11 @@ def create_app():
                         if cookie_name in header:
                             # Ensure SameSite=None; Secure
                             if "SameSite" not in header:
-                                header += "; SameSite=Lax; Secure"
-                            elif (
-                                "SameSite=Lax" in header or "SameSite=Strict" in header
-                            ):
-                                header = header.replace(
-                                    "SameSite=Strict", "SameSite=Lax"
-                                )
+                                header += "; SameSite=None; Secure"
+                            else:
+                                # Replace any existing SameSite with None
+                                import re
+                                header = re.sub(r'SameSite=(Lax|Strict)', 'SameSite=None', header)
                                 if "Secure" not in header:
                                     header += "; Secure"
                         cookies.append(header)
