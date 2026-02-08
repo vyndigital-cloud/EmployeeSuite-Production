@@ -787,40 +787,40 @@ def _handle_oauth_callback():
     if host:
         # For embedded apps, return inline HTML that immediately escapes the iframe
         # This bypasses Shopify's React router which tries to route /apps//auth/callback
-        logger.info(f"➡️ OAuth complete (embedded), returning inline frame escape HTML")
+        logger.info(f"➡️ OAuth complete, returning top-level redirect HTML")
         logger.info("=== OAUTH CALLBACK DEBUG END ===")
 
-        # Decode host to construct full URL
-        import base64
-
-        # Add padding if needed (base64 strings must be multiples of 4)
-        host_padded = host + "=" * (4 - len(host) % 4) if len(host) % 4 else host
-        decoded_host = base64.b64decode(host_padded).decode("utf-8")
-        clean_host = decoded_host.rstrip("/")
-
-        # Construct the full Shopify Admin URL
-        app_handle = "employee-suite-7"
-        redirect_path = "/settings/shopify"
-        full_url = f"https://{clean_host}/apps/{app_handle}{redirect_path}?success=Store+connected+successfully!"
-
-        logger.info(f"   Constructed Shopify Admin URL: {full_url}")
-        # Get API key for App Bridge
-        from flask import current_app
-
-        api_key = current_app.config.get("SHOPIFY_API_KEY", "")
-
-        return render_template(
-            "shopify/iframe_redirect.html",
-            redirect_url=full_url,
-        )
+        try:
+            import base64
+            # Add padding if needed (base64 strings must be multiples of 4)
+            host_padded = host + "=" * (4 - len(host) % 4) if len(host) % 4 else host
+            decoded_host = base64.b64decode(host_padded).decode("utf-8")
+            clean_host = decoded_host.rstrip("/")
+            app_handle = os.getenv("SHOPIFY_APP_HANDLE", "employee-suite-7")
+            redirect_url = f"https://{clean_host}/apps/{app_handle}/settings/shopify?success=Store+connected+successfully!"
+        except Exception as e:
+            logger.error(f"Error decoding host for redirect: {e}")
+            redirect_url = f"/settings/shopify?success=Store+connected+successfully!&shop={shop}&host={host}"
     else:
         # For standalone (no host parameter), use standard Flask redirect
-        settings_url = f"/settings/shopify?success=Store+connected+successfully!"
-        logger.info(
-            f"➡️ OAuth complete (standalone, no host) - using Flask redirect to: {settings_url}"
-        )
+        redirect_url = f"/settings/shopify?success=Store+connected+successfully!&shop={shop}"
+        logger.info(f"➡️ OAuth complete, returning top-level redirect HTML (standalone)")
         logger.info("=== OAUTH CALLBACK DEBUG END ===")
-        return redirect(settings_url)
+
+    # Return a small HTML string that uses window.top.location.href to escape the iframe
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <script>
+            window.top.location.href = "{redirect_url}";
+        </script>
+    </head>
+    <body>
+        <p>Redirecting to settings...</p>
+    </body>
+    </html>
+    """
 
 
 def verify_hmac(params):

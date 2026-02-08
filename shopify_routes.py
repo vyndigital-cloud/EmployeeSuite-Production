@@ -483,6 +483,15 @@ def disconnect_store():
             if store and store.user:
                 user = store.user
                 logger.info(f"Disconnect: Found user {user.id} via shop {shop}")
+                
+                # CRITICAL: If user is anonymous, log them in manually using the shop parameter context
+                # This survives iframe session amnesia
+                from flask_login import login_user
+                login_user(user, remember=False)
+                session["_user_id"] = user.id
+                session["shop_domain"] = shop
+                session.permanent = True
+                logger.info(f"Disconnect: Manually logged in user {user.id} via shop context")
     except Exception as e:
         logger.error(f"Error finding user in disconnect_store: {e}", exc_info=True)
         db.session.rollback()
