@@ -387,20 +387,37 @@ def home():
         # Default values (avoid expensive calculations)
         if user:
             try:
-                has_access = user.has_access()
-                trial_active = user.is_trial_active()
+                # CRITICAL FIX: Query fresh DB data to avoid stale session issues
+                # Force refresh from database to get current subscription status
+                db.session.refresh(user)
                 
-                # SAFE datetime calculation
-                if trial_active and hasattr(user, 'trial_ends_at') and user.trial_ends_at:
-                    try:
-                        days_left = max(0, (user.trial_ends_at - datetime.utcnow()).days)
-                    except (AttributeError, TypeError):
-                        days_left = 0
-                else:
-                    days_left = 0
+                # Re-query subscription status from database (not cached user object)
+                fresh_user = db.session.query(User).filter_by(id=user.id).first()
+                if fresh_user:
+                    has_access = fresh_user.has_access()
+                    trial_active = fresh_user.is_trial_active()
                     
-                is_subscribed = getattr(user, 'is_subscribed', False)
-                has_shopify = True  # Assume true if we have a user
+                    logger.info(
+                        f"🔍 FRESH DB CHECK: User {fresh_user.id} - "
+                        f"has_access={has_access}, trial_active={trial_active}, "
+                        f"is_subscribed={fresh_user.is_subscribed}"
+                    )
+                    
+                    # SAFE datetime calculation
+                    if trial_active and hasattr(fresh_user, 'trial_ends_at') and fresh_user.trial_ends_at:
+                        try:
+                            days_left = max(0, (fresh_user.trial_ends_at - datetime.utcnow()).days)
+                        except (AttributeError, TypeError):
+                            days_left = 0
+                    else:
+                        days_left = 0
+                        
+                    is_subscribed = getattr(fresh_user, 'is_subscribed', False)
+                    has_shopify = True  # Assume true if we have a user
+                else:
+                    has_access, trial_active, days_left, is_subscribed, has_shopify = (
+                        False, False, 0, False, False
+                    )
             except Exception as user_error:
                 logger.error(f"Error processing user data: {user_error}")
                 # Use safe defaults
@@ -1816,44 +1833,3 @@ def faq():
     host = request.args.get("host", "")
     
     return render_template("faq.html", shop=shop, host=host, config_api_key=os.getenv("SHOPIFY_API_KEY", ""))
-
-
-# REMOVED: Duplicate /install route - oauth_bp.route("/install") handles this
-# The duplicate route was causing 404 errors
-# @core_bp.route("/install")
-# def install_redirect():
-#     """Redirect to OAuth install"""
-#     shop = request.args.get("shop", "")
-#     host = request.args.get("host", "")
-#
-#     if shop:
-#         return redirect(url_for("oauth.install", shop=shop, host=host))
-#
-#     return render_template_string("""
-#     <!DOCTYPE html>
-#     <html>
-#     <head>
-#         <title>Install Employee Suite</title>
-#         <style>
-#             body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; padding: 50px; }
-#             .container { max-width: 400px; margin: 0 auto; }
-#             h1 { color: #202223; margin-bottom: 16px; }
-#             p { color: #6d7175; margin-bottom: 24px; }
-#             input { width: 100%; padding: 12px; border: 1px solid #e1e3e5; border-radius: 6px; margin-bottom: 16px; }
-#             .btn { background: #008060; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; }
-#         </style>
-#     </head>
-#     <body>
-#         <div class="container">
-#             <h1>Install Employee Suite</h1>
-#             <p>Enter your shop domain to get started:</p>
-#             <form action="/install" method="get">
-#                 <input type="text" name="shop" placeholder="your-shop.myshopify.com" required>
-#                 <br>
-#                 <button type="submit" class="btn">Install App</button>
-#             </form>
-#         </div>
-#     </body>
-#     </html>
-#     """)
-

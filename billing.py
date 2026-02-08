@@ -156,8 +156,7 @@ SUCCESS_HTML = """
             60% { transform: translateY(-5px); }
         }
         .success-title { 
-            font-size: 32px; 
-            font-weight: 700; 
+            font-size: 32px;  font-weight: 700; 
             color: #202223; 
             margin-bottom: 16px; 
         }
@@ -540,28 +539,45 @@ def subscribe():
         days_left = 0
 
         if user:
-            # Check subscription status
-            has_access = user.has_access()
-            
-            # Check trial status
-            if user.trial_started_at and not user.is_subscribed:
-                trial_active = user.is_trial_active()
-                if trial_active and user.trial_ends_at:
-                    try:
-                        now = datetime.utcnow()
-                        trial_end = user.trial_ends_at
-                        if trial_end.tzinfo is None:
-                            trial_end = trial_end.replace(tzinfo=timezone.utc)
-                            now = now.replace(tzinfo=timezone.utc)
-                        
-                        days_left = (trial_end - now).days
-                        days_left = max(0, days_left)
-                    except (AttributeError, TypeError):
-                        days_left = 0
+            # CRITICAL FIX: Query fresh DB data to prevent stale session issues
+            try:
+                db.session.refresh(user)
+                fresh_user = db.session.query(User).filter_by(id=user.id).first()
+                
+                if fresh_user:
+                    # Use fresh data from database
+                    has_access = fresh_user.has_access()
+                    trial_active = fresh_user.is_trial_active() if not fresh_user.is_subscribed else False
+                    
+                    logger.info(
+                        f"🔍 BILLING CHECK: User {fresh_user.id} - "
+                        f"has_access={has_access}, is_subscribed={fresh_user.is_subscribed}, "
+                        f"trial_active={trial_active}"
+                    )
+                    
+                    # Check trial status
+                    if fresh_user.trial_started_at and not fresh_user.is_subscribed:
+                        if trial_active and fresh_user.trial_ends_at:
+                            try:
+                                now = datetime.utcnow()
+                                trial_end = fresh_user.trial_ends_at
+                                if trial_end.tzinfo is None:
+                                    trial_end = trial_end.replace(tzinfo=timezone.utc)
+                                    now = now.replace(tzinfo=timezone.utc)
+                                
+                                days_left = (trial_end - now).days
+                                days_left = max(0, days_left)
+                            except (AttributeError, TypeError):
+                                days_left = 0
+                else:
+                    has_access = False
+            except Exception as refresh_error:
+                logger.error(f"Error refreshing user data: {refresh_error}")
+                has_access = user.has_access()  # Fallback to cached
         
         # Determine error message
         error = request.args.get("error")
-        if not has_store and not error:
+        if not has_store and not error: 
             if store is None:
                 error = "Please connect your Shopify store first to subscribe"
             else:
@@ -930,7 +946,7 @@ def confirm_charge():
                         db.session.add(e_plan)
                     e_plan.status = 'active'
                     e_plan.charge_id = charge_id
-                except ImportError:
+                except ImportError: 
                     pass
                     
             logger.info(f"Charge {charge_id} confirmed for {shop_url}. Subscription activated.")
@@ -1103,5 +1119,3 @@ def test_billing():
             "form": dict(request.form),
         }
     )
-
-

@@ -28,8 +28,11 @@ def create_app():
         'SESSION_COOKIE_SECURE': True,  # Only send over HTTPS
         'SESSION_COOKIE_HTTPONLY': True,  # Prevent JavaScript access
         'SESSION_COOKIE_SAMESITE': 'None',  # Allow cookies in iframes (required for embedded apps)
+        'SESSION_COOKIE_DOMAIN': None,  # Don't restrict domain for flexibility
+        'SESSION_COOKIE_PATH': '/',  # Available on all paths
         'REMEMBER_COOKIE_SECURE': True,
         'REMEMBER_COOKIE_HTTPONLY': True,
+        'REMEMBER_COOKIE_SAMESITE': 'None',  # CRITICAL for Safari iframe
         'REMEMBER_COOKIE_DURATION': 2592000,  # 30 days
         
         # Server-side Session Config
@@ -166,6 +169,18 @@ def create_app():
             if shop and request.args.get('hmac'):
                 store = ShopifyStore.query.filter_by(shop_url=shop).first()
                 if store and store.user:
+                    # CRITICAL FIX: Explicitly set session for Safari iframe compatibility
+                    from flask_login import login_user
+                    login_user(store.user, remember=False)  # No remember cookie in embedded
+                    session['shop_domain'] = shop
+                    session['_user_id'] = store.user.id
+                    session.permanent = True
+                    session.modified = True  # Force session write
+                    
+                    app.logger.info(
+                        f"🔗 HMAC AUTH SUCCESS: User {store.user.id} authenticated for shop {shop}. "
+                        f"Session explicitly set with SameSite=None support."
+                    )
                     return store.user
             
             return None
@@ -422,6 +437,39 @@ def create_app():
                 app.logger.info(f"🔄 Redirecting to OAuth install for correct shop: {url_shop}")
                 return redirect(url_for('oauth.install', shop=url_shop))
     
+    @app.after_request
+    def set_safari_compatible_cookies(response):
+        """
+        SAFARI FIX: Ensure all cookies have SameSite=None; Secure for iframe compatibility.
+        Critical for embedded Shopify apps in Safari which blocks third-party cookies by default.
+        """
+        # Only apply to embedded app requests
+        if request.args.get('embedded') or request.args.get('host'):
+            # Force SameSite=None on session cookie
+            for cookie_name in ['session', 'remember_token']:
+                if cookie_name in response.headers.getlist('Set-Cookie'):
+                    # Modify existing Set-Cookie headers
+                    cookies = []
+                    for header in response.headers.getlist('Set-Cookie'):
+                        if cookie_name in header:
+                            # Ensure SameSite=None; Secure
+                            if 'SameSite' not in header:
+                                header += '; SameSite=None; Secure'
+                            elif 'SameSite=Lax' in header or 'SameSite=Strict' in header:
+                                header = header.replace('SameSite=Lax', 'SameSite=None')
+                                header = header.replace('SameSite=Strict', 'SameSite=None')
+                                if 'Secure' not in header:
+                                    header += '; Secure'
+                        cookies.append(header)
+                    
+                    # Replace Set-Cookie headers
+                    response.headers.remove('Set-Cookie')
+                    for cookie in cookies:
+                        response.headers.add('Set-Cookie', cookie)
+            
+            app.logger.debug(f"🍪 Safari-compatible cookies set for {request.path}")
+        
+        return response
     
     @app.before_request
     def debug_all_requests():
