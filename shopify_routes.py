@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 
 from flask import (
+    Blueprint,
+    current_app,
     jsonify,
     redirect,
     render_template,
@@ -9,7 +11,6 @@ from flask import (
     session,
     url_for,
 )
-from flask import current_app
 from flask_login import current_user, login_required, login_user
 
 from config import SHOPIFY_API_VERSION
