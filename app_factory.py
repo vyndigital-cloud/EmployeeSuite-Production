@@ -4,8 +4,10 @@ Simple App Factory
 
 import logging
 import os
+from datetime import timedelta
 
 from flask import Flask, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 
 def create_app():
@@ -13,6 +15,7 @@ def create_app():
     app = Flask(__name__)
     app.static_folder = "static"
     app.static_url_path = "/static"
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     # Enhanced config
     app.config.update(
@@ -40,6 +43,8 @@ def create_app():
             "REMEMBER_COOKIE_HTTPONLY": True,
             "REMEMBER_COOKIE_SAMESITE": "None",  # CRITICAL FIX: None for cross-site Safari compatibility
             "REMEMBER_COOKIE_DURATION": 2592000,  # 30 days
+            "SESSION_COOKIE_NAME": "__Host-session",
+            "PERMANENT_SESSION_LIFETIME": timedelta(days=30),
             # Server-side Session Config
             "SESSION_TYPE": os.getenv(
                 "SESSION_TYPE", "sqlalchemy"
