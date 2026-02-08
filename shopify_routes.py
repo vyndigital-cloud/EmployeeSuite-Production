@@ -42,6 +42,24 @@ def shopify_settings():
         shop = normalize_shop_url(shop)
 
     host = request.args.get("host", "")
+    
+    # ============================================================================
+    # HARD-LINK VERIFICATION: Ensure session matches database
+    # ============================================================================
+    if shop:
+        store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+        if store and store.user:
+            # Verify session matches database
+            session_user_id = session.get('_user_id')
+            if session_user_id and int(session_user_id) != store.user.id:
+                logger.warning(
+                    f"🚨 SESSION MISMATCH: Session user {session_user_id} "
+                    f"!= DB user {store.user.id} for shop {shop}. Forcing correct user..."
+                )
+                # Force correct user - this is the HARD-LINK in action
+                login_user(store.user)
+                session['shop_domain'] = shop
+                logger.info(f"✅ Corrected user identity: Now user {store.user.id}")
 
     # Get authenticated user (works for both embedded and standalone)
     user = None

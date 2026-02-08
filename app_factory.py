@@ -130,20 +130,40 @@ def create_app():
         @login_manager.request_loader
         def load_user_from_request(request):
             """
-            Load user from request - simplified to prevent session hijacking.
+            Load user from request with HARD-LINK database verification.
+            Prevents User 4 cookies from bleeding into User 11 requests.
             """
             from flask import session
             from models import User, ShopifyStore
+            from shopify_utils import normalize_shop_url
             
-            # 1. STOP THE LOOP: Check the cookie directly, NOT current_user
+            # 1. Check session cookie first
             user_id = session.get('_user_id')
             if user_id:
-                return User.query.get(int(user_id))
+                user = User.query.get(int(user_id))
+                if user:
+                    return user
             
-            # 2. ONLY if no session, then do the Shopify param check
+            # 2. HARD-LINK: Query database by shop parameter
             shop = request.args.get('shop')
-            if shop and request.args.get('hmac'):
+            if shop:
+                shop = normalize_shop_url(shop)
                 # Find the store, then get the user
+                store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+                if store and store.user:
+                    # CRITICAL: Force current_user to match database
+                    app.logger.info(
+                        f"🔗 HARD-LINK: Forcing user {store.user.id} for shop {shop} "
+                        f"(overriding any stale session data)"
+                    )
+                    # Log the user in to establish proper session
+                    from flask_login import login_user
+                    login_user(store.user)
+                    session['shop_domain'] = shop
+                    return store.user
+            
+            # 3. Check HMAC for OAuth flow (fallback)
+            if shop and request.args.get('hmac'):
                 store = ShopifyStore.query.filter_by(shop_url=shop).first()
                 if store and store.user:
                     return store.user
@@ -358,6 +378,50 @@ def create_app():
                 'REDIRECT_URI': os.getenv('SHOPIFY_REDIRECT_URI', 'not_set')
             }
         })
+    
+    # ============================================================================
+    # IDENTITY INTEGRITY VALIDATION (Kill Rule)
+    # ============================================================================
+    @app.before_request
+    def validate_identity_integrity():
+        """
+        KILL RULE: Force session cleanup if shop parameter doesn't match session.
+        Prevents User 4 cookies from bleeding into User 11 requests.
+        
+        This is the first line of defense against identity collision.
+        """
+        from flask import request, session, redirect, url_for
+        from shopify_utils import normalize_shop_url
+        
+        # Skip for static files, debug routes, and OAuth flow
+        if (request.path.startswith('/static') or 
+            request.path.startswith('/debug') or
+            request.path.startswith('/oauth/install') or
+            request.path.startswith('/oauth/callback') or
+            request.path.startswith('/auth/callback')):
+            return
+        
+        url_shop = request.args.get('shop')
+        session_shop = session.get('shop_domain')
+        
+        if url_shop and session_shop:
+            # Normalize both for comparison
+            url_shop = normalize_shop_url(url_shop)
+            session_shop = normalize_shop_url(session_shop)
+            
+            if url_shop != session_shop:
+                app.logger.warning(
+                    f"🚨 IDENTITY MISMATCH DETECTED: URL shop ({url_shop}) != Session shop ({session_shop}). "
+                    f"Purging session to prevent identity collision. Path: {request.path}"
+                )
+                
+                # Kill the ghost session
+                session.clear()
+                
+                # Force re-authentication with the correct shop
+                app.logger.info(f"🔄 Redirecting to OAuth install for correct shop: {url_shop}")
+                return redirect(url_for('oauth.install', shop=url_shop))
+    
     
     @app.before_request
     def debug_all_requests():
