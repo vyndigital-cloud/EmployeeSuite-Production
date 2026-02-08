@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+
 from flask import (
     Blueprint,
     Response,
@@ -24,30 +25,29 @@ from shopify_utils import normalize_shop_url
 shopify_bp = Blueprint("shopify", __name__)
 
 
+from flask import render_template
+
 from utils import safe_redirect
 
-
-
-from flask import render_template
 
 @shopify_bp.route("/settings/shopify")
 def shopify_settings():
     """Shopify settings page - works in both embedded and standalone modes"""
 
+    from session_debug import check_cookie_compatibility, log_session_state
     from shopify_utils import normalize_shop_url
-    from session_debug import log_session_state, check_cookie_compatibility
-    
+
     # DEBUG: Log session state to diagnose iframe session amnesia
     log_session_state("shopify_settings - START")
     cookie_compat = check_cookie_compatibility()
-    
-    if cookie_compat.get('cookies_likely_blocked'):
+
+    if cookie_compat.get("cookies_likely_blocked"):
         logger.error(
             "🚨 CRITICAL: Cookies likely blocked in this context! "
             f"HTTPS: {cookie_compat.get('is_https')}, "
             f"Embedded: {cookie_compat.get('is_embedded')}"
         )
-    
+
     # Normalize shop URL first thing
     shop = request.args.get("shop", "")
     if shop:
@@ -55,7 +55,6 @@ def shopify_settings():
 
     host = request.args.get("host", "")
 
-    
     # ============================================================================
     # HARD-LINK VERIFICATION: Ensure session matches database
     # ============================================================================
@@ -63,7 +62,7 @@ def shopify_settings():
         store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
         if store and store.user:
             # Verify session matches database
-            session_user_id = session.get('_user_id')
+            session_user_id = session.get("_user_id")
             if session_user_id and int(session_user_id) != store.user.id:
                 logger.warning(
                     f"🚨 SESSION MISMATCH: Session user {session_user_id} "
@@ -71,7 +70,7 @@ def shopify_settings():
                 )
                 # Force correct user - this is the HARD-LINK in action
                 login_user(store.user)
-                session['shop_domain'] = shop
+                session["shop_domain"] = shop
                 logger.info(f"✅ Corrected user identity: Now user {store.user.id}")
 
     # ============================================================================
@@ -87,7 +86,7 @@ def shopify_settings():
             f"Session _user_id={session.get('_user_id')}, "
             f"permanent={session.permanent}"
         )
-        
+
         # STOP HERE - We have a valid authenticated user
         # Don't check shop parameters, don't do any other lookups
         # Just proceed to render the settings page
@@ -101,7 +100,9 @@ def shopify_settings():
                 user = store.user
                 # CRITICAL FIX: Actually log the user in!
                 login_user(user)
-                logger.info(f"✅ Found user via shop lookup: {user.id} for shop {shop} - Logged in successfully")
+                logger.info(
+                    f"✅ Found user via shop lookup: {user.id} for shop {shop} - Logged in successfully"
+                )
             else:
                 # Try to find any store for this shop (including inactive ones)
                 store = ShopifyStore.query.filter_by(shop_url=shop).first()
@@ -109,7 +110,9 @@ def shopify_settings():
                     user = store.user
                     # CRITICAL FIX: Actually log the user in!
                     login_user(user)
-                    logger.info(f"✅ Found user via inactive store lookup: {user.id} for shop {shop} - Logged in successfully")
+                    logger.info(
+                        f"✅ Found user via inactive store lookup: {user.id} for shop {shop} - Logged in successfully"
+                    )
                 else:
                     logger.warning(f"❌ No store found for shop: {shop}")
         except Exception as e:
@@ -121,7 +124,7 @@ def shopify_settings():
     # Handle different authentication scenarios
     if not user:
         logger.warning(f"⚠️ shopify_settings: NO USER FOUND")
-        
+
         # CRITICAL FIX: This should NEVER happen if current_user.is_authenticated was True
         # Log this as a critical error for debugging
         if current_user.is_authenticated:
@@ -137,21 +140,22 @@ def shopify_settings():
             # User is NOT authenticated via Flask-Login either
             # Import the App Bridge breakout utility
             from app_bridge_breakout import iframe_safe_redirect
-            
+
             if shop:
                 # Embedded app with shop but no user - start OAuth
                 install_url = f"/oauth/install?shop={shop}"
                 if host:
                     install_url += f"&host={host}"
-                
-                logger.info(f"No user found for shop {shop}, redirecting to OAuth: {install_url}")
+
+                logger.info(
+                    f"No user found for shop {shop}, redirecting to OAuth: {install_url}"
+                )
                 return iframe_safe_redirect(install_url, shop=shop)
             else:
                 # No user, no shop, not authenticated - redirect to login
                 logger.info(f"No authentication found, redirecting to login")
                 return iframe_safe_redirect(url_for("auth.login"), shop=None)
 
-    
     # User is authenticated - allow access even without shop (disconnected state)
     logger.info(f"✅ User {user.id} authenticated - allowing access to settings")
 
@@ -176,7 +180,7 @@ def connect_store():
     shop_url = request.form.get("shop_url", "").strip()
     access_token = request.form.get("access_token", "").strip()
     from shopify_utils import normalize_shop_url
-    
+
     shop = request.form.get("shop") or request.args.get("shop", "")
     if shop:
         shop = normalize_shop_url(shop)
@@ -196,30 +200,42 @@ def connect_store():
     except Exception as e:
         logger.error(f"Error finding user in connect_store: {e}", exc_info=True)
         from urllib.parse import urlencode
+
         params = {
             "error": "Authentication error occurred. Please try again.",
             "shop": shop or "",
-            "host": host or ""
+            "host": host or "",
         }
-        settings_url = url_for("shopify.shopify_settings") + '?' + urlencode({k: v for k, v in params.items() if v})
+        settings_url = (
+            url_for("shopify.shopify_settings")
+            + "?"
+            + urlencode({k: v for k, v in params.items() if v})
+        )
         return safe_redirect(settings_url, shop=shop, host=host)
 
     if not user:
         logger.warning(f"Connect store: No user found via shop lookup")
-        
+
         # CRITICAL FIX: Check Flask-Login session
         if current_user.is_authenticated:
             user = current_user
-            logger.info(f"✅ Using authenticated current_user {user.id} for connect_store")
+            logger.info(
+                f"✅ Using authenticated current_user {user.id} for connect_store"
+            )
         else:
             # Not authenticated at all
             from urllib.parse import urlencode
+
             params = {
                 "error": "Please log in to connect your store.",
                 "shop": shop or "",
-                "host": host or ""
+                "host": host or "",
             }
-            settings_url = url_for("shopify.shopify_settings") + '?' + urlencode({k: v for k, v in params.items() if v})
+            settings_url = (
+                url_for("shopify.shopify_settings")
+                + "?"
+                + urlencode({k: v for k, v in params.items() if v})
+            )
             return safe_redirect(settings_url, shop=shop, host=host)
 
     # Input validation
@@ -285,7 +301,7 @@ def connect_store():
     # Validate the access_token works with current API key by testing a simple API call
     try:
         from shopify_graphql import ShopifyGraphQLClient
-        
+
         # Use GraphQL to validate token (modern approach)
         graphql_client = ShopifyGraphQLClient(shop_url, access_token)
         query = """
@@ -298,22 +314,24 @@ def connect_store():
         }
         """
         result = graphql_client.execute_query(query)
-        
+
         if "error" in result or "errors" in result:
             error_msg = result.get("error", "Token validation failed")
             if "errors" in result:
-                error_msg = "; ".join([e.get("message", str(e)) for e in result["errors"]])
-            
+                error_msg = "; ".join(
+                    [e.get("message", str(e)) for e in result["errors"]]
+                )
+
             logger.warning(f"Access token test failed for {shop_url}: {error_msg}")
-            
+
             # Check for specific error types
             if "401" in str(error_msg) or "unauthorized" in error_msg.lower():
-                error_display = 'Access token is invalid or expired. Please generate a new token from your Shopify admin.'
+                error_display = "Access token is invalid or expired. Please generate a new token from your Shopify admin."
             elif "403" in str(error_msg) or "forbidden" in error_msg.lower():
-                error_display = 'Access token lacks required permissions. Please ensure it has read_orders, read_products, and read_inventory permissions.'
+                error_display = "Access token lacks required permissions. Please ensure it has read_orders, read_products, and read_inventory permissions."
             else:
                 error_display = f'Token validation failed: {error_msg}. Please use the "Quick Connect" OAuth method instead.'
-            
+
             settings_url = url_for(
                 "shopify.shopify_settings",
                 error=error_display,
@@ -321,7 +339,7 @@ def connect_store():
                 host=host,
             )
             return safe_redirect(settings_url, shop=shop, host=host)
-        
+
         # Verify we got shop data
         shop_data = result.get("shop")
         if not shop_data or not shop_data.get("name"):
@@ -333,7 +351,7 @@ def connect_store():
                 host=host,
             )
             return safe_redirect(settings_url, shop=shop, host=host)
-            
+
         logger.info(f"Access token validated successfully for {shop_url}")
 
     except Exception as e:
@@ -348,24 +366,29 @@ def connect_store():
         return safe_redirect(settings_url, shop=shop, host=host)
 
     # Check if user already has an active store
-    existing_store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
+    existing_store = ShopifyStore.query.filter_by(
+        user_id=user.id, is_active=True
+    ).first()
     if existing_store:
         # Check if it's the same shop
         if existing_store.shop_url == shop_url:
             # Update existing store with new token
             try:
                 from data_encryption import encrypt_access_token
+
                 encrypted_token = encrypt_access_token(access_token)
                 if encrypted_token is None:
-                    logger.warning("Encryption failed for manual token, storing as plaintext")
+                    logger.warning(
+                        "Encryption failed for manual token, storing as plaintext"
+                    )
                     encrypted_token = access_token
-                
+
                 existing_store.access_token = encrypted_token
                 existing_store.is_active = True
                 existing_store.is_installed = True
                 existing_store.uninstalled_at = None
                 db.session.commit()
-                
+
                 logger.info(f"Updated existing store connection for {shop_url}")
                 settings_url = url_for(
                     "shopify.shopify_settings",
@@ -397,23 +420,26 @@ def connect_store():
     # Create new store connection
     try:
         from data_encryption import encrypt_access_token
+
         encrypted_token = encrypt_access_token(access_token)
         if encrypted_token is None:
             logger.warning("Encryption failed for manual token, storing as plaintext")
             encrypted_token = access_token
 
         new_store = ShopifyStore(
-            user_id=user.id, 
-            shop_url=shop_url, 
-            access_token=encrypted_token, 
+            user_id=user.id,
+            shop_url=shop_url,
+            access_token=encrypted_token,
             is_active=True,
-            is_installed=True
+            is_installed=True,
         )
 
         db.session.add(new_store)
         db.session.commit()
 
-        logger.info(f"Manual access token connection successful for {shop_url} by user {user.id}")
+        logger.info(
+            f"Manual access token connection successful for {shop_url} by user {user.id}"
+        )
         settings_url = url_for(
             "shopify.shopify_settings",
             success="Store connected successfully!",
@@ -421,7 +447,7 @@ def connect_store():
             host=host,
         )
         return safe_redirect(settings_url, shop=shop, host=host)
-        
+
     except Exception as e:
         logger.error(f"Error creating store connection: {e}")
         db.session.rollback()
@@ -438,13 +464,18 @@ def connect_store():
 def disconnect_store():
     """Disconnect store - HARD CLEAR of all session data"""
     from flask_login import logout_user
+
     from shopify_utils import normalize_shop_url
-    
-    shop = request.form.get("shop") or request.args.get("shop") or session.get("shop", "")
+
+    shop = (
+        request.form.get("shop") or request.args.get("shop") or session.get("shop", "")
+    )
     if shop:
         shop = normalize_shop_url(shop)
 
-    host = request.form.get("host") or request.args.get("host") or session.get("host", "")
+    host = (
+        request.form.get("host") or request.args.get("host") or session.get("host", "")
+    )
 
     # Get authenticated user - PRIORITIZE current_user
     user = None
@@ -462,34 +493,71 @@ def disconnect_store():
         logger.error(f"Error finding user in disconnect_store: {e}", exc_info=True)
         db.session.rollback()
         # SELECTIVE CLEAR even on error - keep user logged in
-        shopify_keys = ['current_shop', 'access_token', 'shop_domain', 'shop_url', 'host', 'hmac']
+        shopify_keys = [
+            "current_shop",
+            "access_token",
+            "shop_domain",
+            "shop_url",
+            "host",
+            "hmac",
+        ]
         for key in shopify_keys:
             session.pop(key, None)
-        return redirect(url_for("shopify.shopify_settings", error="Authentication error occurred. Please try again."))
+        return redirect(
+            url_for(
+                "shopify.shopify_settings",
+                error="Authentication error occurred. Please try again.",
+            )
+        )
 
     if not user:
         logger.warning(f"Disconnect: No user found via shop lookup")
-        
+
         # CRITICAL FIX: Check Flask-Login session
         if current_user.is_authenticated:
             user = current_user
-            logger.info(f"✅ Using authenticated current_user {user.id} for disconnect_store")
+            logger.info(
+                f"✅ Using authenticated current_user {user.id} for disconnect_store"
+            )
         else:
             # Not authenticated - clear Shopify keys and redirect
-            shopify_keys = ['current_shop', 'access_token', 'shop_domain', 'shop_url', 'host', 'hmac']
+            shopify_keys = [
+                "current_shop",
+                "access_token",
+                "shop_domain",
+                "shop_url",
+                "host",
+                "hmac",
+            ]
             for key in shopify_keys:
                 session.pop(key, None)
-            return redirect(url_for("shopify.shopify_settings", error="Please log in to disconnect your store."))
+            return redirect(
+                url_for(
+                    "shopify.shopify_settings",
+                    error="Please log in to disconnect your store.",
+                )
+            )
 
     # Find the user's active store
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if not store:
         logger.warning(f"Disconnect: No active store for user {user.id}")
         # SELECTIVE CLEAR - keep user logged in
-        shopify_keys = ['current_shop', 'access_token', 'shop_domain', 'shop_url', 'host', 'hmac']
+        shopify_keys = [
+            "current_shop",
+            "access_token",
+            "shop_domain",
+            "shop_url",
+            "host",
+            "hmac",
+        ]
         for key in shopify_keys:
             session.pop(key, None)
-        return redirect(url_for("shopify.shopify_settings", error="No active store found to disconnect."))
+        return redirect(
+            url_for(
+                "shopify.shopify_settings", error="No active store found to disconnect."
+            )
+        )
 
     try:
         # Disconnect the store - mark as inactive but keep token for potential reconnection
@@ -499,9 +567,52 @@ def disconnect_store():
         store.charge_id = None
         # Don't clear access_token - it has a validator that prevents empty values
         # The is_active=False flag is sufficient to disconnect
-        
+
         db.session.commit()
-        logger.info(f"Store {store.shop_url} disconnected successfully for user {user.id}")
-        
+        logger.info(
+            f"Store {store.shop_url} disconnected successfully for user {user.id}"
+        )
+
         # SELECTIVE CLEAR: Remove only Shopify-specific session keys
-        # Keep user logged in (preserve _user_id
+        # Keep user logged in (preserve _user_id)
+        shopify_keys = [
+            "current_shop",
+            "access_token",
+            "shop_domain",
+            "shop_url",
+            "host",
+            "hmac",
+        ]
+        for key in shopify_keys:
+            session.pop(key, None)
+
+        return redirect(
+            url_for(
+                "shopify.shopify_settings", success="Store disconnected successfully."
+            )
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Error disconnecting store for user {user.id}: {e}", exc_info=True
+        )
+        db.session.rollback()
+
+        # SELECTIVE CLEAR even on error - keep user logged in
+        shopify_keys = [
+            "current_shop",
+            "access_token",
+            "shop_domain",
+            "shop_url",
+            "host",
+            "hmac",
+        ]
+        for key in shopify_keys:
+            session.pop(key, None)
+
+        return redirect(
+            url_for(
+                "shopify.shopify_settings",
+                error="Failed to disconnect store. Please try again.",
+            )
+        )
