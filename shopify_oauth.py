@@ -1004,7 +1004,7 @@ def register_compliance_webhooks(shop, access_token):
                 exists = any(w.get("address") == webhook["address"] for w in existing)
                 if exists:
                     continue  # Already registered, skip
-
+                    
             # Create webhook
             response = requests.post(url, json=payload, headers=headers, timeout=10)
             if response.status_code in [200, 201]:
@@ -1025,3 +1025,8 @@ def register_compliance_webhooks(shop, access_token):
             logger.error(
                 f"Error registering webhook {webhook['topic']}: {e}", exc_info=True
             )
+
+
+def get_install_url(shop):
+    """Generate installation URL for a shop"""
+    return f"/oauth/install?shop={shop}"

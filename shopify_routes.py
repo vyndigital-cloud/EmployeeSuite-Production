@@ -109,7 +109,10 @@ def shopify_settings():
     if not user:
         logger.warning(f"⚠️ shopify_settings: NO USER FOUND - Redirecting to install")
         from shopify_oauth import get_install_url
-        return redirect(url_for("oauth.install", shop=shop, host=host))
+        install_url = get_install_url(shop)
+        if host:
+            install_url += f"&host={host}"
+        return redirect(install_url)
 
         # CRITICAL FIX: This should NEVER happen if current_user.is_authenticated was True
         # Log this as a critical error for debugging
