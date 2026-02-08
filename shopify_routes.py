@@ -47,6 +47,11 @@ def shopify_settings():
             f"HTTPS: {cookie_compat.get('is_https')}, "
             f"Embedded: {cookie_compat.get('is_embedded')}"
         )
+        if cookie_compat.get("is_embedded"):
+            from app_bridge_breakout import iframe_safe_redirect
+
+            shop_param = request.args.get("shop")
+            return iframe_safe_redirect(url_for("auth.login"), shop=shop_param)
 
     # Normalize shop URL first thing
     shop = request.args.get("shop", "")
@@ -54,24 +59,6 @@ def shopify_settings():
         shop = normalize_shop_url(shop)
 
     host = request.args.get("host", "")
-
-    # ============================================================================
-    # HARD-LINK VERIFICATION: Ensure session matches database
-    # ============================================================================
-    if shop:
-        store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
-        if store and store.user:
-            # Verify session matches database
-            session_user_id = session.get("_user_id")
-            if session_user_id and int(session_user_id) != store.user.id:
-                logger.warning(
-                    f"🚨 SESSION MISMATCH: Session user {session_user_id} "
-                    f"!= DB user {store.user.id} for shop {shop}. Forcing correct user..."
-                )
-                # Force correct user - this is the HARD-LINK in action
-                login_user(store.user)
-                session["shop_domain"] = shop
-                logger.info(f"✅ Corrected user identity: Now user {store.user.id}")
 
     # ============================================================================
     # CRITICAL FIX: Check Flask-Login session FIRST before ANY other logic

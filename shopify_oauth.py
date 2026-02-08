@@ -4,7 +4,7 @@ import os
 from urllib.parse import quote, unquote
 
 import requests
-from flask import Blueprint, redirect, request, session, render_template
+from flask import Blueprint, redirect, render_template, request, session
 from flask_login import current_user, login_user
 
 from config import SHOPIFY_API_VERSION
@@ -385,14 +385,18 @@ def callback():
     # Bots often hit callback URLs with Range headers or missing/empty OAuth parameters
     user_agent = request.headers.get("User-Agent", "")
     has_range_header = "Range" in request.headers
-    
+
     # Check for VALID (non-empty) OAuth parameters
     code = request.args.get("code", "").strip()
     shop = request.args.get("shop", "").strip()
     has_valid_oauth_params = bool(code and shop and len(code) > 0 and len(shop) > 0)
-    
+
     # If this looks like a bot request (has Range header or generic User-Agent) and missing/empty OAuth params
-    if (has_range_header or "bot" in user_agent.lower() or "crawler" in user_agent.lower()) and not has_valid_oauth_params:
+    if (
+        has_range_header
+        or "bot" in user_agent.lower()
+        or "crawler" in user_agent.lower()
+    ) and not has_valid_oauth_params:
         logger.info(f"🤖 Rejected bot/crawler request to OAuth callback")
         logger.info(f"   - User-Agent: {user_agent[:50]}")
         logger.info(f"   - Has Range header: {has_range_header}")
@@ -779,34 +783,36 @@ def _handle_oauth_callback():
     # CRITICAL: If host parameter is present, we MUST use App Bridge redirect
     # Shopify requires this for all embedded app requests
     logger.info(f"   - Host parameter present: {bool(host)}")
-    
+
     if host:
         # For embedded apps, return inline HTML that immediately escapes the iframe
         # This bypasses Shopify's React router which tries to route /apps//auth/callback
         logger.info(f"➡️ OAuth complete (embedded), returning inline frame escape HTML")
         logger.info("=== OAUTH CALLBACK DEBUG END ===")
-        
+
         # Decode host to construct full URL
         import base64
-        
+
         # Add padding if needed (base64 strings must be multiples of 4)
-        host_padded = host + '=' * (4 - len(host) % 4) if len(host) % 4 else host
-        decoded_host = base64.b64decode(host_padded).decode('utf-8')
-        clean_host = decoded_host.rstrip('/')
-        
+        host_padded = host + "=" * (4 - len(host) % 4) if len(host) % 4 else host
+        decoded_host = base64.b64decode(host_padded).decode("utf-8")
+        clean_host = decoded_host.rstrip("/")
+
         # Construct the full Shopify Admin URL
-        app_handle = 'employee-suite-7'
-        redirect_path = '/settings/shopify'
-        full_url = f"https://{clean_host}/apps/{app_handle}{redirect_path}?success=Store+connected+successfully!&shop={shop}&host={host}"
-        
+        app_handle = "employee-suite-7"
+        redirect_path = "/settings/shopify"
+        full_url = f"https://{clean_host}/apps/{app_handle}{redirect_path}?success=Store+connected+successfully!"
+
         logger.info(f"   Constructed Shopify Admin URL: {full_url}")
         # Get API key for App Bridge
         from flask import current_app
-        api_key = current_app.config.get('SHOPIFY_API_KEY', '')
-        
+
+        api_key = current_app.config.get("SHOPIFY_API_KEY", "")
+
         # Return App Bridge redirect HTML that forces parent window navigation
         # This uses the official Redirect.Action.ADMIN_PATH to break out of OAuth iframe
-        return f"""<!DOCTYPE html>
+        return (
+            f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -818,12 +824,12 @@ def _handle_oauth_callback():
     <script>
         console.log('=== APP BRIDGE REDIRECT ===');
         console.log('Forcing parent window navigation to settings page');
-        
+
         try {{
             // Get host from URL params
             const urlParams = new URLSearchParams(window.location.search);
             const host = urlParams.get("host") || "{host}";
-            
+
             // Initialize App Bridge
             const AppBridge = window['app-bridge'];
             const app = AppBridge.default({{
@@ -831,18 +837,18 @@ def _handle_oauth_callback():
                 host: host,
                 forceRedirect: true
             }});
-            
+
             console.log('App Bridge initialized with host:', host);
-            
+
             // Use Redirect action to force TOP frame navigation
             const Redirect = AppBridge.actions.Redirect;
             const redirect = Redirect.create(app);
-            
+
             // This forces the parent Shopify Admin to navigate, killing the OAuth iframe
             redirect.dispatch(Redirect.Action.ADMIN_PATH, {{
-                path: "/apps/{app_handle}/settings/shopify?success=Store+connected+successfully!&shop={shop}&host={host}"
+                path: "/apps/{app_handle}/settings/shopify?success=Store+connected+successfully!"
             }});
-            
+
             console.log('Redirect dispatched to parent window');
         }} catch(e) {{
             console.error('App Bridge redirect failed:', e);
@@ -856,11 +862,15 @@ def _handle_oauth_callback():
         }}
     </script>
 </body>
-</html>""", 200
+</html>""",
+            200,
+        )
     else:
         # For standalone (no host parameter), use standard Flask redirect
-        settings_url = f"/settings/shopify?success=Store+connected+successfully!&shop={shop}"
-        logger.info(f"➡️ OAuth complete (standalone, no host) - using Flask redirect to: {settings_url}")
+        settings_url = f"/settings/shopify?success=Store+connected+successfully!"
+        logger.info(
+            f"➡️ OAuth complete (standalone, no host) - using Flask redirect to: {settings_url}"
+        )
         logger.info("=== OAUTH CALLBACK DEBUG END ===")
         return redirect(settings_url)
 

@@ -36,12 +36,12 @@ def create_app():
             # Session cookie configuration for login persistence
             "SESSION_COOKIE_SECURE": True,  # Only send over HTTPS
             "SESSION_COOKIE_HTTPONLY": True,  # Prevent JavaScript access
-            "SESSION_COOKIE_SAMESITE": "None",  # CRITICAL FIX: None for cross-site Safari compatibility
+            "SESSION_COOKIE_SAMESITE": "Lax",  # CRITICAL FIX: Lax for standalone Safari compatibility
             "SESSION_COOKIE_DOMAIN": None,  # Don't restrict domain for flexibility
             "SESSION_COOKIE_PATH": "/",  # Available on all paths
             "REMEMBER_COOKIE_SECURE": True,
             "REMEMBER_COOKIE_HTTPONLY": True,
-            "REMEMBER_COOKIE_SAMESITE": "None",  # CRITICAL FIX: None for cross-site Safari compatibility
+            "REMEMBER_COOKIE_SAMESITE": "Lax",  # CRITICAL FIX: Lax for standalone Safari compatibility
             "REMEMBER_COOKIE_DURATION": 2592000,  # 30 days
             "SESSION_COOKIE_NAME": "__Host-session",
             "PERMANENT_SESSION_LIFETIME": timedelta(days=30),
@@ -156,8 +156,7 @@ def create_app():
         @login_manager.request_loader
         def load_user_from_request(request):
             """
-            Load user from request with HARD-LINK database verification.
-            Prevents User 4 cookies from bleeding into User 11 requests.
+            Load user from request with session-first verification.
             """
             from flask import session
 
@@ -171,29 +170,10 @@ def create_app():
                 if user:
                     return user
 
-            # 2. HARD-LINK: Query database by shop parameter
+            # 2. Check HMAC for OAuth flow (fallback)
             shop = request.args.get("shop")
-            if shop:
-                shop = normalize_shop_url(shop)
-                # Find the store, then get the user
-                store = ShopifyStore.query.filter_by(
-                    shop_url=shop, is_active=True
-                ).first()
-                if store and store.user:
-                    # CRITICAL: Force current_user to match database
-                    app.logger.info(
-                        f"🔗 HARD-LINK: Forcing user {store.user.id} for shop {shop} "
-                        f"(overriding any stale session data)"
-                    )
-                    # Log the user in to establish proper session
-                    from flask_login import login_user
-
-                    login_user(store.user)
-                    session["shop_domain"] = shop
-                    return store.user
-
-            # 3. Check HMAC for OAuth flow (fallback)
             if shop and request.args.get("hmac"):
+                shop = normalize_shop_url(shop)
                 store = ShopifyStore.query.filter_by(shop_url=shop).first()
                 if store and store.user:
                     # CRITICAL FIX: Explicitly set session for Safari iframe compatibility
@@ -528,14 +508,14 @@ def create_app():
     @app.after_request
     def set_safari_compatible_cookies(response):
         """
-        SAFARI FIX: Ensure all cookies have SameSite=None; Secure for iframe compatibility.
+        SAFARI FIX: Ensure all cookies have SameSite=Lax; Secure for Safari compatibility.
         Critical for embedded Shopify apps in Safari which blocks third-party cookies by default.
         """
         from flask import request
 
         # Only apply to embedded app requests
         if request.args.get("embedded") or request.args.get("host"):
-            # Force SameSite=None on session cookie
+            # Force SameSite=Lax on session cookie
             for cookie_name in ["session", "remember_token"]:
                 if cookie_name in response.headers.getlist("Set-Cookie"):
                     # Modify existing Set-Cookie headers
@@ -544,13 +524,12 @@ def create_app():
                         if cookie_name in header:
                             # Ensure SameSite=None; Secure
                             if "SameSite" not in header:
-                                header += "; SameSite=None; Secure"
+                                header += "; SameSite=Lax; Secure"
                             elif (
                                 "SameSite=Lax" in header or "SameSite=Strict" in header
                             ):
-                                header = header.replace("SameSite=Lax", "SameSite=None")
                                 header = header.replace(
-                                    "SameSite=Strict", "SameSite=None"
+                                    "SameSite=Strict", "SameSite=Lax"
                                 )
                                 if "Secure" not in header:
                                     header += "; Secure"
