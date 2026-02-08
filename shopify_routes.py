@@ -546,6 +546,8 @@ def disconnect_store():
             )
         )
 
+    shop_domain = store.shop_domain or store.shop_url
+
     try:
         # Disconnect the store - mark as inactive but keep token for potential reconnection
         store.is_active = False
@@ -573,12 +575,15 @@ def disconnect_store():
         for key in shopify_keys:
             session.pop(key, None)
 
-        return redirect(
+        from app_bridge_breakout import iframe_safe_redirect
+
+        return iframe_safe_redirect(
             url_for(
                 "shopify.shopify_settings",
-                success="Store disconnected successfully.",
-                shop=shop,
-            )
+                success="Disconnected.",
+                shop=shop_domain,
+            ),
+            shop=shop_domain,
         )
 
     except Exception as e:
