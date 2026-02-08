@@ -1,291 +1,381 @@
 <!doctype html>
 <html>
+    <head>
+        <meta charset="utf-8" />
+        <title>{{ title|default('Employee Suite') }}</title>
+        <!-- Shopify App Bridge - Latest version with proper initialization -->
+        <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
 
-<head>
-    <meta charset="utf-8" />
-    <title>{{ title|default('Employee Suite') }}</title>
-    <!-- Shopify App Bridge - Latest version with proper initialization -->
-    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-
-    <!-- Shopify Polaris Design System -->
-    <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/styles.css" />
-    <script src="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/polaris.min.js"></script>
-    <!-- Phosphor Icons CSS removed - using inline SVGs -->
-    <script>
-        // Initialize App Bridge - moved to external JS file
-        window.appBridgeReady = false;
-        window.isEmbedded = !!new URLSearchParams(window.location.search).get('host');
-
-        // Helper to open pages
-        window.openPage = function (path) {
-            var params = new URLSearchParams(window.location.search);
-            var shop = params.get('shop');
-            var host = params.get('host');
-            var embedded = params.get('embedded') || (host ? '1' : '');
-            var sep = path.indexOf('?') > -1 ? '&' : '?';
-            var dest = path;
-            if (shop) dest += sep + 'shop=' + shop;
-            if (host) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'host=' + host;
-            if (embedded) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'embedded=' + embedded;
-            window.location.href = dest;
-            return false;
-        };
-    </script>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Critical: Prevent any blocking - render immediately -->
-    <style>
-        /* Inline critical CSS - no blocking */
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-    </style>
-    <!-- Defer non-critical resources -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-    <!-- External Stylesheet -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-    <style>
-        /* Critical overrides only */
-        body {
-            margin: 0;
-            padding: 0;
-        }
-
-        /* Hide header when embedded */
-        body.embedded .header {
-            display: none !important;
-        }
-
-        body.embedded footer {
-            display: none !important;
-        }
-    </style>
-
-    <!-- Google Analytics - Load after page renders -->
-    <script>
-        // Defer analytics loading
-        window.addEventListener("load", function () {
-            var script = document.createElement("script");
-            script.async = true;
-            script.src =
-                "https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3";
-            document.head.appendChild(script);
-
-            script.onload = function () {
-                window.dataLayer = window.dataLayer || [];
-                function gtag() {
-                    dataLayer.push(arguments);
-                }
-                gtag("js", new Date());
-                gtag("config", "G-RBBQ4X7FJ3");
-            };
-        });
-    </script>
-
-    {% block extra_head %}{% endblock %}
-</head>
-
-<body>
-    <div class="header">
-        <div class="header-content">
-            <a href="#" onclick="
-                        openPage('/dashboard');
-                        return false;
-                    " class="logo logo-link">
-                <span>Employee Suite</span>
-            </a>
-            <div class="header-nav">
-                <div class="quick-menu">
-                    <button class="quick-menu-btn" onclick="toggleQuickMenu(event)">
-                        <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
-                            <path
-                                d="M215.79,118.17a8,8,0,0,0-5-5.66L153.18,90.9l14.66-73.33a8,8,0,0,0-13.69-7L73.39,111.48a8,8,0,0,0,3.84,13.4l57.63,21.61L120.2,220a8,8,0,0,0,13.69,7l80.8-100.8A8,8,0,0,0,215.79,118.17Z">
-                            </path>
-                        </svg> Quick Access
-                    </button>
-                    <div class="quick-menu-dropdown" id="quickMenu">
-                        <a href="#" onclick="
-                                    openPage('/features/csv-exports');
-                                    return false;
-                                " class="quick-menu-item" style="
-                                    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-                                    border: 1px solid #bbf7d0;
-                                ">
-                            <span class="quick-menu-item-icon">
-                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
-                                    <path
-                                        d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-40-64a8,8,0,0,1-8,8H136v16h16a8,8,0,0,1,0,16H136v16a8,8,0,0,1-16,0V192H104a8,8,0,0,1,0-16h16V160H104a8,8,0,0,1,0-16h16V128a8,8,0,0,1,16,0v16h16A8,8,0,0,1,160,152Z">
-                                    </path>
-                                </svg>
-                            </span>
-                            <strong>CSV Exports</strong>
-                            <span class="quick-menu-shortcut">⌘E</span>
-                        </a>
-                        <a href="#" onclick="
-                                    openPage('/features/scheduled-reports');
-                                    return false;
-                                " class="quick-menu-item">
-                            <span class="quick-menu-item-icon">
-                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
-                                    <path
-                                        d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM48,208V96H208V208Zm116-76a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H172A8,8,0,0,1,164,132Zm-44,0a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H128A8,8,0,0,1,120,132Zm-44,0a8,8,0,0,1,8-8H84a8,8,0,0,1,0,16H84A8,8,0,0,1,76,132Zm88,40a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H172A8,8,0,0,1,164,172Zm-44,0a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H128A8,8,0,0,1,120,172Zm-44,0a8,8,0,0,1,8-8H84a8,8,0,0,1,0,16H84A8,8,0,0,1,76,172Z">
-                                    </path>
-                                </svg>
-                            </span>
-                            Scheduled Reports
-                            <span class="quick-menu-shortcut">⌘S</span>
-                        </a>
-                        <a href="#" onclick="
-                                    openPage('/dashboard');
-                                    return false;
-                                " class="quick-menu-item">
-                            <span class="quick-menu-item-icon">
-                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
-                                    <path
-                                        d="M224,176a8,8,0,0,1-8,8H176v40a8,8,0,0,1-16,0V184a8,8,0,0,1,8-8h48A8,8,0,0,1,224,176ZM144,224H80V184a8,8,0,0,0-8-8H40a8,8,0,0,0,0,16H72v32a8,8,0,0,0,16,0V192h48v32A8,8,0,0,0,144,224ZM223.31,76.69l-96-48a8,8,0,0,0-7.16,0l-96,48A8,8,0,0,0,20,83.86l4,92A8,8,0,0,0,32,184h8a8,8,0,0,0,0-16H39.81l-3.3-76L128,137.9l91.49-45.75L216.24,168H200a8,8,0,0,0,0,16h24a8,8,0,0,0,8-7.65l-4-96A8,8,0,0,0,223.31,76.69ZM128,120,47.88,79.94,128,39.88l80.12,40.06Z">
-                                    </path>
-                                </svg>
-                            </span>
-                            Comprehensive Dashboard
-                            <span class="quick-menu-shortcut">⌘D</span>
-                        </a>
-                        <a href="#" onclick="
-                                    openPage('/features/welcome');
-                                    return false;
-                                " class="quick-menu-item">
-                            <span class="quick-menu-item-icon">
-                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
-                                    <path
-                                        d="M222.14,58.87A8,8,0,0,0,216,56H54.68L49.79,29.14A16,16,0,0,0,34.05,16H16a8,8,0,0,0,0,16H34.05L57.28,159.26A29.71,29.71,0,0,0,53.6,174.21a32,32,0,1,0,61.6,12.61H183.2a32,32,0,1,0,32-32H89a16,16,0,0,1-15.17-11.4l-3.32-13.4H200a16,16,0,0,0,15.61-12.87l16-80A8,8,0,0,0,222.14,58.87Z">
-                                    </path>
-                                </svg>
-                            </span>
-                            New Features
-                        </a>
-                        <div style="
-                                    border-top: 1px solid #e1e3e5;
-                                    margin: 8px 0;
-                                "></div>
-                        <a href="#" onclick="
-                                    openPage('/settings/shopify');
-                                    return false;
-                                " class="quick-menu-item">
-                            <span class="quick-menu-item-icon">
-                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
-                                    <path
-                                        d="M128,80a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Zm88-29.84q.06-2.16,0-4.32l14.92-18.64a8,8,0,0,0,1.48-7.06,107.21,107.21,0,0,0-10.88-26.25,8,8,0,0,0-6-3.93l-23.72-2.64q-1.48-1.56-3-3t-3.13-2.84l-2.63-23.72a8,8,0,0,0-3.93-6,107.71,107.71,0,0,0-26.25-10.87,8,8,0,0,0-7.06,1.48L131.32,40h-6.64L110.06,21.36a8,8,0,0,0-7.06-1.48,107.71,107.71,0,0,0-26.25,10.87,8,8,0,0,0-3.93,6l-2.64,23.72q-1.54,1.4-3.09,2.88t-3,3l-23.72,2.64a8,8,0,0,0-6,3.93A107.21,107.21,0,0,0,23.54,95.1a8,8,0,0,0,1.48,7.06L39.94,120.8q-.06,2.16,0,4.32L25.02,143.76a8,8,0,0,0-1.48,7.06,107.21,107.21,0,0,0,10.88,26.25,8,8,0,0,0,6,3.93l23.72,2.64q1.49,1.56,3,3t3.13,2.84l2.63,23.72a8,8,0,0,0,3.93,6,107.71,107.71,0,0,0,26.25,10.87,8,8,0,0,0,7.06-1.48L124.68,216h6.64l14.62,18.64a8,8,0,0,0,7.06,1.48,107.71,107.71,0,0,0,26.25-10.87,8,8,0,0,0,3.93-6l2.64-23.72q1.54-1.4,3.09-2.88t3-3l23.72-2.64a8,8,0,0,0,6-3.93,107.21,107.21,0,0,0,10.87-26.25,8,8,0,0,0-1.48-7.06ZM208,137l-18.29,22.85-3.21,29,2.86-25.05a91.76,91.76,0,0,1-5.18,9L184,180l-28.7,3.19L180.29,180q-2,2-4.14,3.93L153.29,206l-29,3.22L149.36,184a92.46,92.46,0,0,1-10.74,0L135,209.24l-7-8.91,7,8.91L121.36,184q-5.34.42-10.74,0l-3.66,32.9L102.71,206l-22.86-22.13,1.38,3.28q-2.1-1.93-4.15-3.93l-25.05,2.86L80.59,173a91.76,91.76,0,0,1-9,5.18L48,155.22l22.86-18.29,25.05-3.21-25.05,2.86a92.17,92.17,0,0,1,0-17.16L48,100.78l23.55-23.11,8.91,7.13L71.55,61.71l25.05,2.86,3.28-1.38q1.93-2.1,3.93-4.15l3.19-28.7,29-3.22L106.64,72a92.46,92.46,0,0,1,10.74,0L121,46.76l7,8.91L121,46.76l13.62,25.26q5.34-.42,10.74,0l3.66-32.9,4.25,16.85,22.86,22.13-1.38-3.28q2.1,1.93,4.15,3.93l25.05-2.86L175.41,83a91.76,91.76,0,0,1,9-5.18L208,100.78l-22.86,18.29-25.05,3.21,25.05-2.86a92.17,92.17,0,0,1,0,17.16Z">
-                                    </path>
-                                </svg>
-                            </span>
-                            Settings
-                            <span class="quick-menu-shortcut">⌘,</span>
-                        </a>
-                        <a href="#" onclick="
-                                    openPage('/subscribe');
-                                    return false;
-                                " class="quick-menu-item">
-                            <span class="quick-menu-item-icon">
-                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
-                                    <path
-                                        d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48Zm0,16H32V96H224ZM224,192H32V112H224v80Zm-24-32a8,8,0,0,1-8,8H136a8,8,0,0,1,0-16h56A8,8,0,0,1,200,160Z">
-                                    </path>
-                                </svg>
-                            </span>
-                            Subscribe
-                        </a>
-                    </div>
-                </div>
-                <a href="#" onclick="
-                            openPage('/settings/shopify');
-                            return false;
-                        " class="nav-btn">Settings</a>
-                <a href="#" onclick="
-                            openPage('/subscribe');
-                            return false;
-                        " class="nav-btn nav-btn-primary">Subscribe</a>
-                <a href="#" onclick="openPage('/logout'); return false;" class="nav-btn">Logout</a>
-            </div>
-        </div>
-    </div>
-
-    <div class="page-wrapper">
-        <div class="container">
-            {% block content %}{% endblock %}
-        </div>
-
+        <!-- Shopify Polaris Design System -->
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/styles.css"
+        />
+        <script src="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/polaris.min.js"></script>
+        <!-- Phosphor Icons CSS removed - using inline SVGs -->
         <script>
-            // Essential inline JavaScript
+            // Initialize App Bridge - moved to external JS file
+            window.appBridgeReady = false;
+            window.isEmbedded = !!new URLSearchParams(
+                window.location.search,
+            ).get("host");
 
-            // Quick Menu Toggle
-            function toggleQuickMenu(event) {
-                event.stopPropagation();
-                var menu = document.getElementById('quickMenu');
-                if (menu) {
-                    menu.classList.toggle('show');
-                }
+            // Helper to open pages
+            window.openPage = function (path) {
+                var params = new URLSearchParams(window.location.search);
+                var shop = params.get("shop");
+                var host = params.get("host");
+                var embedded = params.get("embedded") || (host ? "1" : "");
+                var sep = path.indexOf("?") > -1 ? "&" : "?";
+                var dest = path;
+                if (shop) dest += sep + "shop=" + shop;
+                if (host)
+                    dest +=
+                        (dest.indexOf("?") > -1 ? "&" : "?") + "host=" + host;
+                if (embedded)
+                    dest +=
+                        (dest.indexOf("?") > -1 ? "&" : "?") +
+                        "embedded=" +
+                        embedded;
+                window.location.href = dest;
+                return false;
+            };
+        </script>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <!-- Critical: Prevent any blocking - render immediately -->
+        <style>
+            /* Inline critical CSS - no blocking */
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            }
+        </style>
+        <!-- Defer non-critical resources -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+        <!-- External Stylesheet -->
+        <link
+            rel="stylesheet"
+            href="{{ url_for('static', filename='css/dashboard.css') }}"
+        />
+        <style>
+            /* Critical overrides only */
+            body {
+                margin: 0;
+                padding: 0;
             }
 
-            // Close quick menu when clicking outside
-            document.addEventListener('click', function (e) {
-                var menu = document.getElementById('quickMenu');
-                var btn = e.target.closest('.quick-menu-btn');
-                if (menu && !btn && !e.target.closest('.quick-menu-dropdown')) {
-                    menu.classList.remove('show');
-                }
+            /* Hide header when embedded */
+            body.embedded .header {
+                display: none !important;
+            }
+
+            body.embedded footer {
+                display: none !important;
+            }
+        </style>
+
+        <!-- Google Analytics - Load after page renders -->
+        <script>
+            // Defer analytics loading
+            window.addEventListener("load", function () {
+                var script = document.createElement("script");
+                script.async = true;
+                script.src =
+                    "https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3";
+                document.head.appendChild(script);
+
+                script.onload = function () {
+                    window.dataLayer = window.dataLayer || [];
+                    function gtag() {
+                        dataLayer.push(arguments);
+                    }
+                    gtag("js", new Date());
+                    gtag("config", "G-RBBQ4X7FJ3");
+                };
             });
         </script>
 
-        {% block scripts %}{% endblock %}
+        {% block extra_head %}{% endblock %}
+    </head>
 
-        <!-- Load external dashboard JavaScript -->
-        <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-
-        <footer style="
-                margin-top: 64px;
-                padding: 32px 24px;
-                border-top: 1px solid #e1e3e5;
-                text-align: center;
-                background: #ffffff;
-            ">
-            <div style="max-width: 1200px; margin: 0 auto">
-                <div style="
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 16px;
-                        font-size: 14px;
-                        margin-bottom: 16px;
-                    ">
-                    <a href="#" onclick="openPage('/faq'); return false;" style="
-                            color: #6d7175;
-                            text-decoration: none;
-                            font-weight: 400;
-                            transition: color 0.15s;
-                        ">FAQ</a>
-                    <span style="color: #e1e3e5">|</span>
-                    <a href="#" onclick="openPage('/privacy'); return false;" style="
-                            color: #6d7175;
-                            text-decoration: none;
-                            font-weight: 400;
-                            transition: color 0.15s;
-                        ">Privacy Policy</a>
-                    <span style="color: #e1e3e5">|</span>
-                    <a href="#" onclick="openPage('/terms'); return false;" style="
-                            color: #6d7175;
-                            text-decoration: none;
-                            font-weight: 400;
-                            transition: color 0.15s;
-                        ">Terms of Service</a>
-                </div>
-                <div style="color: #8c9196; font-size: 13px; font-weight: 400; text-align: center;">
-                    © 2026 Employee Suite. All rights reserved.
+    <body>
+        <div class="header">
+            <div class="header-content">
+                <a
+                    href="{{ url_for('core.dashboard', shop=shop) }}"
+                    class="logo logo-link"
+                >
+                    <span>Employee Suite</span>
+                </a>
+                <div class="header-nav">
+                    <div class="quick-menu">
+                        <button
+                            class="quick-menu-btn"
+                            onclick="toggleQuickMenu(event)"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 256 256"
+                                fill="currentColor"
+                            >
+                                <path
+                                    d="M215.79,118.17a8,8,0,0,0-5-5.66L153.18,90.9l14.66-73.33a8,8,0,0,0-13.69-7L73.39,111.48a8,8,0,0,0,3.84,13.4l57.63,21.61L120.2,220a8,8,0,0,0,13.69,7l80.8-100.8A8,8,0,0,0,215.79,118.17Z"
+                                ></path>
+                            </svg>
+                            Quick Access
+                        </button>
+                        <div class="quick-menu-dropdown" id="quickMenu">
+                            <a
+                                href="{{ url_for('features_api.csv_exports', shop=shop) }}"
+                                class="quick-menu-item"
+                                style="
+                                    background: linear-gradient(
+                                        135deg,
+                                        #f0fdf4 0%,
+                                        #dcfce7 100%
+                                    );
+                                    border: 1px solid #bbf7d0;
+                                "
+                            >
+                                <span class="quick-menu-item-icon">
+                                    <svg
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 256 256"
+                                        fill="currentColor"
+                                    >
+                                        <path
+                                            d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-40-64a8,8,0,0,1-8,8H136v16h16a8,8,0,0,1,0,16H136v16a8,8,0,0,1-16,0V192H104a8,8,0,0,1,0-16h16V160H104a8,8,0,0,1,0-16h16V128a8,8,0,0,1,16,0v16h16A8,8,0,0,1,160,152Z"
+                                        ></path>
+                                    </svg>
+                                </span>
+                                <strong>CSV Exports</strong>
+                                <span class="quick-menu-shortcut">⌘E</span>
+                            </a>
+                            <a
+                                href="{{ url_for('features_api.scheduled_reports', shop=shop) }}"
+                                class="quick-menu-item"
+                            >
+                                <span class="quick-menu-item-icon">
+                                    <svg
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 256 256"
+                                        fill="currentColor"
+                                    >
+                                        <path
+                                            d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM48,208V96H208V208Zm116-76a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H172A8,8,0,0,1,164,132Zm-44,0a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H128A8,8,0,0,1,120,132Zm-44,0a8,8,0,0,1,8-8H84a8,8,0,0,1,0,16H84A8,8,0,0,1,76,132Zm88,40a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H172A8,8,0,0,1,164,172Zm-44,0a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H128A8,8,0,0,1,120,172Zm-44,0a8,8,0,0,1,8-8H84a8,8,0,0,1,0,16H84A8,8,0,0,1,76,172Z"
+                                        ></path>
+                                    </svg>
+                                </span>
+                                Scheduled Reports
+                                <span class="quick-menu-shortcut">⌘S</span>
+                            </a>
+                            <a
+                                href="{{ url_for('core.dashboard', shop=shop) }}"
+                                class="quick-menu-item"
+                            >
+                                <span class="quick-menu-item-icon">
+                                    <svg
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 256 256"
+                                        fill="currentColor"
+                                    >
+                                        <path
+                                            d="M224,176a8,8,0,0,1-8,8H176v40a8,8,0,0,1-16,0V184a8,8,0,0,1,8-8h48A8,8,0,0,1,224,176ZM144,224H80V184a8,8,0,0,0-8-8H40a8,8,0,0,0,0,16H72v32a8,8,0,0,0,16,0V192h48v32A8,8,0,0,0,144,224ZM223.31,76.69l-96-48a8,8,0,0,0-7.16,0l-96,48A8,8,0,0,0,20,83.86l4,92A8,8,0,0,0,32,184h8a8,8,0,0,0,0-16H39.81l-3.3-76L128,137.9l91.49-45.75L216.24,168H200a8,8,0,0,0,0,16h24a8,8,0,0,0,8-7.65l-4-96A8,8,0,0,0,223.31,76.69ZM128,120,47.88,79.94,128,39.88l80.12,40.06Z"
+                                        ></path>
+                                    </svg>
+                                </span>
+                                Comprehensive Dashboard
+                                <span class="quick-menu-shortcut">⌘D</span>
+                            </a>
+                            <a
+                                href="{{ url_for('features_api.welcome', shop=shop) }}"
+                                class="quick-menu-item"
+                            >
+                                <span class="quick-menu-item-icon">
+                                    <svg
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 256 256"
+                                        fill="currentColor"
+                                    >
+                                        <path
+                                            d="M222.14,58.87A8,8,0,0,0,216,56H54.68L49.79,29.14A16,16,0,0,0,34.05,16H16a8,8,0,0,0,0,16H34.05L57.28,159.26A29.71,29.71,0,0,0,53.6,174.21a32,32,0,1,0,61.6,12.61H183.2a32,32,0,1,0,32-32H89a16,16,0,0,1-15.17-11.4l-3.32-13.4H200a16,16,0,0,0,15.61-12.87l16-80A8,8,0,0,0,222.14,58.87Z"
+                                        ></path>
+                                    </svg>
+                                </span>
+                                New Features
+                            </a>
+                            <div
+                                style="
+                                    border-top: 1px solid #e1e3e5;
+                                    margin: 8px 0;
+                                "
+                            ></div>
+                            <a
+                                href="{{ url_for('shopify.shopify_settings', shop=shop) }}"
+                                class="quick-menu-item"
+                            >
+                                <span class="quick-menu-item-icon">
+                                    <svg
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 256 256"
+                                        fill="currentColor"
+                                    >
+                                        <path
+                                            d="M128,80a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Zm88-29.84q.06-2.16,0-4.32l14.92-18.64a8,8,0,0,0,1.48-7.06,107.21,107.21,0,0,0-10.88-26.25,8,8,0,0,0-6-3.93l-23.72-2.64q-1.48-1.56-3-3t-3.13-2.84l-2.63-23.72a8,8,0,0,0-3.93-6,107.71,107.71,0,0,0-26.25-10.87,8,8,0,0,0-7.06,1.48L131.32,40h-6.64L110.06,21.36a8,8,0,0,0-7.06-1.48,107.71,107.71,0,0,0-26.25,10.87,8,8,0,0,0-3.93,6l-2.64,23.72q-1.54,1.4-3.09,2.88t-3,3l-23.72,2.64a8,8,0,0,0-6,3.93A107.21,107.21,0,0,0,23.54,95.1a8,8,0,0,0,1.48,7.06L39.94,120.8q-.06,2.16,0,4.32L25.02,143.76a8,8,0,0,0-1.48,7.06,107.21,107.21,0,0,0,10.88,26.25,8,8,0,0,0,6,3.93l23.72,2.64q1.49,1.56,3,3t3.13,2.84l2.63,23.72a8,8,0,0,0,3.93,6,107.71,107.71,0,0,0,26.25,10.87,8,8,0,0,0,7.06-1.48L124.68,216h6.64l14.62,18.64a8,8,0,0,0,7.06,1.48,107.71,107.71,0,0,0,26.25-10.87,8,8,0,0,0,3.93-6l2.64-23.72q1.54-1.4,3.09-2.88t3-3l23.72-2.64a8,8,0,0,0,6-3.93,107.21,107.21,0,0,0,10.87-26.25,8,8,0,0,0-1.48-7.06ZM208,137l-18.29,22.85-3.21,29,2.86-25.05a91.76,91.76,0,0,1-5.18,9L184,180l-28.7,3.19L180.29,180q-2,2-4.14,3.93L153.29,206l-29,3.22L149.36,184a92.46,92.46,0,0,1-10.74,0L135,209.24l-7-8.91,7,8.91L121.36,184q-5.34.42-10.74,0l-3.66,32.9L102.71,206l-22.86-22.13,1.38,3.28q-2.1-1.93-4.15-3.93l-25.05,2.86L80.59,173a91.76,91.76,0,0,1-9,5.18L48,155.22l22.86-18.29,25.05-3.21-25.05,2.86a92.17,92.17,0,0,1,0-17.16L48,100.78l23.55-23.11,8.91,7.13L71.55,61.71l25.05,2.86,3.28-1.38q1.93-2.1,3.93-4.15l3.19-28.7,29-3.22L106.64,72a92.46,92.46,0,0,1,10.74,0L121,46.76l7,8.91L121,46.76l13.62,25.26q5.34-.42,10.74,0l3.66-32.9,4.25,16.85,22.86,22.13-1.38-3.28q2.1,1.93,4.15,3.93l25.05-2.86L175.41,83a91.76,91.76,0,0,1,9-5.18L208,100.78l-22.86,18.29-25.05,3.21,25.05-2.86a92.17,92.17,0,0,1,0,17.16Z"
+                                        ></path>
+                                    </svg>
+                                </span>
+                                Settings
+                                <span class="quick-menu-shortcut">⌘,</span>
+                            </a>
+                            <a
+                                href="{{ url_for('core.subscribe_redirect', shop=shop) }}"
+                                class="quick-menu-item"
+                            >
+                                <span class="quick-menu-item-icon">
+                                    <svg
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 256 256"
+                                        fill="currentColor"
+                                    >
+                                        <path
+                                            d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48Zm0,16H32V96H224ZM224,192H32V112H224v80Zm-24-32a8,8,0,0,1-8,8H136a8,8,0,0,1,0-16h56A8,8,0,0,1,200,160Z"
+                                        ></path>
+                                    </svg>
+                                </span>
+                                Subscribe
+                            </a>
+                        </div>
+                    </div>
+                    <a
+                        href="{{ url_for('shopify.shopify_settings', shop=shop) }}"
+                        class="nav-btn"
+                        >Settings</a
+                    >
+                    <a
+                        href="{{ url_for('core.subscribe_redirect', shop=shop) }}"
+                        class="nav-btn nav-btn-primary"
+                        >Subscribe</a
+                    >
+                    <a
+                        href="{{ url_for('auth.logout', shop=shop) }}"
+                        class="nav-btn"
+                        >Logout</a
+                    >
                 </div>
             </div>
-        </footer>
-    </div> <!-- End .page-wrapper -->
-</body>
+        </div>
 
+        <div class="page-wrapper">
+            <div class="container">{% block content %}{% endblock %}</div>
+
+            <script>
+                // Essential inline JavaScript
+
+                // Quick Menu Toggle
+                function toggleQuickMenu(event) {
+                    event.stopPropagation();
+                    var menu = document.getElementById("quickMenu");
+                    if (menu) {
+                        menu.classList.toggle("show");
+                    }
+                }
+
+                // Close quick menu when clicking outside
+                document.addEventListener("click", function (e) {
+                    var menu = document.getElementById("quickMenu");
+                    var btn = e.target.closest(".quick-menu-btn");
+                    if (
+                        menu &&
+                        !btn &&
+                        !e.target.closest(".quick-menu-dropdown")
+                    ) {
+                        menu.classList.remove("show");
+                    }
+                });
+            </script>
+
+            {% block scripts %}{% endblock %}
+
+            <!-- Load external dashboard JavaScript -->
+            <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+
+            <footer
+                style="
+                    margin-top: 64px;
+                    padding: 32px 24px;
+                    border-top: 1px solid #e1e3e5;
+                    text-align: center;
+                    background: #ffffff;
+                "
+            >
+                <div style="max-width: 1200px; margin: 0 auto">
+                    <div
+                        style="
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 16px;
+                            font-size: 14px;
+                            margin-bottom: 16px;
+                        "
+                    >
+                        <a
+                            href="{{ url_for('core.faq', shop=shop) }}"
+                            style="
+                                color: #6d7175;
+                                text-decoration: none;
+                                font-weight: 400;
+                                transition: color 0.15s;
+                            "
+                            >FAQ</a
+                        >
+                        <span style="color: #e1e3e5">|</span>
+                        <a
+                            href="{{ url_for('legal.privacy', shop=shop) }}"
+                            style="
+                                color: #6d7175;
+                                text-decoration: none;
+                                font-weight: 400;
+                                transition: color 0.15s;
+                            "
+                            >Privacy Policy</a
+                        >
+                        <span style="color: #e1e3e5">|</span>
+                        <a
+                            href="{{ url_for('legal.terms', shop=shop) }}"
+                            style="
+                                color: #6d7175;
+                                text-decoration: none;
+                                font-weight: 400;
+                                transition: color 0.15s;
+                            "
+                            >Terms of Service</a
+                        >
+                    </div>
+                    <div
+                        style="
+                            color: #8c9196;
+                            font-size: 13px;
+                            font-weight: 400;
+                            text-align: center;
+                        "
+                    >
+                        © 2026 Employee Suite. All rights reserved.
+                    </div>
+                </div>
+            </footer>
+        </div>
+        <!-- End .page-wrapper -->
+    </body>
 </html>

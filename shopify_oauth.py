@@ -809,61 +809,9 @@ def _handle_oauth_callback():
 
         api_key = current_app.config.get("SHOPIFY_API_KEY", "")
 
-        # Return App Bridge redirect HTML that forces parent window navigation
-        # This uses the official Redirect.Action.ADMIN_PATH to break out of OAuth iframe
-        return (
-            f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Redirecting to Settings...</title>
-    <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
-</head>
-<body>
-    <p>Finalizing connection... if you are not redirected, <a href="{full_url}" target="_top">click here</a>.</p>
-    <script>
-        console.log('=== APP BRIDGE REDIRECT ===');
-        console.log('Forcing parent window navigation to settings page');
-
-        try {{
-            // Get host from URL params
-            const urlParams = new URLSearchParams(window.location.search);
-            const host = urlParams.get("host") || "{host}";
-
-            // Initialize App Bridge
-            const AppBridge = window['app-bridge'];
-            const app = AppBridge.default({{
-                apiKey: "{api_key}",
-                host: host,
-                forceRedirect: true
-            }});
-
-            console.log('App Bridge initialized with host:', host);
-
-            // Use Redirect action to force TOP frame navigation
-            const Redirect = AppBridge.actions.Redirect;
-            const redirect = Redirect.create(app);
-
-            // This forces the parent Shopify Admin to navigate, killing the OAuth iframe
-            redirect.dispatch(Redirect.Action.ADMIN_PATH, {{
-                path: "/apps/{app_handle}/settings/shopify?success=Store+connected+successfully!"
-            }});
-
-            console.log('Redirect dispatched to parent window');
-        }} catch(e) {{
-            console.error('App Bridge redirect failed:', e);
-            // Fallback: Direct navigation
-            try {{
-                window.top.location.href = '{full_url}';
-            }} catch(e2) {{
-                console.error('Fallback redirect failed:', e2);
-                window.location.href = '{full_url}';
-            }}
-        }}
-    </script>
-</body>
-</html>""",
-            200,
+        return render_template(
+            "shopify/iframe_redirect.html",
+            redirect_url=full_url,
         )
     else:
         # For standalone (no host parameter), use standard Flask redirect

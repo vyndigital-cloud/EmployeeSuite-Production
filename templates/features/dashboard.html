@@ -1,6 +1,4 @@
-{% extends "layout_polaris.html" %}
-
-{% block extra_head %}
+{% extends "layout_polaris.html" %} {% block extra_head %}
 <style>
     .status-badge {
         display: inline-flex;
@@ -33,9 +31,7 @@
         transform: translateY(-1px);
     }
 </style>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div id="alert-container"></div>
 
 <div class="dashboard-header-row">
@@ -44,24 +40,39 @@
         <div class="page-subtitle">
             Your store is being monitored. Scheduled reports are running.
         </div>
-        <div class="status-badge status-active" style="margin-top: 12px;">
-            <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor">
+        <div class="status-badge status-active" style="margin-top: 12px">
+            <svg
+                width="14"
+                height="14"
+                viewBox="0 0 256 256"
+                fill="currentColor"
+            >
                 <path
-                    d="M232,128a8,8,0,0,1-8,8H171.74l-31,51.68a8,8,0,0,1-13.68.17L81.28,64.44,53.21,128H32a8,8,0,0,1,0-16H60.26l31-51.68a8,8,0,0,1,13.68-.17l45.78,123.72L178.67,120H224A8,8,0,0,1,232,128Z">
-                </path>
-            </svg> Systems Active
+                    d="M232,128a8,8,0,0,1-8,8H171.74l-31,51.68a8,8,0,0,1-13.68.17L81.28,64.44,53.21,128H32a8,8,0,0,1,0-16H60.26l31-51.68a8,8,0,0,1,13.68-.17l45.78,123.72L178.67,120H224A8,8,0,0,1,232,128Z"
+                ></path>
+            </svg>
+            Systems Active
         </div>
     </div>
 </div>
 
 <!-- Quick Stats Section -->
-<div class="quick-stats-grid" id="quick-stats-section" style="display: none; margin-top: 32px; margin-bottom: 24px;">
+<div
+    class="quick-stats-grid"
+    id="quick-stats-section"
+    style="display: none; margin-top: 32px; margin-bottom: 24px"
+>
     <div class="quick-stat-card">
         <div class="quick-stat-header">
-            <svg width="18" height="18" viewBox="0 0 256 256" fill="var(--primary)">
+            <svg
+                width="18"
+                height="18"
+                viewBox="0 0 256 256"
+                fill="var(--primary)"
+            >
                 <path
-                    d="M224,176a8,8,0,0,1-8,8H176v40a8,8,0,0,1-16,0V184a8,8,0,0,1,8-8h48A8,8,0,0,1,224,176ZM144,224H80V184a8,8,0,0,0-8-8H40a8,8,0,0,0,0,16H72v32a8,8,0,0,0,16,0V192h48v32A8,8,0,0,0,144,224ZM223.31,76.69l-96-48a8,8,0,0,0-7.16,0l-96,48A8,8,0,0,0,20,83.86l4,92A8,8,0,0,0,32,184h8a8,8,0,0,0,0-16H39.81l-3.3-76L128,137.9l91.49-45.75L216.24,168H200a8,8,0,0,0,0,16h24a8,8,0,0,0,8-7.65l-4-96A8,8,0,0,0,223.31,76.69ZM128,120,47.88,79.94,128,39.88l80.12,40.06Z">
-                </path>
+                    d="M224,176a8,8,0,0,1-8,8H176v40a8,8,0,0,1-16,0V184a8,8,0,0,1,8-8h48A8,8,0,0,1,224,176ZM144,224H80V184a8,8,0,0,0-8-8H40a8,8,0,0,0,0,16H72v32a8,8,0,0,0,16,0V192h48v32A8,8,0,0,0,144,224ZM223.31,76.69l-96-48a8,8,0,0,0-7.16,0l-96,48A8,8,0,0,0,20,83.86l4,92A8,8,0,0,0,32,184h8a8,8,0,0,0,0-16H39.81l-3.3-76L128,137.9l91.49-45.75L216.24,168H200a8,8,0,0,0,0,16h24a8,8,0,0,0,8-7.65l-4-96A8,8,0,0,0,223.31,76.69ZM128,120,47.88,79.94,128,39.88l80.12,40.06Z"
+                ></path>
             </svg>
             <span>Pending Orders</span>
         </div>
@@ -70,10 +81,15 @@
     </div>
     <div class="quick-stat-card">
         <div class="quick-stat-header">
-            <svg width="18" height="18" viewBox="0 0 256 256" fill="var(--primary)">
+            <svg
+                width="18"
+                height="18"
+                viewBox="0 0 256 256"
+                fill="var(--primary)"
+            >
                 <path
-                    d="M216,40H176a8,8,0,0,0-8,8v16H128a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8h88a8,8,0,0,0,8-8V48A8,8,0,0,0,216,40Zm-8,168H136V88h72ZM40,216H80a8,8,0,0,0,8-8V112a8,8,0,0,0-8-8H40a8,8,0,0,0-8,8v96A8,8,0,0,0,40,216Zm16-96H72v80H56Z">
-                </path>
+                    d="M216,40H176a8,8,0,0,0-8,8v16H128a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8h88a8,8,0,0,0,8-8V48A8,8,0,0,0,216,40Zm-8,168H136V88h72ZM40,216H80a8,8,0,0,0,8-8V112a8,8,0,0,0-8-8H40a8,8,0,0,0-8,8v96A8,8,0,0,0,40,216Zm16-96H72v80H56Z"
+                ></path>
             </svg>
             <span>Total Products</span>
         </div>
@@ -82,10 +98,16 @@
     </div>
     <div class="quick-stat-card">
         <div class="quick-stat-header">
-            <svg width="18" height="18" viewBox="0 0 256 256" fill="var(--primary)" id="qs-low-stock-icon">
+            <svg
+                width="18"
+                height="18"
+                viewBox="0 0 256 256"
+                fill="var(--primary)"
+                id="qs-low-stock-icon"
+            >
                 <path
-                    d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z">
-                </path>
+                    d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z"
+                ></path>
             </svg>
             <span>Low Stock</span>
         </div>
@@ -95,122 +117,209 @@
 </div>
 
 <!-- SOS and Configuration Actions -->
-<div class="card" style="margin-top: 24px;">
-    <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
-        <button onclick="triggerSOS()" id="sos-btn" class="sos-btn"
-            style="display: inline-flex; align-items: center; gap: 10px;">
-            <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
+<div class="card" style="margin-top: 24px">
+    <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center">
+        <button
+            onclick="triggerSOS()"
+            id="sos-btn"
+            class="sos-btn"
+            style="display: inline-flex; align-items: center; gap: 10px"
+        >
+            <svg
+                width="16"
+                height="16"
+                viewBox="0 0 256 256"
+                fill="currentColor"
+            >
                 <path
-                    d="M214.63,116.62l-80-96A8,8,0,0,0,128,16H96a8,8,0,0,0-6.19,12.83l50.28,64.36H48a8,8,0,0,0-6.66,12.44l80,136a8,8,0,0,0,13.62-1.3l.09-.15,50-85.72H216a8,8,0,0,0,6.19-12.83ZM134.65,221.36,66.82,106.09,124.6,32h6.14l-48.4,61.94A8,8,0,0,0,88.63,107.21h62.72l52.17,66.75H134.63a8,8,0,0,0-6.64,12.45Z">
-                </path>
-            </svg> Send Instant SOS Report
+                    d="M214.63,116.62l-80-96A8,8,0,0,0,128,16H96a8,8,0,0,0-6.19,12.83l50.28,64.36H48a8,8,0,0,0-6.66,12.44l80,136a8,8,0,0,0,13.62-1.3l.09-.15,50-85.72H216a8,8,0,0,0,6.19-12.83ZM134.65,221.36,66.82,106.09,124.6,32h6.14l-48.4,61.94A8,8,0,0,0,88.63,107.21h62.72l52.17,66.75H134.63a8,8,0,0,0-6.64,12.45Z"
+                ></path>
+            </svg>
+            Send Instant SOS Report
         </button>
 
-        <button onclick="openPage('/features/scheduled-reports')" class="btn-secondary"
-            style="display: inline-flex; align-items: center; gap: 8px;">
-            <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
+        <button
+            onclick="window.location.href='{{ url_for('features_api.scheduled_reports', shop=shop, host=host) }}'; return false;"
+            class="btn-secondary"
+            style="display: inline-flex; align-items: center; gap: 8px"
+        >
+            <svg
+                width="16"
+                height="16"
+                viewBox="0 0 256 256"
+                fill="currentColor"
+            >
                 <path
-                    d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Zm-34.34-85.66L116,179.9l-29.66-29.66a8,8,0,0,0-11.32,11.32l35.32,35.32a8,8,0,0,0,11.32,0l63.32-63.32a8,8,0,0,0-11.32-11.32Z">
-                </path>
-            </svg> Configure Schedule
+                    d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Zm-34.34-85.66L116,179.9l-29.66-29.66a8,8,0,0,0-11.32,11.32l35.32,35.32a8,8,0,0,0,11.32,0l63.32-63.32a8,8,0,0,0-11.32-11.32Z"
+                ></path>
+            </svg>
+            Configure Schedule
         </button>
     </div>
-    <p style="font-size: 13px; color: var(--text-sub); margin-top: 16px; display: flex; align-items: center; gap: 6px;">
+    <p
+        style="
+            font-size: 13px;
+            color: var(--text-sub);
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        "
+    >
         <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
             <path
-                d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm12-124a12,12,0,1,1-12-12A12,12,0,0,1,140,92Zm-4,28v52a8,8,0,0,1-16,0V120a8,8,0,0,1,16,0Z">
-            </path>
-        </svg> SOS Report sends a comprehensive snapshot to your email immediately.
+                d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm12-124a12,12,0,1,1-12-12A12,12,0,0,1,140,92Zm-4,28v52a8,8,0,0,1-16,0V120a8,8,0,0,1,16,0Z"
+            ></path>
+        </svg>
+        SOS Report sends a comprehensive snapshot to your email immediately.
     </p>
 </div>
 
 <!-- Manual Verification Section -->
-<div style="margin-top: 40px;">
+<div style="margin-top: 40px">
     <h3
-        style="font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+        style="
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        "
+    >
         <svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor">
             <path
-                d="M228,128a112.56,112.56,0,0,1-228,0,112.56,112.56,0,0,1,228,0ZM128,52a76,76,0,1,0,76,76A76.08,76.08,0,0,0,128,52Zm0,128a52,52,0,1,1,52-52A52.06,52.06,0,0,1,128,180Zm0-80a28,28,0,1,0,28,28A28,28,0,0,0,128,100Z">
-            </path>
-        </svg> Manual Verification
+                d="M228,128a112.56,112.56,0,0,1-228,0,112.56,112.56,0,0,1,228,0ZM128,52a76,76,0,1,0,76,76A76.08,76.08,0,0,0,128,52Zm0,128a52,52,0,1,1,52-52A52.06,52.06,0,0,1,128,180Zm0-80a28,28,0,1,0,28,28A28,28,0,0,0,128,100Z"
+            ></path>
+        </svg>
+        Manual Verification
     </h3>
 
     <div class="card">
         <div
-            style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px;">
+            style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding-bottom: 20px;
+                border-bottom: 1px solid var(--border);
+                margin-bottom: 20px;
+            "
+        >
             <div>
-                <h4 style="margin: 0; font-size: 16px;">Live Dashboard</h4>
-                <p style="margin: 4px 0 0; color: var(--text-sub); font-size: 14px;">Manually load current data for
-                    on-screen inspection.</p>
+                <h4 style="margin: 0; font-size: 16px">Live Dashboard</h4>
+                <p
+                    style="
+                        margin: 4px 0 0;
+                        color: var(--text-sub);
+                        font-size: 14px;
+                    "
+                >
+                    Manually load current data for on-screen inspection.
+                </p>
             </div>
-            <button class="btn-secondary" onclick="loadDashboard()" id="load-btn" style="width: auto;">
+            <button
+                class="btn-secondary"
+                onclick="loadDashboard()"
+                id="load-btn"
+                style="width: auto"
+            >
                 <span id="load-btn-text">Load Live Data</span>
-                <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 256 256"
+                    fill="currentColor"
+                >
                     <path
-                        d="M197.66,69.66l-24,24a8,8,0,1,1-11.32-11.32l37.66-37.65a8,8,0,0,1,11.32,0l37.65,37.65a8,8,0,0,1-11.32,11.32l-24-24A8.14,8.14,0,0,1,216,72a88,88,0,1,1-44.5-76.45,8,8,0,1,1-7.89,13.91A72,72,0,1,0,216,72,8.14,8.14,0,0,1,197.66,69.66Z">
-                    </path>
+                        d="M197.66,69.66l-24,24a8,8,0,1,1-11.32-11.32l37.66-37.65a8,8,0,0,1,11.32,0l37.65,37.65a8,8,0,0,1-11.32,11.32l-24-24A8.14,8.14,0,0,1,216,72a88,88,0,1,1-44.5-76.45,8,8,0,1,1-7.89,13.91A72,72,0,1,0,216,72,8.14,8.14,0,0,1,197.66,69.66Z"
+                    ></path>
                 </svg>
             </button>
         </div>
 
         <div id="dashboard-content">
-            <div style="text-align: center; padding: 40px 20px; color: var(--text-sub);">
-                <svg width="40" height="40" viewBox="0 0 256 256" fill="currentColor"
-                    style="opacity: 0.5; margin-bottom: 16px;">
+            <div
+                style="
+                    text-align: center;
+                    padding: 40px 20px;
+                    color: var(--text-sub);
+                "
+            >
+                <svg
+                    width="40"
+                    height="40"
+                    viewBox="0 0 256 256"
+                    fill="currentColor"
+                    style="opacity: 0.5; margin-bottom: 16px"
+                >
                     <path
-                        d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm0-160a72,72,0,1,0,72,72A72.08,72.08,0,0,0,128,56Zm0,128a56,56,0,1,1,56-56A56.06,56.06,0,0,1,128,184Z">
-                    </path>
+                        d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm0-160a72,72,0,1,0,72,72A72.08,72.08,0,0,0,128,56Zm0,128a56,56,0,1,1,56-56A56.06,56.06,0,0,1,128,184Z"
+                    ></path>
                 </svg>
-                <p style="font-size: 15px;">Data is hidden to keep your workspace clean.</p>
-                <p style="font-size: 14px;">Click "Load Live Data" to inspect.</p>
+                <p style="font-size: 15px">
+                    Data is hidden to keep your workspace clean.
+                </p>
+                <p style="font-size: 14px">
+                    Click "Load Live Data" to inspect.
+                </p>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script>
     function showAlert(message, type) {
-        const container = document.getElementById('alert-container');
-        const alert = document.createElement('div');
-        alert.style.cssText = type === 'success'
-            ? 'padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm);'
-            : type === 'error'
-                ? 'padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm);'
-                : 'padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm);';
+        const container = document.getElementById("alert-container");
+        const alert = document.createElement("div");
+        alert.style.cssText =
+            type === "success"
+                ? "padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm);"
+                : type === "error"
+                  ? "padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm);"
+                  : "padding: 16px; border-radius: 8px; margin-bottom: 24px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm);";
 
-        let icon = '<svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm12-124a12,12,0,1,1-12-12A12,12,0,0,1,140,92Zm-4,28v52a8,8,0,0,1-16,0V120a8,8,0,0,1,16,0Z"></path></svg>';
-        if (type === 'success') icon = '<svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm45.66-93.66a8,8,0,0,1,0,11.32l-32,32a8,8,0,0,1-11.32-11.32L142.69,144H112a40,40,0,0,0-40,40,8,8,0,0,1-16,0,56.06,56.06,0,0,1,56-56h30.69L130.34,115.31a8,8,0,0,1,11.32-11.32Z"></path></svg>';
-        if (type === 'error') icon = '<svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z"></path></svg>';
+        let icon =
+            '<svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm12-124a12,12,0,1,1-12-12A12,12,0,0,1,140,92Zm-4,28v52a8,8,0,0,1-16,0V120a8,8,0,0,1,16,0Z"></path></svg>';
+        if (type === "success")
+            icon =
+                '<svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm45.66-93.66a8,8,0,0,1,0,11.32l-32,32a8,8,0,0,1-11.32-11.32L142.69,144H112a40,40,0,0,0-40,40,8,8,0,0,1-16,0,56.06,56.06,0,0,1,56-56h30.69L130.34,115.31a8,8,0,0,1,11.32-11.32Z"></path></svg>';
+        if (type === "error")
+            icon =
+                '<svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z"></path></svg>';
 
-        alert.innerHTML = icon + '<span>' + message + '</span>';
-        container.innerHTML = '';
+        alert.innerHTML = icon + "<span>" + message + "</span>";
+        container.innerHTML = "";
         container.appendChild(alert);
     }
 
     async function triggerSOS() {
-        const btn = document.getElementById('sos-btn');
+        const btn = document.getElementById("sos-btn");
         const originalHTML = btn.innerHTML;
 
         btn.disabled = true;
-        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg> Sending...';
+        btn.innerHTML =
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg> Sending...';
 
         try {
-            const response = await fetch('/features/api/trigger-report-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ report_type: 'all' })
+            const response = await fetch("/features/api/trigger-report-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ report_type: "all" }),
             });
             const data = await response.json();
 
             if (data.success) {
-                showAlert('SOS Request Received: Check your email for the report.', 'success');
+                showAlert(
+                    "SOS Request Received: Check your email for the report.",
+                    "success",
+                );
             } else {
-                showAlert(data.error || 'Failed to send SOS report.', 'error');
+                showAlert(data.error || "Failed to send SOS report.", "error");
             }
         } catch (e) {
-            showAlert('Communication error. Please try again.', 'error');
+            showAlert("Communication error. Please try again.", "error");
         } finally {
             btn.disabled = false;
             btn.innerHTML = originalHTML;
@@ -219,13 +328,13 @@
 
     // Reuse existing dashboard logic for manual load
     function renderReportSection(title, data, isError) {
-        if (!data) return '';
+        if (!data) return "";
 
         if (isError || data.success === false) {
             return `
                 <div style="padding: 20px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; margin-bottom: 24px;">
                     <h3 style="color: #991b1b; margin-bottom: 8px; font-size: 16px; font-weight: 600;">${title}</h3>
-                    <p style="color: #7f1d1d; margin-bottom: 12px; font-size: 14px;">${data.error || data.message || 'Error loading data'}</p>
+                    <p style="color: #7f1d1d; margin-bottom: 12px; font-size: 14px;">${data.error || data.message || "Error loading data"}</p>
                 </div>
             `;
         }
@@ -244,9 +353,9 @@
     }
 
     async function loadDashboard() {
-        const content = document.getElementById('dashboard-content');
-        const btn = document.getElementById('load-btn');
-        const btnText = document.getElementById('load-btn-text');
+        const content = document.getElementById("dashboard-content");
+        const btn = document.getElementById("load-btn");
+        const btnText = document.getElementById("load-btn-text");
 
         content.innerHTML = `
             <div style="text-align: center; padding: 60px 20px;">
@@ -255,74 +364,104 @@
             </div>`;
 
         btn.disabled = true;
-        btnText.textContent = 'Loading...';
-        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>';
+        btnText.textContent = "Loading...";
+        btn.innerHTML =
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>';
 
         try {
-            const response = await fetch('/features/api/dashboard/comprehensive');
+            const response = await fetch(
+                "/features/api/dashboard/comprehensive",
+            );
             const data = await response.json();
 
-            if (data.success || (data.orders || data.inventory || data.revenue)) {
+            if (data.success || data.orders || data.inventory || data.revenue) {
                 // Populate Quick Stats
-                const qsSection = document.getElementById('quick-stats-section');
+                const qsSection = document.getElementById(
+                    "quick-stats-section",
+                );
                 if (qsSection) {
-                    const pendingOrders = data.orders?.data?.pending_orders || 0;
-                    const totalProducts = data.inventory?.data?.total_products || 0;
+                    const pendingOrders =
+                        data.orders?.data?.pending_orders || 0;
+                    const totalProducts =
+                        data.inventory?.data?.total_products || 0;
                     const lowStock = data.inventory?.data?.low_stock_items || 0;
 
-                    const pendingVal = document.getElementById('qs-pending-orders');
+                    const pendingVal =
+                        document.getElementById("qs-pending-orders");
                     if (pendingVal) pendingVal.textContent = pendingOrders;
 
-                    const productsVal = document.getElementById('qs-total-products');
+                    const productsVal =
+                        document.getElementById("qs-total-products");
                     if (productsVal) productsVal.textContent = totalProducts;
 
-                    const lowStockVal = document.getElementById('qs-low-stock');
-                    const lowStockIcon = document.getElementById('qs-low-stock-icon');
-                    const lowStockText = document.getElementById('qs-low-stock-text');
+                    const lowStockVal = document.getElementById("qs-low-stock");
+                    const lowStockIcon =
+                        document.getElementById("qs-low-stock-icon");
+                    const lowStockText =
+                        document.getElementById("qs-low-stock-text");
 
                     if (lowStockVal) {
                         lowStockVal.textContent = lowStock;
                         if (lowStock > 0) {
-                            lowStockVal.style.color = '#dc2626';
-                            if (lowStockIcon) lowStockIcon.style.color = '#dc2626';
-                            if (lowStockText) lowStockText.textContent = 'Need restocking';
+                            lowStockVal.style.color = "#dc2626";
+                            if (lowStockIcon)
+                                lowStockIcon.style.color = "#dc2626";
+                            if (lowStockText)
+                                lowStockText.textContent = "Need restocking";
                         } else {
-                            lowStockVal.style.color = 'inherit';
-                            if (lowStockIcon) lowStockIcon.style.color = 'var(--primary)';
-                            if (lowStockText) lowStockText.textContent = 'All good';
+                            lowStockVal.style.color = "inherit";
+                            if (lowStockIcon)
+                                lowStockIcon.style.color = "var(--primary)";
+                            if (lowStockText)
+                                lowStockText.textContent = "All good";
                         }
                     }
-                    qsSection.style.display = 'grid';
+                    qsSection.style.display = "grid";
                 }
-                let html = '';
+                let html = "";
 
-                if (data.orders) html += renderReportSection('Orders', data.orders, false);
-                if (data.inventory) html += renderReportSection('Inventory', data.inventory, false);
-                if (data.revenue) html += renderReportSection('Revenue', data.revenue, false);
+                if (data.orders)
+                    html += renderReportSection("Orders", data.orders, false);
+                if (data.inventory)
+                    html += renderReportSection(
+                        "Inventory",
+                        data.inventory,
+                        false,
+                    );
+                if (data.revenue)
+                    html += renderReportSection("Revenue", data.revenue, false);
 
                 if (data.errors && data.errors.length > 0) {
-                    data.errors.forEach(error => {
-                        html += renderReportSection(error.type + ' Error', { error: error.error }, true);
+                    data.errors.forEach((error) => {
+                        html += renderReportSection(
+                            error.type + " Error",
+                            { error: error.error },
+                            true,
+                        );
                     });
                 }
 
-                if (!html) html = '<p style="text-align:center; padding:20px;">No data available.</p>';
+                if (!html)
+                    html =
+                        '<p style="text-align:center; padding:20px;">No data available.</p>';
                 content.innerHTML = html;
 
-                if (!data.errors || data.errors.length === 0) showAlert('Live data loaded.', 'success');
-                else showAlert('Data loaded with some errors.', 'error');
+                if (!data.errors || data.errors.length === 0)
+                    showAlert("Live data loaded.", "success");
+                else showAlert("Data loaded with some errors.", "error");
             } else {
-                const errorMsg = data.error || 'Failed to load dashboard';
+                const errorMsg = data.error || "Failed to load dashboard";
                 content.innerHTML = `<p style="text-align:center; color:red; padding:20px;">${errorMsg}</p>`;
-                showAlert(errorMsg, 'error');
+                showAlert(errorMsg, "error");
             }
         } catch (error) {
             content.innerHTML = `<p style="text-align:center; color:red; padding:20px;">Connection Error</p>`;
-            showAlert('Error loading dashboard.', 'error');
+            showAlert("Error loading dashboard.", "error");
         } finally {
             btn.disabled = false;
-            btnText.textContent = 'Reload Live Data';
-            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M197.66,69.66l-24,24a8,8,0,1,1-11.32-11.32l37.66-37.65a8,8,0,0,1,11.32,0l37.65,37.65a8,8,0,0,1-11.32,11.32l-24-24A8.14,8.14,0,0,1,216,72a88,88,0,1,1-44.5-76.45,8,8,0,1,1-7.89,13.91A72,72,0,1,0,216,72,8.14,8.14,0,0,1,197.66,69.66Z"></path></svg>';
+            btnText.textContent = "Reload Live Data";
+            btn.innerHTML =
+                '<svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M197.66,69.66l-24,24a8,8,0,1,1-11.32-11.32l37.66-37.65a8,8,0,0,1,11.32,0l37.65,37.65a8,8,0,0,1-11.32,11.32l-24-24A8.14,8.14,0,0,1,216,72a88,88,0,1,1-44.5-76.45,8,8,0,1,1-7.89,13.91A72,72,0,1,0,216,72,8.14,8.14,0,0,1,197.66,69.66Z"></path></svg>';
         }
     }
 </script>

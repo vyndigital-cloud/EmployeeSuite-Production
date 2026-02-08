@@ -77,7 +77,7 @@ LEGAL_HTML = """
 <body>
     <div class="header">
         <div class="header-content">
-            <a href="/" class="logo">
+            <a href="/dashboard?shop={{ shop }}&host={{ host }}" class="logo">
                 <span>Employee Suite</span>
             </a>
         </div>

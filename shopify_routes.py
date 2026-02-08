@@ -494,6 +494,7 @@ def disconnect_store():
             url_for(
                 "shopify.shopify_settings",
                 error="Authentication error occurred. Please try again.",
+                shop=shop,
             )
         )
 
@@ -522,6 +523,7 @@ def disconnect_store():
                 url_for(
                     "shopify.shopify_settings",
                     error="Please log in to disconnect your store.",
+                    shop=shop,
                 )
             )
 
@@ -542,7 +544,9 @@ def disconnect_store():
             session.pop(key, None)
         return redirect(
             url_for(
-                "shopify.shopify_settings", error="No active store found to disconnect."
+                "shopify.shopify_settings",
+                error="No active store found to disconnect.",
+                shop=shop,
             )
         )
 
@@ -608,5 +612,6 @@ def disconnect_store():
             url_for(
                 "shopify.shopify_settings",
                 error="Failed to disconnect store. Please try again.",
+                shop=shop,
             )
         )

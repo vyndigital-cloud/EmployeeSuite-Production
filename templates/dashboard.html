@@ -94,10 +94,7 @@
 <body>
     <div class="header">
         <div class="header-content">
-            <a href="#" onclick="
-                        openPage('/dashboard');
-                        return false;
-                    " class="logo logo-link">
+            <a href="{{ url_for('core.dashboard', shop=shop, host=host) }}" class="logo logo-link">
                 <span>Employee Suite</span>
             </a>
             <div class="header-nav">
@@ -106,10 +103,7 @@
                         ⚡ Quick Access
                     </button>
                     <div class="quick-menu-dropdown" id="quickMenu">
-                        <a href="#" onclick="
-                                    openPage('/features/csv-exports');
-                                    return false;
-                                " class="quick-menu-item" style="
+                        <a href="{{ url_for('features_api.csv_exports', shop=shop, host=host) }}" class="quick-menu-item" style="
                                     background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
                                     border: 1px solid #bbf7d0;
                                 ">
@@ -117,26 +111,17 @@
                             <strong>CSV Exports</strong>
                             <span class="quick-menu-shortcut">⌘E</span>
                         </a>
-                        <a href="#" onclick="
-                                    openPage('/features/scheduled-reports');
-                                    return false;
-                                " class="quick-menu-item">
+                        <a href="{{ url_for('features_api.scheduled_reports', shop=shop, host=host) }}" class="quick-menu-item">
                             <span class="quick-menu-item-icon">📅</span>
                             Scheduled Reports
                             <span class="quick-menu-shortcut">⌘S</span>
                         </a>
-                        <a href="#" onclick="
-                                    openPage('/dashboard');
-                                    return false;
-                                " class="quick-menu-item">
+                        <a href="{{ url_for('core.dashboard', shop=shop, host=host) }}" class="quick-menu-item">
                             <span class="quick-menu-item-icon">📊</span>
                             Comprehensive Dashboard
                             <span class="quick-menu-shortcut">⌘D</span>
                         </a>
-                        <a href="#" onclick="
-                                    openPage('/features/welcome');
-                                    return false;
-                                " class="quick-menu-item">
+                        <a href="{{ url_for('features_api.welcome', shop=shop, host=host) }}" class="quick-menu-item">
                             <span class="quick-menu-item-icon">🎉</span>
                             New Features
                         </a>
@@ -144,32 +129,20 @@
                                     border-top: 1px solid #e1e3e5;
                                     margin: 8px 0;
                                 "></div>
-                        <a href="#" onclick="
-                                    openPage('/settings/shopify');
-                                    return false;
-                                " class="quick-menu-item">
+                        <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}" class="quick-menu-item">
                             <span class="quick-menu-item-icon">⚙️</span>
                             Settings
                             <span class="quick-menu-shortcut">⌘,</span>
                         </a>
-                        <a href="#" onclick="
-                                    openPage('/subscribe');
-                                    return false;
-                                " class="quick-menu-item">
+                        <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}" class="quick-menu-item">
                             <span class="quick-menu-item-icon">💳</span>
                             Subscribe
                         </a>
                     </div>
                 </div>
-                <a href="#" onclick="
-                            openPage('/settings/shopify');
-                            return false;
-                        " class="nav-btn">Settings</a>
-                <a href="#" onclick="
-                            openPage('/subscribe');
-                            return false;
-                        " class="nav-btn nav-btn-primary">Subscribe</a>
-                <a href="#" onclick="openPage('/logout'); return false;" class="nav-btn">Logout</a>
+                <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}" class="nav-btn">Settings</a>
+                <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}" class="nav-btn nav-btn-primary">Subscribe</a>
+                <a href="{{ url_for('auth.logout', shop=shop, host=host) }}" class="nav-btn">Logout</a>
             </div>
         </div>
     </div>
@@ -194,12 +167,12 @@
 
                 <!-- Quick Actions (Replaces Header Nav) -->
                 <div style="margin-top: 1.5rem; display: flex; justify-content: center; gap: 12px;">
-                    <a href="#" onclick="openPage('/settings/shopify'); return false;" class="status-pill"
+                    <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}" class="status-pill"
                         style="background: white; border: 1px solid #e1e3e5; color: #6d7175; text-decoration: none; padding: 6px 16px; font-weight: 500; font-size: 13px; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
                         Settings
                     </a>
                     {% if not is_subscribed %}
-                    <a href="#" onclick="openPage('/subscribe'); return false;" class="status-pill"
+                    <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}" class="status-pill"
                         style="background: #e3fcef; color: #008060; text-decoration: none; padding: 6px 16px; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px;">
                         Upgrade to Pro
                     </a>
@@ -225,7 +198,7 @@
                     </div>
                 </div>
                 <div class="banner-actions">
-                    <a href="#" onclick="openPage('/subscribe'); return false;" class="banner-action urgent">
+                    <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}" class="banner-action urgent">
                         Subscribe Now
                     </a>
                 </div>
@@ -248,7 +221,7 @@
                     </div>
                 </div>
                 <div class="banner-actions">
-                    <a href="#" onclick="openPage('/settings/shopify'); return false;" class="banner-action primary">
+                    <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}" class="banner-action primary">
                         Connect Store
                     </a>
                 </div>
@@ -449,7 +422,7 @@
                     </div>
                     <h3 style="color: #111827; margin-bottom: 8px; font-size: 20px; font-weight: 700;">Subscription Required</h3>
                     <p style="color: #6B7280; margin-bottom: 24px; font-size: 15px; line-height: 1.5;">This feature is available with Employee Suite Pro. Subscribe to unlock full access.</p>
-                    <a href="/subscribe?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}" style="display: inline-block; background: #2563EB; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.2s; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">Upgrade Now →</a>
+                    <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}" style="display: inline-block; background: #2563EB; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.2s; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">Upgrade Now →</a>
                     <p style="color: #9CA3AF; margin-top: 16px; font-size: 13px;">$39/month • 7-day money-back guarantee</p>
                 </div>
             `;
@@ -496,21 +469,21 @@
                         font-size: 14px;
                         margin-bottom: 16px;
                     ">
-                    <a href="#" onclick="openPage('/faq'); return false;" style="
+                    <a href="{{ url_for('core.faq', shop=shop) }}" style="
                             color: #6d7175;
                             text-decoration: none;
                             font-weight: 400;
                             transition: color 0.15s;
                         ">FAQ</a>
                     <span style="color: #e1e3e5">|</span>
-                    <a href="#" onclick="openPage('/privacy'); return false;" style="
+                    <a href="{{ url_for('legal.privacy', shop=shop) }}" style="
                             color: #6d7175;
                             text-decoration: none;
                             font-weight: 400;
                             transition: color 0.15s;
                         ">Privacy Policy</a>
                     <span style="color: #e1e3e5">|</span>
-                    <a href="#" onclick="openPage('/terms'); return false;" style="
+                    <a href="{{ url_for('legal.terms', shop=shop) }}" style="
                             color: #6d7175;
                             text-decoration: none;
                             font-weight: 400;

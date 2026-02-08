@@ -1,103 +1,202 @@
-{% extends "layout_polaris.html" %}
-
-{% block content %}
+{% extends "layout_polaris.html" %} {% block content %}
 <!-- Hero Section -->
 <header class="header-section">
     <div class="logo-area">
         <div class="brand-badge">
-            <svg width="24" height="24" viewBox="0 0 256 256" fill="currentColor">
+            <svg
+                width="24"
+                height="24"
+                viewBox="0 0 256 256"
+                fill="currentColor"
+            >
                 <path
-                    d="M213.66,101.66l-80-80a8,8,0,0,0-11.32,0l-80,80A8,8,0,0,0,48,112v96a16,16,0,0,0,16,16h96a16,16,0,0,0,16-16V176h32a8,8,0,0,0,8-8V107.31A8,8,0,0,0,213.66,101.66ZM164,208H64V115.31L128,51.31l32,32V112a8,8,0,0,0,16,0V99.31l25.66,25.66L182.28,160H160a8,8,0,0,0-8,8v40ZM168,176h32v32H168Z">
-                </path>
+                    d="M213.66,101.66l-80-80a8,8,0,0,0-11.32,0l-80,80A8,8,0,0,0,48,112v96a16,16,0,0,0,16,16h96a16,16,0,0,0,16-16V176h32a8,8,0,0,0,8-8V107.31A8,8,0,0,0,213.66,101.66ZM164,208H64V115.31L128,51.31l32,32V112a8,8,0,0,0,16,0V99.31l25.66,25.66L182.28,160H160a8,8,0,0,0-8,8v40ZM168,176h32v32H168Z"
+                ></path>
             </svg>
             <span>New Features</span>
         </div>
     </div>
     <h1 class="main-title">Automate Your Store</h1>
-    <p class="sub-title">Stop manually checking inventory. Employee Suite does the heavy lifting for you.</p>
+    <p class="sub-title">
+        Stop manually checking inventory. Employee Suite does the heavy lifting
+        for you.
+    </p>
 
     <div
-        style="margin-top: 1.5rem; display: inline-flex; align-items: center; gap: 12px; padding: 6px 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 100px; color: #166534; font-size: 0.9rem; font-weight: 500;">
-        <span style="font-weight: 700;">$39/month</span>
-        <span style="opacity: 0.8; margin-left: 4px;">Single Plan. Everything Included.</span>
+        style="
+            margin-top: 1.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 16px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 100px;
+            color: #166534;
+            font-size: 0.9rem;
+            font-weight: 500;
+        "
+    >
+        <span style="font-weight: 700">$39/month</span>
+        <span style="opacity: 0.8; margin-left: 4px"
+            >Single Plan. Everything Included.</span
+        >
     </div>
 </header>
 
 <!-- Features Grid -->
-<div class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
-
+<div
+    class="cards-grid"
+    style="
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+    "
+>
     <!-- Automated Reports -->
-    <div class="card" style="padding: 32px;">
-        <div class="card-icon" style="background: #ecfdf5; color: #059669; width: 56px; height: 56px; font-size: 28px;">
-            <svg width="32" height="32" viewBox="0 0 256 256" fill="currentColor">
+    <div class="card" style="padding: 32px">
+        <div
+            class="card-icon"
+            style="
+                background: #ecfdf5;
+                color: #059669;
+                width: 56px;
+                height: 56px;
+                font-size: 28px;
+            "
+        >
+            <svg
+                width="32"
+                height="32"
+                viewBox="0 0 256 256"
+                fill="currentColor"
+            >
                 <path
-                    d="M232,168a40,40,0,0,0-24.81-37,64,64,0,0,0-58.42-58.38A32,32,0,1,0,97.23,72.62,64,64,0,0,0,38.81,131,40,40,0,0,0,14,168A40,40,0,0,0,54,208H202A40,40,0,0,0,232,168Zm-152-40a48.05,48.05,0,0,1,48-48,48,48,0,0,1,48,48v8H80ZM128,40a16,16,0,1,1-16,16A16,16,0,0,1,128,40Zm-74,128a24,24,0,1,1,24,24H54A24,24,0,0,1,54,168Zm148,24H78v-8a64.07,64.07,0,0,0,64-64h26.43A64.12,64.12,0,0,0,194,182.43V192Zm0-24a24,24,0,1,1,24-24A24,24,0,0,1,202,168Z">
-                </path>
+                    d="M232,168a40,40,0,0,0-24.81-37,64,64,0,0,0-58.42-58.38A32,32,0,1,0,97.23,72.62,64,64,0,0,0,38.81,131,40,40,0,0,0,14,168A40,40,0,0,0,54,208H202A40,40,0,0,0,232,168Zm-152-40a48.05,48.05,0,0,1,48-48,48,48,0,0,1,48,48v8H80ZM128,40a16,16,0,1,1-16,16A16,16,0,0,1,128,40Zm-74,128a24,24,0,1,1,24,24H54A24,24,0,0,1,54,168Zm148,24H78v-8a64.07,64.07,0,0,0,64-64h26.43A64.12,64.12,0,0,0,194,182.43V192Zm0-24a24,24,0,1,1,24-24A24,24,0,0,1,202,168Z"
+                ></path>
             </svg>
         </div>
-        <h3 class="card-title" style="font-size: 20px; margin-bottom: 12px;">Automated Intelligence</h3>
-        <p class="card-description" style="font-size: 15px; line-height: 1.6;">
-            Receive daily email reports on inventory levels, revenue forecasts, and stockout risks. Set it
-            and forget it.
+        <h3 class="card-title" style="font-size: 20px; margin-bottom: 12px">
+            Automated Intelligence
+        </h3>
+        <p class="card-description" style="font-size: 15px; line-height: 1.6">
+            Receive daily email reports on inventory levels, revenue forecasts,
+            and stockout risks. Set it and forget it.
         </p>
     </div>
 
     <!-- InstantSOS -->
-    <div class="card" style="padding: 32px;">
-        <div class="card-icon" style="background: #eff6ff; color: #2563eb; width: 56px; height: 56px; font-size: 28px;">
-            <svg width="32" height="32" viewBox="0 0 256 256" fill="currentColor">
+    <div class="card" style="padding: 32px">
+        <div
+            class="card-icon"
+            style="
+                background: #eff6ff;
+                color: #2563eb;
+                width: 56px;
+                height: 56px;
+                font-size: 28px;
+            "
+        >
+            <svg
+                width="32"
+                height="32"
+                viewBox="0 0 256 256"
+                fill="currentColor"
+            >
                 <path
-                    d="M214.63,116.62l-80-96A8,8,0,0,0,128,16H96a8,8,0,0,0-6.19,12.83l50.28,64.36H48a8,8,0,0,0-6.66,12.44l80,136a8,8,0,0,0,13.62-1.3l.09-.15,50-85.72H216a8,8,0,0,0,6.19-12.83ZM134.65,221.36,66.82,106.09,124.6,32h6.14l-48.4,61.94A8,8,0,0,0,88.63,107.21h62.72l52.17,66.75H134.63a8,8,0,0,0-6.64,12.45Z">
-                </path>
+                    d="M214.63,116.62l-80-96A8,8,0,0,0,128,16H96a8,8,0,0,0-6.19,12.83l50.28,64.36H48a8,8,0,0,0-6.66,12.44l80,136a8,8,0,0,0,13.62-1.3l.09-.15,50-85.72H216a8,8,0,0,0,6.19-12.83ZM134.65,221.36,66.82,106.09,124.6,32h6.14l-48.4,61.94A8,8,0,0,0,88.63,107.21h62.72l52.17,66.75H134.63a8,8,0,0,0-6.64,12.45Z"
+                ></path>
             </svg>
         </div>
-        <h3 class="card-title" style="font-size: 20px; margin-bottom: 12px;">Instant 'SOS' Checks</h3>
-        <p class="card-description" style="font-size: 15px; line-height: 1.6;">
-            Need to know your status right now? One click generates a real-time health check of your entire
-            operation.
+        <h3 class="card-title" style="font-size: 20px; margin-bottom: 12px">
+            Instant 'SOS' Checks
+        </h3>
+        <p class="card-description" style="font-size: 15px; line-height: 1.6">
+            Need to know your status right now? One click generates a real-time
+            health check of your entire operation.
         </p>
     </div>
 
     <!-- Data Export -->
-    <div class="card" style="padding: 32px;">
-        <div class="card-icon" style="background: #f5f3ff; color: #7c3aed; width: 56px; height: 56px; font-size: 28px;">
-            <svg width="32" height="32" viewBox="0 0 256 256" fill="currentColor">
+    <div class="card" style="padding: 32px">
+        <div
+            class="card-icon"
+            style="
+                background: #f5f3ff;
+                color: #7c3aed;
+                width: 56px;
+                height: 56px;
+                font-size: 28px;
+            "
+        >
+            <svg
+                width="32"
+                height="32"
+                viewBox="0 0 256 256"
+                fill="currentColor"
+            >
                 <path
-                    d="M216,152v56a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V152a8,8,0,0,1,16,0v48H200V152a8,8,0,0,1,16,0ZM122.34,157.66a8,8,0,0,0,11.32,0l48-48a8,8,0,0,0-11.32-11.32L136,132.69V40a8,8,0,0,0-16,0v92.69L85.66,98.34A8,8,0,0,0,74.34,109.66Z">
-                </path>
+                    d="M216,152v56a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V152a8,8,0,0,1,16,0v48H200V152a8,8,0,0,1,16,0ZM122.34,157.66a8,8,0,0,0,11.32,0l48-48a8,8,0,0,0-11.32-11.32L136,132.69V40a8,8,0,0,0-16,0v92.69L85.66,98.34A8,8,0,0,0,74.34,109.66Z"
+                ></path>
             </svg>
         </div>
-        <h3 class="card-title" style="font-size: 20px; margin-bottom: 12px;">Data Ownership</h3>
-        <p class="card-description" style="font-size: 15px; line-height: 1.6;">
-            Export your raw data at any time. Clean, formatted CSVs for Orders, Inventory, and Revenue ready
-            for analysis.
+        <h3 class="card-title" style="font-size: 20px; margin-bottom: 12px">
+            Data Ownership
+        </h3>
+        <p class="card-description" style="font-size: 15px; line-height: 1.6">
+            Export your raw data at any time. Clean, formatted CSVs for Orders,
+            Inventory, and Revenue ready for analysis.
         </p>
     </div>
 
     <!-- Security -->
-    <div class="card" style="padding: 32px;">
-        <div class="card-icon" style="background: #fff1f2; color: #e11d48; width: 56px; height: 56px; font-size: 28px;">
-            <svg width="32" height="32" viewBox="0 0 256 256" fill="currentColor">
+    <div class="card" style="padding: 32px">
+        <div
+            class="card-icon"
+            style="
+                background: #fff1f2;
+                color: #e11d48;
+                width: 56px;
+                height: 56px;
+                font-size: 28px;
+            "
+        >
+            <svg
+                width="32"
+                height="32"
+                viewBox="0 0 256 256"
+                fill="currentColor"
+            >
                 <path
-                    d="M229.19,77.29,208,56.11V48a8,8,0,0,0-8-8H48a8,8,0,0,0-8,8V208a8,8,0,0,0,8,8H200a8,8,0,0,0,8-8v-8.11l21.19-21.2A8,8,0,0,0,232,173V82A8,8,0,0,0,229.19,77.29ZM200,200H56V56H200v3.31l-50.34,50.35a8,8,0,0,0,0,11.32l50.34,50.34V200Zm16-29.66L182.34,136.69a8,8,0,0,0-11.32,0L137.37,170.34a8,8,0,0,0,0,11.32L171,215.31l-34.34,34.35a8,8,0,0,0,0,11.32l50.34,50.34a8,8,0,0,0,11.32,0l26.34-26.35A8,8,0,0,0,224,256V82A8,8,0,0,0,216,170.34Z">
-                </path>
+                    d="M229.19,77.29,208,56.11V48a8,8,0,0,0-8-8H48a8,8,0,0,0-8,8V208a8,8,0,0,0,8,8H200a8,8,0,0,0,8-8v-8.11l21.19-21.2A8,8,0,0,0,232,173V82A8,8,0,0,0,229.19,77.29ZM200,200H56V56H200v3.31l-50.34,50.35a8,8,0,0,0,0,11.32l50.34,50.34V200Zm16-29.66L182.34,136.69a8,8,0,0,0-11.32,0L137.37,170.34a8,8,0,0,0,0,11.32L171,215.31l-34.34,34.35a8,8,0,0,0,0,11.32l50.34,50.34a8,8,0,0,0,11.32,0l26.34-26.35A8,8,0,0,0,224,256V82A8,8,0,0,0,216,170.34Z"
+                ></path>
             </svg>
         </div>
-        <h3 class="card-title" style="font-size: 20px; margin-bottom: 12px;">Enterprise Security</h3>
-        <p class="card-description" style="font-size: 15px; line-height: 1.6;">
-            Your store's data is encrypted at rest and in transit. Validated by Shopify's strict security
-            standards.
+        <h3 class="card-title" style="font-size: 20px; margin-bottom: 12px">
+            Enterprise Security
+        </h3>
+        <p class="card-description" style="font-size: 15px; line-height: 1.6">
+            Your store's data is encrypted at rest and in transit. Validated by
+            Shopify's strict security standards.
         </p>
     </div>
-
 </div>
 
 <!-- CTA -->
-<div style="text-align: center; margin-top: 60px;">
-    <a href="#" onclick="openPage('/subscribe'); return false;" class="banner-action"
-        style="font-size: 1.2rem; padding: 20px 48px; border-radius: 100px; display: inline-block;">
+<div style="text-align: center; margin-top: 60px">
+    <a
+        href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}"
+        class="banner-action"
+        style="
+            font-size: 1.2rem;
+            padding: 20px 48px;
+            border-radius: 100px;
+            display: inline-block;
+        "
+    >
         Start 7-Day Free Trial
     </a>
-    <p style="margin-top: 16px; color: var(--text-sub); font-size: 14px;">No commitment. Cancel anytime.</p>
+    <p style="margin-top: 16px; color: var(--text-sub); font-size: 14px">
+        No commitment. Cancel anytime.
+    </p>
 </div>
 {% endblock %}
