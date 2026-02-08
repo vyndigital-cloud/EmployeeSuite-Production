@@ -27,12 +27,12 @@ def create_app():
         # Session cookie configuration for login persistence
         'SESSION_COOKIE_SECURE': True,  # Only send over HTTPS
         'SESSION_COOKIE_HTTPONLY': True,  # Prevent JavaScript access
-        'SESSION_COOKIE_SAMESITE': 'None',  # Allow cookies in iframes (required for embedded apps)
+        'SESSION_COOKIE_SAMESITE': 'Lax',  # CRITICAL FIX: Lax for standalone, prevents Safari blocking
         'SESSION_COOKIE_DOMAIN': None,  # Don't restrict domain for flexibility
         'SESSION_COOKIE_PATH': '/',  # Available on all paths
         'REMEMBER_COOKIE_SECURE': True,
         'REMEMBER_COOKIE_HTTPONLY': True,
-        'REMEMBER_COOKIE_SAMESITE': 'None',  # CRITICAL for Safari iframe
+        'REMEMBER_COOKIE_SAMESITE': 'Lax',  # CRITICAL FIX: Lax for standalone, prevents Safari blocking
         'REMEMBER_COOKIE_DURATION': 2592000,  # 30 days
         
         # Server-side Session Config
@@ -470,6 +470,33 @@ def create_app():
                         response.headers.add('Set-Cookie', cookie)
             
             app.logger.debug(f"🍪 Safari-compatible cookies set for {request.path}")
+        
+        return response
+    
+    @app.after_request
+    def force_session_commit(response):
+        """
+        CRITICAL FIX: Force session to commit before response is sent.
+        Prevents session loss between routes (especially /dashboard → /settings/shopify).
+        """
+        try:
+            from flask_login import current_user
+            from flask import session
+            
+            # Only force commit for successful responses
+            if response.status_code < 400:
+                # Mark session as modified to force save
+                session.modified = True
+                
+                # If user is authenticated, ensure session has user_id
+                if current_user.is_authenticated:
+                    user_id = current_user.get_id()
+                    if user_id and session.get('_user_id') != user_id:
+                        session['_user_id'] = user_id
+                        session.permanent = True
+                        app.logger.debug(f"Session commit: Ensured _user_id={user_id} in session")
+        except Exception as e:
+            app.logger.error(f"Error in force_session_commit: {e}")
         
         return response
     

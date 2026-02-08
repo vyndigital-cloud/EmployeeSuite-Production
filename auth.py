@@ -367,22 +367,31 @@ def login():
             # DETECT EMBEDDED vs STANDALONE for optimal cookie handling
             is_embedded = embedded == "1" or host
 
-            # EMBEDDED APPS: Use session tokens (no remember cookie needed)
-            # STANDALONE: Use cookies with remember for better UX
-            login_user(
-                user, remember=not is_embedded
-            )  # No remember cookie in embedded mode
+            # CRITICAL FIX: Force session persistence BEFORE any redirect
+            # Use remember=True for standalone to ensure cookie persistence
+            login_user(user, remember=True)  # Always use remember for better persistence
+            
+            # FORCE SESSION COMMIT - Critical for Safari and cross-route persistence
             session.permanent = True
-            session.modified = (
-                True  # Force immediate session save (Safari compatibility)
+            session['_user_id'] = user.id  # Explicitly set user_id
+            session['_fresh'] = True  # Mark session as fresh
+            session.modified = True  # Force immediate session save
+            
+            # Additional session data for debugging
+            session['login_timestamp'] = datetime.now(timezone.utc).isoformat()
+            session['login_method'] = 'password'
+            
+            # CRITICAL: Commit session to database BEFORE redirect
+            try:
+                db.session.commit()  # Commit any pending database changes
+            except Exception as commit_error:
+                logger.error(f"Database commit error after login: {commit_error}")
+            
+            logger.info(
+                f"✅ Login successful - User {user.id} - "
+                f"Session committed with _user_id={session.get('_user_id')}, "
+                f"permanent={session.permanent}"
             )
-
-            # For embedded apps, session tokens handle auth - cookies are just for compatibility
-            # For standalone, cookies are primary auth method
-            if is_embedded:
-                logger.info(f"Login successful for embedded app (session token auth) - User {user.id}")
-            else:
-                logger.info(f"Login successful for standalone access (cookie auth) - User {user.id}")
 
             # Preserve embedded params if this is an embedded app request
             # For embedded apps, redirect to dashboard with params (dashboard handles embedded better)

@@ -74,18 +74,27 @@ def shopify_settings():
                 session['shop_domain'] = shop
                 logger.info(f"✅ Corrected user identity: Now user {store.user.id}")
 
-    # Get authenticated user (works for both embedded and standalone)
+    # ============================================================================
+    # CRITICAL FIX: Check Flask-Login session FIRST before ANY other logic
+    # ============================================================================
     user = None
-    try:
-        logger.info(f"🔍 Checking user authentication...")
-        logger.info(f"   current_user.is_authenticated: {current_user.is_authenticated if hasattr(current_user, 'is_authenticated') else 'N/A'}")
-        logger.info(f"   shop parameter: {shop}")
-        logger.info(f"   host parameter: {host}")
+
+    # PRIORITY 1: Check current_user.is_authenticated BEFORE anything else
+    if current_user.is_authenticated:
+        user = current_user
+        logger.info(
+            f"✅ shopify_settings: User {user.id} authenticated via Flask-Login - "
+            f"Session _user_id={session.get('_user_id')}, "
+            f"permanent={session.permanent}"
+        )
         
-        if current_user.is_authenticated:
-            user = current_user
-            logger.info(f"✅ Found authenticated user: {user.id} ({user.email})")
-        elif shop:
+        # STOP HERE - We have a valid authenticated user
+        # Don't check shop parameters, don't do any other lookups
+        # Just proceed to render the settings page
+
+    # PRIORITY 2: Only if Flask-Login failed, try shop lookup (for embedded apps)
+    elif shop:
+        try:
             # Try to find user from shop (for embedded apps)
             store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
             if store and store.user:
@@ -103,50 +112,44 @@ def shopify_settings():
                     logger.info(f"✅ Found user via inactive store lookup: {user.id} for shop {shop} - Logged in successfully")
                 else:
                     logger.warning(f"❌ No store found for shop: {shop}")
-        else:
-            logger.warning(f"❌ No authenticated user and no shop parameter")
-    except Exception as e:
-        logger.error(f"Error finding user in shopify_settings: {e}", exc_info=True)
-        user = None
+        except Exception as e:
+            logger.error(f"Error finding user in shopify_settings: {e}", exc_info=True)
+            user = None
+    else:
+        logger.warning(f"❌ No authenticated user and no shop parameter")
 
     # Handle different authentication scenarios
     if not user:
-        logger.warning(f"⚠️ NO USER FOUND in shopify_settings")
+        logger.warning(f"⚠️ shopify_settings: NO USER FOUND")
         
-        # CRITICAL FIX: Check Flask-Login session BEFORE any redirect
+        # CRITICAL FIX: This should NEVER happen if current_user.is_authenticated was True
+        # Log this as a critical error for debugging
         if current_user.is_authenticated:
-            # User IS authenticated via Flask-Login but we couldn't find them via shop lookup
-            # This is VALID - they're logged in but have no shop connected yet
-            logger.info(f"✅ User {current_user.id} is authenticated via Flask-Login but no shop linked")
-            
-            # BREAK THE LOOP: Render settings page with "Connect Store" UI
-            # The template already has the connection forms (lines 186-280 in settings.html)
-            return render_template(
-                "settings.html",
-                store=None,  # No store connected - will show "Connect Store" section
-                success=None,
-                error=None,  # Don't show error - this is expected state
-                shop=shop or "",
-                host=host or "",
-                is_subscribed=current_user.is_subscribed,
+            logger.error(
+                f"🚨 CRITICAL BUG: current_user.is_authenticated=True but user object is None! "
+                f"Session data: _user_id={session.get('_user_id')}, "
+                f"permanent={session.permanent}, "
+                f"keys={list(session.keys())}"
             )
-        
-        # User is NOT authenticated via Flask-Login either
-        # Import the App Bridge breakout utility
-        from app_bridge_breakout import iframe_safe_redirect
-        
-        if shop:
-            # Embedded app with shop but no user - start OAuth
-            install_url = f"/oauth/install?shop={shop}"
-            if host:
-                install_url += f"&host={host}"
-            
-            logger.info(f"No user found for shop {shop}, redirecting to OAuth: {install_url}")
-            return iframe_safe_redirect(install_url, shop=shop)
+            # Force use current_user as fallback
+            user = current_user
         else:
-            # No user, no shop, not authenticated - redirect to login
-            logger.info(f"No authentication found, redirecting to login")
-            return iframe_safe_redirect(url_for("auth.login"), shop=None)
+            # User is NOT authenticated via Flask-Login either
+            # Import the App Bridge breakout utility
+            from app_bridge_breakout import iframe_safe_redirect
+            
+            if shop:
+                # Embedded app with shop but no user - start OAuth
+                install_url = f"/oauth/install?shop={shop}"
+                if host:
+                    install_url += f"&host={host}"
+                
+                logger.info(f"No user found for shop {shop}, redirecting to OAuth: {install_url}")
+                return iframe_safe_redirect(install_url, shop=shop)
+            else:
+                # No user, no shop, not authenticated - redirect to login
+                logger.info(f"No authentication found, redirecting to login")
+                return iframe_safe_redirect(url_for("auth.login"), shop=None)
 
     
     # User is authenticated - allow access even without shop (disconnected state)
@@ -501,166 +504,4 @@ def disconnect_store():
         logger.info(f"Store {store.shop_url} disconnected successfully for user {user.id}")
         
         # SELECTIVE CLEAR: Remove only Shopify-specific session keys
-        # Keep user logged in (preserve _user_id, _fresh, etc.)
-        shopify_keys = ['current_shop', 'access_token', 'shop_domain', 'shop_url', 'host', 'hmac']
-        for key in shopify_keys:
-            session.pop(key, None)
-        
-        logger.info(f"Shopify session keys cleared - user {user.id} remains logged in")
-        
-        # Redirect WITHOUT shop/host parameters to avoid App Bridge 404
-        return redirect(url_for("shopify.shopify_settings", success="Store disconnected successfully! You can now reconnect."))
-        
-    except Exception as e:
-        logger.error(f"Error disconnecting store: {e}", exc_info=True)
-        db.session.rollback()
-        # SELECTIVE CLEAR even on error - keep user logged in
-        shopify_keys = ['current_shop', 'access_token', 'shop_domain', 'shop_url', 'host', 'hmac']
-        for key in shopify_keys:
-            session.pop(key, None)
-        return redirect(url_for("shopify.shopify_settings", error=f"Error disconnecting store: {str(e)}"))
-
-
-@shopify_bp.route("/settings/shopify/cancel", methods=["POST"])
-def cancel_subscription():
-    """Cancel user's Shopify subscription - works in both embedded and standalone modes"""
-    import os
-
-    import requests
-
-    from shopify_utils import normalize_shop_url
-    
-    shop = request.form.get("shop") or request.args.get("shop", "")
-    if shop:
-        shop = normalize_shop_url(shop)
-
-    host = request.form.get("host") or request.args.get("host", "")
-
-    # Get authenticated user (works for both embedded and standalone)
-    user = None
-    try:
-        if current_user.is_authenticated:
-            user = current_user
-        elif shop:
-            # Try to find user from shop (for embedded apps)
-            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
-            if store and store.user:
-                user = store.user
-    except Exception as e:
-        logger.error(f"Error finding user in cancel_subscription: {e}", exc_info=True)
-        settings_url = url_for(
-            "shopify.shopify_settings",
-            error="Authentication error occurred. Please try again.",
-            shop=shop,
-            host=host,
-        )
-        return safe_redirect(settings_url, shop=shop, host=host)
-
-    if not user:
-        logger.warning(f"Cancel subscription: No user found via shop lookup")
-        
-        # CRITICAL FIX: Check Flask-Login session
-        if current_user.is_authenticated:
-            user = current_user
-            logger.info(f"✅ Using authenticated current_user {user.id} for cancel_subscription")
-        else:
-            # Not authenticated
-            settings_url = url_for(
-                "shopify.shopify_settings",
-                error="Please log in to cancel your subscription.",
-                shop=shop,
-                host=host,
-            )
-            return safe_redirect(settings_url, shop=shop, host=host)
-
-    if not user.is_subscribed:
-        settings_url = url_for(
-            "shopify.shopify_settings",
-            error="No active subscription found.",
-            shop=shop,
-            host=host,
-        )
-        return safe_redirect(settings_url, shop=shop, host=host)
-
-    # Get user's Shopify store
-    store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
-    if not store:
-        settings_url = url_for(
-            "shopify.shopify_settings",
-            error="No Shopify store connected.",
-            shop=shop,
-            host=host,
-        )
-        return safe_redirect(settings_url, shop=shop, host=host)
-
-    if not store.charge_id:
-        # No charge_id but marked as subscribed - just update the flag
-        user.is_subscribed = False
-        db.session.commit()
-        settings_url = url_for(
-            "shopify.shopify_settings",
-            success="Subscription status updated.",
-            shop=shop,
-            host=host,
-        )
-        return safe_redirect(settings_url, shop=shop, host=host)
-
-    try:
-        # Use the centralized billing logic (GraphQL)
-        from billing import cancel_app_subscription
-
-        result = cancel_app_subscription(
-            store.shop_url, store.get_access_token() or "", store.charge_id
-        )
-
-        if result.get("success"):
-            user.is_subscribed = False
-            store.charge_id = None
-            db.session.commit()
-
-            logger.info(f"Subscription cancelled for {store.shop_url}")
-
-            # Send cancellation email
-            try:
-                from email_service import send_cancellation_email
-
-                send_cancellation_email(user.email)
-            except Exception as e:
-                logger.error(f"Failed to send cancellation email: {e}", exc_info=True)
-
-            settings_url = url_for(
-                "shopify.shopify_settings",
-                success="Subscription cancelled successfully. You will retain access until the end of your billing period.",
-                shop=shop,
-                host=host,
-            )
-            return safe_redirect(settings_url, shop=shop, host=host)
-        else:
-            error_msg = result.get("error", "Unknown error")
-            logger.error(f"Failed to cancel Shopify subscription: {error_msg}")
-            settings_url = url_for(
-                "shopify.shopify_settings",
-                error="Failed to cancel subscription. Please try again or contact support.",
-                shop=shop,
-                host=host,
-            )
-            return safe_redirect(settings_url, shop=shop, host=host)
-
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Request error during cancellation: {e}")
-        settings_url = url_for(
-            "shopify.shopify_settings",
-            error=f"Network error: {str(e)}",
-            shop=shop,
-            host=host,
-        )
-        return safe_redirect(settings_url, shop=shop, host=host)
-    except Exception as e:
-        logger.error(f"Unexpected error during cancellation: {e}")
-        settings_url = url_for(
-            "shopify.shopify_settings",
-            error="An unexpected error occurred. Please contact support.",
-            shop=shop,
-            host=host,
-        )
-        return safe_redirect(settings_url, shop=shop, host=host)
+        # Keep user logged in (preserve _user_id
