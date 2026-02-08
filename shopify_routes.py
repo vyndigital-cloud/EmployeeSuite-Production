@@ -575,7 +575,9 @@ def disconnect_store():
 
         return redirect(
             url_for(
-                "shopify.shopify_settings", success="Store disconnected successfully."
+                "shopify.shopify_settings",
+                success="Store disconnected successfully.",
+                shop=shop,
             )
         )
 
