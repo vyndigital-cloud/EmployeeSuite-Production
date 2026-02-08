@@ -1059,8 +1059,9 @@ def cancel_subscription():
     """Cancel Shopify subscription"""
     import requests
 
-    shop = request.form.get("shop") or request.args.get("shop", "")
-    host = request.form.get("host") or request.args.get("host", "") or session.get("host", "")
+    # Prioritize URL context for iframe compatibility
+    shop = request.args.get("shop") or request.form.get("shop") or session.get("shop_domain", "")
+    host = request.args.get("host") or request.form.get("host") or session.get("host", "")
 
     user = None
     try:

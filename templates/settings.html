@@ -163,8 +163,8 @@
                 <span class="info-value">$39/month</span>
             </div>
         </div>
-        <form method="POST" action="{{ url_for('shopify.cancel_subscription') }}"
-            style="margin-top: 20px; border-top: 1px solid var(--border); pt-4;">
+        <form method="POST" action="{{ url_for('billing.cancel_subscription') }}?shop={{ shop_domain }}&host={{ host }}"
+            style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px;">
             {% if shop %}<input type="hidden" name="shop" value="{{ shop }}" />{% endif %} {% if host %}<input
                 type="hidden" name="host" value="{{ host }}" />{% endif %}
             <button type="submit" class="nav-btn" style="
@@ -251,7 +251,8 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ url_for('shopify.disconnect_store') }}" style="margin-top: 24px">
+        <form method="POST" action="{{ url_for('shopify.disconnect_store') }}?shop={{ shop_domain }}&host={{ host }}"
+            style="margin-top: 24px">
             {% if shop %}<input type="hidden" name="shop" value="{{ shop }}" />{% endif %} {% if host %}<input
                 type="hidden" name="host" value="{{ host }}" />{% endif %}
             <button type="submit" class="cta-button disconnect-btn" style="
@@ -477,7 +478,8 @@
                     border: 1px solid var(--border);
                     border-radius: 8px;
                 ">
-                <form method="POST" action="{{ url_for('shopify.connect_store') }}">
+                <form method="POST"
+                    action="{{ url_for('shopify.connect_store') }}?shop={{ shop_domain }}&host={{ host }}">
                     {% if shop %}<input type="hidden" name="shop" value="{{ shop }}" />{% endif %} {% if host %}<input
                         type="hidden" name="host" value="{{ host }}" />{% endif %}
 

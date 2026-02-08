@@ -174,11 +174,11 @@ def connect_store():
     access_token = request.form.get("access_token", "").strip()
     from shopify_utils import normalize_shop_url
 
-    shop = request.form.get("shop") or request.args.get("shop", "")
+    shop = request.args.get("shop") or request.form.get("shop") or request.args.get("shop", "")
     if shop:
         shop = normalize_shop_url(shop)
 
-    host = request.form.get("host") or request.args.get("host", "")
+    host = request.args.get("host") or request.form.get("host") or request.args.get("host", "")
 
     # Get authenticated user (works for both embedded and standalone)
     user = None
@@ -460,15 +460,16 @@ def disconnect_store():
 
     from shopify_utils import normalize_shop_url
 
-    shop = (
-        request.form.get("shop") or request.args.get("shop") or session.get("shop", "")
-    )
+    # Prioritize context from URL to survive iframe session blocks
+    shop = request.args.get("shop") or request.form.get("shop") or session.get("shop_domain")
     if shop:
         shop = normalize_shop_url(shop)
 
-    host = (
-        request.form.get("host") or request.args.get("host") or session.get("host", "")
-    )
+    host = request.args.get("host") or request.form.get("host") or session.get("host")
+
+    if not shop:
+        logger.warning("Disconnect: No shop context found - redirecting with error")
+        return redirect(url_for("shopify.shopify_settings", error="Shop context lost"))
 
     # Get authenticated user - PRIORITIZE current_user
     user = None
