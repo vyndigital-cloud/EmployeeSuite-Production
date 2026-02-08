@@ -28,8 +28,14 @@ _CONFIG_CACHE = {
     "SESSION_USE_SIGNER": True,
     "SESSION_KEY_PREFIX": "missioncontrol:session:",
     "SESSION_REDIS": None,  # Will be set in app_factory if using redis
-    # Allow over-riding session type for local/testing
     "SESSION_TYPE_FORCE": os.getenv("SESSION_TYPE", ""),
+    
+    # Global Cookie Hardening (Fix 14)
+    "SESSION_COOKIE_SAMESITE": "None",
+    "SESSION_COOKIE_SECURE": True,
+    "REMEMBER_COOKIE_SAMESITE": "None",
+    "REMEMBER_COOKIE_SECURE": True,
+    "SESSION_COOKIE_HTTPONLY": True,
 }
 
 # Critical Security Check

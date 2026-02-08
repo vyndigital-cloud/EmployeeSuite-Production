@@ -563,6 +563,7 @@ def disconnect_store():
                 "shopify.shopify_settings",
                 error="No active store found to disconnect.",
                 shop=shop,
+                host=host,
             )
         )
 
@@ -600,6 +601,7 @@ def disconnect_store():
                 "shopify.shopify_settings",
                 success="Disconnected.",
                 shop=shop_domain,
+                host=host,
             )
         )
 

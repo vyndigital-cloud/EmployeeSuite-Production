@@ -314,56 +314,15 @@ def install():
     # SIMPLEST SOLUTION: If embedded, show a link that opens in new window
     # No JavaScript, no redirects, no App Bridge complexity - just a simple link
     # This avoids ALL iframe loading issues
+    # If embedded context detected, use JavaScript to breakout of iframe for OAuth
     if is_embedded:
-        # If we have host, use it. Otherwise, try to extract from Referer or use fallback
-        if not host:
-            # Try one more time to extract from Referer URL params
-            referer = request.headers.get("Referer", "")
-            if referer:
-                from urllib.parse import parse_qs, urlparse
-
-                try:
-                    parsed = urlparse(referer)
-                    query_params = parse_qs(parsed.query)
-                    if "host" in query_params:
-                        host = query_params["host"][0]
-                        logger.info(f"Extracted host from Referer: {host[:20]}...")
-                except Exception:
-                    pass
-
-        logger.info(
-            f"Embedded OAuth install detected for {shop}, showing link to open OAuth in new window"
-        )
-
-        # SIMPLEST FIX: Just show a link that opens in a new window
-        # No JavaScript redirects, no App Bridge complexity - just works
-        # Restore manual button - automatic redirects are often blocked in iframes
+        logger.info(f"➡️ Embedded OAuth install detected for {shop}, using window.top.location.href breakout")
         from flask import render_template_string
-
         return render_template_string(f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <title>Connect Shopify - Employee Suite</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <style>
-                body {{ font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f6f6f7; }}
-                .card {{ background: white; padding: 32px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; max-width: 400px; }}
-                h1 {{ font-size: 20px; margin-bottom: 12px; color: #202223; }}
-                p {{ font-size: 14px; color: #6d7175; margin-bottom: 24px; line-height: 1.5; }}
-                .btn {{ background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; display: inline-block; }}
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h1>Connect Your Store</h1>
-                <p>Click the button below to authorize Employee Suite to manage your orders and inventory.</p>
-                <a href="{full_auth_url}" target="_top" class="btn">Connect Your Shopify Store →</a>
-                <div style="margin-top: 16px; font-size: 12px; color: #8c9196;">This will open the Shopify authorization screen.</div>
-            </div>
-        </body>
-        </html>
+        <script type='text/javascript'>
+          window.top.location.href = "{full_auth_url}";
+        </script>
+        <p>Redirecting to Shopify for authorization...</p>
         """)
 
     # Non-embedded: regular redirect works fine
