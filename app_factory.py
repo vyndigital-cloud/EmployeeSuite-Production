@@ -39,28 +39,7 @@ def create_app():
         'SESSION_KEY_PREFIX': 'missioncontrol:session:',
     })
     
-    # Initialize Server-Side Sessions
-    try:
-        from flask_session import Session
-        import redis
-        
-        if os.getenv('REDIS_URL'):
-            app.config['SESSION_TYPE'] = 'redis'
-            app.config['SESSION_REDIS'] = redis.from_url(os.getenv('REDIS_URL'))
-            app.logger.info("🚀 Using REDIS for session storage")
-        else:
-            app.config['SESSION_TYPE'] = 'sqlalchemy'
-            from models import db
-            app.config['SESSION_SQLALCHEMY'] = db
-            app.config['SESSION_SQLALCHEMY_TABLE'] = 'sessions'
-            app.logger.info("💾 Using DATABASE (SQLAlchemy) for session storage")
-            
-        Session(app)
-    except Exception as e:
-        app.logger.warning(f"Failed to initialize server-side sessions, falling back to client-side: {e}")
-
-    
-    # Initialize database with error handling
+    # Initialize database with error handling FIRST
     try:
         from models import db
         db.init_app(app)
@@ -95,6 +74,41 @@ def create_app():
         from flask_sqlalchemy import SQLAlchemy
         db = SQLAlchemy()
         db.init_app(app)
+
+    # Initialize Server-Side Sessions AFTER database is ready
+    try:
+        from flask_session import Session
+        import redis
+        
+        if os.getenv('REDIS_URL'):
+            app.config['SESSION_TYPE'] = 'redis'
+            app.config['SESSION_REDIS'] = redis.from_url(os.getenv('REDIS_URL'))
+            app.logger.info("🚀 Using REDIS for session storage")
+        else:
+            app.config['SESSION_TYPE'] = 'sqlalchemy'
+            app.config['SESSION_SQLALCHEMY'] = db  # db is now initialized!
+            app.config['SESSION_SQLALCHEMY_TABLE'] = 'sessions'
+            app.logger.info("💾 Using DATABASE (SQLAlchemy) for session storage")
+            
+            # Create sessions table if it doesn't exist
+            with app.app_context():
+                try:
+                    from sqlalchemy import inspect
+                    inspector = inspect(db.engine)
+                    if 'sessions' not in inspector.get_table_names():
+                        app.logger.info("🔧 Creating sessions table...")
+                        # Flask-Session will create the table automatically
+                        db.create_all()
+                        app.logger.info("✅ Sessions table created")
+                except Exception as table_error:
+                    app.logger.warning(f"Could not verify sessions table: {table_error}")
+            
+        Session(app)
+        app.logger.info("✅ Server-side sessions initialized successfully")
+    except Exception as e:
+        app.logger.error(f"❌ CRITICAL: Failed to initialize server-side sessions: {e}")
+        app.logger.error("⚠️  Sessions will NOT persist across worker restarts!")
+
 
     
     # Initialize login manager
