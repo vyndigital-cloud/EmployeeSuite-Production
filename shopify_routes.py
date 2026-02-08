@@ -35,6 +35,18 @@ def shopify_settings():
     """Shopify settings page - works in both embedded and standalone modes"""
 
     from shopify_utils import normalize_shop_url
+    from session_debug import log_session_state, check_cookie_compatibility
+    
+    # DEBUG: Log session state to diagnose iframe session amnesia
+    log_session_state("shopify_settings - START")
+    cookie_compat = check_cookie_compatibility()
+    
+    if cookie_compat.get('cookies_likely_blocked'):
+        logger.error(
+            "🚨 CRITICAL: Cookies likely blocked in this context! "
+            f"HTTPS: {cookie_compat.get('is_https')}, "
+            f"Embedded: {cookie_compat.get('is_embedded')}"
+        )
     
     # Normalize shop URL first thing
     shop = request.args.get("shop", "")
@@ -42,6 +54,7 @@ def shopify_settings():
         shop = normalize_shop_url(shop)
 
     host = request.args.get("host", "")
+
     
     # ============================================================================
     # HARD-LINK VERIFICATION: Ensure session matches database
@@ -98,18 +111,28 @@ def shopify_settings():
 
     # Handle different authentication scenarios
     if not user:
-        logger.warning(f"⚠️ NO USER FOUND - Redirecting to auth flow")
+        logger.warning(f"⚠️ NO USER FOUND - Need authentication")
+        
+        # Import the App Bridge breakout utility
+        from app_bridge_breakout import iframe_safe_redirect
+        
         if shop:
             # Embedded app with shop but no user - start OAuth
             install_url = f"/oauth/install?shop={shop}"
             if host:
                 install_url += f"&host={host}"
-            logger.info(f"No user found for shop {shop}, redirecting to OAuth install: {install_url}")
-            return redirect(install_url)
+            
+            logger.info(f"No user found for shop {shop}, using iframe-safe redirect to OAuth: {install_url}")
+            
+            # Use iframe-safe redirect to prevent session amnesia
+            return iframe_safe_redirect(install_url, shop=shop)
         else:
             # No user and no shop - redirect to login
-            logger.info(f"No user found and no shop context, redirecting to login")
-            return redirect(url_for("auth.login"))
+            logger.info(f"No user found and no shop context, using iframe-safe redirect to login")
+            
+            # Use iframe-safe redirect to prevent session amnesia
+            return iframe_safe_redirect(url_for("auth.login"), shop=None)
+
     
     # User is authenticated - allow access even without shop (disconnected state)
     logger.info(f"✅ User {user.id} authenticated - allowing access to settings")
