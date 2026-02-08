@@ -3,7 +3,7 @@ Simple App Factory
 """
 import logging
 import os
-from flask import Flask
+from flask import Flask, request
 
 def create_app():
     """Create Flask app with comprehensive error handling"""
@@ -443,6 +443,8 @@ def create_app():
         SAFARI FIX: Ensure all cookies have SameSite=None; Secure for iframe compatibility.
         Critical for embedded Shopify apps in Safari which blocks third-party cookies by default.
         """
+        from flask import request
+        
         # Only apply to embedded app requests
         if request.args.get('embedded') or request.args.get('host'):
             # Force SameSite=None on session cookie
