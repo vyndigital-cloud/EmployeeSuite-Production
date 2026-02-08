@@ -111,8 +111,27 @@ def shopify_settings():
 
     # Handle different authentication scenarios
     if not user:
-        logger.warning(f"⚠️ NO USER FOUND - Need authentication")
+        logger.warning(f"⚠️ NO USER FOUND in shopify_settings")
         
+        # CRITICAL FIX: Check Flask-Login session BEFORE any redirect
+        if current_user.is_authenticated:
+            # User IS authenticated via Flask-Login but we couldn't find them via shop lookup
+            # This is VALID - they're logged in but have no shop connected yet
+            logger.info(f"✅ User {current_user.id} is authenticated via Flask-Login but no shop linked")
+            
+            # BREAK THE LOOP: Render settings page with "Connect Store" UI
+            # The template already has the connection forms (lines 186-280 in settings.html)
+            return render_template(
+                "settings.html",
+                store=None,  # No store connected - will show "Connect Store" section
+                success=None,
+                error=None,  # Don't show error - this is expected state
+                shop=shop or "",
+                host=host or "",
+                is_subscribed=current_user.is_subscribed,
+            )
+        
+        # User is NOT authenticated via Flask-Login either
         # Import the App Bridge breakout utility
         from app_bridge_breakout import iframe_safe_redirect
         
@@ -122,15 +141,11 @@ def shopify_settings():
             if host:
                 install_url += f"&host={host}"
             
-            logger.info(f"No user found for shop {shop}, using iframe-safe redirect to OAuth: {install_url}")
-            
-            # Use iframe-safe redirect to prevent session amnesia
+            logger.info(f"No user found for shop {shop}, redirecting to OAuth: {install_url}")
             return iframe_safe_redirect(install_url, shop=shop)
         else:
-            # No user and no shop - redirect to login
-            logger.info(f"No user found and no shop context, using iframe-safe redirect to login")
-            
-            # Use iframe-safe redirect to prevent session amnesia
+            # No user, no shop, not authenticated - redirect to login
+            logger.info(f"No authentication found, redirecting to login")
             return iframe_safe_redirect(url_for("auth.login"), shop=None)
 
     
@@ -187,14 +202,22 @@ def connect_store():
         return safe_redirect(settings_url, shop=shop, host=host)
 
     if not user:
-        from urllib.parse import urlencode
-        params = {
-            "error": "Authentication required",
-            "shop": shop or "",
-            "host": host or ""
-        }
-        settings_url = url_for("shopify.shopify_settings") + '?' + urlencode({k: v for k, v in params.items() if v})
-        return safe_redirect(settings_url, shop=shop, host=host)
+        logger.warning(f"Connect store: No user found via shop lookup")
+        
+        # CRITICAL FIX: Check Flask-Login session
+        if current_user.is_authenticated:
+            user = current_user
+            logger.info(f"✅ Using authenticated current_user {user.id} for connect_store")
+        else:
+            # Not authenticated at all
+            from urllib.parse import urlencode
+            params = {
+                "error": "Please log in to connect your store.",
+                "shop": shop or "",
+                "host": host or ""
+            }
+            settings_url = url_for("shopify.shopify_settings") + '?' + urlencode({k: v for k, v in params.items() if v})
+            return safe_redirect(settings_url, shop=shop, host=host)
 
     # Input validation
     if not shop_url or not access_token:
@@ -442,12 +465,18 @@ def disconnect_store():
         return redirect(url_for("shopify.shopify_settings", error="Authentication error occurred. Please try again."))
 
     if not user:
-        logger.warning(f"Disconnect failed: No user found (shop={shop})")
-        # SELECTIVE CLEAR - keep user logged in
-        shopify_keys = ['current_shop', 'access_token', 'shop_domain', 'shop_url', 'host', 'hmac']
-        for key in shopify_keys:
-            session.pop(key, None)
-        return redirect(url_for("shopify.shopify_settings", error="Please log in to disconnect your store."))
+        logger.warning(f"Disconnect: No user found via shop lookup")
+        
+        # CRITICAL FIX: Check Flask-Login session
+        if current_user.is_authenticated:
+            user = current_user
+            logger.info(f"✅ Using authenticated current_user {user.id} for disconnect_store")
+        else:
+            # Not authenticated - clear Shopify keys and redirect
+            shopify_keys = ['current_shop', 'access_token', 'shop_domain', 'shop_url', 'host', 'hmac']
+            for key in shopify_keys:
+                session.pop(key, None)
+            return redirect(url_for("shopify.shopify_settings", error="Please log in to disconnect your store."))
 
     # Find the user's active store
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
@@ -528,13 +557,21 @@ def cancel_subscription():
         return safe_redirect(settings_url, shop=shop, host=host)
 
     if not user:
-        settings_url = url_for(
-            "shopify.shopify_settings",
-            error="Authentication required",
-            shop=shop,
-            host=host,
-        )
-        return safe_redirect(settings_url, shop=shop, host=host)
+        logger.warning(f"Cancel subscription: No user found via shop lookup")
+        
+        # CRITICAL FIX: Check Flask-Login session
+        if current_user.is_authenticated:
+            user = current_user
+            logger.info(f"✅ Using authenticated current_user {user.id} for cancel_subscription")
+        else:
+            # Not authenticated
+            settings_url = url_for(
+                "shopify.shopify_settings",
+                error="Please log in to cancel your subscription.",
+                shop=shop,
+                host=host,
+            )
+            return safe_redirect(settings_url, shop=shop, host=host)
 
     if not user.is_subscribed:
         settings_url = url_for(
