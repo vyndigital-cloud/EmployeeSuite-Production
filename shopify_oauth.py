@@ -286,15 +286,23 @@ def install():
     if is_embedded:
         logger.info(f"➡️ Embedded OAuth install detected for {shop}, using App Bridge v3 breakout")
         return f'''
-        <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
-        <script>
-            var app = window['app-bridge'].createApp({{
-                apiKey: "{SHOPIFY_API_KEY}",
-                host: "{host}"
-            }});
-            window.location.href = "{full_auth_url}";
-        </script>
-        <p>Redirecting to Shopify for authorization...</p>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+            <script>
+                const authUrl = "{full_auth_url}";
+                if (window.top !== window.self) {{
+                    window.top.location.href = authUrl;
+                }} else {{
+                    window.location.href = authUrl;
+                }}
+            </script>
+        </head>
+        <body>
+            <p>Redirecting to Shopify for authentication... <a href="{full_auth_url}">Click here if you are not redirected.</a></p>
+        </body>
+        </html>
         ''', 200
 
     # Non-embedded: regular redirect works fine
@@ -303,21 +311,6 @@ def install():
     logger.info(f"   - URL: {full_auth_url[:100]}...")
     logger.info("=== OAUTH INSTALL DEBUG END ===")
     
-    if is_embedded:
-        # Extra safety: even if it reached here, if is_embedded is true, use breakout
-        return f"""
-        <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
-        <script>
-            var AppBridge = window['app-bridge'];
-            var actions = AppBridge.actions;
-            var app = AppBridge.createApp({{
-                apiKey: "{SHOPIFY_API_KEY}",
-                host: "{host}",
-            }});
-            window.location.href = "{full_auth_url}";
-        </script>
-        """, 200
-        
     return redirect(full_auth_url)
 
 

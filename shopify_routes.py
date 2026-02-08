@@ -525,14 +525,23 @@ def disconnect_store():
         )
         
         return f'''
-            <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
-            <script>
-                var app = window['app-bridge'].createApp({{
-                    apiKey: "{current_app.config['SHOPIFY_API_KEY']}",
-                    host: "{host}"
-                }});
-                window.location.href = "{target_url}";
-            </script>
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+                <script>
+                    const targetUrl = "{target_url}";
+                    if (window.top !== window.self) {{
+                        window.top.location.href = targetUrl;
+                    }} else {{
+                        window.location.href = targetUrl;
+                    }}
+                </script>
+            </head>
+            <body>
+                <p>Redirecting... <a href="{target_url}">Click here if you are not redirected.</a></p>
+            </body>
+            </html>
         ''', 200
 
     except Exception as e:
