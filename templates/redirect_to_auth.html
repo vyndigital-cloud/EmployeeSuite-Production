@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Redirecting to Authentication...</title>
+    <script>
+        // Simple Top-Level breakout for Shopify Embedded Apps
+        window.top.location.href = "{{ auth_url|safe }}";
+    </script>
+</head>
+
+<body>
+    <div
+        style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; color: #6d7175;">
+        <div>
+            <p>Redirecting you to the authentication page...</p>
+            <p><a href="{{ auth_url|safe }}" target="_top">Click here if you are not redirected automatically</a></p>
+        </div>
+    </div>
+</body>
+
+</html>

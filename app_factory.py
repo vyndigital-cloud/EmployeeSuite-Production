@@ -172,6 +172,9 @@ def create_app():
                         f"🔗 HMAC AUTH SUCCESS: User {store.user.id} authenticated for shop {shop}."
                     )
                     return store.user
+                else:
+                    app.logger.error(f"HMAC Valid for {shop} but associated user is missing.")
+                    return None
 
             return None
     except Exception as e:
@@ -484,15 +487,17 @@ def create_app():
             shop = url_shop or session_shop
             host = request.args.get("host") or session.get("host")
             
-            # If we're clearly in a Shopify iframe (shop + hmac/session), return 401 instead of 302
-            if shop and (request.args.get("hmac") or session.get("shop_domain")):
-                app.logger.warning(f"Shopify context detected: Returning 401 instead of 302 for {request.path}")
-                return jsonify({
-                    "error": "Authentication required", 
-                    "action": "refresh", 
-                    "shop": shop,
-                    "host": host
-                }), 401
+            # If we're clearly in a Shopify iframe (shop + hmac/session), trigger TOP-LEVEL ESCAPE HATCH
+            if shop and (request.args.get("hmac") or session_shop):
+                from flask import render_template
+                
+                app.logger.warning(f"Shopify context detected for anonymous user: Triggering BREAKOUT for {request.path}")
+                
+                # Construct the direct re-auth URL
+                auth_url = url_for('auth.login', shop=shop, host=host, _external=True)
+                
+                # Render the breakout page to force a top-level redirect
+                return render_template("redirect_to_auth.html", auth_url=auth_url), 401
 
             app.logger.warning(f"Blocked anonymous access to {request.path}")
             return redirect(url_for('auth.login', shop=shop, host=host))
