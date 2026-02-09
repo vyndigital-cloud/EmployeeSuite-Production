@@ -394,48 +394,44 @@ def home():
         # Default values (avoid expensive calculations)
         if user:
             try:
-                # CRITICAL FIX: Query fresh DB data to avoid stale session issues
-                # Force refresh from database to get current subscription status
-                db.session.refresh(user)
+                # 10k GHOST SHIP: Remove fresh DB check. Trust the cache + webhooks.
+                has_access = user.has_access()
+                trial_active = user.is_trial_active()
+                is_subscribed = user.is_subscribed
                 
-                # Re-query subscription status from database (not cached user object)
-                fresh_user = db.session.query(User).filter_by(id=user.id).first()
-                if fresh_user:
-                    has_access = fresh_user.has_access()
-                    trial_active = fresh_user.is_trial_active()
-                    
-                    logger.info(
-                        f"🔍 FRESH DB CHECK: User {fresh_user.id} - "
-                        f"has_access={has_access}, trial_active={trial_active}, "
-                        f"is_subscribed={fresh_user.is_subscribed}"
-                    )
-                    
-                    # SAFE datetime calculation
-                    if trial_active and hasattr(fresh_user, 'trial_ends_at') and fresh_user.trial_ends_at:
-                        try:
-                            days_left = max(0, (fresh_user.trial_ends_at - datetime.utcnow()).days)
-                        except (AttributeError, TypeError):
-                            days_left = 0
-                    else:
+                # SAFE datetime calculation
+                if trial_active and hasattr(user, 'trial_ends_at') and user.trial_ends_at:
+                    try:
+                        days_left = max(0, (user.trial_ends_at - datetime.utcnow()).days)
+                    except (AttributeError, TypeError):
                         days_left = 0
-                        
-                    is_subscribed = getattr(fresh_user, 'is_subscribed', False)
-                    has_shopify = True  # Assume true if we have a user
                 else:
-                    has_access, trial_active, days_left, is_subscribed, has_shopify = (
-                        False, False, 0, False, False
-                    )
+                    days_left = 0
+                    
+                has_shopify = True  # Assume true if we have a user
+                
+                logger.debug(
+                    f"🏠 Ghost Ship Check: User {user.id} - "
+                    f"has_access={has_access}, trial_active={trial_active}"
+                )
             except Exception as user_error:
                 logger.error(f"Error processing user data: {user_error}")
-                # Use safe defaults
                 has_access, trial_active, days_left, is_subscribed, has_shopify = (
-                    False, False, 0, False, False
+                    False,
+                    False,
+                    0,
+                    False,
+                    False,
                 )
         else:
+            # Guest or unauthenticated store access
             has_access, trial_active, days_left, is_subscribed, has_shopify = (
-                False, False, 0, False, False
+                False,
+                False,
+                0,
+                False,
+                False,
             )
-
         # PERFORMANCE: Use static quick stats (update via AJAX later)
         quick_stats = {
             "has_data": False,

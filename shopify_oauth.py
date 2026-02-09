@@ -652,8 +652,8 @@ def _handle_oauth_callback():
         f"✅ Context prepared: shop={shop}, user_id={user.id}, host={bool(host) if host else False}"
     )
 
-    # Register mandatory compliance webhooks (Shopify requirement)
-    register_compliance_webhooks(shop, access_token)
+    # Compliance webhooks (GDPR) are handled manually in Partners Dashboard
+    # register_compliance_webhooks(shop, access_token)
 
     # LEVEL 100: KILLED login_user(). Authentication is now per-request via JWT.
     # We only store the shop/host in the session as a hint for the initial redirect.
@@ -850,76 +850,6 @@ def get_shop_info(shop, access_token):
     return None
 
 
-def register_compliance_webhooks(shop, access_token):
-    """
-    Register mandatory compliance webhooks via Admin API
-    This ensures webhooks are registered even if shopify.app.toml isn't deployed via CLI
-    """
-    app_url = os.getenv(
-        "SHOPIFY_APP_URL", "https://employeesuite-production.onrender.com"
-    )
-    api_version = SHOPIFY_API_VERSION
-
-    # Mandatory compliance webhooks
-    webhooks = [
-        {
-            "topic": "customers/data_request",
-            "address": f"{app_url}/webhooks/customers/data_request",
-            "format": "json",
-        },
-        {
-            "topic": "customers/redact",
-            "address": f"{app_url}/webhooks/customers/redact",
-            "format": "json",
-        },
-        {
-            "topic": "shop/redact",
-            "address": f"{app_url}/webhooks/shop/redact",
-            "format": "json",
-        },
-    ]
-
-    headers = {
-        "X-Shopify-Access-Token": access_token,
-        "Content-Type": "application/json",
-    }
-
-    for webhook in webhooks:
-        url = f"https://{shop}/admin/api/{api_version}/webhooks.json"
-        payload = {"webhook": webhook}
-
-        try:
-            # Check if webhook already exists
-            list_url = f"https://{shop}/admin/api/{api_version}/webhooks.json?topic={webhook['topic']}"
-            list_response = requests.get(list_url, headers=headers, timeout=10)
-
-            if list_response.status_code == 200:
-                existing = list_response.json().get("webhooks", [])
-                # Check if webhook with this address already exists
-                exists = any(w.get("address") == webhook["address"] for w in existing)
-                if exists:
-                    continue  # Already registered, skip
-                    
-            # Create webhook
-            response = requests.post(url, json=payload, headers=headers, timeout=10)
-            if response.status_code in [200, 201]:
-                logger.info(
-                    f"Successfully registered compliance webhook: {webhook['topic']} for shop {shop}"
-                )
-            elif response.status_code == 404:
-                # GDPR compliance webhooks must be registered in Partners Dashboard, not via Admin API
-                # This is EXPECTED for Partner apps - webhooks are configured in shopify.app.toml
-                logger.info(
-                    f"Webhook {webhook['topic']} configured via Partners Dashboard (404 from API is expected)"
-                )
-            else:
-                logger.warning(
-                    f"Failed to register webhook {webhook['topic']}: {response.status_code} - {response.text}"
-                )
-        except Exception as e:
-            logger.error(
-                f"Error registering webhook {webhook['topic']}: {e}", exc_info=True
-            )
 
 
 def get_install_url(shop):

@@ -101,6 +101,39 @@ def app_uninstall():
         return jsonify({'error': str(e)}), 500
 
 
+@webhook_shopify_bp.route('/webhooks/app_subscriptions/cancel', methods=['POST'])
+@log_errors("WEBHOOK_ERROR")
+def app_subscription_cancel():
+    """Explicit handler for app subscription cancellation"""
+    try:
+        # Verify webhook signature
+        hmac_header = request.headers.get('X-Shopify-Hmac-Sha256')
+        raw_data = request.get_data(as_text=False)
+        if not verify_shopify_webhook(raw_data, hmac_header):
+            return jsonify({'error': 'Invalid signature'}), 401
+        
+        data = request.get_json()
+        shop_domain = request.headers.get('X-Shopify-Shop-Domain', '')
+        
+        # Find the store
+        store = ShopifyStore.query.filter_by(shop_url=shop_domain).first()
+        if store:
+            user = User.query.get(store.user_id)
+            if user:
+                user.is_subscribed = False
+                # Wipe cache immediately
+                if hasattr(User, '_access_cache') and user.id in User._access_cache:
+                    del User._access_cache[user.id]
+                logger.info(f"🚫 Subscription CANCELLED for shop {shop_domain}")
+            
+            db.session.commit()
+            
+        return jsonify({'status': 'success'}), 200
+    except Exception as e:
+        logger.error(f"Error handling app_subscriptions/cancel: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @webhook_shopify_bp.route('/webhooks/app_subscriptions/update', methods=['POST'])
 @log_errors("WEBHOOK_ERROR")
 def app_subscription_update():

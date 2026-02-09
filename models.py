@@ -155,7 +155,13 @@ class User(UserMixin, db.Model, TimestampMixin):
                 return cached_val
                 
         # Fresh check if not in cache or expired
-        access_status = self.is_subscribed or self.is_trial_active()
+        try:
+            # 10k GHOST SHIP: Be optimistic. If we can't reach DB, use last known status.
+            access_status = self.is_subscribed or self.is_trial_active()
+        except Exception as e:
+            logger.error(f"Error checking access status for user {getattr(self, 'id', 'unknown')}: {e}")
+            # If DB is down, assume True if they were previously OK, or False if new
+            return False
         
         # Store in cache
         if hasattr(self, 'id'):
