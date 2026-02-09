@@ -346,10 +346,9 @@ def home():
             try:
                 store = db.session.query(ShopifyStore).filter_by(shop_url=shop, is_active=True).first()
                 if not store:
-                    # No active store found - need to install via OAuth
-                    logger.info(f"Embedded app accessed without active store for {shop}, redirecting to install")
-                    install_url = f"/install?shop={shop}&host={host}"
-                    return redirect(install_url)
+                    # No active store found - send to settings where they can reconnect
+                    logger.info(f"Embedded app accessed without active store for {shop}, redirecting to settings")
+                    return redirect(url_for("shopify.shopify_settings", shop=shop, host=host))
             except Exception as db_error:
                 logger.error(f"Database error checking store: {db_error}")
                 # Continue anyway - might be a temporary DB issue

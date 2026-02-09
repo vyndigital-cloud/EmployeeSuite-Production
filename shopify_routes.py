@@ -64,7 +64,12 @@ def shopify_settings():
             logger.info(f"Identity Sync: Logging in user {store.user.id} for shop {shop}")
             login_user(store.user)
         user = store.user
+    elif current_user.is_authenticated:
+        # User is logged in but has no active store connection (e.g. after disconnect)
+        user = current_user
+        logger.info(f"Settings: Proceeding for logged-in user {user.id} without active store")
     else:
+        # Truly unauthenticated and no store found - fallback to install
         logger.warning(f"No active store found for {shop}, redirecting to install")
         from shopify_oauth import get_install_url
         install_url = get_install_url(shop)
