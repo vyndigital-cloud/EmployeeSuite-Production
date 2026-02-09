@@ -447,6 +447,11 @@ def create_app():
         if any(request.path.startswith(path) for path in whitelist):
             return
 
+        # [NEW] Allow if identity was already established by HMAC/JWT in this request
+        from flask import g
+        if getattr(g, 'current_user', None) and g.current_user.is_authenticated:
+            return
+
         # 1. Identity Integrity Check (URL vs Session vs JWT)
         url_shop = request.args.get("shop")
         session_shop = session.get("shop_domain")
@@ -473,9 +478,20 @@ def create_app():
             if request.is_json or not request.accept_mimetypes.accept_html:
                  return jsonify({"error": "Authentication required", "success": False}), 401
             
-            # For HTML requests, redirect to login
+            # For HTML requests, redirect to login (ESCAPE HATCH for Shopify)
             shop = url_shop or session_shop
             host = request.args.get("host") or session.get("host")
+            
+            # If we're clearly in a Shopify iframe (shop + hmac/session), return 401 instead of 302
+            if shop and (request.args.get("hmac") or session.get("shop_domain")):
+                app.logger.warning(f"Shopify context detected: Returning 401 instead of 302 for {request.path}")
+                return jsonify({
+                    "error": "Authentication required", 
+                    "action": "refresh", 
+                    "shop": shop,
+                    "host": host
+                }), 401
+
             app.logger.warning(f"Blocked anonymous access to {request.path}")
             return redirect(url_for('auth.login', shop=shop, host=host))
 
