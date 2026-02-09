@@ -8,6 +8,7 @@ from functools import wraps
 
 import jwt
 from flask import jsonify, request
+from flask_login import current_user
 
 # Replace the import at the top:
 try:
