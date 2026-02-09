@@ -140,9 +140,28 @@ class User(UserMixin, db.Model, TimestampMixin):
         
         return now < trial_end
 
+    # Static cache for has_access results (User ID -> (status, expiry))
+    _access_cache = {}
+
     def has_access(self) -> bool:
-        """Check if user has access (subscribed or trial active)"""
-        return self.is_subscribed or self.is_trial_active()
+        """Check if user has access (subscribed or trial active) - with 10-minute cache"""
+        import time
+        now = time.time()
+        
+        # Check class-level cache to avoid DB hit (10 min = 600s)
+        if hasattr(self, 'id') and self.id in User._access_cache:
+            cached_val, expiry = User._access_cache[self.id]
+            if now < expiry:
+                return cached_val
+                
+        # Fresh check if not in cache or expired
+        access_status = self.is_subscribed or self.is_trial_active()
+        
+        # Store in cache
+        if hasattr(self, 'id'):
+            User._access_cache[self.id] = (access_status, now + 600)
+            
+        return access_status
 
     def get_trial_days_left(self) -> int:
         """Get number of trial days remaining"""

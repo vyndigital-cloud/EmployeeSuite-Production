@@ -127,8 +127,9 @@ class ErrorLogger:
                 
                 # Add session info if available
                 if session:
-                    context['session_id'] = session.get('session_id', 'None')
-                    context['user_id'] = session.get('user_id', 'None')
+                    # Capture session ID from Flask-Session (sid) or Flask-Login (_id)
+                    context['session_id'] = getattr(session, 'sid', session.get('_id', 'None'))
+                    context['user_id'] = session.get('_user_id', 'None')
                     
                 # Add user info if available
                 if hasattr(g, 'current_user') and g.current_user:
