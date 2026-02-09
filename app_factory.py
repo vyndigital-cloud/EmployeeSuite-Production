@@ -152,8 +152,8 @@ def create_app():
                 # Ensure we get the latest active store for this shop
                 store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
                 if not store:
-                    # Fallback to most recent store if none are active
-                    store = ShopifyStore.query.filter_by(shop_url=shop).order_by(ShopifyStore.id.desc()).first()
+                    app.logger.warning(f"HMAC Valid but no active store found for {shop}. Returning None.")
+                    return None
 
                 if store and store.user:
                     # CRITICAL FIX: Explicitly set session for Safari iframe compatibility

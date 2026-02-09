@@ -73,7 +73,11 @@ def shopify_settings():
         logger.info(f"Settings: Proceeding for logged-in user {user.id} without active store")
     else:
         # Truly unauthenticated and no store found - fallback to install
-        logger.warning(f"No active store found for {shop}, redirecting to install")
+        logger.warning(f"No active store found for {shop}, purging session.")
+        from flask_login import logout_user
+        logout_user() # Force logout
+        session.clear() # Wipe the slate clean
+        
         from shopify_oauth import get_install_url
         install_url = get_install_url(shop)
         if host:
