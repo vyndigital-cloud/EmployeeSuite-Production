@@ -46,15 +46,17 @@ def shopify_settings():
     shop = getattr(request, 'shop_domain', None) or request.args.get("shop")
     host = request.args.get("host") or session.get("host")
     
+    # 🕵️ CCTV: Don't let the shop domain vanish
     if not shop:
-        # CCTV logic: Don't redirect to a blank shop!
-        # Pull from session or user record so the installer knows who it's talking to
-        shop = session.get('shop') or session.get('shop_domain')
-        if not shop and current_user.is_authenticated:
-            shop = current_user.shop_domain
-            
-        logger.warning(f"No shop context in request, preserved shop: {shop}. Redirecting to install.")
-        return redirect(url_for('oauth.install', shop=shop, host=host))
+        # Attempt to recover the shop name from the session or DB
+        shop = session.get('shop') or (current_user.shop_domain if current_user else None)
+
+    if not shop:
+        # If we STILL don't have it, log a CRITICAL failure for the CCTV
+        logger.error("🚨 CCTV CRITICAL: Identity recovery failed. Redirecting to manual login.")
+        return redirect(url_for('auth.login')) # Redirect to our manual login page
+
+    return redirect(url_for('oauth.install', shop=shop, host=host))
 
     # 2. Force identity sync: Ensure Flask-Login matches the JWT shop
     store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
