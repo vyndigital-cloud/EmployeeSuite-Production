@@ -47,12 +47,14 @@ def shopify_settings():
     host = request.args.get("host") or session.get("host")
     
     if not shop:
-        logger.warning("No shop context found in shopify_settings, redirecting to install")
-        from shopify_oauth import get_install_url
-        install_url = get_install_url(None) # get_install_url handles None
-        if host:
-            install_url += f"&host={host}"
-        return redirect(install_url)
+        # CCTV logic: Don't redirect to a blank shop!
+        # Pull from session or user record so the installer knows who it's talking to
+        shop = session.get('shop') or session.get('shop_domain')
+        if not shop and current_user.is_authenticated:
+            shop = current_user.shop_domain
+            
+        logger.warning(f"No shop context in request, preserved shop: {shop}. Redirecting to install.")
+        return redirect(url_for('oauth.install', shop=shop, host=host))
 
     # 2. Force identity sync: Ensure Flask-Login matches the JWT shop
     store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()

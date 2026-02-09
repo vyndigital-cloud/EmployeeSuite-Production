@@ -196,6 +196,16 @@ class User(UserMixin, db.Model, TimestampMixin):
         
         return len(expired_users)
 
+    @property
+    def shop_domain(self) -> Optional[str]:
+        """Convenience property for primary shop domain (myshopify.com URL)"""
+        # Look for active store first
+        store = self.shopify_stores.filter_by(is_active=True).first()
+        if not store:
+            # Fallback to any store if none active
+            store = self.shopify_stores.first()
+        return store.shop_url if store else None
+
     def __repr__(self) -> str:
         return f"<User {self.email}>"
 
