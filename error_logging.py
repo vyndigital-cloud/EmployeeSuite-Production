@@ -118,22 +118,24 @@ class ErrorLogger:
                     'endpoint': request.endpoint,
                     'remote_addr': request.remote_addr,
                     'user_agent': request.headers.get('User-Agent', 'Unknown'),
-                    'shop_domain': request.headers.get('X-Shopify-Shop-Domain') or \
+                    # LEVEL 100: Prioritize request.shop_domain populated by identity middleware
+                    'shop_domain': getattr(request, 'shop_domain', None) or \
+                                  request.headers.get('X-Shopify-Shop-Domain') or \
                                   request.args.get('shop') or \
                                   request.form.get('shop') or \
                                   session.get('shop_domain') or \
                                   session.get('current_shop') or 'None',
                 })
                 
-                # Add session info if available
-                if session:
-                    # Capture session ID from Flask-Session (sid) or Flask-Login (_id)
-                    context['session_id'] = getattr(session, 'sid', session.get('_id', 'None'))
+                # Add user info if available (Prioritize g.current_user from middleware)
+                if hasattr(g, 'current_user') and g.current_user:
+                    context['user_id'] = getattr(g.current_user, 'id', 'None')
+                    context['user_email'] = getattr(g.current_user, 'email', 'Unknown')
+                elif session:
                     context['user_id'] = session.get('_user_id', 'None')
                     
-                # Add user info if available
-                if hasattr(g, 'current_user') and g.current_user:
-                    context['user_email'] = getattr(g.current_user, 'email', 'Unknown')
+                # Stateless verification flag
+                context['is_jwt_verified'] = getattr(request, 'session_token_verified', False)
                     
         except Exception:
             # Request context not available

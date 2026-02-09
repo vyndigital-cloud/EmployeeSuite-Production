@@ -649,29 +649,15 @@ def _handle_oauth_callback():
         logger.error(f"Session save error: {session_error}")
 
     logger.info(
-        f"✅ Session bulletproofed: shop={shop}, user_id={user.id}, host={bool(host) if host else False}"
+        f"✅ Context prepared: shop={shop}, user_id={user.id}, host={bool(host) if host else False}"
     )
-    logger.info(f"✅ Session keys stored: {list(session.keys())}")
 
     # Register mandatory compliance webhooks (Shopify requirement)
     register_compliance_webhooks(shop, access_token)
 
-    # Handle redirect after OAuth - check if this is an embedded app (App Store installation)
-    # Shopify sends 'host' parameter for embedded apps
-    # Extract host BEFORE using it for login logic
-    host = request.args.get("host")
-
-    # Also check state for host (in case it was passed through from install endpoint)
-    state = request.args.get("state", "")
-    if state and "||" in state and not host:
-        # State contains shop||host format
-        parts = state.split("||", 1)
-        if len(parts) == 2:
-            host = unquote(parts[1])
-
-    # Always log user in after successful OAuth
+    # LEVEL 100: KILLED login_user(). Authentication is now per-request via JWT.
+    # We only store the shop/host in the session as a hint for the initial redirect.
     is_embedded = bool(host)
-    login_user(user, remember=not is_embedded)
 
     # Store critical session data with error handling
     try:
@@ -702,14 +688,10 @@ def _handle_oauth_callback():
         logger.error(f"Session management error: {session_error}")
         # Continue anyway - don't fail OAuth on session issues
 
-    logger.info(
-        f"Session refreshed for user {user.id} (email: {user.email}) after OAuth callback - embedded: {is_embedded}"
-    )
-
     if is_embedded:
-        logger.info(f"OAuth login for embedded app (session token auth)")
+        logger.info(f"OAuth complete for embedded context")
     else:
-        logger.info(f"OAuth login for standalone access (cookie auth)")
+        logger.info(f"OAuth complete for standalone context")
 
     # After OAuth completes, redirect to settings with success message
     logger.info("===== OAUTH FLOW COMPLETED SUCCESSFULLY =====")

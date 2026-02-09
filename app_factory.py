@@ -98,42 +98,9 @@ def create_app():
         db = SQLAlchemy()
         db.init_app(app)
 
-    # Initialize Server-Side Sessions AFTER database is ready
-    try:
-        import redis
-        from flask_session import Session
-
-        if os.getenv("REDIS_URL"):
-            app.config["SESSION_TYPE"] = "redis"
-            app.config["SESSION_REDIS"] = redis.from_url(os.getenv("REDIS_URL"))
-            app.logger.info("🚀 Using REDIS for session storage")
-        else:
-            app.config["SESSION_TYPE"] = "sqlalchemy"
-            app.config["SESSION_SQLALCHEMY"] = db  # db is now initialized!
-            app.config["SESSION_SQLALCHEMY_TABLE"] = "sessions"
-            app.logger.info("💾 Using DATABASE (SQLAlchemy) for session storage")
-
-            # Create sessions table if it doesn't exist
-            with app.app_context():
-                try:
-                    from sqlalchemy import inspect
-
-                    inspector = inspect(db.engine)
-                    if "sessions" not in inspector.get_table_names():
-                        app.logger.info("🔧 Creating sessions table...")
-                        # Flask-Session will create the table automatically
-                        db.create_all()
-                        app.logger.info("✅ Sessions table created")
-                except Exception as table_error:
-                    app.logger.warning(
-                        f"Could not verify sessions table: {table_error}"
-                    )
-
-        Session(app)
-        app.logger.info("✅ Server-side sessions initialized successfully")
-    except Exception as e:
-        app.logger.error(f"❌ CRITICAL: Failed to initialize server-side sessions: {e}")
-        app.logger.error("⚠️  Sessions will NOT persist across worker restarts!")
+    # KILLED SERVER SESSIONS: No longer using Flask-Session or Redis/SQLAlchemy sessions.
+    # We are now Level 100 Stateless JWT (Shopify Session Tokens).
+    app.config["SESSION_TYPE"] = None
 
     # Initialize login manager
     try:
@@ -467,6 +434,57 @@ def create_app():
                 },
             }
         )
+
+    # ============================================================================
+    # LEVEL 100 IDENTITY MIDDLEWARE (Stateless JWT / Context Extraction)
+    # ============================================================================
+    @app.before_request
+    def extract_identity_context():
+        """
+        Global middleware to extract identity from JWT (Authorization: Bearer <token>)
+        or Shopify Headers/Params. Populates request.shop_domain and g.current_user.
+        """
+        from flask import g, request, session
+        from models import ShopifyStore, User
+        from shopify_utils import normalize_shop_url
+        
+        # 1. Initialize g variables
+        g.current_user = None
+        
+        # 2. Extract Shop Domain from all possible sources (Prioritize Header)
+        shop = (
+            request.headers.get('X-Shopify-Shop-Domain') or
+            request.args.get('shop') or
+            request.form.get('shop') or
+            session.get('shop_domain') or
+            'None'
+        )
+        
+        if shop != 'None':
+            request.shop_domain = normalize_shop_url(shop)
+        else:
+            request.shop_domain = None
+
+        # 3. Handle Stateless JWT (Authorization Header)
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            try:
+                from session_token_verification import verify_session_token_stateless
+                payload = verify_session_token_stateless(auth_header.split(" ")[1])
+                if payload:
+                    dest = payload.get("dest", "")
+                    request.shop_domain = dest.replace("https://", "").split("/")[0]
+                    # Find user associated with this shop
+                    store = ShopifyStore.query.filter_by(shop_url=request.shop_domain, is_active=True).first()
+                    if store:
+                        g.current_user = User.query.get(store.user_id)
+            except Exception as e:
+                app.logger.debug(f"JWT stateless extraction failed: {e}")
+
+        # 4. Fallback: Logged in user from Flask-Login (if still using session fallback)
+        from flask_login import current_user
+        if not g.current_user and current_user.is_authenticated:
+            g.current_user = current_user
 
     # ============================================================================
     # IDENTITY INTEGRITY VALIDATION (Kill Rule)

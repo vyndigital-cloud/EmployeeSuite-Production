@@ -262,3 +262,38 @@ def get_shop_from_session_token():
     Should only be called after verify_session_token decorator
     """
     return getattr(request, "shop_domain", None)
+
+
+def verify_session_token_stateless(token):
+    """
+    Verify a Shopify session token without altering request state (stateless).
+    Used by middleware for global identity extraction.
+    """
+    if not token:
+        return None
+
+    try:
+        api_secret = get_api_secret()
+        current_api_key = get_normalized_api_key()
+
+        if not api_secret or not current_api_key:
+            return None
+
+        payload = jwt.decode(
+            token,
+            api_secret,
+            algorithms=["HS256"],
+            options={
+                "verify_signature": True,
+                "verify_exp": True,
+                "verify_iat": True,
+                "verify_aud": True,
+                "require": ["iss", "dest", "aud", "sub", "exp", "nbf", "iat"],
+            },
+            audience=current_api_key
+        )
+        return payload
+
+    except Exception:
+        # Silently fail for stateless extraction - fallback to other sources
+        return None
