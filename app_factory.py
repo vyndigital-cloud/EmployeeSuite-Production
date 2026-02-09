@@ -196,7 +196,6 @@ def create_app():
             "shopify_oauth",
             "oauth_bp",
         ),  # OAuth blueprint with /install and /auth/callback routes
-        ("oauth_diagnostics", "diagnostics_bp"),  # OAuth diagnostics tool
         ("shopify_routes", "shopify_bp"),
         ("billing", "billing_bp"),
         ("features_pages", "features_pages_bp"),
@@ -207,8 +206,6 @@ def create_app():
         ("faq_routes", "faq_bp"),
         ("enhanced_features", "enhanced_bp"),
         ("admin_routes", "admin_bp"),
-        ("diagnostic_routes", "diagnostic_bp"),
-        ("test_routes", "test_bp"),
     ]
 
     registered_blueprints = []
@@ -333,107 +330,6 @@ def create_app():
             <a href="/">Return to Dashboard</a>
             """), 404
 
-    # Debug route to see startup issues
-    @app.route("/debug/startup")
-    def debug_startup():
-        """Debug route to see startup issues"""
-        from flask import jsonify
-
-        return jsonify(
-            {
-                "registered_blueprints": registered_blueprints,
-                "failed_blueprints": failed_blueprints,
-                "config_keys": list(app.config.keys()),
-                "environment": os.getenv("ENVIRONMENT"),
-                "database_url": app.config.get("SQLALCHEMY_DATABASE_URI", "Not set"),
-            }
-        )
-
-    # Debug route to check OAuth routes
-    @app.route("/debug/routes")
-    def debug_routes():
-        """Debug route to see all registered routes"""
-        from flask import jsonify
-
-        routes = []
-        oauth_routes = []
-        for rule in app.url_map.iter_rules():
-            route_info = {
-                "endpoint": rule.endpoint,
-                "methods": list(rule.methods),
-                "rule": str(rule),
-            }
-            routes.append(route_info)
-
-            # Track OAuth-related routes specifically
-            if (
-                "oauth" in rule.endpoint
-                or "/install" in str(rule)
-                or "/callback" in str(rule)
-                or "/auth/callback" in str(rule)
-            ):
-                oauth_routes.append(route_info)
-
-        return jsonify(
-            {
-                "total_routes": len(routes),
-                "oauth_routes": oauth_routes,
-                "oauth_callback_exists": any(
-                    "/auth/callback" in str(rule) for rule in app.url_map.iter_rules()
-                ),
-                "install_route_exists": any(
-                    "/install" in str(rule) for rule in app.url_map.iter_rules()
-                ),
-                "all_routes": routes,
-            }
-        )
-
-    @app.route("/debug/oauth-status")
-    def debug_oauth_status():
-        """Debug OAuth blueprint and route status"""
-        from flask import jsonify
-
-        # Check if OAuth blueprint is registered
-        oauth_blueprint_registered = any(
-            bp.name == "oauth" for bp in app.blueprints.values()
-        )
-
-        # Find all OAuth-related routes
-        oauth_routes = []
-        install_routes = []
-        callback_routes = []
-
-        for rule in app.url_map.iter_rules():
-            route_info = {
-                "endpoint": rule.endpoint,
-                "rule": str(rule),
-                "methods": list(rule.methods),
-            }
-
-            if "oauth" in rule.endpoint:
-                oauth_routes.append(route_info)
-            if "install" in str(rule):
-                install_routes.append(route_info)
-            if "callback" in str(rule):
-                callback_routes.append(route_info)
-
-        return jsonify(
-            {
-                "oauth_blueprint_registered": oauth_blueprint_registered,
-                "oauth_routes_count": len(oauth_routes),
-                "oauth_routes": oauth_routes,
-                "install_routes": install_routes,
-                "callback_routes": callback_routes,
-                "auth_callback_exists": any(
-                    "/auth/callback" in str(rule) for rule in app.url_map.iter_rules()
-                ),
-                "environment_vars": {
-                    "SHOPIFY_API_KEY_set": bool(os.getenv("SHOPIFY_API_KEY")),
-                    "SHOPIFY_API_SECRET_set": bool(os.getenv("SHOPIFY_API_SECRET")),
-                    "REDIRECT_URI": os.getenv("SHOPIFY_REDIRECT_URI", "not_set"),
-                },
-            }
-        )
 
     # ============================================================================
     # LEVEL 100 IDENTITY MIDDLEWARE (Stateless JWT / Context Extraction)
@@ -690,43 +586,6 @@ def create_app():
                 app.logger.warning(f"⚠️ CCTV Watchdog encountered an issue: {e}")
                 db.session.rollback()
 
-    @app.before_request
-    def debug_all_requests():
-        """Debug all incoming requests to identify 404s"""
-        from flask import request
-
-        if (
-            request.path.startswith("/install")
-            or request.path.startswith("/auth/callback")
-            or request.path.startswith("/callback")
-        ):
-            app.logger.info(
-                f"🔍 CRITICAL ROUTE REQUEST: {request.method} {request.path}"
-            )
-            app.logger.info(f"  - Full URL: {request.url}")
-            app.logger.info(f"  - Args: {dict(request.args)}")
-            app.logger.info(f"  - Headers: {dict(request.headers)}")
-            app.logger.info(f"  - Referrer: {request.referrer}")
-
-    @app.after_request
-    def debug_responses(response):
-        """Debug responses for OAuth routes"""
-        from flask import request
-
-        if (
-            request.path.startswith("/install")
-            or request.path.startswith("/auth/callback")
-            or request.path.startswith("/callback")
-        ):
-            app.logger.info(
-                f"🔍 CRITICAL ROUTE RESPONSE: {response.status_code} for {request.path}"
-            )
-            if response.status_code == 404:
-                app.logger.error(f"❌ 404 ERROR: Route {request.path} not found!")
-                app.logger.error(
-                    f"  - Available routes: {[str(rule) for rule in app.url_map.iter_rules()]}"
-                )
-        return response
 
     return app
 
