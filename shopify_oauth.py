@@ -656,7 +656,11 @@ def _handle_oauth_callback():
     # register_compliance_webhooks(shop, access_token)
 
     # LEVEL 100: KILLED login_user(). Authentication is now per-request via JWT.
-    # We only store the shop/host in the session as a hint for the initial redirect.
+    # HARDENED RECOVERY: We still need a session for the initial redirect landing.
+    # Since OAuth is fully verified (HMAC + Code), login_user is safe here.
+    from flask_login import login_user
+    login_user(user, remember=False)
+    
     is_embedded = bool(host)
 
     # Store critical session data with error handling
@@ -665,7 +669,8 @@ def _handle_oauth_callback():
         session["shop"] = shop
         session["current_shop"] = shop
         session["shop_domain"] = shop.replace("https://", "").replace("http://", "")
-        session["user_id"] = user.id
+        session["_user_id"] = user.id
+        session["user_id"] = user.id # Legacy fallback
         session["_authenticated"] = True
         session["oauth_completed"] = True
         from datetime import datetime

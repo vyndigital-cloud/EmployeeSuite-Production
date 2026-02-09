@@ -57,11 +57,14 @@ def shopify_settings():
         return redirect(url_for('auth.login'))
 
     # 2. Force identity sync: Ensure Flask-Login matches the JWT shop
+    # CRITICAL: Only trust this sync if the session token was actually verified
+    is_jwt_verified = getattr(request, 'session_token_verified', False)
     store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
     
     if store and store.user:
-        if not current_user.is_authenticated or current_user.id != store.user.id:
-            logger.info(f"Identity Sync: Logging in user {store.user.id} for shop {shop}")
+        # IDENTITY SYNC: Only perform auto-login if JWT is valid
+        if is_jwt_verified and (not current_user.is_authenticated or current_user.id != store.user.id):
+            logger.info(f"Identity Sync (JWT): Logging in user {store.user.id} for shop {shop}")
             login_user(store.user)
         user = store.user
     elif current_user.is_authenticated:
@@ -402,23 +405,17 @@ def disconnect_store():
         if current_user.is_authenticated:
             user = current_user
             logger.info(f"Disconnect: Using authenticated user {user.id}")
-        elif shop:
-            # Try to find user from shop (for embedded apps)
-            # HARDENED: Use shop_url from ShopifyStore even if is_active is False
-            # This handles cases where the store might have been partially disconnected
+        elif shop and getattr(request, 'session_token_verified', False):
+            # Identity Sync: If JWT is verified but user is anonymous (e.g. iframe cookie block)
             store = ShopifyStore.query.filter_by(shop_url=shop).first()
             if store and store.user:
                 user = store.user
-                logger.info(f"Disconnect: Found user {user.id} via shop {shop}")
-                
-                # CRITICAL: If user is anonymous, log them in manually using the shop parameter context
-                # This survives iframe session amnesia
                 from flask_login import login_user
                 login_user(user, remember=False)
                 session["_user_id"] = user.id
                 session["shop_domain"] = shop
                 session.permanent = True
-                logger.info(f"Disconnect: Manually logged in user {user.id} via shop context (Aggressive lookup)")
+                logger.info(f"Disconnect: Identity Sync (JWT) successful for user {user.id}")
     except Exception as e:
         logger.error(f"Error finding user in disconnect_store: {e}", exc_info=True)
         db.session.rollback()

@@ -168,25 +168,10 @@ def verify_session_token(f):
 
                 logger.debug(f"Session token verified for shop: {request.shop_domain}")
 
-                # Auto-login user for embedded app
-                try:
-                    from flask_login import login_user
+                request.shop_domain = dest.replace("https://", "").split("/")[0]
+                request.session_token_verified = True
 
-                    from models import ShopifyStore, User
-
-                    # Find store by domain
-                    store = ShopifyStore.query.filter_by(
-                        shop_url=request.shop_domain, is_active=True
-                    ).first()
-                    if store and store.user_id:
-                        user = User.query.get(store.user_id)
-                        if user and user.has_access():
-                            login_user(user)
-                            logger.debug(
-                                f"Auto-logged in user {user.id} for shop {request.shop_domain}"
-                            )
-                except Exception as e:
-                    logger.error(f"Error auto-logging in user: {e}")
+                logger.debug(f"Session token verified for shop: {request.shop_domain}")
 
             except jwt.ExpiredSignatureError:
                 logger.warning("JWT session token has expired")
