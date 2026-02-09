@@ -231,6 +231,12 @@ class User(UserMixin, db.Model, TimestampMixin):
             store = self.shopify_stores.first()
         return store.shop_url if store else None
 
+    @property
+    def active_shop(self) -> Optional[str]:
+        """Returns the shop_url of the current ACTIVE store connection"""
+        store = self.shopify_stores.filter_by(is_active=True).first()
+        return store.shop_url if store else None
+
     def __repr__(self) -> str:
         return f"<User {self.email}>"
 
