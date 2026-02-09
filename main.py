@@ -211,13 +211,10 @@ if app and startup_error_details is None:
     def log_request():
         """Log all incoming requests"""
         from flask import request, session
+        # error_logger.log_user_action now automatically captures shop_domain from request context
         error_logger.log_user_action(
             f"{request.method} {request.endpoint or request.path}",
-            session.get('user_id') if session else None,
-            {
-                'shop_domain': request.headers.get('X-Shopify-Shop-Domain'),
-                'user_agent': request.headers.get('User-Agent', '')[:100]
-            }
+            session.get('user_id') if session else None
         )
 
     # Error dashboard route

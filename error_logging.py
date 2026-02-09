@@ -118,7 +118,11 @@ class ErrorLogger:
                     'endpoint': request.endpoint,
                     'remote_addr': request.remote_addr,
                     'user_agent': request.headers.get('User-Agent', 'Unknown'),
-                    'shop_domain': request.headers.get('X-Shopify-Shop-Domain', 'None'),
+                    'shop_domain': request.headers.get('X-Shopify-Shop-Domain') or \
+                                  request.args.get('shop') or \
+                                  request.form.get('shop') or \
+                                  session.get('shop_domain') or \
+                                  session.get('current_shop') or 'None',
                 })
                 
                 # Add session info if available
@@ -210,11 +214,20 @@ class ErrorLogger:
         try:
             context = self.get_context_info()
             
+            # Ensure shop_domain is present even if request context is limited
+            if details:
+                context.update(details)
+            
             log_msg = f"User Action: {action}"
             if user_id:
                 log_msg += f" | User: {user_id}"
-            if details:
-                log_msg += f" | Details: {json.dumps(details, default=str)}"
+            
+            # Include shop_domain explicitly in the simple message for easier monitoring
+            shop = context.get('shop_domain', 'None')
+            log_msg += f" | Shop: {shop}"
+            
+            if context:
+                log_msg += f" | Details: {json.dumps(context, default=str)}"
                 
             self.user_logger.info(log_msg)
             
