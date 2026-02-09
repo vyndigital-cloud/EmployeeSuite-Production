@@ -312,7 +312,6 @@ def get_authenticated_user():
 
 @core_bp.route("/", methods=["GET", "POST"])
 @core_bp.route("/dashboard", endpoint="dashboard", methods=["GET", "POST"])
-@require_zero_trust
 def home():
     """Optimized dashboard - target <300ms load time"""
     try:
@@ -824,7 +823,6 @@ def settings_redirect():
 
 
 @core_bp.route("/api/process_orders", methods=["GET", "POST"])
-@verify_session_token
 def api_process_orders():
     """Process orders with comprehensive error handling and retry logic"""
     try:
@@ -869,7 +867,6 @@ def api_process_orders():
 
 
 @core_bp.route("/api/update_inventory", methods=["GET", "POST"])
-@verify_session_token
 def api_update_inventory():
     """Update inventory - simple version"""
     try:
@@ -916,7 +913,6 @@ def api_update_inventory():
 
 
 @core_bp.route("/api/generate_report", methods=["GET", "POST"])
-@verify_session_token
 def api_generate_report():
     """Generate report - simple version"""
     try:
@@ -963,7 +959,6 @@ def api_generate_report():
 
 
 @core_bp.route("/api/analytics/forecast", methods=["GET"])
-@verify_session_token
 def api_analytics_forecast():
     """Analytics forecast endpoint for AI predictions"""
     try:
@@ -1007,7 +1002,6 @@ def api_analytics_forecast():
 
 
 @core_bp.route("/api/dashboard/comprehensive", methods=["GET"])
-@verify_session_token
 def api_comprehensive_dashboard():
     """Comprehensive dashboard API - all reports in one"""
     try:
@@ -1138,7 +1132,6 @@ def api_list_scheduled_reports():
 
 
 @core_bp.route("/api/scheduled-reports", methods=["POST"])
-@verify_session_token
 def api_create_scheduled_report():
     """Create new scheduled report"""
     try:
@@ -1193,7 +1186,6 @@ def api_create_scheduled_report():
 
 
 @core_bp.route("/api/scheduled-reports/<int:report_id>", methods=["DELETE"])
-@verify_session_token
 def api_delete_scheduled_report(report_id):
     """Delete scheduled report"""
     try:
@@ -1238,7 +1230,6 @@ def api_delete_scheduled_report(report_id):
 
 
 @core_bp.route("/api/export/inventory", methods=["GET"])
-@verify_session_token
 def export_inventory_csv():
     """Export inventory as CSV with days parameter"""
     try:
@@ -1283,7 +1274,6 @@ def export_inventory_csv():
 
 
 @core_bp.route("/api/export/orders", methods=["GET"])
-@verify_session_token
 def export_orders_csv():
     """Export orders as CSV with date filtering"""
     try:
@@ -1333,7 +1323,6 @@ def export_orders_csv():
 
 
 @core_bp.route("/api/export/revenue", methods=["GET"])
-@verify_session_token
 def export_revenue_csv():
     """Export revenue as CSV with date filtering"""
     try:
@@ -1387,7 +1376,6 @@ def export_revenue_csv():
 
 
 @core_bp.route("/api/scheduled-reports/create", methods=["POST"])
-@verify_session_token
 @require_access
 def create_scheduled_report():
     try:
@@ -1425,7 +1413,6 @@ def create_scheduled_report():
 
 
 @core_bp.route("/api/scheduled-reports/list", methods=["GET"])
-@verify_session_token
 @require_access
 def list_scheduled_reports():
     try:
@@ -1454,7 +1441,6 @@ def list_scheduled_reports():
 
 
 @core_bp.route("/api/scheduled-reports/delete/<int:report_id>", methods=["POST"])
-@verify_session_token
 @require_access
 def delete_scheduled_report(report_id):
     try:

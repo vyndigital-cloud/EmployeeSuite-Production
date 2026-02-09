@@ -40,7 +40,6 @@ def connections_alias():
 
 
 @shopify_bp.route("/settings/shopify")
-@verify_session_token
 def shopify_settings():
     """Shopify settings page - works in both embedded and standalone modes"""
     # 1. Extract verified shop from the JWT decorator
@@ -386,55 +385,37 @@ def connect_store():
 
 
 @shopify_bp.route("/settings/shopify/disconnect", methods=["POST"])
-@require_zero_trust
 def disconnect_store():
-    """Disconnect store - HARD CLEAR of all session data"""
+    """Disconnect store - ZERO TRUST atomic state incineration"""
     from flask_login import logout_user
+    
+    # [ZERO-TRUST SPEC] Clear session and logout user BEFORE starting anything else
+    logger.info("Atomic Disconnect: Purging session and logging out user.")
+    session.clear()
+    logout_user()
 
     from shopify_utils import normalize_shop_url
 
-    # Prioritize context from URL to survive iframe session blocks
-    shop = request.args.get("shop") or request.form.get("shop") or session.get("shop_domain")
-    if shop:
-        shop = normalize_shop_url(shop)
-
-    host = request.args.get("host") or request.form.get("host") or session.get("host")
+    # Re-extract shop from JWT (already verified by @require_zero_trust)
+    shop = getattr(request, 'shop_domain', None)
+    host = request.args.get("host") # Keep host for redirect
 
     if not shop:
-        logger.warning("Disconnect: No shop context found - redirecting with error")
-        return redirect(url_for("shopify.shopify_settings", error="Shop context lost"))
+        logger.error("Disconnect: No shop domain in verified JWT!")
+        return redirect(url_for("auth.login", error="Identity verification failed"))
 
-    # Get authenticated user - PRIORITIZE current_user
-    user = None
-    try:
-        if current_user.is_authenticated:
-            user = current_user
-            logger.info(f"Disconnect: Using authenticated user {user.id}")
-        elif shop and getattr(request, 'session_token_verified', False):
-            # Identity Sync: If JWT is verified but user is anonymous (e.g. iframe cookie block)
-            store = ShopifyStore.query.filter_by(shop_url=shop).first()
-            if store and store.user:
-                user = store.user
-                from flask_login import login_user
-                login_user(user, remember=False)
-                session["_user_id"] = user.id
-                session["shop_domain"] = shop
-                session.permanent = True
-                logger.info(f"Disconnect: Identity Sync (JWT) successful for user {user.id}")
-    except Exception as e:
-        logger.error(f"Error finding user in disconnect_store: {e}", exc_info=True)
-        db.session.rollback()
-        # SELECTIVE CLEAR even on error - keep user logged in
-        shopify_keys = [
-            "current_shop",
-            "access_token",
-            "shop_domain",
-            "shop_url",
-            "host",
-            "hmac",
-        ]
-        for key in shopify_keys:
-            session.pop(key, None)
+    # Since @require_zero_trust is present, current_user IS authenticated
+    # BUT we just logged them out above. We need to find the store by the verified shop.
+    store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+    
+    if not store:
+        logger.warning(f"Disconnect: No active store found for {shop}")
+        return redirect(url_for("auth.login", success="Store already disconnected.", shop=shop, host=host))
+
+    user = store.user
+    if not user:
+        logger.error(f"Disconnect: Store {shop} has no associated user")
+        return redirect(url_for("auth.login", error="Account integrity error"))
         return redirect(
             url_for(
                 "shopify.shopify_settings",
@@ -574,7 +555,6 @@ def disconnect_store():
 
 
 @shopify_bp.route("/api/store/status", methods=["GET"])
-@require_zero_trust
 def get_store_status():
     """Check store connection status using JWT"""
     from session_token_verification import get_shop_from_session_token

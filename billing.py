@@ -52,7 +52,6 @@ from logging_config import logger
 from models import ShopifyStore, User, db
 from shopify_utils import normalize_shop_url
 from error_logging import error_logger
-from session_token_verification import verify_session_token
 
 billing_bp = Blueprint("billing", __name__)
 
@@ -471,7 +470,6 @@ def cancel_app_subscription(shop_url, access_token, charge_id):
 
 
 @billing_bp.route("/billing/subscribe")
-@require_zero_trust
 def subscribe():
     """Enhanced subscribe page with strong CTAs"""
     from shopify_utils import normalize_shop_url
@@ -678,7 +676,6 @@ def validate_csrf_token():
 
 @billing_bp.route("/create-charge", methods=["GET", "POST"])
 @billing_bp.route("/billing/create-charge", methods=["GET", "POST"])
-@require_zero_trust
 def create_charge():
     """Create a Shopify recurring charge"""
     from shopify_utils import normalize_shop_url
@@ -858,7 +855,6 @@ def create_charge():
 
 
 @billing_bp.route("/billing/confirm")
-@require_zero_trust
 def confirm_charge():
     """Handle return from Shopify after merchant approves/declines charge"""
     from shopify_utils import normalize_shop_url
@@ -975,7 +971,6 @@ def confirm_charge():
 
 
 @billing_bp.route("/billing/start-trial", methods=["POST"])
-@require_zero_trust
 def start_trial():
     """Start free trial without billing"""
     from shopify_utils import normalize_shop_url
@@ -1061,7 +1056,6 @@ def start_trial():
 
 
 @billing_bp.route("/billing/cancel", methods=["POST"])
-@require_zero_trust
 def cancel_subscription():
     """Cancel Shopify subscription"""
     import requests

@@ -506,6 +506,76 @@ def create_app():
             g.current_user = current_user
 
     # ============================================================================
+    # GLOBAL ZERO-TRUST HARD-LOCK MIDDLEWARE
+    # ============================================================================
+    @app.before_request
+    def hard_lock_middleware():
+        """
+        MANDATORY SECURITY GATE: Enforces Zero-Trust across all functional routes.
+        1. Authentication (Flask-Login)
+        2. Active Store Presence (DB Check)
+        3. Identity Integrity (Session vs JWT vs URL)
+        """
+        from flask import jsonify, redirect, request, session, url_for
+        from flask_login import current_user, logout_user
+        from shopify_utils import normalize_shop_url
+
+        # Skip for static files, debug routes, webhooks, and the auth handshake itself
+        whitelist = [
+            "/static", 
+            "/debug", 
+            "/oauth/", 
+            "/auth/", 
+            "/webhook/",
+            "/favicon.ico",
+            "/health"
+        ]
+        if any(request.path.startswith(path) for path in whitelist):
+            return
+
+        # 1. Identity Integrity Check (URL vs Session vs JWT)
+        url_shop = request.args.get("shop")
+        session_shop = session.get("shop_domain")
+        jwt_verified = getattr(request, 'session_token_verified', False)
+
+        if url_shop:
+            url_shop = normalize_shop_url(url_shop)
+            
+            # If we have a verified JWT, the shop MUST match its destination
+            if jwt_verified and request.shop_domain != url_shop:
+                app.logger.error(f"🚨 JWT MISMATCH: URL={url_shop}, JWT={request.shop_domain}")
+                return jsonify({"error": "Identity mismatch", "action": "refresh"}), 403
+
+            # If we have a session, it MUST match the URL shop
+            if session_shop and normalize_shop_url(session_shop) != url_shop:
+                app.logger.warning(f"🚨 SESSION MISMATCH: URL={url_shop}, Session={session_shop}. Purging.")
+                session.clear()
+                logout_user()
+                return redirect(url_for("oauth.install", shop=url_shop))
+
+        # 2. Authentication Check
+        if not current_user.is_authenticated:
+            # For JSON/API requests, return 401
+            if request.is_json or not request.accept_mimetypes.accept_html:
+                 return jsonify({"error": "Authentication required", "success": False}), 401
+            
+            # For HTML requests, redirect to login
+            shop = url_shop or session_shop
+            host = request.args.get("host") or session.get("host")
+            app.logger.warning(f"Blocked anonymous access to {request.path}")
+            return redirect(url_for('auth.login', shop=shop, host=host))
+
+        # 3. Active Store Check
+        if not current_user.active_shop:
+            app.logger.warning(f"User {current_user.id} accessed {request.path} without active shop")
+            if request.is_json or not request.accept_mimetypes.accept_html:
+                 return jsonify({"error": "Active store connection required", "action": "connect"}), 403
+            
+            shop = url_shop or session_shop
+            host = request.args.get("host") or session.get("host")
+            return redirect(url_for('shopify.shopify_settings', error="Store connection required", shop=shop, host=host))
+
+    # ============================================================================
     # IDENTITY INTEGRITY VALIDATION (Kill Rule)
     # ============================================================================
     @app.before_request
