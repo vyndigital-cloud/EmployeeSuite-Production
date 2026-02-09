@@ -730,7 +730,7 @@ def _handle_oauth_callback():
         "oauth_redirect.html",
         shop=shop,
         host=host,
-        redirect_path="/settings/shopify",
+        redirect_path="/dashboard",
         success_message="Connected",
         config=config
     )

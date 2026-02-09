@@ -312,9 +312,10 @@ def get_authenticated_user():
 # ---------------------------------------------------------------------------
 
 
-@core_bp.route("/")
-@core_bp.route("/dashboard", endpoint="dashboard")
+@core_bp.route("/", methods=["GET", "POST"])
+@core_bp.route("/dashboard", endpoint="dashboard", methods=["GET", "POST"])
 @verify_session_token
+@login_required
 def home():
     """Optimized dashboard - target <300ms load time"""
     try:

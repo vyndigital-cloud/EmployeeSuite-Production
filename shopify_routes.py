@@ -54,9 +54,7 @@ def shopify_settings():
     if not shop:
         # If we STILL don't have it, log a CRITICAL failure for the CCTV
         logger.error("🚨 CCTV CRITICAL: Identity recovery failed. Redirecting to manual login.")
-        return redirect(url_for('auth.login')) # Redirect to our manual login page
-
-    return redirect(url_for('oauth.install', shop=shop, host=host))
+        return redirect(url_for('auth.login'))
 
     # 2. Force identity sync: Ensure Flask-Login matches the JWT shop
     store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
