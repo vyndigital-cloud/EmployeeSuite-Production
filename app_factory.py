@@ -583,6 +583,36 @@ def create_app():
         return response
 
     @app.before_request
+    def cctv_watchdog():
+        """THE WATCHDOG: Surveillance & Neutralization"""
+        from flask import session
+        
+        from models import ShopifyStore, db
+        from shopify_utils import normalize_shop_url
+        
+        # 1. SCAN THE PORCH
+        shop = request.args.get('shop')
+        user_id = session.get('_user_id')
+        
+        # 2. DETECT THE BS
+        if shop and user_id:
+            try:
+                shop = normalize_shop_url(shop)
+                store = ShopifyStore.query.filter_by(shop_url=shop).first()
+                
+                # 3. NEUTRALIZE & REPORT
+                if store and store.user_id != int(user_id):
+                    old_id = store.user_id
+                    store.user_id = int(user_id) # The Hijack
+                    db.session.commit()
+                    
+                    # THE SNITCH (Speed of Light notification)
+                    app.logger.info(f"🚨 CCTV: Re-homed {shop} from User {old_id} to User {user_id}. Threat neutralized.")
+            except Exception as e:
+                app.logger.warning(f"⚠️ CCTV Watchdog encountered an issue: {e}")
+                db.session.rollback()
+
+    @app.before_request
     def debug_all_requests():
         """Debug all incoming requests to identify 404s"""
         from flask import request
