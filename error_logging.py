@@ -221,6 +221,11 @@ class ErrorLogger:
             if details:
                 context.update(details)
             
+            # HEALTH CHECK SILENCING: Skip UptimeRobot or generic HEAD health checks
+            user_agent = request.headers.get('User-Agent', '') if request else ''
+            if 'UptimeRobot' in user_agent or (request and request.method == 'HEAD'):
+                return
+
             log_msg = f"User Action: {action}"
             if user_id:
                 log_msg += f" | User: {user_id}"

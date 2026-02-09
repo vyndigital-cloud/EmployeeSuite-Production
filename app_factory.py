@@ -438,25 +438,29 @@ def create_app():
     # ============================================================================
     # LEVEL 100 IDENTITY MIDDLEWARE (Stateless JWT / Context Extraction)
     # ============================================================================
+    # Global 5-minute cache for shop identity (shop_domain -> (user_id, store_id, is_active, expiry))
+    app._shop_identity_cache = {}
     @app.before_request
     def extract_identity_context():
         """
         Global middleware to extract identity from JWT (Authorization: Bearer <token>)
         or Shopify Headers/Params. Populates request.shop_domain and g.current_user.
         """
+        import time
         from flask import g, request, session
         from models import ShopifyStore, User
         from shopify_utils import normalize_shop_url
         
-        # 1. Initialize g variables
+        now = time.time()
         g.current_user = None
         
-        # 2. Extract Shop Domain from all possible sources (Prioritize Header)
+        # 1. Extract Shop Domain from all possible sources (Prioritize Header/Params)
         shop = (
             request.headers.get('X-Shopify-Shop-Domain') or
             request.args.get('shop') or
             request.form.get('shop') or
             session.get('shop_domain') or
+            session.get('shop') or # Legacy session key fallback
             'None'
         )
         
@@ -464,6 +468,14 @@ def create_app():
             request.shop_domain = normalize_shop_url(shop)
         else:
             request.shop_domain = None
+
+        # 2. Check 5-minute Cache for this shop
+        if request.shop_domain and request.shop_domain in app._shop_identity_cache:
+            user_id, store_id, is_active, expiry = app._shop_identity_cache[request.shop_domain]
+            if now < expiry and is_active:
+                g.current_user = User.query.get(user_id)
+                if g.current_user:
+                    return # SUCCESS: Cache hit
 
         # 3. Handle Stateless JWT (Authorization Header)
         auth_header = request.headers.get("Authorization")
@@ -474,14 +486,21 @@ def create_app():
                 if payload:
                     dest = payload.get("dest", "")
                     request.shop_domain = dest.replace("https://", "").split("/")[0]
-                    # Find user associated with this shop
-                    store = ShopifyStore.query.filter_by(shop_url=request.shop_domain, is_active=True).first()
-                    if store:
-                        g.current_user = User.query.get(store.user_id)
             except Exception as e:
                 app.logger.debug(f"JWT stateless extraction failed: {e}")
 
-        # 4. Fallback: Logged in user from Flask-Login (if still using session fallback)
+        # 4. Database Lookup & Cache Update
+        if request.shop_domain:
+            store = ShopifyStore.query.filter_by(shop_url=request.shop_domain, is_active=True).first()
+            if store:
+                g.current_user = User.query.get(store.user_id)
+                if g.current_user:
+                    # Update 5-minute Cache
+                    app._shop_identity_cache[request.shop_domain] = (
+                        g.current_user.id, store.id, store.is_active, now + 300
+                    )
+
+        # 5. Last Fallback: Logged in user from Flask-Login
         from flask_login import current_user
         if not g.current_user and current_user.is_authenticated:
             g.current_user = current_user
