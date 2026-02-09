@@ -11,7 +11,8 @@ from flask import (
     session,
     url_for,
 )
-from flask_login import current_user, login_required, login_user
+from flask_login import current_user, login_required, login_user, logout_user
+from access_control import require_access, require_active_shop, require_zero_trust
 
 from config import SHOPIFY_API_VERSION
 
@@ -385,7 +386,7 @@ def connect_store():
 
 
 @shopify_bp.route("/settings/shopify/disconnect", methods=["POST"])
-@verify_session_token
+@require_zero_trust
 def disconnect_store():
     """Disconnect store - HARD CLEAR of all session data"""
     from flask_login import logout_user
@@ -558,21 +559,14 @@ def disconnect_store():
         )
         db.session.rollback()
 
-        # SELECTIVE CLEAR even on error - keep user logged in
-        shopify_keys = [
-            "current_shop",
-            "access_token",
-            "shop_domain",
-            "shop_url",
-            "host",
-            "hmac",
-        ]
-        for key in shopify_keys:
-            session.pop(key, None)
+        # ZERO-TRUST: Force full logout and session clear even on failure
+        from flask_login import logout_user
+        logout_user()
+        session.clear()
 
         return redirect(
             url_for(
-                "shopify.shopify_settings",
+                "auth.login",
                 error="Failed to disconnect store. Please try again.",
                 shop=shop,
             )
@@ -580,7 +574,7 @@ def disconnect_store():
 
 
 @shopify_bp.route("/api/store/status", methods=["GET"])
-@verify_session_token
+@require_zero_trust
 def get_store_status():
     """Check store connection status using JWT"""
     from session_token_verification import get_shop_from_session_token

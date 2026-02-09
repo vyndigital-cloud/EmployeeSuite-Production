@@ -19,10 +19,8 @@ from flask import (
     session,
     url_for,
 )
-from flask_login import current_user, login_required, login_user
-
-from models import ShopifyStore, User, db
 from session_token_verification import verify_session_token
+from access_control import require_access, require_zero_trust
 
 logger = logging.getLogger(__name__)
 core_bp = Blueprint("core", __name__)
@@ -314,8 +312,7 @@ def get_authenticated_user():
 
 @core_bp.route("/", methods=["GET", "POST"])
 @core_bp.route("/dashboard", endpoint="dashboard", methods=["GET", "POST"])
-@verify_session_token
-@login_required
+@require_zero_trust
 def home():
     """Optimized dashboard - target <300ms load time"""
     try:

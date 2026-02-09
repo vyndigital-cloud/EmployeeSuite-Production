@@ -11,7 +11,7 @@ from email_service import send_report_email
 import logging
 from session_token_verification import verify_session_token
 from flask_login import current_user
-from access_control import require_access, require_active_shop
+from access_control import require_access, require_active_shop, require_zero_trust
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +19,7 @@ features_bp = Blueprint("features_api", __name__, url_prefix="/features")
 
 
 @features_bp.route("/api/trigger-report-email", methods=["POST"])
-@verify_session_token
-@require_active_shop
+@require_zero_trust
 @require_access
 def trigger_report_email():
     """Trigger an immediate email report (SOS)"""
@@ -75,7 +74,7 @@ def trigger_report_email():
 
 
 @features_bp.route("/welcome")
-@require_active_shop
+@require_zero_trust
 @require_access
 def welcome():
     shop = request.args.get("shop", "")
@@ -85,7 +84,7 @@ def welcome():
 
 
 @features_bp.route("/csv-exports")
-@require_active_shop
+@require_zero_trust
 @require_access
 def csv_exports():
     shop = request.args.get("shop", "")
@@ -95,7 +94,7 @@ def csv_exports():
 
 
 @features_bp.route("/scheduled-reports")
-@require_active_shop
+@require_zero_trust
 @require_access
 def scheduled_reports():
     shop = request.args.get("shop", "")
@@ -113,7 +112,7 @@ def scheduled_reports():
 
 
 @features_bp.route("/dashboard")
-@require_active_shop
+@require_zero_trust
 @require_access
 def comprehensive_dashboard():
     shop = request.args.get("shop", "")
@@ -123,8 +122,7 @@ def comprehensive_dashboard():
 
 
 @features_bp.route("/api/dashboard/comprehensive")
-@verify_session_token
-@require_active_shop
+@require_zero_trust
 @require_access
 def comprehensive_dashboard_api():
     """API endpoint for comprehensive dashboard data"""
@@ -198,8 +196,7 @@ def comprehensive_dashboard_api():
 
 
 @features_bp.route("/api/export/orders")
-@verify_session_token
-@require_active_shop
+@require_zero_trust
 @require_access
 def export_orders_csv():
     """Export orders as CSV"""
@@ -256,8 +253,7 @@ def export_orders_csv():
 
 
 @features_bp.route("/api/export/inventory")
-@verify_session_token
-@require_active_shop
+@require_zero_trust
 @require_access
 def export_inventory_csv():
     """Export inventory as CSV"""
@@ -314,8 +310,7 @@ def export_inventory_csv():
 
 
 @features_bp.route("/api/export/revenue")
-@verify_session_token
-@require_active_shop
+@require_zero_trust
 @require_access
 def export_revenue_csv():
     """Export revenue as CSV"""
@@ -378,8 +373,7 @@ def export_revenue_csv():
 
 
 @features_bp.route("/api/scheduled-reports", methods=["GET", "POST"])
-@verify_session_token
-@require_active_shop
+@require_zero_trust
 @require_access
 def scheduled_reports_api():
     """Handle scheduled reports API"""
@@ -441,8 +435,7 @@ def scheduled_reports_api():
 
 
 @features_bp.route("/api/scheduled-reports/<int:report_id>", methods=["DELETE"])
-@verify_session_token
-@require_active_shop
+@require_zero_trust
 @require_access
 def delete_scheduled_report(report_id):
     """Delete a scheduled report"""

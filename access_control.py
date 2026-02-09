@@ -63,3 +63,53 @@ def require_active_shop(f):
         return f(*args, **kwargs)
 
     return decorated_function
+
+
+def require_zero_trust(f):
+    """
+    ZERO-TRUST DECORATOR: 
+    Validates JWT identity + Authentication + Active Store Connection.
+    MANDATORY for all functional routes.
+    """
+    from session_token_verification import verify_session_token
+    
+    @verify_session_token
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        from flask import request, redirect, url_for
+        
+        # 1. Identity Verification (JWT)
+        # verify_session_token already handles returning 401 if JWT is present but invalid
+        # If no JWT, it falls back to session/cookie check below
+        
+        # 2. Authentication Check
+        if not current_user.is_authenticated:
+            if request.accept_mimetypes.accept_html and not request.is_json:
+                shop = request.args.get('shop')
+                host = request.args.get('host')
+                return redirect(url_for('auth.login', shop=shop, host=host))
+            return jsonify({"error": "Authentication required", "success": False}), 401
+
+        # 3. Active Store Validation
+        if not current_user.active_shop:
+            if request.accept_mimetypes.accept_html and not request.is_json:
+                shop = request.args.get('shop')
+                host = request.args.get('host')
+                return redirect(url_for('shopify.shopify_settings', error="Store connection required", shop=shop, host=host))
+
+            return jsonify(
+                {
+                    "error": "Store connection required",
+                    "success": False,
+                    "action": "connect_shop",
+                }
+            ), 403
+
+        # 4. Strict identity match (Ensure request shop domain matches the user's active shop)
+        req_shop = getattr(request, 'shop_domain', None) or request.args.get('shop')
+        if req_shop and current_user.active_shop != req_shop:
+             return jsonify({"error": "Identity mismatch detected. Please refresh.", "success": False}), 403
+
+        return f(*args, **kwargs)
+
+    return decorated_function
