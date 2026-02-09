@@ -13,7 +13,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 def create_app():
     """Create Flask app with comprehensive error handling"""
     app = Flask(__name__)
-    app.static_folder = "static"
+    app.static_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), "static")
     app.static_url_path = "/static"
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
@@ -157,9 +157,11 @@ def create_app():
 
                 if store and store.user:
                     # CRITICAL FIX: Explicitly set session for Safari iframe compatibility
+                    from flask import g
                     from flask_login import login_user
 
                     login_user(store.user, remember=False)
+                    g.current_user = store.user # Populate g immediately for middleware
                     session["shop_domain"] = shop
                     session["_user_id"] = store.user.id
                     session["shop"] = shop # Ensure shop is also set
