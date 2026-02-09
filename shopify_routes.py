@@ -571,6 +571,7 @@ def get_store_status():
             jsonify(
                 {
                     "is_connected": True,
+                    "is_jwt_verified": getattr(request, "session_token_verified", False),
                     "shop": shop_domain,
                     "message": "Store is active",
                 }
@@ -578,4 +579,7 @@ def get_store_status():
             200,
         )
 
-    return jsonify({"is_connected": False}), 200
+    return jsonify({
+        "is_connected": False,
+        "is_jwt_verified": getattr(request, "session_token_verified", False)
+    }), 200

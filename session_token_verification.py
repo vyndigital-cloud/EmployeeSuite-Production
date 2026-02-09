@@ -162,6 +162,14 @@ def verify_session_token(f):
 # Removed _is_embedded_app_request - now handled inline in verify_session_token decorator
 
 
+def get_bearer_token():
+    """Extract Bearer token from Authorization header"""
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        return auth_header.split(" ")[1] if " " in auth_header else None
+    return None
+
+
 def get_shop_from_session_token():
     """
     Extract shop domain from verified session token
@@ -193,7 +201,6 @@ def verify_session_token_stateless(token):
                 "verify_signature": True,
                 "verify_exp": True,
                 "verify_iat": True,
-                "verify_aud": True,
                 "require": ["iss", "dest", "aud", "sub", "exp", "nbf", "iat"],
             },
             audience=current_api_key

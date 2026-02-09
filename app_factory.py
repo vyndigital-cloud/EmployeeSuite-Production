@@ -505,6 +505,24 @@ def create_app():
         if not g.current_user and current_user.is_authenticated:
             g.current_user = current_user
 
+    @app.before_request
+    def global_jwt_verification():
+        """
+        GLOBAL IDENTITY EXTRACTION: Performs JWT verification for every request.
+        Sets request.session_token_verified and request.shop_domain.
+        """
+        from flask import request
+        from session_token_verification import get_bearer_token, verify_session_token_stateless
+
+        token = get_bearer_token()
+        if token:
+            payload = verify_session_token_stateless(token)
+            if payload:
+                dest = payload.get("dest", "")
+                request.shop_domain = dest.replace("https://", "").split("/")[0]
+                request.session_token_verified = True
+                app.logger.debug(f"Global JWT Verified: {request.shop_domain}")
+
     # ============================================================================
     # GLOBAL ZERO-TRUST HARD-LOCK MIDDLEWARE
     # ============================================================================
@@ -575,53 +593,6 @@ def create_app():
             host = request.args.get("host") or session.get("host")
             return redirect(url_for('shopify.shopify_settings', error="Store connection required", shop=shop, host=host))
 
-    # ============================================================================
-    # IDENTITY INTEGRITY VALIDATION (Kill Rule)
-    # ============================================================================
-    @app.before_request
-    def validate_identity_integrity():
-        """
-        KILL RULE: Force session cleanup if shop parameter doesn't match session.
-        Prevents User 4 cookies from bleeding into User 11 requests.
-
-        This is the first line of defense against identity collision.
-        """
-        from flask import redirect, request, session, url_for
-
-        from shopify_utils import normalize_shop_url
-
-        # Skip for static files, debug routes, and OAuth flow
-        if (
-            request.path.startswith("/static")
-            or request.path.startswith("/debug")
-            or request.path.startswith("/oauth/install")
-            or request.path.startswith("/oauth/callback")
-            or request.path.startswith("/auth/callback")
-        ):
-            return
-
-        url_shop = request.args.get("shop")
-        session_shop = session.get("shop_domain")
-
-        if url_shop and session_shop:
-            # Normalize both for comparison
-            url_shop = normalize_shop_url(url_shop)
-            session_shop = normalize_shop_url(session_shop)
-
-            if url_shop != session_shop:
-                app.logger.warning(
-                    f"🚨 IDENTITY MISMATCH DETECTED: URL shop ({url_shop}) != Session shop ({session_shop}). "
-                    f"Purging session to prevent identity collision. Path: {request.path}"
-                )
-
-                # Kill the ghost session
-                session.clear()
-
-                # Force re-authentication with the correct shop
-                app.logger.info(
-                    f"🔄 Redirecting to OAuth install for correct shop: {url_shop}"
-                )
-                return redirect(url_for("oauth.install", shop=url_shop))
 
     @app.after_request
     def set_safari_compatible_cookies(response):
