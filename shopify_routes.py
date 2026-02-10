@@ -96,7 +96,7 @@ def shopify_settings():
         store=store,
         success=request.args.get("success"),
         error=request.args.get("error"),
-        shop_domain=shop,
+        shop=shop,
         host=host,
         is_subscribed=user.is_subscribed if user else False,
     )

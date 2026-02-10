@@ -4,8 +4,10 @@
 <head>
     <meta charset="utf-8" />
     <title>{{ title|default('Employee Suite') }}</title>
-    <!-- Shopify App Bridge - Latest version with proper initialization -->
+    <!-- Shopify App Bridge - Latest version for idToken -->
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <!-- Shopify App Bridge v3 - For Actions (Redirect, etc) -->
+    <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
 
     <!-- Shopify Polaris Design System -->
     <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/styles.css" />
@@ -71,8 +73,46 @@
             window.location.search,
         ).get("host");
 
-        // Helper to open pages
+        // Helper to open pages via App Bridge (Stateless Pivot)
         window.openPage = function (path) {
+            if (window.shopify && window.shopify.config) {
+                try {
+                    // Use App Bridge Redirect for internal navigation
+                    var AppBridge = window['app-bridge'];
+                    var actions = AppBridge.actions;
+                    var Redirect = actions.Redirect;
+
+                    // Create app instance for v3 actions if needed, 
+                    // otherwise try to use existing shopify object if compatible
+                    var app = window.shopify;
+                    if (!app && typeof AppBridge.default === 'function') {
+                        app = AppBridge.default({
+                            apiKey: "{{ config.SHOPIFY_API_KEY }}",
+                            host: new URLSearchParams(window.location.search).get("host")
+                        });
+                    }
+
+                    const redirect = Redirect.create(app);
+
+                    // Normalize path: remove host/shop if they are internal
+                    let cleanPath = path;
+                    if (path.includes('?')) {
+                        const parts = path.split('?');
+                        const params = new URLSearchParams(parts[1]);
+                        params.delete('shop');
+                        params.delete('host');
+                        params.delete('id_token');
+                        cleanPath = parts[0] + (params.toString() ? '?' + params.toString() : '');
+                    }
+
+                    console.log("🚀 App Bridge Navigating to:", cleanPath);
+                    redirect.dispatch(Redirect.Action.APP, cleanPath);
+                    return false;
+                } catch (e) {
+                    console.error("App Bridge Redirect failed, falling back to location.href", e);
+                }
+            }
+
             var params = new URLSearchParams(window.location.search);
             var shop = params.get("shop");
             var host = params.get("host");
@@ -91,6 +131,22 @@
             window.location.href = dest;
             return false;
         };
+
+        // NEW: Global Link Interceptor for Stateless Pivot
+        document.addEventListener('click', function (e) {
+            const link = e.target.closest('a');
+            if (!link || !link.href) return;
+
+            // Only intercept internal links (same origin)
+            if (link.href.startsWith(window.location.origin)) {
+                const path = link.getAttribute('href');
+                // Skip if it's a hash or already has target="_blank"
+                if (path === '#' || link.target === '_blank') return;
+
+                e.preventDefault();
+                window.openPage(path);
+            }
+        });
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <!-- Critical: Prevent any blocking - render immediately -->

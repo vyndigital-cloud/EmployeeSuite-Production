@@ -152,6 +152,12 @@ def verify_session_token(f):
         )
 
         if is_embedded_context and not getattr(request, 'session_token_verified', False):
+            # [EMERGENCY WELD] If we have a verified session (cookie), allow it as fallback
+            # This prevents 403 loops if the JWT is stripped on an immediate sub-request
+            if current_user.is_authenticated:
+                logger.debug(f"Allowing unverified embedded request for authenticated user {current_user.id}")
+                return f(*args, **kwargs)
+
             # If we are supposedly embedded but have no verified JWT, this is a "Ghost" or Spoof attempt
             logger.warning(f"Blocked unverified embedded request to {request.path}")
             return jsonify({"error": "Verified Session Token Required", "action": "refresh"}), 403

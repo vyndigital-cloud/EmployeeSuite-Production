@@ -163,7 +163,7 @@
                 <span class="info-value">$39/month</span>
             </div>
         </div>
-        <form method="POST" action="{{ url_for('billing.cancel_subscription') }}?shop={{ shop_domain }}&host={{ host }}"
+        <form method="POST" action="{{ url_for('billing.cancel_subscription') }}?shop={{ shop }}&host={{ host }}"
             style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px;">
             {% if shop %}<input type="hidden" name="shop" value="{{ shop }}" />{% endif %} {% if host %}<input
                 type="hidden" name="host" value="{{ host }}" />{% endif %}
@@ -251,7 +251,7 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ url_for('shopify.disconnect_store') }}?shop={{ shop_domain }}&host={{ host }}"
+        <form method="POST" action="{{ url_for('shopify.disconnect_store') }}?shop={{ shop }}&host={{ host }}"
             style="margin-top: 24px">
             {% if shop %}<input type="hidden" name="shop" value="{{ shop }}" />{% endif %} {% if host %}<input
                 type="hidden" name="host" value="{{ host }}" />{% endif %}
@@ -478,8 +478,7 @@
                     border: 1px solid var(--border);
                     border-radius: 8px;
                 ">
-                <form method="POST"
-                    action="{{ url_for('shopify.connect_store') }}?shop={{ shop_domain }}&host={{ host }}">
+                <form method="POST" action="{{ url_for('shopify.connect_store') }}?shop={{ shop }}&host={{ host }}">
                     {% if shop %}<input type="hidden" name="shop" value="{{ shop }}" />{% endif %} {% if host %}<input
                         type="hidden" name="host" value="{{ host }}" />{% endif %}
 
@@ -564,7 +563,7 @@
     (function () {
         const urlParams = new URLSearchParams(window.location.search);
         const host = urlParams.get("host") || "{{ host }}";
-        const shop = urlParams.get("shop") || "{{ shop_domain }}";
+        const shop = urlParams.get("shop") || "{{ shop }}";
 
         if (!host || host === "None" || host === "") {
             console.error("Missing Host parameter - App Bridge initialization may be degraded");

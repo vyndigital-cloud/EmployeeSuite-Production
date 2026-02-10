@@ -204,11 +204,10 @@ function initializeErrorLogging() {
                 session_id: 'js-session-' + Date.now()
             };
 
-            fetch('/api/log_error', {
+            authenticatedFetch('/api/log_error', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(errorLog),
-                credentials: 'include'
+                body: JSON.stringify(errorLog)
             }).catch(function (err) {
                 originalConsoleError.call(console, 'Failed to log error to backend:', err);
             });
@@ -594,23 +593,6 @@ window.generateReport = function (button) {
         });
 };
 
-// Navigation helper
-window.openPage = function (path) {
-    var params = new URLSearchParams(window.location.search);
-    var shop = params.get('shop');
-    var host = params.get('host');
-    var embedded = params.get('embedded') || (host ? '1' : '');
-
-    var sep = path.indexOf('?') > -1 ? '&' : '?';
-    var dest = path;
-
-    if (shop) dest += sep + 'shop=' + shop;
-    if (host) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'host=' + host;
-    if (embedded) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'embedded=' + embedded;
-
-    window.location.href = dest;
-    return false;
-};
 
 // Handle resource loading errors gracefully
 window.addEventListener('error', function (e) {

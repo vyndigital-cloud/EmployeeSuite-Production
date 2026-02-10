@@ -327,6 +327,13 @@ def create_app():
     signal.signal(signal.SIGTERM, titan_last_breath)
     signal.signal(signal.SIGINT, titan_last_breath)
 
+    @app.context_processor
+    def inject_shopify_config():
+        """Globally inject Shopify Config for App Bridge 3.0+ actions"""
+        return {
+            "SHOPIFY_API_KEY": os.getenv("SHOPIFY_API_KEY", "")
+        }
+
     # Register blueprints (with error handling for missing blueprints)
     blueprints_to_register = [
         ("core_routes", "core_bp"),
