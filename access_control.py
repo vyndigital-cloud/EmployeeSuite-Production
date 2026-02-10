@@ -68,7 +68,23 @@ def require_active_shop(f):
             if request.accept_mimetypes.accept_html and not request.is_json:
                 shop = request.args.get('shop')
                 host = request.args.get('host')
-                return redirect(url_for('shopify.shopify_settings', error="Store connection required", shop=shop, host=host))
+                target_url = url_for('shopify.shopify_settings', error="Store connection required", shop=shop, host=host, _external=True)
+                return f'''
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+                        <script>
+                            if (window.top !== window.self) {{
+                                window.top.location.href = "{target_url}";
+                            }} else {{
+                                window.location.href = "{target_url}";
+                            }}
+                        </script>
+                    </head>
+                    <body><p>Store connection required. <a href="{target_url}">Click here</a></p></body>
+                    </html>
+                ''', 403
 
             return jsonify(
                 {
@@ -113,7 +129,23 @@ def require_zero_trust(f):
             if request.accept_mimetypes.accept_html and not request.is_json:
                 shop = request.args.get('shop')
                 host = request.args.get('host')
-                return redirect(url_for('shopify.shopify_settings', error="Store connection required", shop=shop, host=host))
+                target_url = url_for('shopify.shopify_settings', error="Store connection required", shop=shop, host=host, _external=True)
+                return f'''
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+                        <script>
+                            if (window.top !== window.self) {{
+                                window.top.location.href = "{target_url}";
+                            }} else {{
+                                window.location.href = "{target_url}";
+                            }}
+                        </script>
+                    </head>
+                    <body><p>Store connection required. <a href="{target_url}">Click here</a></p></body>
+                    </html>
+                ''', 403
 
             return jsonify(
                 {
