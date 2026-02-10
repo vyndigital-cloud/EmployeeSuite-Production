@@ -139,6 +139,7 @@ def install():
 
     # Normalize shop domain - professional consistent normalization
     # [SANITY] Strip any recursive state fragments that might have nested (e.g. from retries)
+    original_shop = request.args.get('shop')
     shop = (
         shop.lower()
         .split('|')[0] # Remove any existing nonce fragments
