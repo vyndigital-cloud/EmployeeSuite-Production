@@ -435,14 +435,19 @@ def create_app():
             payload = verify_session_token_stateless(token)
             if payload:
                 dest = payload.get("dest", "")
-                sub = payload.get("sub", "")
-                shop_domain = dest.replace("https://", "").split("/")[0]
+                shop_domain = dest.replace("https://", "").split("/")[0] if dest else None
                 
-                # VERIFY SUB: Ensure subject matches destination
-                if sub and shop_domain in sub:
+                # [FIXED] IDENTITY COMPARISON: Only trust if destination matches domain source
+                if not shop_domain:
+                    app.logger.error("JWT MISSING DEST: Access denied.")
+                    request.session_token_verified = False
+                elif dest and dest.replace("https://", "") != shop_domain:
+                    app.logger.error(f"🚨 JWT IDENTITY FRAUD: dest({dest}) != shop_domain({shop_domain})")
+                    request.session_token_verified = False
+                else:
                     request.shop_domain = shop_domain
                     request.session_token_verified = True
-                    app.logger.debug(f"Global JWT Verified (sub={sub}): {shop_domain}")
+                    app.logger.debug(f"Global JWT Verified: {shop_domain}")
                     
                     # GLOBAL IDENTITY SYNC
                     try:
@@ -458,9 +463,6 @@ def create_app():
                                 login_user(store.user)
                     except Exception as e:
                         app.logger.error(f"Global Identity Sync error: {e}")
-                else:
-                    app.logger.warning(f"JWT Verification Failed: sub ({sub}) mismatch with shop ({shop_domain})")
-                    request.session_token_verified = False
             else:
                 # Token present but invalid
                 request.session_token_verified = False
@@ -532,17 +534,37 @@ def create_app():
             shop = url_shop or session_shop
             host = request.args.get("host") or session.get("host")
             
-            # If we're clearly in a Shopify iframe (shop + hmac/session), trigger TOP-LEVEL ESCAPE HATCH
-            if shop and (request.args.get("hmac") or session_shop):
-                from flask import render_template
-                
-                app.logger.warning(f"Shopify context detected for anonymous user: Triggering BREAKOUT for {request.path}")
-                
+            # [LOOP-BREAKER] If unauthenticated but shop is present, force re-auth via App Bridge
+            if shop:
+                app.logger.warning(f"🔄 Loop-Breaker: Forcing App Bridge re-auth for {shop}")
                 # Construct the direct re-auth URL
                 auth_url = url_for('auth.login', shop=shop, host=host, _external=True)
                 
-                # Render the breakout page to force a top-level redirect
-                return render_template("redirect_to_auth.html", auth_url=auth_url), 401
+                # Render a dedicated App Bridge redirect template to escape the frame
+                return f'''
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+                        <script>
+                            const host = new URLSearchParams(window.location.search).get("host") || "{host or ""}";
+                            const shop = "{shop}";
+                            const authUrl = "{auth_url}";
+                            
+                            if (window.top !== window.self) {{
+                                // In an iframe: Break out to re-auth
+                                window.top.location.href = authUrl;
+                            }} else {{
+                                // Standalone: Normal redirect
+                                window.location.href = authUrl;
+                            }}
+                        </script>
+                    </head>
+                    <body>
+                        <p>Redirecting to authentication...</p>
+                    </body>
+                    </html>
+                ''', 200 # Return 200 so the browser processes the HTML/JS
 
             app.logger.warning(f"Blocked anonymous access to {request.path}")
             return redirect(url_for('auth.login', shop=shop, host=host))

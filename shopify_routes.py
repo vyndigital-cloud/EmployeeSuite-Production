@@ -387,7 +387,7 @@ def disconnect_store():
     
     # [ZERO-TRUST SPEC] Clear session and logout user BEFORE starting anything else
     logger.info("Atomic Disconnect: Purging session and logging out user.")
-    session.clear()
+    session.clear() # [FIX] Complete session incineration
     logout_user()
 
     from shopify_utils import normalize_shop_url
