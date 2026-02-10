@@ -10,8 +10,9 @@ import sys
 import traceback
 from datetime import timedelta
 
-from flask import Flask, request, jsonify, g, session, redirect, url_for, render_template_string
+from flask import Flask, request, jsonify, g, session, redirect, url_for, render_template_string, current_app
 from werkzeug.middleware.proxy_fix import ProxyFix
+from models import db, User, ShopifyStore
 
 
 def create_app():
