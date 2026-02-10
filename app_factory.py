@@ -142,20 +142,21 @@ def create_app():
             """
             Load user from request with session-first verification.
             """
-            from flask import session
-
-            from models import ShopifyStore, User
-            from shopify_utils import normalize_shop_url
+            from flask import g
+            from sqlalchemy.orm import joinedload
 
             # 1. Check session cookie first - THIS IS THE SOURCE OF TRUTH
             user_id = session.get("_user_id")
             if user_id:
                 try:
-                    user = User.query.get(int(user_id))
+                    # [LATENCY CRUSH] Fetch User and their Welded Store in a SINGLE JOIN
+                    user = db.session.query(User).options(joinedload(User.current_store)).get(int(user_id))
                     if user:
+                        # Memoize for global access
+                        g.current_store = user.current_store
                         return user
-                except Exception:
-                    pass
+                except Exception as e:
+                    app.logger.debug(f"Session-based user load failed: {e}")
 
             # 2. TITAN: Trust id_token (JWT) from Shopify - Seamless Identity
             id_token = request.args.get("id_token") or request.headers.get("Authorization", "").replace("Bearer ", "")
@@ -167,9 +168,15 @@ def create_app():
                         # sub is the Shopify User ID / Shop Domain linkage
                         shop = payload.get("dest", "").replace("https://", "").split("/")[0]
                         if shop:
-                            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+                            # [LATENCY CRUSH] Single query for Store + User
+                            store = db.session.query(ShopifyStore).options(joinedload(ShopifyStore.user)).filter(
+                                ShopifyStore.shop_url == shop, 
+                                ShopifyStore.is_active == True
+                            ).first()
+                            
                             if store and store.user:
                                 app.logger.info(f"TITAN [JWT_TRUST] Authenticated User {store.user.id} via id_token")
+                                g.current_store = store # Memoize
                                 return store.user
                 except Exception as je:
                     app.logger.debug(f"Seamless id_token trust failed: {je}")
@@ -182,44 +189,42 @@ def create_app():
                     app.logger.warning(f"Invalid HMAC attempt for shop: {shop}")
                     return None
 
+                from shopify_utils import normalize_shop_url
                 shop = normalize_shop_url(shop)
                 from config import DEV_SHOP_DOMAIN
                 
-                # 1. Try active store first
-                store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+                # [LATENCY CRUSH] Single query for Store + User
+                store = db.session.query(ShopifyStore).options(joinedload(ShopifyStore.user)).filter(
+                    ShopifyStore.shop_url == shop, 
+                    ShopifyStore.is_active == True
+                ).first()
                 
-                # 2. DEV SAFE-PASS: Bypasses active requirement for our dev shop
+                # DEV SAFE-PASS
                 if not store and shop == DEV_SHOP_DOMAIN:
-                    app.logger.info(f"🛡️ Dev Safe-Pass: Allowing inactive store for {shop}")
-                    store = ShopifyStore.query.filter_by(shop_url=shop).first()
+                    store = db.session.query(ShopifyStore).options(joinedload(ShopifyStore.user)).filter(
+                        ShopifyStore.shop_url == shop
+                    ).first()
 
-                # 3. SEAMLESS RE-AUTH: If no store exists (or inactive non-dev), redirect to login
                 if not store:
                     from flask import redirect, url_for
                     app.logger.info(f"🔄 Seamless Re-auth: Redirecting {shop} to login")
-                    
-                    # [SAFETY] Construct redirect and return immediately
-                    # Flask-Login's request_loader can return a Response object in some configurations,
-                    # but we must ensure subsequent logic doesn't treat this 'Response' as a 'User'.
-                    response = redirect(url_for("auth.login", shop=shop))
-                    return response
+                    return redirect(url_for("auth.login", shop=shop))
 
                 if store and store.user:
-                    # CRITICAL FIX: Explicitly set session for Safari iframe compatibility
-                    from flask import g
                     from flask_login import login_user
-
                     login_user(store.user, remember=False)
-                    g.current_user = store.user # Populate g immediately for middleware
+                    
+                    # [TITAN] Global Memoization
+                    g.current_user = store.user
+                    g.current_store = store
+                    
                     session["shop_domain"] = shop
                     session["_user_id"] = store.user.id
-                    session["shop"] = shop # Ensure shop is also set
+                    session["shop"] = shop
                     session.permanent = True
                     session.modified = True 
 
-                    app.logger.info(
-                        f"🔗 HMAC AUTH SUCCESS: User {store.user.id} authenticated for shop {shop}."
-                    )
+                    app.logger.info(f"🔗 HMAC AUTH SUCCESS: User {store.user.id} authenticated for shop {shop}.")
                     return store.user
                 else:
                     app.logger.error(f"HMAC Valid for {shop} but associated user is missing.")
@@ -443,8 +448,11 @@ def create_app():
         if request.shop_domain and request.shop_domain in app._shop_identity_cache:
             user_id, store_id, is_active, expiry = app._shop_identity_cache[request.shop_domain]
             if now < expiry and is_active:
-                g.current_user = User.query.get(user_id)
+                from sqlalchemy.orm import joinedload
+                # [LATENCY CRUSH] Single Join lookup for cached hit
+                g.current_user = db.session.query(User).options(joinedload(User.current_store)).get(user_id)
                 if g.current_user:
+                    g.current_store = g.current_user.current_store
                     return # SUCCESS: Cache hit
 
         # 3. Handle Stateless JWT (Authorization Header)
@@ -462,19 +470,20 @@ def create_app():
         # 4. Database Lookup & Cache Update
         if request.shop_domain:
             from models import db
+            from sqlalchemy.orm import joinedload
             # [HOTFIX] Explicit and Clean Lookup to avoid ambiguous FK stalls
-            store = db.session.query(ShopifyStore).filter(
+            store = db.session.query(ShopifyStore).options(joinedload(ShopifyStore.user)).filter(
                 ShopifyStore.shop_url == request.shop_domain,
                 ShopifyStore.is_active == True
             ).first()
             
-            if store:
-                g.current_user = User.query.get(store.user_id)
-                if g.current_user:
-                    # Update 5-minute Cache
-                    app._shop_identity_cache[request.shop_domain] = (
-                        g.current_user.id, store.id, store.is_active, now + 300
-                    )
+            if store and store.user:
+                g.current_user = store.user
+                g.current_store = store # TITAN MEMOIZATION
+                # Update 5-minute Cache
+                app._shop_identity_cache[request.shop_domain] = (
+                    g.current_user.id, store.id, store.is_active, now + 300
+                )
 
         # 5. Last Fallback: Logged in user from Flask-Login
         # Ensure we don't overwrite the global current_user proxy
