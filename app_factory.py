@@ -145,7 +145,7 @@ def create_app():
             Mandatory: RETURN None on failure, NEVER redirect().
             """
             from sqlalchemy.orm import joinedload
-            from models import User, ShopifyStore
+            from models import User, ShopifyStore, db
 
             # 1. TITAN: Trust id_token (JWT) from Shopify - Absolute Priority
             id_token = request.args.get("id_token") or request.headers.get("Authorization", "").replace("Bearer ", "")
@@ -802,18 +802,21 @@ def create_app():
             
         # 2. Check Redis
         try:
-            r = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+            # [REDIS CIRCUIT BREAKER] Only connect if REDIS_URL is explicitly set
+            redis_url = os.getenv("REDIS_URL")
+            if not redis_url:
+                app.logger.info("🔄 TITAN [REDIS] No REDIS_URL configured, running in bypass mode (direct DB)")
+                return jsonify({"status": "healthy", "redis": "disabled"}), 200
+            
+            r = redis.from_url(redis_url)
             r.ping()
-            status["redis"] = "connected"
+            return jsonify({"status": "healthy", "redis": "connected"}), 200
+        except redis.RedisError as e:
+            app.logger.warning(f"🔴 TITAN [REDIS] Circuit open. Redis unreachable: {e}")
+            return jsonify({"status": "healthy", "redis": "unreachable"}), 200
         except Exception as e:
-            app.logger.error(f"Health Check Failure (Redis): {e}")
-            status["redis"] = "error"
-            # Redis failure doesn't necessarily mean "unhealthy" if app doesn't require it to run
-            if status["status"] == "healthy":
-                status["status"] = "degraded"
-                
-        code = 200 if status["status"] == "healthy" else 503
-        return jsonify(status), code
+            app.logger.error(f"Health check failed: {e}")
+            return jsonify({"status": "unhealthy", "error": str(e)}), 500
 
     return app
 
