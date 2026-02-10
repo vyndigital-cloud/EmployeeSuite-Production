@@ -486,17 +486,28 @@ def create_app():
         from flask_login import current_user, logout_user
         from shopify_utils import normalize_shop_url
 
-        # Skip for static files, debug routes, webhooks, and the auth handshake itself
-        whitelist = [
-            "/static", 
-            "/debug", 
-            "/oauth/", 
-            "/auth/", 
-            "/webhook/",
-            "/favicon.ico",
-            "/health"
+        # [LOOP-BREAKER] Strict Endpoint Whitelisting
+        # request.endpoint is None for 404s, which is fine to check auth for
+        whitelisted_endpoints = [
+            'auth.login',
+            'oauth.install',
+            'oauth.callback',
+            'static',
+            'webhook_shopify.app_uninstall',
+            'webhook_shopify.app_subscription_update',
+            'gdpr_compliance.customers_data_request',
+            'gdpr_compliance.customers_redact',
+            'gdpr_compliance.shop_redact',
+            'health'
         ]
-        if any(request.path.startswith(path) for path in whitelist):
+        
+        # 1. Allow Whitelisted Endpoints immediately
+        if request.endpoint in whitelisted_endpoints:
+            return
+
+        # 2. Allow path-based overrides for extra safety
+        whitelist_paths = ["/static", "/debug", "/oauth/", "/auth/", "/webhook/", "/favicon.ico", "/health"]
+        if any(request.path.startswith(path) for path in whitelist_paths):
             return
 
         # [NEW] Allow if identity was already established by HMAC/JWT in this request
@@ -504,7 +515,7 @@ def create_app():
         if getattr(g, 'current_user', None) and g.current_user.is_authenticated:
             return
 
-        # 1. Identity Integrity Check (URL vs Session vs JWT)
+        # 3. Identity Integrity Check (URL vs Session vs JWT)
         url_shop = request.args.get("shop")
         session_shop = session.get("shop_domain")
         jwt_verified = getattr(request, 'session_token_verified', False)
@@ -522,9 +533,22 @@ def create_app():
                 app.logger.warning(f"🚨 SESSION MISMATCH: URL={url_shop}, Session={session_shop}. Purging.")
                 session.clear()
                 logout_user()
+                # Use breakout if in Shopify context
+                if url_shop:
+                    goto_url = url_for("oauth.install", shop=url_shop, _external=True)
+                    return f'''
+                        <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+                        <script>
+                            if (window.top !== window.self) {{
+                                window.top.location.href = "{goto_url}";
+                            }} else {{
+                                window.location.href = "{goto_url}";
+                            }}
+                        </script>
+                    ''', 200
                 return redirect(url_for("oauth.install", shop=url_shop))
 
-        # 2. Authentication Check
+        # 4. Authentication Check
         if not current_user.is_authenticated:
             # For JSON/API requests, return 401
             if request.is_json or not request.accept_mimetypes.accept_html:
@@ -569,7 +593,7 @@ def create_app():
             app.logger.warning(f"Blocked anonymous access to {request.path}")
             return redirect(url_for('auth.login', shop=shop, host=host))
 
-        # 3. Active Store Check
+        # 5. Active Store Check
         if not current_user.active_shop:
             app.logger.warning(f"User {current_user.id} accessed {request.path} without active shop")
             if request.is_json or not request.accept_mimetypes.accept_html:
