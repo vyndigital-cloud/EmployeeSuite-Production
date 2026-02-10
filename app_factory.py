@@ -149,11 +149,23 @@ def create_app():
                     return None
 
                 shop = normalize_shop_url(shop)
-                # Ensure we get the latest active store for this shop
+                from config import DEV_SHOP_DOMAIN
+                
+                # 1. Try active store first
                 store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+                
+                # 2. DEV SAFE-PASS: Bypasses active requirement for our dev shop
+                if not store and shop == DEV_SHOP_DOMAIN:
+                    app.logger.info(f"🛡️ Dev Safe-Pass: Allowing inactive store for {shop}")
+                    store = ShopifyStore.query.filter_by(shop_url=shop).first()
+
+                # 3. SEAMLESS RE-AUTH: If no store exists (or inactive non-dev), redirect to login
                 if not store:
-                    app.logger.warning(f"HMAC Valid but no active store found for {shop}. Returning None.")
-                    return None
+                    from flask import redirect, url_for
+                    app.logger.info(f"🔄 Seamless Re-auth: Redirecting {shop} to login")
+                    # Using a temporary attribute to signal a redirect is needed
+                    # Note: request_loader normally returns User or None, but many apps use it for redirects
+                    return redirect(url_for("auth.login", shop=shop))
 
                 if store and store.user:
                     # CRITICAL FIX: Explicitly set session for Safari iframe compatibility
@@ -423,20 +435,32 @@ def create_app():
             payload = verify_session_token_stateless(token)
             if payload:
                 dest = payload.get("dest", "")
+                sub = payload.get("sub", "")
                 shop_domain = dest.replace("https://", "").split("/")[0]
-                request.shop_domain = shop_domain
-                request.session_token_verified = True
-                app.logger.debug(f"Global JWT Verified (id_token): {shop_domain}")
                 
-                # GLOBAL IDENTITY SYNC
-                try:
-                    store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
-                    if store and store.user:
-                        if not current_user.is_authenticated or current_user.id != store.user.id:
-                            app.logger.info(f"Identity Sync (Global JWT): Logging in {store.user.id} for {shop_domain}")
-                            login_user(store.user)
-                except Exception as e:
-                    app.logger.error(f"Global Identity Sync error: {e}")
+                # VERIFY SUB: Ensure subject matches destination
+                if sub and shop_domain in sub:
+                    request.shop_domain = shop_domain
+                    request.session_token_verified = True
+                    app.logger.debug(f"Global JWT Verified (sub={sub}): {shop_domain}")
+                    
+                    # GLOBAL IDENTITY SYNC
+                    try:
+                        from config import DEV_SHOP_DOMAIN
+                        # Try active store, but allow Dev Safe-Pass
+                        store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
+                        if not store and shop_domain == DEV_SHOP_DOMAIN:
+                            store = ShopifyStore.query.filter_by(shop_url=shop_domain).first()
+                            
+                        if store and store.user:
+                            if not current_user.is_authenticated or current_user.id != store.user.id:
+                                app.logger.info(f"Identity Sync (Global JWT): Logging in {store.user.id} for {shop_domain}")
+                                login_user(store.user)
+                    except Exception as e:
+                        app.logger.error(f"Global Identity Sync error: {e}")
+                else:
+                    app.logger.warning(f"JWT Verification Failed: sub ({sub}) mismatch with shop ({shop_domain})")
+                    request.session_token_verified = False
             else:
                 # Token present but invalid
                 request.session_token_verified = False

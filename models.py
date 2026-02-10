@@ -244,8 +244,16 @@ class User(UserMixin, db.Model, TimestampMixin):
 
     @property
     def active_shop(self) -> Optional[str]:
-        """Returns the shop_url of the current ACTIVE store connection"""
+        """Returns the shop_url of the current ACTIVE store connection (with Dev Safe-Pass)"""
+        from config import DEV_SHOP_DOMAIN
         store = self.shopify_stores.filter_by(is_active=True).first()
+        
+        # Dev Safe-Pass: If no active store but this is our dev shop, return any store record
+        if not store and DEV_SHOP_DOMAIN:
+            dev_store = self.shopify_stores.filter_by(shop_url=DEV_SHOP_DOMAIN).first()
+            if dev_store:
+                return dev_store.shop_url
+                
         return store.shop_url if store else None
 
     def __repr__(self) -> str:
