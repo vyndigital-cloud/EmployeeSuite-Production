@@ -557,36 +557,25 @@ def create_app():
                     ''', 200
                 return redirect(url_for("oauth.install", shop=url_shop))
 
-        # 4. Authentication Check
-        from flask_login import current_user as login_manager_user
-        
-        # FIX: Check the login manager status safely to avoid Response object collision
-        try:
-            # Check if we are dealing with a real user object, not a Flask Response
-            is_authed = hasattr(login_manager_user, 'is_authenticated') and login_manager_user.is_authenticated
-        except Exception:
-            is_authed = False
-
-        if not is_authed:
-            app.logger.warning(f"Unauthenticated access to {request.path}")
-            
-            # For JSON/API requests, return 401
-            if request.is_json or not request.accept_mimetypes.accept_html:
-                 return jsonify({"error": "Authentication required", "success": False}), 401
-            
-            # [LOOP-BREAKER] If unauthenticated but shop is present, trigger handshake or breakout
+        # [LOCAL HELPER] The Final Weld Handshake
+        def trigger_reauth_flow():
             shop = url_shop or session_shop
             if shop:
                 app.logger.info(f"🔄 Identity Finality: Triggering re-auth handshake for {shop}")
-                # [FIX] Call load_user_from_request directly to handle the redirect/auth logic
-                # This ensures we don't try to access current_user after it has become a Response
-                return load_user_from_request() or redirect(url_for('auth.login', shop=shop))
-
+                # Ensure load_user_from_request is available in scope
+                return load_user_from_request(request) or redirect(url_for('auth.login', shop=shop))
             return redirect(url_for('auth.login'))
 
+        # 4. The Final Weld: Identity Guard
+        from flask_login import current_user as login_manager_user
+        user_val = g.get('current_user') or login_manager_user
+        
+        if not hasattr(user_val, 'is_authenticated') or not user_val.is_authenticated:
+            return trigger_reauth_flow()
+
         # 5. Active Store Check
-        if not current_user.active_shop:
-            app.logger.warning(f"User {current_user.id} accessed {request.path} without active shop")
+        if not user_val.active_shop:
+            app.logger.warning(f"User {user_val.id} accessed {request.path} without active shop")
             if request.is_json or not request.accept_mimetypes.accept_html:
                  return jsonify({"error": "Active store connection required", "action": "connect"}), 403
             
