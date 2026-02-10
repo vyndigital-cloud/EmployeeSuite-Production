@@ -412,7 +412,6 @@ def create_app():
     # ============================================================================
     # Global 5-minute cache for shop identity (shop_domain -> (user_id, store_id, is_active, expiry))
     app._shop_identity_cache = {}
-    from flask import g, request, jsonify, redirect, session, url_for
     @app.before_request
     def extract_identity_context():
         """
