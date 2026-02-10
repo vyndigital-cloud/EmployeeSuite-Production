@@ -73,46 +73,34 @@
             window.location.search,
         ).get("host");
 
-        // Helper to open pages via App Bridge (Stateless Pivot)
-        window.openPage = function (path) {
-            if (window.shopify && window.shopify.config) {
+        // Helper to open pages via App Bridge (Manual JWT Append)
+        window.openPage = async function (path) {
+            if (window.shopify) {
                 try {
-                    // Use App Bridge Redirect for internal navigation
-                    var AppBridge = window['app-bridge'];
-                    var actions = AppBridge.actions;
-                    var Redirect = actions.Redirect;
+                    // 1. Grab a fresh token RIGHT NOW
+                    const token = await window.shopify.idToken();
 
-                    // Create app instance for v3 actions if needed, 
-                    // otherwise try to use existing shopify object if compatible
-                    var app = window.shopify;
-                    if (!app && typeof AppBridge.default === 'function') {
-                        app = AppBridge.default({
-                            apiKey: "{{ config.SHOPIFY_API_KEY }}",
-                            host: new URLSearchParams(window.location.search).get("host")
-                        });
-                    }
+                    // 2. Attach it to the URL manually
+                    const url = new URL(path, window.location.origin);
+                    url.searchParams.set('id_token', token);
+                    url.searchParams.set('shop', new URLSearchParams(window.location.search).get('shop'));
+                    url.searchParams.set('host', new URLSearchParams(window.location.search).get('host'));
 
-                    const redirect = Redirect.create(app);
+                    // 3. Dispatch the redirect with the payload included
+                    const Redirect = window['app-bridge'].actions.Redirect;
+                    const redirect = Redirect.create(window.shopify);
+                    redirect.dispatch(Redirect.Action.APP, url.pathname + url.search);
 
-                    // Normalize path: remove host/shop if they are internal
-                    let cleanPath = path;
-                    if (path.includes('?')) {
-                        const parts = path.split('?');
-                        const params = new URLSearchParams(parts[1]);
-                        params.delete('shop');
-                        params.delete('host');
-                        params.delete('id_token');
-                        cleanPath = parts[0] + (params.toString() ? '?' + params.toString() : '');
-                    }
-
-                    console.log("🚀 App Bridge Navigating to:", cleanPath);
-                    redirect.dispatch(Redirect.Action.APP, cleanPath);
+                    console.log("🚀 Manual JWT Append Navigation to:", url.pathname + url.search);
                     return false;
                 } catch (e) {
-                    console.error("App Bridge Redirect failed, falling back to location.href", e);
+                    console.error("JWT Navigation Failure", e);
+                    // Last resort fallback
+                    window.location.href = path;
                 }
             }
 
+            // Fallback for non-embedded context
             var params = new URLSearchParams(window.location.search);
             var shop = params.get("shop");
             var host = params.get("host");

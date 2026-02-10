@@ -158,9 +158,30 @@ def verify_session_token(f):
                 logger.debug(f"Allowing unverified embedded request for authenticated user {current_user.id}")
                 return f(*args, **kwargs)
 
-            # If we are supposedly embedded but have no verified JWT, this is a "Ghost" or Spoof attempt
-            logger.warning(f"Blocked unverified embedded request to {request.path}")
-            return jsonify({"error": "Verified Session Token Required", "action": "refresh"}), 403
+            # [BRIDGE LOADER] Return 200 with token refresh script instead of 403
+            logger.warning(f"Embedded request without JWT to {request.path}, triggering Bridge Loader")
+            api_key = os.getenv("SHOPIFY_API_KEY", "")
+            return f'''
+                <html>
+                    <head>
+                        <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+                        <script>
+                            var AppBridge = window['app-bridge'];
+                            var createApp = AppBridge.default;
+                            var app = createApp({{
+                                apiKey: "{api_key}",
+                                host: new URLSearchParams(location.search).get("host")
+                            }});
+                            // Force a re-weld by reloading with fresh Shopify context
+                            console.log("🔄 Bridge Loader: Refreshing session...");
+                            setTimeout(function() {{
+                                window.location.reload();
+                            }}, 500);
+                        </script>
+                    </head>
+                    <body><p>Securing Connection...</p></body>
+                </html>
+            ''', 200
 
         return f(*args, **kwargs)
         return f(*args, **kwargs)
