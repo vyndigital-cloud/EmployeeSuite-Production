@@ -443,8 +443,12 @@ def create_app():
         Global middleware to extract identity from JWT (Authorization: Bearer <token>)
         or Shopify Headers/Params. Populates request.shop_domain and g.current_user.
         """
+        # [EBAY-LEVEL] Skip identity checks for static files (Performance + Crash Prevention)
+        if request.endpoint == 'static' or request.path.startswith('/static'):
+            return
+        
         import time
-        from models import User, ShopifyStore
+        from models import User, ShopifyStore, db  # Added db to prevent UnboundLocalError
         from shopify_utils import normalize_shop_url
         
         now = time.time()
