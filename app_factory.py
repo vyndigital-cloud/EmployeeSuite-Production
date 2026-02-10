@@ -38,9 +38,9 @@ def create_app():
             "WTF_CSRF_ENABLED": True,
             "WTF_CSRF_TIME_LIMIT": 3600,
             # Session cookie configuration for login persistence
-            "SESSION_COOKIE_SECURE": True,  # Only send over HTTPS
+            "SESSION_COOKIE_SECURE": True,    # CRITICAL: Mandatory for SameSite=None
             "SESSION_COOKIE_HTTPONLY": True,  # Prevent JavaScript access
-            "SESSION_COOKIE_SAMESITE": "None",  # CRITICAL FIX: None for cross-site compatibility
+            "SESSION_COOKIE_SAMESITE": "None",  # CRITICAL: Mandatory for Embedded Apps
             "SESSION_COOKIE_DOMAIN": None,  # Don't restrict domain for flexibility
             "SESSION_COOKIE_PATH": "/",  # Available on all paths
             "REMEMBER_COOKIE_SECURE": True,
@@ -157,7 +157,24 @@ def create_app():
                 except Exception:
                     pass
 
-            # 2. Check HMAC for OAuth flow (fallback ONLY if no session)
+            # 2. TITAN: Trust id_token (JWT) from Shopify - Seamless Identity
+            id_token = request.args.get("id_token") or request.headers.get("Authorization", "").replace("Bearer ", "")
+            if id_token:
+                try:
+                    from session_token_verification import verify_session_token_stateless
+                    payload = verify_session_token_stateless(id_token)
+                    if payload:
+                        # sub is the Shopify User ID / Shop Domain linkage
+                        shop = payload.get("dest", "").replace("https://", "").split("/")[0]
+                        if shop:
+                            store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
+                            if store and store.user:
+                                app.logger.info(f"TITAN [JWT_TRUST] Authenticated User {store.user.id} via id_token")
+                                return store.user
+                except Exception as je:
+                    app.logger.debug(f"Seamless id_token trust failed: {je}")
+
+            # 3. Check HMAC for OAuth flow (fallback)
             shop = request.args.get("shop")
             if shop and request.args.get("hmac"):
                 from shopify_oauth import verify_hmac

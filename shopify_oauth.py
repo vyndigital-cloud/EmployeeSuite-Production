@@ -806,14 +806,28 @@ def _handle_oauth_callback():
     ''', 200
 
 
+# TITAN: HMAC Verification Cache (Reduce Latency)
+HMAC_CACHE = {}
+
 def verify_hmac(params):
-    """Verify Shopify HMAC"""
+    """Verify Shopify HMAC with TITAN caching"""
     hmac_to_verify = params.get("hmac")
+    shop = params.get("shop")
+    
     if not hmac_to_verify:
         logger.error("HMAC verification failed: No hmac parameter in request")
         return False
 
-    # CRITICAL: Check that API secret is set before trying to use it
+    # 1. Check TITAN Cache
+    cache_key = f"{shop}:{hmac_to_verify}"
+    if cache_key in HMAC_CACHE:
+        expiry = HMAC_CACHE[cache_key]
+        if time.time() < expiry:
+            return True
+        else:
+            del HMAC_CACHE[cache_key]
+
+    # CRITICAL: Check that API secret is set
     if not SHOPIFY_API_SECRET:
         logger.error("HMAC verification failed: SHOPIFY_API_SECRET is not set!")
         return False
@@ -833,7 +847,16 @@ def verify_hmac(params):
             hashlib.sha256,
         ).hexdigest()
 
-        return hmac.compare_digest(calculated_hmac, hmac_to_verify)
+        result = hmac.compare_digest(calculated_hmac, hmac_to_verify)
+        
+        # Cache successful verification for 5 minutes
+        if result:
+            HMAC_CACHE[cache_key] = time.time() + 300
+            # Periodically clean cache if it gets too large
+            if len(HMAC_CACHE) > 1000:
+                HMAC_CACHE.clear()
+                
+        return result
     except Exception as e:
         logger.error(f"HMAC verification exception: {e}")
         return False
