@@ -411,8 +411,11 @@ def create_app():
         """
         GLOBAL IDENTITY EXTRACTION: Performs JWT verification for every request.
         Sets request.session_token_verified and request.shop_domain.
+        Also performs GLOBAL IDENTITY SYNC to ensure current_user matches JWT.
         """
         from flask import request
+        from flask_login import current_user, login_user
+        from models import ShopifyStore
         from session_token_verification import get_bearer_token, verify_session_token_stateless
 
         token = get_bearer_token()
@@ -420,9 +423,27 @@ def create_app():
             payload = verify_session_token_stateless(token)
             if payload:
                 dest = payload.get("dest", "")
-                request.shop_domain = dest.replace("https://", "").split("/")[0]
+                shop_domain = dest.replace("https://", "").split("/")[0]
+                request.shop_domain = shop_domain
                 request.session_token_verified = True
-                app.logger.debug(f"Global JWT Verified: {request.shop_domain}")
+                app.logger.debug(f"Global JWT Verified: {shop_domain}")
+                
+                # GLOBAL IDENTITY SYNC
+                try:
+                    store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
+                    if store and store.user:
+                        if not current_user.is_authenticated or current_user.id != store.user.id:
+                            app.logger.info(f"Identity Sync (Global JWT): Logging in {store.user.id} for {shop_domain}")
+                            login_user(store.user)
+                except Exception as e:
+                    app.logger.error(f"Global Identity Sync error: {e}")
+            else:
+                # Token present but invalid
+                request.session_token_verified = False
+                app.logger.warning("Global JWT verification failed: Invalid token")
+        else:
+            # Fallback for manual check if needed
+            request.session_token_verified = getattr(request, 'session_token_verified', False)
 
     # ============================================================================
     # GLOBAL ZERO-TRUST HARD-LOCK MIDDLEWARE

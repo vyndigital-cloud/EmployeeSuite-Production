@@ -951,6 +951,85 @@ class ShopifyClient:
                 }
         return error_response
 
+    def register_webhooks(self):
+        """
+        Automatically register essential webhooks using GraphQL:
+        - app/uninstalled: Vital for database scrubbing
+        """
+        webhook_url = f"{os.getenv('SHOPIFY_APP_URL', 'https://employeesuite-production.onrender.com')}/webhooks/app/uninstall"
+        
+        mutation = """
+        mutation webhookSubscriptionCreate($topic: WebhookSubscriptionTopic!, $webhookSubscription: WebhookSubscriptionInput!) {
+          webhookSubscriptionCreate(topic: $topic, webhookSubscription: $webhookSubscription) {
+            userErrors {
+              field
+              message
+            }
+            webhookSubscription {
+              id
+            }
+          }
+        }
+        """
+        
+        variables = {
+            "topic": "APP_UNINSTALLED",
+            "webhookSubscription": {
+                "callbackUrl": webhook_url,
+                "format": "JSON"
+            }
+        }
+        
+        logger.info(f"🔄 Registering app/uninstalled webhook for {self.shop_url}...")
+        result = self._make_graphql_request(mutation, variables)
+        
+        if "error" in result:
+            logger.error(f"❌ Webhook registration failed for {self.shop_url}: {result['error']}")
+            return False
+            
+        user_errors = result.get("data", {}).get("webhookSubscriptionCreate", {}).get("userErrors", [])
+        if user_errors:
+            # Check if it already exists (Shopify returns an error if already registered)
+            for error in user_errors:
+                if "already" in error.get("message", "").lower():
+                    logger.info(f"✅ Webhook already registered for {self.shop_url}")
+                    return True
+            logger.error(f"❌ Webhook User Errors: {user_errors}")
+            return False
+            
+        logger.info(f"✅ Webhook registered successfully for {self.shop_url}")
+        return True
+
+    @staticmethod
+    def verify_hmac(params, hmac_to_verify):
+        """
+        SECURE: Verify Shopify HMAC to ensure requests to registration helpers are authentic.
+        Used when registration is triggered via a link or non-webhook callback.
+        """
+        import hmac
+        import hashlib
+        from config import SHOPIFY_API_SECRET
+        
+        if not SHOPIFY_API_SECRET or not hmac_to_verify:
+            return False
+            
+        # 1. Remove hmac and signature from params
+        data_params = {k: v for k, v in params.items() if k not in ["hmac", "signature"]}
+        
+        # 2. Sort and join
+        # Shopify sorts alphabetically by key
+        sorted_params = sorted(data_params.items())
+        message = "&".join([f"{k}={v}" for k, v in sorted_params])
+        
+        # 3. Compute HMAC
+        calculated_hmac = hmac.new(
+            SHOPIFY_API_SECRET.encode('utf-8'),
+            message.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+        
+        return hmac.compare_digest(calculated_hmac, hmac_to_verify)
+
     def get_low_stock(self, threshold=5):
         inventory = self.get_products()
         if isinstance(inventory, dict) and "error" in inventory:

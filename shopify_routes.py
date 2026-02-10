@@ -58,14 +58,10 @@ def shopify_settings():
 
     # 2. Force identity sync: Ensure Flask-Login matches the JWT shop
     # CRITICAL: Only trust this sync if the session token was actually verified
-    is_jwt_verified = getattr(request, 'session_token_verified', False)
+    is_jwt_verified = getattr(request, "session_token_verified", False)
     store = ShopifyStore.query.filter_by(shop_url=shop, is_active=True).first()
     
     if store and store.user:
-        # IDENTITY SYNC: Only perform auto-login if JWT is valid
-        if is_jwt_verified and (not current_user.is_authenticated or current_user.id != store.user.id):
-            logger.info(f"Identity Sync (JWT): Logging in user {store.user.id} for shop {shop}")
-            login_user(store.user)
         user = store.user
     elif current_user.is_authenticated:
         # User is logged in but has no active store connection (e.g. after disconnect)

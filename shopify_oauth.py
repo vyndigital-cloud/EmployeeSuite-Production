@@ -599,6 +599,15 @@ def _handle_oauth_callback():
     try:
         db.session.commit()
         logger.info(f"✅ Successfully saved store connection to database")
+        
+        # Automate Webhook Registration
+        try:
+            from shopify_integration import ShopifyClient
+            client = ShopifyClient(shop, access_token)
+            client.register_webhooks()
+        except Exception as e:
+            logger.error(f"Failed to register webhooks during OAuth for {shop}: {e}")
+            
     except Exception as e:
         db.session.rollback()
         logger.error(f"❌ Error saving store to database: {e}")

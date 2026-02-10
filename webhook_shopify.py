@@ -75,8 +75,8 @@ def app_uninstall():
             store.is_active = False
             store.uninstalled_at = datetime.utcnow()
             
-            # Revoke access token (optional - Shopify already revoked it)
-            # But we mark it as inactive
+            # SCRUB: Clear the access token to ensure it's "stale" and unusable
+            store.access_token = None
             
             db.session.commit()
             logger.info(f"Store {shop_domain} marked as uninstalled")

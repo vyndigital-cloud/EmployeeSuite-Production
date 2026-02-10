@@ -156,6 +156,14 @@ class User(UserMixin, db.Model, TimestampMixin):
                 
         # Fresh check if not in cache or expired
         try:
+            from config import DEV_SHOP_DOMAIN
+            
+            # 1. BILLING BYPASS: Check if this is our development shop
+            if hasattr(self, 'active_shop') and self.active_shop == DEV_SHOP_DOMAIN:
+                logger.info(f"🚀 Billing bypass active for dev shop: {self.active_shop}")
+                return True
+
+            # 2. STANDARD CHECK: Subscribed or Trial Active
             # 10k GHOST SHIP: Be optimistic. If we can't reach DB, use last known status.
             access_status = self.is_subscribed or self.is_trial_active()
         except Exception as e:
