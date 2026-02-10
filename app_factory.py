@@ -434,35 +434,32 @@ def create_app():
         if token:
             payload = verify_session_token_stateless(token)
             if payload:
+                # [FINALITY] Extract shop domain ONLY from 'dest' payload
                 dest = payload.get("dest", "")
-                shop_domain = dest.replace("https://", "").split("/")[0] if dest else None
+                if not dest:
+                    app.logger.warning("Global JWT verification failed: Missing 'dest' in payload")
+                    request.session_token_verified = False
+                    return
+
+                shop_domain = dest.replace("https://", "").split("/")[0]
+                request.shop_domain = shop_domain
+                request.session_token_verified = True
+                app.logger.debug(f"Global JWT Verified (Legend Tier): {shop_domain}")
                 
-                # [FIXED] IDENTITY COMPARISON: Only trust if destination matches domain source
-                if not shop_domain:
-                    app.logger.error("JWT MISSING DEST: Access denied.")
-                    request.session_token_verified = False
-                elif dest and dest.replace("https://", "") != shop_domain:
-                    app.logger.error(f"🚨 JWT IDENTITY FRAUD: dest({dest}) != shop_domain({shop_domain})")
-                    request.session_token_verified = False
-                else:
-                    request.shop_domain = shop_domain
-                    request.session_token_verified = True
-                    app.logger.debug(f"Global JWT Verified: {shop_domain}")
-                    
-                    # GLOBAL IDENTITY SYNC
-                    try:
-                        from config import DEV_SHOP_DOMAIN
-                        # Try active store, but allow Dev Safe-Pass
-                        store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
-                        if not store and shop_domain == DEV_SHOP_DOMAIN:
-                            store = ShopifyStore.query.filter_by(shop_url=shop_domain).first()
-                            
-                        if store and store.user:
-                            if not current_user.is_authenticated or current_user.id != store.user.id:
-                                app.logger.info(f"Identity Sync (Global JWT): Logging in {store.user.id} for {shop_domain}")
-                                login_user(store.user)
-                    except Exception as e:
-                        app.logger.error(f"Global Identity Sync error: {e}")
+                # GLOBAL IDENTITY SYNC
+                try:
+                    from config import DEV_SHOP_DOMAIN
+                    # Try active store, but allow Dev Safe-Pass
+                    store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
+                    if not store and shop_domain == DEV_SHOP_DOMAIN:
+                        store = ShopifyStore.query.filter_by(shop_url=shop_domain).first()
+                        
+                    if store and store.user:
+                        if not current_user.is_authenticated or current_user.id != store.user.id:
+                            app.logger.info(f"Identity Sync (Global JWT): Logging in {store.user.id} for {shop_domain}")
+                            login_user(store.user)
+                except Exception as e:
+                    app.logger.error(f"Global Identity Sync error: {e}")
             else:
                 # Token present but invalid
                 request.session_token_verified = False
@@ -700,6 +697,40 @@ def create_app():
                 app.logger.warning(f"⚠️ CCTV Watchdog encountered an issue: {e}")
                 db.session.rollback()
 
+
+    @app.route("/health")
+    def health_check():
+        """Legend Tier Observability: Verify DB and Redis connectivity"""
+        from flask import jsonify
+        from models import db
+        import redis
+        
+        status = {"status": "healthy", "database": "unknown", "redis": "unknown"}
+        
+        # 1. Check Database
+        try:
+            from sqlalchemy import text
+            db.session.execute(text("SELECT 1"))
+            status["database"] = "connected"
+        except Exception as e:
+            app.logger.error(f"Health Check Failure (DB): {e}")
+            status["database"] = "error"
+            status["status"] = "degraded"
+            
+        # 2. Check Redis
+        try:
+            r = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+            r.ping()
+            status["redis"] = "connected"
+        except Exception as e:
+            app.logger.error(f"Health Check Failure (Redis): {e}")
+            status["redis"] = "error"
+            # Redis failure doesn't necessarily mean "unhealthy" if app doesn't require it to run
+            if status["status"] == "healthy":
+                status["status"] = "degraded"
+                
+        code = 200 if status["status"] == "healthy" else 503
+        return jsonify(status), code
 
     return app
 

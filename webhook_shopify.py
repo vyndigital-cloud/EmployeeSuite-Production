@@ -79,6 +79,7 @@ def app_uninstall():
             store.access_token = None
             
             db.session.commit()
+            store.invalidate_cache() # [LEGEND TIER] Purge settings
             logger.info(f"Store {shop_domain} marked as uninstalled")
         else:
             logger.warning(f"Store {shop_domain} not found for uninstall")
@@ -127,6 +128,8 @@ def app_subscription_cancel():
                 logger.info(f"🚫 Subscription CANCELLED for shop {shop_domain}")
             
             db.session.commit()
+            if store:
+                store.invalidate_cache() # [LEGEND TIER] Purge settings
             
         return jsonify({'status': 'success'}), 200
     except Exception as e:

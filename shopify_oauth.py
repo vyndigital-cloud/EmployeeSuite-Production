@@ -600,6 +600,12 @@ def _handle_oauth_callback():
         db.session.commit()
         logger.info(f"✅ Successfully saved store connection to database")
         
+        # [LEGEND TIER] Invalidate Redis Cache for fresh settings
+        try:
+            store.invalidate_cache()
+        except Exception as ce:
+            logger.error(f"Cache invalidation failed: {ce}")
+        
         # Automate Webhook Registration
         try:
             from shopify_integration import ShopifyClient

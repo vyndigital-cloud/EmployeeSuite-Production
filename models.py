@@ -447,13 +447,20 @@ class ShopifyStore(db.Model, TimestampMixin):
             else:
                 # Encryption failed or not available, store plaintext
                 self.access_token = token
-                logger.warning(
-                    f"Storing plaintext access token for store {self.shop_url}"
-                )
-
+                logger.warning(f"Access token stored in plaintext for store {self.shop_url}")
         except Exception as e:
-            logger.warning(f"Encryption failed for store {self.shop_url}: {e}")
+            logger.error(f"Access token encryption failed: {e}")
             self.access_token = token
+
+    def get_cached_settings(self) -> Dict[str, Any]:
+        """Cache-Aside fetch for store settings to reduce DB load"""
+        from cache_utils import get_store_settings_cached
+        return get_store_settings_cached(self.shop_url)
+
+    def invalidate_cache(self) -> None:
+        """Invalidate Redis cache for this store"""
+        from cache_utils import cache_delete
+        cache_delete(f"store_settings:{self.shop_url}")
 
     def update_shop_info(self, shop_data: Dict[str, Any]) -> None:
         """Update shop information from Shopify API response"""

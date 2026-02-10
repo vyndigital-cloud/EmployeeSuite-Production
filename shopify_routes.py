@@ -485,6 +485,7 @@ def disconnect_store():
         # The is_active=False flag is sufficient to disconnect
 
         db.session.commit()
+        store.invalidate_cache() # [LEGEND TIER] Clean settings
         logger.info(
             f"Store {store.shop_url} disconnected successfully for user {user.id}"
         )

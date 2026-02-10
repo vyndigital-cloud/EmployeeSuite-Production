@@ -129,7 +129,7 @@ def activate_billing_charge(shop_domain, charge_id):
             )
 
             db.session.commit()
-
+            store.invalidate_cache() # [LEGEND TIER] Refresh settings
             logger.info(f"Activated billing for {shop_domain}: {charge.get('id')}")
             return True
         else:
