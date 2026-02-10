@@ -10,7 +10,7 @@ import sys
 import traceback
 from datetime import timedelta
 
-from flask import Flask, request, jsonify, g
+from flask import Flask, request, jsonify, g, session, redirect, url_for, render_template_string
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 
@@ -142,7 +142,6 @@ def create_app():
             """
             Load user from request with session-first verification.
             """
-            from flask import g
             from sqlalchemy.orm import joinedload
 
             # 1. Check session cookie first - THIS IS THE SOURCE OF TRUTH
@@ -205,8 +204,6 @@ def create_app():
                         ShopifyStore.shop_url == shop
                     ).first()
 
-                if not store:
-                    from flask import redirect, url_for
                     app.logger.info(f"🔄 Seamless Re-auth: Redirecting {shop} to login")
                     return redirect(url_for("auth.login", shop=shop))
 
@@ -415,6 +412,7 @@ def create_app():
     # ============================================================================
     # Global 5-minute cache for shop identity (shop_domain -> (user_id, store_id, is_active, expiry))
     app._shop_identity_cache = {}
+    from flask import g, request, jsonify, redirect, session, url_for
     @app.before_request
     def extract_identity_context():
         """
@@ -422,7 +420,6 @@ def create_app():
         or Shopify Headers/Params. Populates request.shop_domain and g.current_user.
         """
         import time
-        from flask import g, request, session
         from models import ShopifyStore, User
         from shopify_utils import normalize_shop_url
         
