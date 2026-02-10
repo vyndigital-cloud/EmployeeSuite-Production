@@ -52,6 +52,7 @@ from logging_config import logger
 from models import ShopifyStore, User, db
 from shopify_utils import normalize_shop_url
 from error_logging import error_logger
+from session_token_verification import verify_session_token
 
 billing_bp = Blueprint("billing", __name__)
 
@@ -470,6 +471,7 @@ def cancel_app_subscription(shop_url, access_token, charge_id):
 
 
 @billing_bp.route("/billing/subscribe")
+@verify_session_token
 def subscribe():
     """Enhanced subscribe page with strong CTAs"""
     from shopify_utils import normalize_shop_url

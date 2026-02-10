@@ -801,10 +801,33 @@ def system_debug_routes():
 
 @core_bp.route("/subscribe")
 def subscribe_redirect():
-    """Redirect to billing subscribe"""
+    """Redirect to billing subscribe using App Bridge to preserve JWT trust"""
     shop = request.args.get("shop", "")
     host = request.args.get("host", "")
-    return redirect(url_for("billing.subscribe", shop=shop, host=host))
+    
+    # Build the target URL with query params
+    target_url = url_for("billing.subscribe", shop=shop, host=host, _external=True)
+    
+    # Use App Bridge redirect to maintain JWT context
+    return f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+            <script>
+                const targetUrl = "{target_url}";
+                if (window.top !== window.self) {{
+                    window.top.location.href = targetUrl;
+                }} else {{
+                    window.location.href = targetUrl;
+                }}
+            </script>
+        </head>
+        <body>
+            <p>Redirecting to subscription... <a href="{target_url}">Click here if not redirected</a></p>
+        </body>
+        </html>
+    ''', 200
 
 
 @core_bp.route("/settings")

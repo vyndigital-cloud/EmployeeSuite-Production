@@ -23,7 +23,25 @@ def require_access(f):
                 # Capture params to preserve context
                 shop = request.args.get('shop')
                 host = request.args.get('host')
-                return redirect(url_for('billing.subscribe', error="Subscription required", shop=shop, host=host))
+                target_url = url_for('billing.subscribe', error="Subscription required", shop=shop, host=host, _external=True)
+                
+                # Use App Bridge breakout to maintain JWT context
+                return f'''
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+                        <script>
+                            if (window.top !== window.self) {{
+                                window.top.location.href = "{target_url}";
+                            }} else {{
+                                window.location.href = "{target_url}";
+                            }}
+                        </script>
+                    </head>
+                    <body><p>Subscription required. <a href="{target_url}">Click here</a></p></body>
+                    </html>
+                ''', 403
                 
             return jsonify(
                 {
