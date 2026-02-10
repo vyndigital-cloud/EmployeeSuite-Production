@@ -138,9 +138,11 @@ def install():
         return "Error: Missing shop domain. Please open the app from your Shopify Admin.", 400
 
     # Normalize shop domain - professional consistent normalization
-    original_shop = shop
+    # [SANITY] Strip any recursive state fragments that might have nested (e.g. from retries)
     shop = (
         shop.lower()
+        .split('|')[0] # Remove any existing nonce fragments
+        .split('||')[0] # Remove any existing host fragments
         .replace("https://", "")
         .replace("http://", "")
         .replace("www.", "")
@@ -190,6 +192,8 @@ def install():
 
     # [SECURITY] Implement State Nonce to prevent CSRF
     import secrets
+    # [HYGIENE] Clear previous nonce before setting new one
+    session.pop("shopify_nonce", None)
     nonce = secrets.token_hex(16)
     session["shopify_nonce"] = nonce
 
@@ -297,6 +301,7 @@ def install():
             <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
             <script>
                 const authUrl = "{full_auth_url}";
+                // [ABSOLUTE] window.top.location.href MUST be a full URL
                 if (window.top !== window.self) {{
                     window.top.location.href = authUrl;
                 }} else {{
