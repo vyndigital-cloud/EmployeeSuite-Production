@@ -637,7 +637,7 @@ def create_app():
                 session.modified = True
 
                 # If user is authenticated, ensure session has user_id
-                if current_user.is_authenticated:
+                if hasattr(current_user, "is_authenticated") and current_user.is_authenticated:
                     user_id = current_user.get_id()
                     if user_id and session.get("_user_id") != user_id:
                         session["_user_id"] = user_id
