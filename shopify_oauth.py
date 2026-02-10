@@ -38,7 +38,7 @@ SCOPES = "read_orders,read_products,read_inventory"  # GraphQL API doesn't need 
 REDIRECT_URI = (
     os.getenv(
         "SHOPIFY_REDIRECT_URI",
-        "https://employeesuite-production.onrender.com/auth/callback",
+        "https://employeesuite-production.onrender.com/oauth/auth/callback",
     )
     .strip()
     .strip('"')
@@ -187,11 +187,15 @@ def install():
             except Exception as e:
                 logger.debug(f"Could not parse host from Referer: {e}")
 
-    state_data = shop
+    # [SECURITY] Implement State Nonce to prevent CSRF
+    import secrets
+    nonce = secrets.token_hex(16)
+    session["shopify_nonce"] = nonce
+
+    state_data = f"{shop}|{nonce}" # Using single pipe as internal separator
     if host:
-        # Encode host in state for embedded app installations
-        # Use a separator that won't conflict with shop domain
-        state_data = f"{shop}||{quote(host, safe='')}"
+        # Include host if present, separate from shop|nonce
+        state_data = f"{state_data}||{quote(host, safe='')}"
 
     auth_url = f"https://{shop}/admin/oauth/authorize"
 
@@ -396,11 +400,35 @@ def _handle_oauth_callback():
 
     if not shop or not code:
         logger.error(f"❌ OAuth callback FAILED: Missing required parameters")
-        logger.error(f"  shop: {shop if shop else 'MISSING'}")
-        logger.error(f"  code: {'present' if code else 'MISSING'}")
-        logger.error(f"  state: {state if state else 'MISSING'}")
-        logger.error(f"  all params: {all_params}")
         return "Missing required parameters (shop or code)", 400
+
+    # [SECURITY] Verify State Nonce
+    expected_nonce = session.pop("shopify_nonce", None)
+    
+    if not state or "|" not in state:
+        logger.error(f"❌ OAuth callback FAILED: Invalid or missing state parameter")
+        return "Invalid state parameter", 400
+        
+    state_parts = state.split("||")[0].split("|")
+    if len(state_parts) != 2:
+        logger.error(f"❌ OAuth callback FAILED: Malformed state parameter structure")
+        return "Malformed state parameter", 400
+        
+    state_shop, state_nonce = state_parts
+    
+    if state_nonce != expected_nonce:
+        logger.error(f"❌ OAuth callback FAILED: State nonce mismatch (CSRF Protection)")
+        logger.error(f"   - Expected: {expected_nonce}")
+        logger.error(f"   - Received: {state_nonce}")
+        return "Security verification failed: State mismatch", 403
+        
+    if state_shop != shop:
+        logger.error(f"❌ OAuth callback FAILED: State shop mismatch")
+        logger.error(f"   - Expected: {shop}")
+        logger.error(f"   - Received: {state_shop}")
+        return "Security verification failed: Shop mismatch", 403
+
+    logger.info("✅ State nonce verification successful")
 
     # Verify HMAC
     logger.info("🔐 Verifying HMAC signature...")
