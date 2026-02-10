@@ -77,7 +77,7 @@ class User(UserMixin, db.Model, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
 
-    # Relationships
+    # Relationships: Inextricable link to owned stores
     shopify_stores: Mapped[List["ShopifyStore"]] = relationship(
         "ShopifyStore",
         back_populates="user",
@@ -95,6 +95,7 @@ class User(UserMixin, db.Model, TimestampMixin):
     current_store: Mapped[Optional["ShopifyStore"]] = relationship(
         "ShopifyStore",
         foreign_keys=[current_store_id],
+        post_update=True, # Prevents circular logic during the weld
     )
 
     # Indexes
@@ -322,8 +323,12 @@ class ShopifyStore(db.Model, TimestampMixin):
     shop_timezone: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     shop_currency: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
 
-    # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="shopify_stores")
+    # Relationships: Explicit ownership back-reference
+    user: Mapped["User"] = relationship(
+        "User", 
+        back_populates="shopify_stores",
+        foreign_keys=[user_id]
+    )
 
     # Composite indexes for common query patterns
     __table_args__ = (

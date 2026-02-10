@@ -444,7 +444,13 @@ def create_app():
 
         # 4. Database Lookup & Cache Update
         if request.shop_domain:
-            store = ShopifyStore.query.filter_by(shop_url=request.shop_domain, is_active=True).first()
+            from models import db
+            # [HOTFIX] Explicit and Clean Lookup to avoid ambiguous FK stalls
+            store = db.session.query(ShopifyStore).filter(
+                ShopifyStore.shop_url == request.shop_domain,
+                ShopifyStore.is_active == True
+            ).first()
+            
             if store:
                 g.current_user = User.query.get(store.user_id)
                 if g.current_user:
