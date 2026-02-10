@@ -163,9 +163,12 @@ def create_app():
                 if not store:
                     from flask import redirect, url_for
                     app.logger.info(f"🔄 Seamless Re-auth: Redirecting {shop} to login")
-                    # Using a temporary attribute to signal a redirect is needed
-                    # Note: request_loader normally returns User or None, but many apps use it for redirects
-                    return redirect(url_for("auth.login", shop=shop))
+                    
+                    # [SAFETY] Construct redirect and return immediately
+                    # Flask-Login's request_loader can return a Response object in some configurations,
+                    # but we must ensure subsequent logic doesn't treat this 'Response' as a 'User'.
+                    response = redirect(url_for("auth.login", shop=shop))
+                    return response
 
                 if store and store.user:
                     # CRITICAL FIX: Explicitly set session for Safari iframe compatibility
@@ -414,9 +417,18 @@ def create_app():
                     )
 
         # 5. Last Fallback: Logged in user from Flask-Login
-        from flask_login import current_user
-        if not g.current_user and current_user.is_authenticated:
-            g.current_user = current_user
+        # Ensure we don't overwrite the global current_user proxy
+        from flask_login import current_user as login_manager_user
+        
+        # FIX: Check the login manager status safely
+        is_authed = False
+        try:
+            is_authed = login_manager_user.is_authenticated
+        except AttributeError:
+            is_authed = False
+
+        if not g.get('current_user') and is_authed:
+            g.current_user = login_manager_user
 
     @app.before_request
     def global_jwt_verification():
