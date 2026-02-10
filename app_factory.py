@@ -144,6 +144,7 @@ def create_app():
             Load user from request with session-first verification.
             """
             from sqlalchemy.orm import joinedload
+            from models import User, ShopifyStore
 
             # 1. Check session cookie first - THIS IS THE SOURCE OF TRUTH
             user_id = session.get("_user_id")
@@ -420,7 +421,7 @@ def create_app():
         or Shopify Headers/Params. Populates request.shop_domain and g.current_user.
         """
         import time
-        from models import ShopifyStore, User
+        from models import User, ShopifyStore
         from shopify_utils import normalize_shop_url
         
         now = time.time()
