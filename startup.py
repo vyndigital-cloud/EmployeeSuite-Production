@@ -55,6 +55,8 @@ def create_app():
                     "DATABASE_URL", "sqlite:///app.db"
                 ),
                 "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+                "SESSION_COOKIE_SECURE": True,
+                "SESSION_COOKIE_SAMESITE": "None",
             }
         )
 
