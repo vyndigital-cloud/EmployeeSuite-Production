@@ -17,6 +17,10 @@ if str(project_dir) not in sys.path:
 
 # Configure logging for production speed
 import traceback
+from dotenv import load_dotenv
+
+# Load environment variables from .env file if it exists
+load_dotenv()
 
 # Initialize logger for this module first
 logger = logging.getLogger(__name__)
