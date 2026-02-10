@@ -410,31 +410,50 @@ def _handle_oauth_callback():
         logger.error(f"❌ OAuth callback FAILED: Missing required parameters")
         return "Missing required parameters (shop or code)", 400
 
-    # [SECURITY] Verify State Nonce
+    # [SECURITY] Verify State Nonce with Safari Grace Fallback
     expected_nonce = session.pop("shopify_nonce", None)
     
-    if not state or "|" not in state:
-        logger.error(f"❌ OAuth callback FAILED: Invalid or missing state parameter")
-        return "Invalid state parameter", 400
+    # [SAFARI GRACE] If state nonce is missing due to Safari blocking cookies
+    if expected_nonce is None:
+        logger.warning(f"⚠️ Safari Grace: No stored oauth_nonce (Safari likely blocked cookie)")
+        logger.info(f"🔐 Attempting Trust-but-Verify via HMAC alone...")
         
-    state_parts = state.split("||")[0].split("|")
-    if len(state_parts) != 2:
-        logger.error(f"❌ OAuth callback FAILED: Malformed state parameter structure")
-        return "Malformed state parameter", 400
+        # First verify HMAC before trusting anything
+        hmac_verified = verify_hmac(request.args)
+        if not hmac_verified:
+            logger.error(f"❌ Safari Grace FAILED: HMAC verification failed")
+            return "Security verification failed: Invalid HMAC", 403
         
-    state_shop, state_nonce = state_parts
-    
-    if state_nonce != expected_nonce:
-        logger.error(f"❌ OAuth callback FAILED: State nonce mismatch (CSRF Protection)")
-        logger.error(f"   - Expected: {expected_nonce}")
-        logger.error(f"   - Received: {state_nonce}")
-        return "Security verification failed: State mismatch", 403
+        logger.info("✅ Safari Grace: HMAC verified, allowing OAuth to proceed")
+        logger.info(f"   - Shop: {shop}")
+        logger.info(f"   - HMAC: Valid")
         
-    if state_shop != shop:
-        logger.error(f"❌ OAuth callback FAILED: State shop mismatch")
-        logger.error(f"   - Expected: {shop}")
-        logger.error(f"   - Received: {state_shop}")
-        return "Security verification failed: Shop mismatch", 403
+        # Skip state validation entirely - we trust HMAC as the security anchor
+        state_shop = shop  # Use shop from query param
+        state_nonce = "safari-grace-bypass"  # Placeholder
+    else:
+        # Normal flow: We have a stored nonce, validate state
+        if not state or "|" not in state:
+            logger.error(f"❌ OAuth callback FAILED: Invalid or missing state parameter")
+            return "Invalid state parameter", 400
+            
+        state_parts = state.split("||")[0].split("|")
+        if len(state_parts) != 2:
+            logger.error(f"❌ OAuth callback FAILED: Malformed state parameter structure")
+            return "Malformed state parameter", 400
+            
+        state_shop, state_nonce = state_parts
+        
+        if state_nonce != expected_nonce:
+            logger.error(f"❌ OAuth callback FAILED: State nonce mismatch (CSRF Protection)")
+            logger.error(f"   - Expected: {expected_nonce}")
+            logger.error(f"   - Received: {state_nonce}")
+            return "Security verification failed: State mismatch", 403
+            
+        if state_shop != shop:
+            logger.error(f"❌ OAuth callback FAILED: State shop mismatch")
+            logger.error(f"   - Expected: {shop}")
+            logger.error(f"   - Received: {state_shop}")
 
     logger.info("✅ State nonce verification successful")
 

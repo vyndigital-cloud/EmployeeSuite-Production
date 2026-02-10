@@ -49,7 +49,7 @@ def create_app():
             "REMEMBER_COOKIE_SAMESITE": "None",  # CRITICAL FIX: None for cross-site compatibility
             "REMEMBER_COOKIE_DURATION": 2592000,  # 30 days
             "SESSION_COOKIE_NAME": "__Host-session",
-            "PERMANENT_SESSION_LIFETIME": timedelta(days=30),
+            "PERMANENT_SESSION_LIFETIME": timedelta(days=7),  # Safari Grace: 7 days for iframe
             # Server-side Session Config
             "SESSION_TYPE": os.getenv(
                 "SESSION_TYPE", "sqlalchemy"
