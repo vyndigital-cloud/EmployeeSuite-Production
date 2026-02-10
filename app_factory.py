@@ -142,11 +142,12 @@ def create_app():
         def load_user_from_request(request):
             """
             Load user from request - LEVEL 100 Stateless JWT (Shopify Session Tokens).
+            Mandatory: RETURN None on failure, NEVER redirect().
             """
             from sqlalchemy.orm import joinedload
             from models import User, ShopifyStore
 
-            # 1. TITAN: Trust id_token (JWT) from Shopify - Primary Source of Truth
+            # 1. TITAN: Trust id_token (JWT) from Shopify - Absolute Priority
             id_token = request.args.get("id_token") or request.headers.get("Authorization", "").replace("Bearer ", "")
             if id_token:
                 try:
@@ -156,12 +157,24 @@ def create_app():
                         # sub is the Shopify User ID / Shop Domain linkage
                         shop = payload.get("dest", "").replace("https://", "").split("/")[0]
                         if shop:
-                            # [LATENCY CRUSH] Single query for Store + User
+                            # Flag request as verified for middleware downstream
+                            request.session_token_verified = True
+                            request.shop_domain = shop
+                            
+                            # [RE-WELD] Priority 1: Active Store
                             store = db.session.query(ShopifyStore).options(joinedload(ShopifyStore.user)).filter(
                                 ShopifyStore.shop_url == shop, 
                                 ShopifyStore.is_active == True
                             ).first()
                             
+                            # [RE-WELD] Priority 2: Inactive Store (Deep Recovery)
+                            if not store:
+                                store = db.session.query(ShopifyStore).options(joinedload(ShopifyStore.user)).filter(
+                                    ShopifyStore.shop_url == shop
+                                ).first()
+                                if store:
+                                    app.logger.info(f"TITAN [RE-WELD] JWT Valid, recovered User {store.user_id} via inactive Store {shop}")
+
                             if store and store.user:
                                 app.logger.info(f"TITAN [JWT_TRUST] Authenticated User {store.user.id} via id_token")
                                 g.current_store = store # Memoize
@@ -178,6 +191,9 @@ def create_app():
                     if user:
                         # Memoize for global access
                         g.current_store = user.current_store
+                        # Sync shop_domain to request for middleware consistency
+                        if user.current_store:
+                            request.shop_domain = user.current_store.shop_url
                         return user
                 except Exception as e:
                     app.logger.debug(f"Session-based user load failed: {e}")
@@ -194,17 +210,19 @@ def create_app():
                 shop = normalize_shop_url(shop)
                 from config import DEV_SHOP_DOMAIN
                 
-                # [LATENCY CRUSH] Single query for Store + User
+                # [RE-WELD] Priority 1: Active Store
                 store = db.session.query(ShopifyStore).options(joinedload(ShopifyStore.user)).filter(
                     ShopifyStore.shop_url == shop, 
                     ShopifyStore.is_active == True
                 ).first()
                 
-                # DEV SAFE-PASS
-                if not store and shop == DEV_SHOP_DOMAIN:
+                # [RE-WELD] Priority 2: Inactive Store (Deep Recovery)
+                if not store:
                     store = db.session.query(ShopifyStore).options(joinedload(ShopifyStore.user)).filter(
                         ShopifyStore.shop_url == shop
                     ).first()
+                    if store:
+                        app.logger.info(f"TITAN [RE-WELD] HMAC Valid, recovered User {store.user_id} via inactive Store {shop}")
 
                 if store and store.user:
                     from flask_login import login_user
@@ -214,6 +232,7 @@ def create_app():
                     g.current_user = store.user
                     g.current_store = store
                     
+                    request.shop_domain = shop
                     session["shop_domain"] = shop
                     session["_user_id"] = store.user.id
                     session["shop"] = shop
@@ -606,8 +625,8 @@ def create_app():
                 app.logger.warning(f"🚨 SESSION MISMATCH: URL={url_shop}, Session={session_shop}. Purging.")
                 session.clear()
                 logout_user()
-                # Use breakout if in Shopify context
-                if url_shop:
+                # Use breakout only if we are absolutely sure we are in a browser context
+                if url_shop and not request.is_json:
                     goto_url = url_for("oauth.install", shop=url_shop, _external=True)
                     return f'''
                         <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
@@ -619,7 +638,7 @@ def create_app():
                             }}
                         </script>
                     ''', 200
-                return redirect(url_for("oauth.install", shop=url_shop))
+                return None # Let @login_required handle it
 
         # [LOCAL HELPER] The Final Weld Handshake
         def trigger_reauth_flow():
@@ -627,15 +646,23 @@ def create_app():
             if shop:
                 app.logger.info(f"🔄 Identity Finality: Triggering re-auth handshake for {shop}")
                 # Ensure load_user_from_request is available in scope
-                return load_user_from_request(request) or redirect(url_for('auth.login', shop=shop))
-            return redirect(url_for('auth.login'))
+                # NEVER return a redirect here, either return a user or None
+                return load_user_from_request(request)
+            return None
 
         # 4. The Final Weld: Identity Guard
         from flask_login import current_user as login_manager_user
         user_val = g.get('current_user') or login_manager_user
         
         if not hasattr(user_val, 'is_authenticated') or not user_val.is_authenticated:
-            return trigger_reauth_flow()
+            # Attempt one last re-weld before failing
+            user_val = trigger_reauth_flow()
+            if not user_val or not user_val.is_authenticated:
+                if request.is_json:
+                    return jsonify({"error": "Authentication required", "action": "reauth"}), 401
+                # If we have a shop, we can return None and let @login_required redirect if it's an HTML request
+                # BUT the user wants no redirects in the "loader" path.
+                return None
 
         # 5. Active Store Check
         if not user_val.active_shop:
@@ -643,9 +670,10 @@ def create_app():
             if request.is_json or not request.accept_mimetypes.accept_html:
                  return jsonify({"error": "Active store connection required", "action": "connect"}), 403
             
-            shop = url_shop or session_shop
-            host = request.args.get("host") or session.get("host")
-            return redirect(url_for('shopify.shopify_settings', error="Store connection required", shop=shop, host=host))
+            # If we are truly missing a store, we can return None to force a 401/403
+            # Or return the install breakout for HTML
+            if not request.is_json and url_shop:
+                return None # Let the view/decorator handle it
 
 
     @app.after_request

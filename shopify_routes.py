@@ -40,6 +40,7 @@ def connections_alias():
 
 
 @shopify_bp.route("/settings/shopify")
+@verify_session_token
 def shopify_settings():
     """Shopify settings page - works in both embedded and standalone modes"""
     # 1. Extract verified shop from the JWT decorator

@@ -185,6 +185,7 @@ def verify_session_token_stateless(token):
     Used by middleware for global identity extraction.
     """
     if not token:
+        logger.debug("Stateless JWT: No token provided")
         return None
 
     try:
@@ -192,6 +193,7 @@ def verify_session_token_stateless(token):
         current_api_key = get_normalized_api_key()
 
         if not api_secret or not current_api_key:
+            logger.error("Stateless JWT: Missing SHOPIFY_API_SECRET or SHOPIFY_API_KEY")
             return None
 
         payload = jwt.decode(
@@ -206,8 +208,18 @@ def verify_session_token_stateless(token):
             },
             audience=current_api_key
         )
+        logger.debug(f"Stateless JWT: Verified for {payload.get('dest')}")
         return payload
 
-    except Exception:
-        # Silently fail for stateless extraction - fallback to other sources
+    except jwt.ExpiredSignatureError:
+        logger.warning("Stateless JWT: Token expired")
+        return None
+    except jwt.InvalidSignatureError:
+        logger.error("Stateless JWT: Invalid signature (Check SHOPIFY_API_SECRET)")
+        return None
+    except jwt.InvalidAudienceError:
+        logger.error(f"Stateless JWT: Invalid audience (Check SHOPIFY_API_KEY matches aud in token)")
+        return None
+    except Exception as e:
+        logger.warning(f"Stateless JWT: Verification failed: {e}")
         return None
