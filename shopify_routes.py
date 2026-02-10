@@ -48,8 +48,15 @@ def shopify_settings():
     
     # 🕵️ CCTV: Don't let the shop domain vanish
     if not shop:
-        # Attempt to recover the shop name from the session or DB
-        shop = session.get('shop') or (current_user.shop_domain if current_user else None)
+        # TITAN [SELF-HEALING]: Restore session from DB weld if missing
+        if current_user.is_authenticated and current_user.current_store:
+            shop = current_user.current_store.shop_url
+            session['shop'] = shop
+            session['active_store_id'] = current_user.current_store.id
+            logger.info(f"TITAN [RECOVERY] Restored shop {shop} from User Weld")
+        else:
+            # Fallback to general lookup
+            shop = session.get('shop') or (current_user.shop_domain if current_user else None)
 
     if not shop:
         # If we STILL don't have it, log a CRITICAL failure for the CCTV

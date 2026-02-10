@@ -83,6 +83,18 @@ class User(UserMixin, db.Model, TimestampMixin):
         back_populates="user",
         lazy="dynamic",
         cascade="all, delete-orphan",
+        foreign_keys="[ShopifyStore.user_id]",
+    )
+
+    # Weld: Persistent link to the primary active store
+    current_store_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        db.ForeignKey("shopify_stores.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    current_store: Mapped[Optional["ShopifyStore"]] = relationship(
+        "ShopifyStore",
+        foreign_keys=[current_store_id],
     )
 
     # Indexes
@@ -458,9 +470,17 @@ class ShopifyStore(db.Model, TimestampMixin):
         return get_store_settings_cached(self.shop_url)
 
     def invalidate_cache(self) -> None:
-        """Invalidate Redis cache for this store"""
-        from cache_utils import cache_delete
-        cache_delete(f"store_settings:{self.shop_url}")
+        """Invalidate Redis cache for this store with TITAN bypass"""
+        try:
+            from cache_utils import cache_delete
+            # titan_cache client already has 0.5s timeout configured
+            result = cache_delete(f"store_settings:{self.shop_url}")
+            if result:
+                logger.info(f"TITAN [REDIS] Cache invalidated for {self.shop_url}")
+            else:
+                logger.info(f"TITAN_REDIS_BYPASS: Cache delete returned False for {self.shop_url}")
+        except Exception as e:
+            logger.warning(f"TITAN_REDIS_BYPASS: Failed to invalidate cache for {self.shop_url}: {e}")
 
     def update_shop_info(self, shop_data: Dict[str, Any]) -> None:
         """Update shop information from Shopify API response"""

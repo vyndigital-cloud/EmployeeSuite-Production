@@ -635,6 +635,21 @@ def _handle_oauth_callback():
         db.session.commit()
         logger.info(f"✅ Successfully saved store connection to database")
         
+        # [TITAN] Identity Weld: Inextricably link User to the new active Store
+        try:
+            user.current_store_id = store.id
+            db.session.commit()
+            logger.info(f"TITAN [WELD] User {user.id} welded to Store {store.id}")
+            
+            # Force these into the session so TITAN sees them immediately
+            session['shop'] = shop
+            session['active_store_id'] = store.id
+            session.permanent = True
+            session.modified = True
+        except Exception as we:
+            db.session.rollback()
+            logger.error(f"TITAN [ERROR] Identity weld failed: {we}")
+
         # [LEGEND TIER] Invalidate Redis Cache for fresh settings
         try:
             store.invalidate_cache()

@@ -56,6 +56,8 @@ def create_app():
             "SESSION_PERMANENT": True,
             "SESSION_USE_SIGNER": True,
             "SESSION_KEY_PREFIX": "missioncontrol:session:",
+            # TITAN: Static Asset Latency Fix
+            "SEND_FILE_MAX_AGE_DEFAULT": 31536000,  # 1 year caching for CSS/JS
         }
     )
 
@@ -83,8 +85,19 @@ def create_app():
                     )
                     db.session.commit()
                     app.logger.info("✅ Successfully added trial_started_at column")
-                else:
-                    app.logger.debug("✅ Database schema up to date")
+
+                if "current_store_id" not in columns:
+                    app.logger.info("🔧 Adding missing current_store_id column to users...")
+                    db.session.execute(
+                        text("""
+                        ALTER TABLE users
+                        ADD COLUMN current_store_id INTEGER REFERENCES shopify_stores(id) ON DELETE SET NULL
+                    """)
+                    )
+                    db.session.commit()
+                    app.logger.info("✅ Successfully added current_store_id column")
+                
+                app.logger.debug("✅ Database schema up to date")
             except Exception as migration_error:
                 app.logger.warning(
                     f"Migration check failed (non-critical): {migration_error}"
