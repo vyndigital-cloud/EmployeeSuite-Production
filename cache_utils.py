@@ -7,11 +7,22 @@ from datetime import timedelta
 logger = logging.getLogger(__name__)
 
 # Initialize Redis client
+# TITAN: Redis Circuit Breaker - Zero-Freeze Connectivity
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 try:
-    redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+    # Strict 0.5s timeouts to prevent thread freezes
+    redis_client = redis.from_url(
+        REDIS_URL, 
+        decode_responses=True,
+        socket_timeout=0.5,
+        socket_connect_timeout=0.5,
+        retry_on_timeout=False
+    )
+    # Test connection immediately
+    redis_client.ping()
+    logger.info(f"TITAN [REDIS] Circuit closed. Connected to {REDIS_URL}")
 except Exception as e:
-    logger.error(f"Failed to connect to Redis at {REDIS_URL}: {e}")
+    logger.critical(f"TITAN [REDIS] Circuit open. Redis unreachable at {REDIS_URL}: {e}")
     redis_client = None
 
 def cache_set(key, value, expire=3600):

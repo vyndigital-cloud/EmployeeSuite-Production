@@ -4,9 +4,13 @@ Simple App Factory
 
 import logging
 import os
+import time
+import signal
+import sys
+import traceback
 from datetime import timedelta
 
-from flask import Flask, request
+from flask import Flask, request, jsonify, g
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 
@@ -199,14 +203,79 @@ def create_app():
     # Setup logging
     try:
         from logging_config import setup_logging
-
         setup_logging(app)
     except ImportError:
-        # Fallback logging
-        import logging
-
         logging.basicConfig(level=logging.INFO)
         app.logger.setLevel(logging.INFO)
+
+    # ============================================================================
+    # TITAN MONITORING: Global Observer Layer
+    # ============================================================================
+    @app.before_request
+    def titan_observer_before():
+        """TITAN: Record start time and log incoming request"""
+        g.titan_start_time = time.time()
+        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        app.logger.info(
+            f"TITAN [HIT] {request.method} {request.path} | IP: {client_ip} | Referer: {request.referrer}"
+        )
+
+    @app.after_request
+    def titan_observer_after(response):
+        """TITAN: Calculate latency and log response status"""
+        if hasattr(g, 'titan_start_time'):
+            latency = time.time() - g.titan_start_time
+            app.logger.info(
+                f"TITAN [OUT] {request.method} {request.path} | Status: {response.status_code} | Latency: {latency:.4f}s"
+            )
+        return response
+
+    # ============================================================================
+    # TITAN: Sentinel System Handlers
+    # ============================================================================
+    @app.errorhandler(404)
+    def titan_404_handler(error):
+        """TITAN: Warn on missing resources with full context"""
+        app.logger.warning(
+            f"TITAN [404] {request.method} {request.url} | Referer: {request.referrer}"
+        )
+        return jsonify({
+            "error": "Not Found",
+            "message": "The requested resource does not exist on the Titan node.",
+            "path": request.path,
+            "referer": request.referrer,
+            "success": False
+        }), 404
+
+    @app.errorhandler(Exception)
+    @app.errorhandler(500)
+    def titan_500_handler(error):
+        """TITAN: Critical capture of all system crashes"""
+        tb = traceback.format_exc()
+        app.logger.critical(
+            f"TITAN [CRASH] {request.method} {request.path}\n{tb}"
+        )
+        
+        try:
+            from models import db
+            db.session.rollback()
+        except:
+            pass
+
+        return jsonify({
+            "error": "Titan System Failure",
+            "message": "An internal error was caught and logged by the Titan Observer.",
+            "traceback": tb.splitlines()[-1] if tb else "No traceback",
+            "success": False
+        }), 500
+
+    # TITAN: Last Breath Signal Handler
+    def titan_last_breath(sig, frame):
+        app.logger.info(f"TITAN [SIGNAL] Process {os.getpid()} received {sig}. Taking last breath... Reap confirmed.")
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, titan_last_breath)
+    signal.signal(signal.SIGINT, titan_last_breath)
 
     # Register blueprints (with error handling for missing blueprints)
     blueprints_to_register = [
@@ -303,52 +372,7 @@ def create_app():
         # Store failed blueprints info for debugging
         app.config["FAILED_BLUEPRINTS"] = failed_blueprints
 
-    # Enhanced error handlers
-    @app.errorhandler(500)
-    def internal_error(error):
-        app.logger.error(f"Internal Server Error: {error}", exc_info=True)
-        try:
-            from models import db
-
-            db.session.rollback()
-        except:
-            pass
-
-        from flask import jsonify, render_template_string, request
-
-        if request.is_json or request.path.startswith("/api/"):
-            return jsonify(
-                {
-                    "error": "Internal Server Error",
-                    "message": "An error occurred processing your request",
-                    "success": False,
-                }
-            ), 500
-        else:
-            return render_template_string("""
-            <h1>Something went wrong</h1>
-            <p>We're working to fix this issue. Please try again later.</p>
-            <a href="/">Return to Dashboard</a>
-            """), 500
-
-    @app.errorhandler(404)
-    def not_found_error(error):
-        from flask import jsonify, render_template_string, request
-
-        if request.is_json or request.path.startswith("/api/"):
-            return jsonify(
-                {
-                    "error": "Not Found",
-                    "message": "The requested resource was not found",
-                    "success": False,
-                }
-            ), 404
-        else:
-            return render_template_string("""
-            <h1>Page Not Found</h1>
-            <p>The page you're looking for doesn't exist.</p>
-            <a href="/">Return to Dashboard</a>
-            """), 404
+    # Titan Sentinel Handlers have replaced legacy handlers.
 
 
     # ============================================================================
