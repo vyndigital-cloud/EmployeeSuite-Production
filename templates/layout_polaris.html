@@ -75,7 +75,7 @@
 
         // Helper to open pages via App Bridge (Manual JWT Append)
         window.openPage = async function (path) {
-            if (window.shopify) {
+            if (window.shopify && typeof window.shopify.idToken === 'function') {
                 try {
                     // 1. Grab a fresh token RIGHT NOW
                     const token = await window.shopify.idToken();
@@ -83,8 +83,14 @@
                     // 2. Attach it to the URL manually
                     const url = new URL(path, window.location.origin);
                     url.searchParams.set('id_token', token);
-                    url.searchParams.set('shop', new URLSearchParams(window.location.search).get('shop'));
-                    url.searchParams.set('host', new URLSearchParams(window.location.search).get('host'));
+
+                    // Only set shop/host if they exist (prevent empty strings)
+                    const currentParams = new URLSearchParams(window.location.search);
+                    const shop = currentParams.get('shop');
+                    const host = currentParams.get('host');
+
+                    if (shop) url.searchParams.set('shop', shop);
+                    if (host) url.searchParams.set('host', host);
 
                     // 3. Dispatch the redirect with the payload included
                     const Redirect = window['app-bridge'].actions.Redirect;
@@ -95,12 +101,11 @@
                     return false;
                 } catch (e) {
                     console.error("JWT Navigation Failure", e);
-                    // Last resort fallback
-                    window.location.href = path;
+                    // Last resort fallback - don't use location.href, use standard param append
                 }
             }
 
-            // Fallback for non-embedded context
+            // Fallback for non-embedded context or if App Bridge not ready
             var params = new URLSearchParams(window.location.search);
             var shop = params.get("shop");
             var host = params.get("host");

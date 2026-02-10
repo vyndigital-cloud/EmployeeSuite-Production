@@ -158,28 +158,63 @@ def verify_session_token(f):
                 logger.debug(f"Allowing unverified embedded request for authenticated user {current_user.id}")
                 return f(*args, **kwargs)
 
-            # [BRIDGE LOADER] Return 200 with token refresh script instead of 403
+            # [BRIDGE LOADER] Fetch token and redirect with it (don't just reload)
             logger.warning(f"Embedded request without JWT to {request.path}, triggering Bridge Loader")
             api_key = os.getenv("SHOPIFY_API_KEY", "")
+            
+            # Preserve current path and query params
+            current_path = request.path
+            current_query = request.query_string.decode('utf-8')
+            
             return f'''
+                <!DOCTYPE html>
                 <html>
                     <head>
-                        <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+                        <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
                         <script>
-                            var AppBridge = window['app-bridge'];
-                            var createApp = AppBridge.default;
-                            var app = createApp({{
-                                apiKey: "{api_key}",
-                                host: new URLSearchParams(location.search).get("host")
-                            }});
-                            // Force a re-weld by reloading with fresh Shopify context
-                            console.log("🔄 Bridge Loader: Refreshing session...");
-                            setTimeout(function() {{
-                                window.location.reload();
-                            }}, 500);
+                            (async function() {{
+                                try {{
+                                    console.log("🔄 Bridge Loader: Fetching fresh token...");
+                                    
+                                    // Wait for App Bridge to initialize
+                                    let attempts = 0;
+                                    while (!window.shopify && attempts < 20) {{
+                                        await new Promise(resolve => setTimeout(resolve, 100));
+                                        attempts++;
+                                    }}
+                                    
+                                    if (!window.shopify || typeof window.shopify.idToken !== 'function') {{
+                                        console.error("App Bridge not available, forcing top-level redirect");
+                                        window.top.location.href = window.location.href;
+                                        return;
+                                    }}
+                                    
+                                    // Fetch fresh token
+                                    const token = await window.shopify.idToken();
+                                    
+                                    // Build URL with token
+                                    const url = new URL(window.location.href);
+                                    url.searchParams.set('id_token', token);
+                                    
+                                    console.log("🚀 Bridge Loader: Redirecting with token...");
+                                    window.location.href = url.toString();
+                                    
+                                }} catch (e) {{
+                                    console.error("Bridge Loader failed:", e);
+                                    // Last resort: force top-level reload to break out of iframe
+                                    window.top.location.href = window.location.href;
+                                }}
+                            }})();
                         </script>
                     </head>
-                    <body><p>Securing Connection...</p></body>
+                    <body>
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">
+                            <div style="text-align: center;">
+                                <p>🔐 Securing Connection...</p>
+                                <p style="font-size: 12px; color: #666;">Fetching session token</p>
+                            </div>
+                        </div>
+                    </body>
                 </html>
             ''', 200
 
