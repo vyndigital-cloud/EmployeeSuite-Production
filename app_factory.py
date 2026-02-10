@@ -141,25 +141,12 @@ def create_app():
         @login_manager.request_loader
         def load_user_from_request(request):
             """
-            Load user from request with session-first verification.
+            Load user from request - LEVEL 100 Stateless JWT (Shopify Session Tokens).
             """
             from sqlalchemy.orm import joinedload
             from models import User, ShopifyStore
 
-            # 1. Check session cookie first - THIS IS THE SOURCE OF TRUTH
-            user_id = session.get("_user_id")
-            if user_id:
-                try:
-                    # [LATENCY CRUSH] Fetch User and their Welded Store in a SINGLE JOIN
-                    user = db.session.query(User).options(joinedload(User.current_store)).get(int(user_id))
-                    if user:
-                        # Memoize for global access
-                        g.current_store = user.current_store
-                        return user
-                except Exception as e:
-                    app.logger.debug(f"Session-based user load failed: {e}")
-
-            # 2. TITAN: Trust id_token (JWT) from Shopify - Seamless Identity
+            # 1. TITAN: Trust id_token (JWT) from Shopify - Primary Source of Truth
             id_token = request.args.get("id_token") or request.headers.get("Authorization", "").replace("Bearer ", "")
             if id_token:
                 try:
@@ -181,6 +168,19 @@ def create_app():
                                 return store.user
                 except Exception as je:
                     app.logger.debug(f"Seamless id_token trust failed: {je}")
+
+            # 2. Check session cookie - FALLBACK
+            user_id = session.get("_user_id")
+            if user_id:
+                try:
+                    # [LATENCY CRUSH] Fetch User and their Welded Store in a SINGLE JOIN
+                    user = db.session.query(User).options(joinedload(User.current_store)).get(int(user_id))
+                    if user:
+                        # Memoize for global access
+                        g.current_store = user.current_store
+                        return user
+                except Exception as e:
+                    app.logger.debug(f"Session-based user load failed: {e}")
 
             # 3. Check HMAC for OAuth flow (fallback)
             shop = request.args.get("shop")
@@ -205,9 +205,6 @@ def create_app():
                     store = db.session.query(ShopifyStore).options(joinedload(ShopifyStore.user)).filter(
                         ShopifyStore.shop_url == shop
                     ).first()
-
-                    app.logger.info(f"🔄 Seamless Re-auth: Redirecting {shop} to login")
-                    return redirect(url_for("auth.login", shop=shop))
 
                 if store and store.user:
                     from flask_login import login_user
@@ -661,13 +658,14 @@ def create_app():
 
         # Only apply to embedded app requests
         if request.args.get("embedded") or request.args.get("host"):
-            # Force SameSite=Lax on session cookie
-            for cookie_name in ["session", "remember_token"]:
-                if cookie_name in response.headers.getlist("Set-Cookie"):
+            # Force SameSite=None; Secure for Safari compatibility
+            session_name = app.config.get("SESSION_COOKIE_NAME", "session")
+            for cookie_name in [session_name, "remember_token"]:
+                if any(header.startswith(f"{cookie_name}=") for header in response.headers.getlist("Set-Cookie")):
                     # Modify existing Set-Cookie headers
                     cookies = []
                     for header in response.headers.getlist("Set-Cookie"):
-                        if cookie_name in header:
+                        if header.startswith(f"{cookie_name}="):
                             # Ensure SameSite=None; Secure
                             if "SameSite" not in header:
                                 header += "; SameSite=None; Secure"

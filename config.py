@@ -23,6 +23,7 @@ _CONFIG_CACHE = {
     "SENDGRID_API_KEY": os.getenv("SENDGRID_API_KEY", ""),
     "DEV_SHOP_DOMAIN": os.getenv("DEV_SHOP_DOMAIN", "test-shop.myshopify.com"),
     "ADMIN_EMAIL": os.getenv("ADMIN_EMAIL", "essentials@example.com"),
+    "LOG_LEVEL": "CRITICAL",
     
     # Session Configuration (Server-Side)
     "SESSION_TYPE": "redis" if os.getenv("REDIS_URL") else "sqlalchemy",
@@ -151,7 +152,7 @@ SMTP_USERNAME = get_config_safe("SMTP_USERNAME", "")
 SMTP_PASSWORD = get_config_safe("SMTP_PASSWORD", "")
 
 # Logging Configuration
-LOG_LEVEL = get_config_safe("LOG_LEVEL", "INFO")
+LOG_LEVEL = "CRITICAL"
 UPLOAD_FOLDER = get_config_safe("UPLOAD_FOLDER", "uploads")
 
 # Performance Configuration

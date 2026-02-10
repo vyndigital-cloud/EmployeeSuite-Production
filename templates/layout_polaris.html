@@ -11,8 +11,61 @@
     <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/styles.css" />
     <script src="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/polaris.min.js"></script>
     <!-- Phosphor Icons CSS removed - using inline SVGs -->
+    <!-- Stateless Pivot: App Bridge Interceptor -->
     <script>
-        // Initialize App Bridge - moved to external JS file
+        (function () {
+            // INTERCEPTOR: Inject Shopify Session Token into every request
+            async function getSessionToken() {
+                try {
+                    if (window.shopify && typeof window.shopify.idToken === 'function') {
+                        return await window.shopify.idToken();
+                    }
+                } catch (e) {
+                    console.error("Failed to get Shopify Session Token:", e);
+                }
+                return null;
+            }
+
+            // 1. Intercept Fetch API
+            const originalFetch = window.fetch;
+            window.fetch = async function () {
+                const args = [...arguments];
+                const token = await getSessionToken();
+
+                if (token) {
+                    const options = args[1] || {};
+                    options.headers = options.headers || {};
+
+                    if (options.headers instanceof Headers) {
+                        options.headers.set('Authorization', `Bearer ${token}`);
+                    } else {
+                        options.headers['Authorization'] = `Bearer ${token}`;
+                    }
+                    args[1] = options;
+                }
+                return originalFetch.apply(this, args);
+            };
+
+            // 2. Intercept XMLHttpRequest
+            const originalOpen = XMLHttpRequest.prototype.open;
+            XMLHttpRequest.prototype.open = function () {
+                this._url = arguments[1];
+                return originalOpen.apply(this, arguments);
+            };
+
+            const originalSend = XMLHttpRequest.prototype.send;
+            XMLHttpRequest.prototype.send = async function () {
+                const token = await getSessionToken();
+                if (token && this._url && !this._url.includes('https://')) {
+                    this.setRequestHeader('Authorization', `Bearer ${token}`);
+                }
+                return originalSend.apply(this, arguments);
+            };
+
+            console.log("🚀 Stateless Pivot: App Bridge Interceptor Active");
+        })();
+
+        // Initialize App Bridge state
         window.appBridgeReady = false;
         window.isEmbedded = !!new URLSearchParams(
             window.location.search,

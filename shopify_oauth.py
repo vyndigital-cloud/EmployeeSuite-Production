@@ -546,6 +546,7 @@ def _handle_oauth_callback():
                     trial_ends_at=datetime.now(timezone.utc) + timedelta(days=7),
                 )
                 db.session.add(user)
+                db.session.flush() # Ensure ID is generated
                 db.session.commit()
                 logger.info(
                     f"✅ Created new shop-based user {user.email} (ID: {user.id})"
