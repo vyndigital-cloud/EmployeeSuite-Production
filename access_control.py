@@ -2,6 +2,7 @@
 Access control decorators and utilities
 """
 
+import os
 from functools import wraps
 
 from flask import jsonify
@@ -23,7 +24,8 @@ def require_access(f):
                 # Capture params to preserve context
                 shop = request.args.get('shop')
                 host = request.args.get('host')
-                target_url = url_for('billing.subscribe', error="Subscription required", shop=shop, host=host, _external=True)
+                target_path = url_for('billing.subscribe')
+                api_key = os.getenv("SHOPIFY_API_KEY", "")
                 
                 # Use App Bridge breakout to maintain JWT context
                 return f'''
@@ -32,14 +34,21 @@ def require_access(f):
                     <head>
                         <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
                         <script>
-                            if (window.top !== window.self) {{
-                                window.top.location.href = "{target_url}";
-                            }} else {{
-                                window.location.href = "{target_url}";
-                            }}
+                            var AppBridge = window['app-bridge'];
+                            var createApp = AppBridge.default;
+                            var actions = AppBridge.actions;
+                            var Redirect = actions.Redirect;
+
+                            var app = createApp({{
+                                apiKey: "{api_key}",
+                                host: new URLSearchParams(location.search).get("host"),
+                            }});
+
+                            var redirect = Redirect.create(app);
+                            redirect.dispatch(Redirect.Action.APP, "{target_path}");
                         </script>
                     </head>
-                    <body><p>Subscription required. <a href="{target_url}">Click here</a></p></body>
+                    <body><p>Subscription required. <a href="{target_path}">Click here</a></p></body>
                     </html>
                 ''', 403
                 
@@ -68,21 +77,29 @@ def require_active_shop(f):
             if request.accept_mimetypes.accept_html and not request.is_json:
                 shop = request.args.get('shop')
                 host = request.args.get('host')
-                target_url = url_for('shopify.shopify_settings', error="Store connection required", shop=shop, host=host, _external=True)
+                target_path = url_for('shopify.shopify_settings')
+                api_key = os.getenv("SHOPIFY_API_KEY", "")
                 return f'''
                     <!DOCTYPE html>
                     <html>
                     <head>
                         <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
                         <script>
-                            if (window.top !== window.self) {{
-                                window.top.location.href = "{target_url}";
-                            }} else {{
-                                window.location.href = "{target_url}";
-                            }}
+                            var AppBridge = window['app-bridge'];
+                            var createApp = AppBridge.default;
+                            var actions = AppBridge.actions;
+                            var Redirect = actions.Redirect;
+
+                            var app = createApp({{
+                                apiKey: "{api_key}",
+                                host: new URLSearchParams(location.search).get("host"),
+                            }});
+
+                            var redirect = Redirect.create(app);
+                            redirect.dispatch(Redirect.Action.APP, "{target_path}");
                         </script>
                     </head>
-                    <body><p>Store connection required. <a href="{target_url}">Click here</a></p></body>
+                    <body><p>Store connection required. <a href="{target_path}">Click here</a></p></body>
                     </html>
                 ''', 403
 
@@ -129,21 +146,29 @@ def require_zero_trust(f):
             if request.accept_mimetypes.accept_html and not request.is_json:
                 shop = request.args.get('shop')
                 host = request.args.get('host')
-                target_url = url_for('shopify.shopify_settings', error="Store connection required", shop=shop, host=host, _external=True)
+                target_path = url_for('shopify.shopify_settings')
+                api_key = os.getenv("SHOPIFY_API_KEY", "")
                 return f'''
                     <!DOCTYPE html>
                     <html>
                     <head>
                         <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
                         <script>
-                            if (window.top !== window.self) {{
-                                window.top.location.href = "{target_url}";
-                            }} else {{
-                                window.location.href = "{target_url}";
-                            }}
+                            var AppBridge = window['app-bridge'];
+                            var createApp = AppBridge.default;
+                            var actions = AppBridge.actions;
+                            var Redirect = actions.Redirect;
+
+                            var app = createApp({{
+                                apiKey: "{api_key}",
+                                host: new URLSearchParams(location.search).get("host"),
+                            }});
+
+                            var redirect = Redirect.create(app);
+                            redirect.dispatch(Redirect.Action.APP, "{target_path}");
                         </script>
                     </head>
-                    <body><p>Store connection required. <a href="{target_url}">Click here</a></p></body>
+                    <body><p>Store connection required. <a href="{target_path}">Click here</a></p></body>
                     </html>
                 ''', 403
 

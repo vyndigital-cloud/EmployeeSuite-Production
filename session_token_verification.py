@@ -95,15 +95,17 @@ def verify_session_token(f):
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # 1. Check for JWT (Authorization header)
+        # 1. Check for JWT (Authorization header OR query param 'id_token')
         auth_header = request.headers.get("Authorization")
-        has_session_token = auth_header and auth_header.startswith("Bearer ")
-
-        if has_session_token:
+        id_token_param = request.args.get("id_token")
+        
+        token = None
+        if auth_header and auth_header.startswith("Bearer "):
             token = auth_header.split(" ")[1] if " " in auth_header else None
-            if not token:
-                logger.warning("Empty Bearer token received")
-                return jsonify({"error": "Invalid token format"}), 401
+        elif id_token_param:
+            token = id_token_param
+
+        if token:
 
             try:
                 # [DECODE LOGIC REMAINS - Verify signature/exp/iat/aud/dest]
