@@ -156,11 +156,14 @@ class User(UserMixin, db.Model, TimestampMixin):
                 
         # Fresh check if not in cache or expired
         try:
-            from config import DEV_SHOP_DOMAIN
+            from config import DEV_SHOP_DOMAIN, ADMIN_EMAIL
             
-            # 1. BILLING BYPASS: Check if this is our development shop
-            if hasattr(self, 'active_shop') and self.active_shop == DEV_SHOP_DOMAIN:
-                logger.info(f"🚀 Billing bypass active for dev shop: {self.active_shop}")
+            # 1. BILLING BYPASS: Check if this is our development shop or admin user
+            is_admin = hasattr(self, 'email') and self.email == ADMIN_EMAIL
+            is_dev_shop = hasattr(self, 'active_shop') and self.active_shop == DEV_SHOP_DOMAIN
+            
+            if is_admin or is_dev_shop:
+                logger.info(f"🚀 Billing bypass active for {'admin' if is_admin else 'dev shop'}: {getattr(self, 'email', 'unknown') if is_admin else self.active_shop}")
                 return True
 
             # 2. STANDARD CHECK: Subscribed or Trial Active

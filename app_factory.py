@@ -418,7 +418,7 @@ def create_app():
         from models import ShopifyStore
         from session_token_verification import get_bearer_token, verify_session_token_stateless
 
-        token = get_bearer_token()
+        token = get_bearer_token() or request.args.get("id_token")
         if token:
             payload = verify_session_token_stateless(token)
             if payload:
@@ -426,7 +426,7 @@ def create_app():
                 shop_domain = dest.replace("https://", "").split("/")[0]
                 request.shop_domain = shop_domain
                 request.session_token_verified = True
-                app.logger.debug(f"Global JWT Verified: {shop_domain}")
+                app.logger.debug(f"Global JWT Verified (id_token): {shop_domain}")
                 
                 # GLOBAL IDENTITY SYNC
                 try:

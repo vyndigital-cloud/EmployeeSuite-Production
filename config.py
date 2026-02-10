@@ -22,6 +22,7 @@ _CONFIG_CACHE = {
     "ENCRYPTION_KEY": os.getenv("ENCRYPTION_KEY", ""),
     "SENDGRID_API_KEY": os.getenv("SENDGRID_API_KEY", ""),
     "DEV_SHOP_DOMAIN": os.getenv("DEV_SHOP_DOMAIN", "test-shop.myshopify.com"),
+    "ADMIN_EMAIL": os.getenv("ADMIN_EMAIL", "essentials@example.com"),
     
     # Session Configuration (Server-Side)
     "SESSION_TYPE": "redis" if os.getenv("REDIS_URL") else "sqlalchemy",
@@ -60,6 +61,7 @@ DEBUG_MODE = _CONFIG_CACHE["DEBUG"]
 ENCRYPTION_KEY = _CONFIG_CACHE["ENCRYPTION_KEY"]
 SENDGRID_API_KEY = _CONFIG_CACHE["SENDGRID_API_KEY"]
 DEV_SHOP_DOMAIN = _CONFIG_CACHE["DEV_SHOP_DOMAIN"]
+ADMIN_EMAIL = _CONFIG_CACHE["ADMIN_EMAIL"]
 
 # Optimized database settings
 AUTO_SCALING_ENGINE_OPTIONS = {
