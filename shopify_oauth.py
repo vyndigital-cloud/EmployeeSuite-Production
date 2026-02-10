@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import os
+import base64
 from urllib.parse import quote, unquote
 
 import requests
@@ -756,14 +757,32 @@ def _handle_oauth_callback():
 
     # CRITICAL: Use the robust oauth_redirect.html template instead of hardcoded JS
     # This correctly handles shop and host parameters for App Bridge frame escape
-    return render_template(
-        "oauth_redirect.html",
-        shop=shop,
-        host=host,
-        redirect_path="/dashboard",
-        success_message="Connected",
-        config=config
-    )
+    # [FINALITY] Small App Bridge JS redirect to ensure top-level breakout
+    # Constructed following Shopify App Bridge v3 best practices
+    try:
+        decoded_host = base64.b64decode(host).decode('utf-8') if host else ""
+    except Exception:
+        decoded_host = ""
+    
+    clean_host = decoded_host.rstrip('/') if decoded_host else "admin.shopify.com"
+    app_handle = os.getenv("SHOPIFY_APP_HANDLE", "employee-suite-7")
+    full_url = f"https://{clean_host}/apps/{app_handle}/dashboard?shop={shop}&host={host}"
+
+    return f'''
+    <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+    <script>
+        const host = "{host}";
+        const shop = "{shop}";
+        const redirectUrl = "{full_url}";
+        
+        // Use App Bridge to escape the iframe securely
+        if (window.top !== window.self) {{
+            window.top.location.href = redirectUrl;
+        }} else {{
+            window.location.href = redirectUrl;
+        }}
+    </script>
+    ''', 200
 
 
 def verify_hmac(params):
