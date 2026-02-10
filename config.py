@@ -64,15 +64,25 @@ SENDGRID_API_KEY = _CONFIG_CACHE["SENDGRID_API_KEY"]
 DEV_SHOP_DOMAIN = _CONFIG_CACHE["DEV_SHOP_DOMAIN"]
 ADMIN_EMAIL = _CONFIG_CACHE["ADMIN_EMAIL"]
 
-# Optimized database settings
-AUTO_SCALING_ENGINE_OPTIONS = {
-    "pool_size": 5,        # Reduced from 10
-    "max_overflow": 10,    # Reduced from 20
-    "pool_recycle": 1800,  # Reduced from 3600
-    "pool_timeout": 15,    # Reduced from 30
-    "pool_pre_ping": True,
-    "echo": False,         # Disable SQL logging for speed
+# Production-grade database connection pool settings (prevents SSL connection errors)
+SQLALCHEMY_ENGINE_OPTIONS = {
+    "pool_pre_ping": True,       # Verifies connection is alive before every request (prevents stale connections)
+    "pool_recycle": 280,         # Recycles connections before they time out (Render DB limit ~300s)
+    "pool_size": 10,             # Maintains a healthy pool of ready connections
+    "max_overflow": 20,          # Allows for bursts without dropping requests
+    "pool_timeout": 15,          # Max seconds to wait for connection from pool
+    "echo": False,               # Disable SQL logging for performance
+    "connect_args": {
+        "sslmode": "require",    # Forces secure SSL connection
+        "keepalives": 1,         # Enables TCP keepalives
+        "keepalives_idle": 30,   # Seconds before sending keepalive probe
+        "keepalives_interval": 10,  # Seconds between keepalive probes
+        "keepalives_count": 5,   # Max keepalive probes before declaring connection dead
+    }
 }
+
+# Legacy alias for backwards compatibility
+AUTO_SCALING_ENGINE_OPTIONS = SQLALCHEMY_ENGINE_OPTIONS
 
 def validate_email_config():
     """Validate email configuration on startup"""

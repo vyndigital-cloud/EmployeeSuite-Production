@@ -444,7 +444,7 @@ def create_app():
         or Shopify Headers/Params. Populates request.shop_domain and g.current_user.
         """
         # [EBAY-LEVEL] Skip identity checks for static files (Performance + Crash Prevention)
-        if request.endpoint == 'static' or request.path.startswith('/static'):
+        if request.endpoint == 'static' or request.path.startswith(('/static', '/health')):
             return
         
         import time
@@ -473,12 +473,17 @@ def create_app():
         if request.shop_domain and request.shop_domain in app._shop_identity_cache:
             user_id, store_id, is_active, expiry = app._shop_identity_cache[request.shop_domain]
             if now < expiry and is_active:
-                from sqlalchemy.orm import joinedload
-                # [LATENCY CRUSH] Single Join lookup for cached hit
-                g.current_user = db.session.query(User).options(joinedload(User.current_store)).get(user_id)
-                if g.current_user:
-                    g.current_store = g.current_user.current_store
-                    return # SUCCESS: Cache hit
+                try:
+                    from sqlalchemy.orm import joinedload
+                    # [LATENCY CRUSH] Single Join lookup for cached hit
+                    g.current_user = db.session.query(User).options(joinedload(User.current_store)).get(user_id)
+                    if g.current_user:
+                        g.current_store = g.current_user.current_store
+                        return # SUCCESS: Cache hit
+                except Exception as e:
+                    # [PRODUCTION HARDENING] Graceful degradation on DB hiccup
+                    app.logger.error(f"Identity cache lookup failed: {e}")
+                    g.current_user = None
 
         # 3. Handle Stateless JWT (Authorization Header)
         auth_header = request.headers.get("Authorization")
@@ -494,21 +499,26 @@ def create_app():
 
         # 4. Database Lookup & Cache Update
         if request.shop_domain:
-            from models import db
-            from sqlalchemy.orm import joinedload
-            # [HOTFIX] Explicit and Clean Lookup to avoid ambiguous FK stalls
-            store = db.session.query(ShopifyStore).options(joinedload(ShopifyStore.user)).filter(
-                ShopifyStore.shop_url == request.shop_domain,
-                ShopifyStore.is_active == True
-            ).first()
-            
-            if store and store.user:
-                g.current_user = store.user
-                g.current_store = store # TITAN MEMOIZATION
-                # Update 5-minute Cache
-                app._shop_identity_cache[request.shop_domain] = (
-                    g.current_user.id, store.id, store.is_active, now + 300
-                )
+            try:
+                from models import db
+                from sqlalchemy.orm import joinedload
+                # [HOTFIX] Explicit and Clean Lookup to avoid ambiguous FK stalls
+                store = db.session.query(ShopifyStore).options(joinedload(ShopifyStore.user)).filter(
+                    ShopifyStore.shop_url == request.shop_domain,
+                    ShopifyStore.is_active == True
+                ).first()
+                
+                if store and store.user:
+                    g.current_user = store.user
+                    g.current_store = store # TITAN MEMOIZATION
+                    # Update 5-minute Cache
+                    app._shop_identity_cache[request.shop_domain] = (
+                        g.current_user.id, store.id, store.is_active, now + 300
+                    )
+            except Exception as e:
+                # [PRODUCTION HARDENING] Graceful degradation on DB hiccup (SSL connection errors, etc.)
+                app.logger.error(f"Identity extraction DB lookup failed: {e}")
+                g.current_user = None
 
         # 5. Last Fallback: Logged in user from Flask-Login
         # Ensure we don't overwrite the global current_user proxy
