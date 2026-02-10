@@ -558,49 +558,31 @@ def create_app():
                 return redirect(url_for("oauth.install", shop=url_shop))
 
         # 4. Authentication Check
-        if not current_user.is_authenticated:
+        from flask_login import current_user as login_manager_user
+        
+        # FIX: Check the login manager status safely to avoid Response object collision
+        try:
+            # Check if we are dealing with a real user object, not a Flask Response
+            is_authed = hasattr(login_manager_user, 'is_authenticated') and login_manager_user.is_authenticated
+        except Exception:
+            is_authed = False
+
+        if not is_authed:
+            app.logger.warning(f"Unauthenticated access to {request.path}")
+            
             # For JSON/API requests, return 401
             if request.is_json or not request.accept_mimetypes.accept_html:
                  return jsonify({"error": "Authentication required", "success": False}), 401
             
-            # For HTML requests, redirect to login (ESCAPE HATCH for Shopify)
+            # [LOOP-BREAKER] If unauthenticated but shop is present, trigger handshake or breakout
             shop = url_shop or session_shop
-            host = request.args.get("host") or session.get("host")
-            
-            # [LOOP-BREAKER] If unauthenticated but shop is present, force re-auth via App Bridge
             if shop:
-                app.logger.warning(f"🔄 Loop-Breaker: Forcing App Bridge re-auth for {shop}")
-                # Construct the direct re-auth URL
-                auth_url = url_for('auth.login', shop=shop, host=host, _external=True)
-                
-                # Render a dedicated App Bridge redirect template to escape the frame
-                return f'''
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
-                        <script>
-                            const host = new URLSearchParams(window.location.search).get("host") || "{host or ""}";
-                            const shop = "{shop}";
-                            const authUrl = "{auth_url}";
-                            
-                            if (window.top !== window.self) {{
-                                // In an iframe: Break out to re-auth
-                                window.top.location.href = authUrl;
-                            }} else {{
-                                // Standalone: Normal redirect
-                                window.location.href = authUrl;
-                            }}
-                        </script>
-                    </head>
-                    <body>
-                        <p>Redirecting to authentication...</p>
-                    </body>
-                    </html>
-                ''', 200 # Return 200 so the browser processes the HTML/JS
+                app.logger.info(f"🔄 Identity Finality: Triggering re-auth handshake for {shop}")
+                # [FIX] Call load_user_from_request directly to handle the redirect/auth logic
+                # This ensures we don't try to access current_user after it has become a Response
+                return load_user_from_request() or redirect(url_for('auth.login', shop=shop))
 
-            app.logger.warning(f"Blocked anonymous access to {request.path}")
-            return redirect(url_for('auth.login', shop=shop, host=host))
+            return redirect(url_for('auth.login'))
 
         # 5. Active Store Check
         if not current_user.active_shop:
