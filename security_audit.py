@@ -30,10 +30,24 @@ EXPECTED_NO_AUTH = {
 }
 
 def is_whitelisted_route(endpoint):
-    """Check if route is expected to have no authentication"""
-    if not endpoint:
+    """Check both blueprinted endpoint names and raw paths"""
+    if not request:
         return False
-    return any(endpoint.startswith(path) for path in EXPECTED_NO_AUTH)
+    
+    path = request.path
+    
+    # Whitelisted endpoint names (including blueprint prefixes)
+    WHITELISTED_ENDPOINTS = {
+        'static', 'health', 'ready',
+        'core.health', 'core.ready',  # Blueprint-prefixed
+        'shopify_bp.webhooks',         # Shopify webhooks
+    }
+    
+    # Check endpoint name OR path prefix
+    return (
+        endpoint in WHITELISTED_ENDPOINTS or
+        any(path.startswith(p) for p in EXPECTED_NO_AUTH)
+    )
 
 
 def audit_security_discrepancies(details):
