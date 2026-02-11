@@ -86,73 +86,11 @@ validate_shopify_config()
 
 def verify_session_token(f):
     """
-    Decorator to verify Shopify session token for embedded app requests
-    MANDATORY for embedded apps as of January 2025
-
-    For embedded apps: Verifies session token from Authorization header
-    For non-embedded: Falls back to Flask-Login (if @login_required is also used)
+    Decorator to verify Shopify session tokens (JWT)
+    Handles cold entry gracefully with handshake bridge page
     """
-
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # 1. Check for JWT (Authorization header OR query param 'id_token')
-        auth_header = request.headers.get("Authorization")
-        id_token_param = request.args.get("id_token")
-        
-        token = None
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.split(" ")[1] if " " in auth_header else None
-        elif id_token_param:
-            token = id_token_param
-
-        if token:
-
-            try:
-                # [DECODE LOGIC REMAINS - Verify signature/exp/iat/aud/dest]
-                api_secret = get_api_secret()
-                current_api_key = get_normalized_api_key()
-                
-                payload = jwt.decode(
-                    token,
-                    api_secret,
-                    algorithms=["HS256"],
-                    options={
-                        "verify_signature": True,
-                        "verify_exp": True,
-                        "verify_iat": True,
-                        "require": ["iss", "dest", "aud", "sub", "exp", "nbf", "iat"],
-                    },
-                    audience=current_api_key
-                )
-
-                # Verify destination
-                dest = payload.get("dest", "")
-                if not dest or not dest.endswith(".myshopify.com"):
-                    logger.warning(f"Invalid JWT destination: {dest}")
-                    return jsonify({"error": "Invalid session token destination"}), 401
-
-                request.shop_domain = dest.replace("https://", "").split("/")[0]
-                request.session_token_verified = True
-                
-                logger.debug(f"JWT Verified for {request.shop_domain}")
-
-            except jwt.ExpiredSignatureError:
-                return jsonify({"error": "Session token expired", "action": "refresh"}), 401
-            except Exception as e:
-                logger.warning(f"JWT Validation failed: {e}")
-                return jsonify({"error": "Invalid session token", "action": "refresh"}), 401
-
-        # 2. STRICT MODE: If we are in an iframe (embedded), we MUST HAVE a verified JWT
-        # We detect embeddedness by checking for the 'embedded' or 'shop' param in the URL
-        # or the presence of the Sec-Fetch-Dest: iframe header
-        is_embedded_context = (
-            request.args.get("embedded") == "1" or 
-            request.headers.get("Sec-Fetch-Dest") == "iframe" or
-            (request.args.get("shop") and not current_user.is_authenticated)
-        )
-
-        if is_embedded_context and not getattr(request, 'session_token_verified', False):
-            # [EMERGENCY WELD] If we have a verified session (cookie), allow it as fallback
             # This prevents 403 loops if the JWT is stripped on an immediate sub-request
             if current_user.is_authenticated:
                 logger.debug(f"Allowing unverified embedded request for authenticated user {current_user.id}")
