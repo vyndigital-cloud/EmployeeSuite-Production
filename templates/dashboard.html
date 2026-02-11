@@ -103,8 +103,8 @@
                         ⚡ Quick Access
                     </button>
                     <div class="quick-menu-dropdown" id="quickMenu">
-                        <a href="{{ url_for('features_api.csv_exports', shop=shop, host=host) }}"
-                            class="quick-menu-item" style="
+                        <a href="{{ url_for('enhanced.csv_exports', shop=shop, host=host) }}" class="quick-menu-item"
+                            style="
                                     background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
                                     border: 1px solid #bbf7d0;
                                 ">
@@ -112,7 +112,7 @@
                             <strong>CSV Exports</strong>
                             <span class="quick-menu-shortcut">⌘E</span>
                         </a>
-                        <a href="{{ url_for('features_api.scheduled_reports', shop=shop, host=host) }}"
+                        <a href="{{ url_for('enhanced.scheduled_reports', shop=shop, host=host) }}"
                             class="quick-menu-item">
                             <span class="quick-menu-item-icon">📅</span>
                             Scheduled Reports
@@ -123,7 +123,7 @@
                             Comprehensive Dashboard
                             <span class="quick-menu-shortcut">⌘D</span>
                         </a>
-                        <a href="{{ url_for('features_api.welcome', shop=shop, host=host) }}" class="quick-menu-item">
+                        <a href="{{ url_for('enhanced.welcome', shop=shop, host=host) }}" class="quick-menu-item">
                             <span class="quick-menu-item-icon">🎉</span>
                             New Features
                         </a>

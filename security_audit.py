@@ -64,6 +64,12 @@ def audit_security_discrepancies(details):
     if not request:
         return
     
+    # === FAST-TRACK BYPASS: Health Checks & System Monitors ===
+    # Skip heavy audit logic for Render health checks (eliminate 500ms latency)
+    user_agent = request.headers.get('User-Agent', '')
+    if request.path in ('/health', '/ready', '/_ah/health') or 'Render' in user_agent:
+        return  # Bypass audit entirely for system heartbeats
+    
     endpoint = details.get('endpoint', '')
     url = details.get('url', '')
     

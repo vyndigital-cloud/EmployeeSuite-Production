@@ -336,11 +336,11 @@ def create_app():
 
     # Register blueprints (with error handling for missing blueprints)
     blueprints_to_register = [
-        ("oauth_bp", "oauth_bp"),
+        ("shopify_oauth", "oauth_bp"),  # Fixed: module is shopify_oauth, blueprint is oauth_bp
         ("core_routes", "core_bp"),
         ("shopify_routes", "shopify_bp"),
-        ("webhook_shopify", "webhook_bp"),
-        ("client_telemetry", "client_telemetry_bp"),  # Client-side telemetry
+        ("webhook_shopify", "webhook_shopify_bp"),  # Fixed: blueprint name is webhook_shopify_bp
+        ("client_telemetry", "client_telemetry_bp"),
         ("help_routes", "help_bp"),
         ("profile_routes", "profile_bp"),
         ("faq_routes", "faq_bp"),
