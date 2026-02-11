@@ -264,25 +264,67 @@ def create_app():
     @app.before_request
     def titan_observer_before():
         """TITAN: Record start time and log incoming request"""
+        # Generate unique request ID for log correlation
+        from unified_error_boundary import generate_request_id
+        request_id = generate_request_id()
+        
         # FAST TRACK: Bypass heavy logging for health check monitors (eliminate 600-700ms latency)
         user_agent = request.headers.get('User-Agent', '')
         if request.path == '/health' or 'Render' in user_agent or 'UptimeRobot' in user_agent:
-            return None  # Skip all middleware overhead for health monitors
+            # DEBUG level for noise
+            app.logger.debug(f"HEALTH_CHECK [{request_id}] {request.method} {request.path}")
+            return None
+        
+        # Skip static assets (DEBUG level)
+        if request.path.startswith('/static/') or request.path.endswith('.ico'):
+            app.logger.debug(f"STATIC [{request_id}] {request.path}")
+            return None
         
         g.titan_start_time = time.time()
         client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        
+        # INFO level for normal requests
         app.logger.info(
-            f"TITAN [HIT] {request.method} {request.path} | IP: {client_ip} | Referer: {request.referrer}"
+            f"TITAN [HIT] [{request_id}] {request.method} {request.path} | IP: {client_ip} | Referer: {request.referrer}"
         )
 
     @app.after_request
     def titan_observer_after(response):
         """TITAN: Calculate latency and log response status"""
+        from unified_error_boundary import generate_request_id
+        request_id = generate_request_id()
+        
         if hasattr(g, 'titan_start_time'):
             latency = time.time() - g.titan_start_time
-            app.logger.info(
-                f"TITAN [OUT] {request.method} {request.path} | Status: {response.status_code} | Latency: {latency:.4f}s"
-            )
+            latency_ms = int(latency * 1000)
+            
+            # Metadata enrichment
+            shop = getattr(g, 'shop_domain', request.args.get('shop', 'NONE'))
+            user_id = getattr(g, 'user_id', 'NONE')
+            status_code = response.status_code
+            
+            # Log level classification
+            if status_code >= 500:
+                # CRITICAL: Server errors
+                app.logger.critical(
+                    f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
+                    f"Status: {status_code} | Latency: {latency_ms}ms | "
+                    f"User: {user_id} | Shop: {shop}"
+                )
+            elif status_code >= 400:
+                # WARNING: Client errors
+                app.logger.warning(
+                    f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
+                    f"Status: {status_code} | Latency: {latency_ms}ms | "
+                    f"User: {user_id} | Shop: {shop}"
+                )
+            else:
+                # INFO: Success
+                app.logger.info(
+                    f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
+                    f"Status: {status_code} | Latency: {latency_ms}ms | "
+                    f"User: {user_id} | Shop: {shop}"
+                )
         return response
 
     # ============================================================================
@@ -290,16 +332,45 @@ def create_app():
     # ============================================================================
     @app.errorhandler(404)
     def titan_404_handler(error):
-        """TITAN: Warn on missing resources with full context"""
-        app.logger.warning(
-            f"TITAN [404] {request.method} {request.url} | Referer: {request.referrer}"
-        )
+        """TITAN: Enhanced 404 handler with referer tracking and security audit"""
+        from unified_error_boundary import generate_request_id
+        request_id = generate_request_id()
+        
+        # Classify: WARNING for API routes, DEBUG for assets
+        is_api_route = request.path.startswith('/api/') or request.path.startswith('/settings/')
+        is_asset = request.path.startswith('/static/') or request.path.endswith(('.ico', '.css', '.js', '.png', '.jpg'))
+        
+        shop = request.args.get('shop', 'NONE')
+        referer = request.referrer or 'NONE'
+        
+        if is_api_route:
+            # WARNING: Missing API endpoint
+            app.logger.warning(
+                f"🚧 MISSING_API_ROUTE [{request_id}] {request.method} {request.url} | "
+                f"Referer: {referer} | Shop: {shop}"
+            )
+            
+            # Log to security audit
+            try:
+                from security_audit import audit_logger
+                audit_logger.warning(
+                    f"404 on API route: {request.path} | Referer: {referer} | Shop: {shop}"
+                )
+            except ImportError:
+                pass
+                
+        elif is_asset:
+            # DEBUG: Missing static asset
+            app.logger.debug(f"MISSING_ASSET [{request_id}] {request.path} | Referer: {referer}")
+        else:
+            # INFO: Missing regular page
+            app.logger.info(f"MISSING_PAGE [{request_id}] {request.path} | Referer: {referer}")
+        
         return jsonify({
-            "error": "Not Found",
-            "message": "The requested resource does not exist on the Titan node.",
-            "path": request.path,
-            "referer": request.referrer,
-            "success": False
+            'error': 'Not Found',
+            'message': 'The requested resource does not exist on the Titan node.',
+            'path': request.path,
+            'request_id': request_id
         }), 404
 
     @app.errorhandler(Exception)
