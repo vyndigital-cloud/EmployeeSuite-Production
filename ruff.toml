@@ -1,0 +1,46 @@
+# Ruff Configuration - EmployeeSuite Security-First Analysis
+# Focuses on JWT/Session/OAuth critical paths
+
+[lint]
+# Select rule categories that catch CRITICAL bugs
+select = [
+    "E",   # pycodestyle errors (syntax issues)
+    "F",   # Pyflakes (undefined names, unused imports)
+    "B",   # flake8-bugbear (likely bugs)
+    "S",   # flake8-bandit (security issues)
+    "C90", # mccabe (complexity)
+    "N",   # pep8-naming (prevents shadowing bugs)
+    "UP",  # pyupgrade (outdated syntax that causes bugs)
+    "RUF", # Ruff-specific rules
+    "PT",  # flake8-pytest-style
+]
+
+# Ignore style-only rules (we care about BUGS, not formatting)
+ignore = [
+    "E501",  # line too long (not a bug)
+    "E203",  # whitespace before ':' 
+    "B008",  # function call in argument defaults (Flask uses this)
+]
+
+# Maximum complexity score (flags overly complex functions)
+mccabe.max-complexity = 15
+
+# Focus on critical security files
+[lint.per-file-ignores]
+# Allow complexity in these integration files
+"shopify_integration.py" = ["C90"]
+"core_routes.py" = ["C90"]
+
+# Exclude generated/vendor code
+exclude = [
+    "venv",
+    "venv_test",
+    "__pycache__",
+    ".git",
+    "migrations",
+]
+
+[format]
+# Auto-fix only safe changes
+line-length = 120
+indent-width = 4
