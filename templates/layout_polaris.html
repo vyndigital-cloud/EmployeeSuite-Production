@@ -40,6 +40,8 @@
     <!-- Shopify Polaris Design System -->
     <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/styles.css" />
     <script src="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/polaris.min.js"></script>
+    <!-- JWT Navigation Wrapper (Golden Path) -->
+    <script src="{{ url_for('static', filename='js/jwt_navigation.js') }}" defer></script>
     <!-- Phosphor Icons CSS removed - using inline SVGs -->
     <!-- Stateless Pivot: App Bridge Interceptor -->
     <script>
@@ -300,7 +302,7 @@
                                     margin: 8px 0;
                                 "></div>
                         <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}"
-                            class="quick-menu-item">
+                            data-auth-required="true" class="quick-menu-item">
                             <span class="quick-menu-item-icon">
                                 <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
                                     <path
@@ -324,7 +326,8 @@
                         </a>
                     </div>
                 </div>
-                <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}" class="nav-btn">Settings</a>
+                <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}" class="nav-btn"
+                    data-auth-required="true">Settings</a>
                 <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}"
                     class="nav-btn nav-btn-primary">Subscribe</a>
                 <a href="{{ url_for('admin.logout', shop=shop, host=host) }}" class="nav-btn">Logout</a>

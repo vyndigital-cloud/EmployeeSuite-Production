@@ -132,7 +132,7 @@
                                     margin: 8px 0;
                                 "></div>
                         <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}"
-                            class="quick-menu-item">
+                            data-auth-required="true" class="quick-menu-item">
                             <span class="quick-menu-item-icon">⚙️</span>
                             Settings
                             <span class="quick-menu-shortcut">⌘,</span>
@@ -144,7 +144,8 @@
                         </a>
                     </div>
                 </div>
-                <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}" class="nav-btn">Settings</a>
+                <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}" class="nav-btn"
+                    data-auth-required="true">Settings</a>
                 <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}"
                     class="nav-btn nav-btn-primary">Subscribe</a>
                 <a href="{{ url_for('admin.logout', shop=shop, host=host) }}" class="nav-btn">Logout</a>
@@ -173,6 +174,7 @@
                 <!-- Quick Actions (Replaces Header Nav) -->
                 <div style="margin-top: 1.5rem; display: flex; justify-content: center; gap: 12px;">
                     <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}" class="status-pill"
+                        data-auth-required="true"
                         style="background: white; border: 1px solid #e1e3e5; color: #6d7175; text-decoration: none; padding: 6px 16px; font-weight: 500; font-size: 13px; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
                         Settings
                     </a>
@@ -228,7 +230,7 @@
                     </div>
                     <div class="banner-actions">
                         <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}"
-                            class="banner-action primary">
+                            data-auth-required="true" class="banner-action primary">
                             Connect Your Store
                         </a>
                     </div>
