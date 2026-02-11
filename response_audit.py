@@ -72,7 +72,19 @@ def audit_response_discrepancies(response):
         # Add X-Response-Time header for debugging
         response.headers['X-Response-Time'] = f"{duration_ms:.2f}ms"
     
-    # === Check 3: Status Code Anomalies ===
+    
+    # === Check 3: Zero-Byte Responses (Silent Failures) ===
+    # "Void detected" - 200 OK but 0 bytes indicates structural collapse
+    content_length = response.content_length or len(response.get_data()) if hasattr(response, 'get_data') else 0
+    
+    if response.status_code == 200 and content_length == 0:
+        # Exception: Redirects and 204 No Content are OK
+        if response.status_code != 204 and not (300 <= response.status_code < 400):
+            issues.append(f"VOID_DETECTED_0_BYTES")
+            status = "STRUCTURAL_FAILURE"
+            response_stats['zero_byte_200'] += 1
+    
+    # === Check 4: Status Code Anomalies ===
     # 403 on routes that should be accessible
     if response.status_code == 403:
         if request.endpoint not in ('admin', 'settings'):  # Expected protected routes
@@ -86,13 +98,18 @@ def audit_response_discrepancies(response):
         status = "ERROR"
         response_stats['server_errors'] += 1
     
+    
     # === Logging ===
     if status != "CLEAN":
-        # Emoji flag for easy searching in logs
+        blueprint = request.blueprint or "NO_BLUEPRINT"
+        
+        # Emoji flag for easy searching in logs + forensic details
         print(
             f"🚨 {status} | "
+            f"Blueprint: {blueprint}.{request.endpoint} | "
             f"Path: {request.path} | "
             f"Status: {response.status_code} | "
+            f"Size: {content_length}b | "
             f"Issues: {', '.join(issues)} | "
             f"Shop: {getattr(request, 'shop_domain', 'NONE')} | "
             f"JWT: {is_jwt_verified}"
