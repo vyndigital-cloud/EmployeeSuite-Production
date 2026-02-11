@@ -40,6 +40,7 @@ def is_whitelisted_route(endpoint):
     WHITELISTED_SUFFIXES = {
         'static', 'health', 'ready', 'webhooks',
         'privacy', 'terms', 'legal', 'favicon',
+        'dashboard', 'home',  # Trusted user-facing routes
     }
     
     # Check 1: Endpoint suffix match (catches any blueprint.suffix)
