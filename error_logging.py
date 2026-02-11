@@ -234,7 +234,7 @@ class ErrorLogger:
                 'method': request.method if request else None,
                 'user_agent': user_agent,
                 'ip_address': request.headers.get('X-Forwarded-For', request.remote_addr) if request else None,
-                'is_ajax': request.is_xhr if request else False,
+                'is_ajax': request.headers.get('X-Requested-With') == 'XMLHttpRequest' if request else False,
                 'query_params': dict(request.args) if request else {},
                 'form_data_keys': list(request.form.keys()) if request and request.form else [],
             }
