@@ -264,6 +264,10 @@ def create_app():
     @app.before_request
     def titan_observer_before():
         """TITAN: Record start time and log incoming request"""
+        # FAST TRACK: Bypass heavy logging for Render health checks (eliminate 500ms-1.3s latency)
+        if request.path == '/health' or request.headers.get('User-Agent') == 'Render/1.0':
+            return None
+        
         g.titan_start_time = time.time()
         client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         app.logger.info(
