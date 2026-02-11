@@ -341,16 +341,16 @@ def create_app():
 
     # Register blueprints (with error handling for missing blueprints)
     blueprints_to_register = [
-        ("shopify_oauth", "oauth_bp"),  # Fixed: module is shopify_oauth, blueprint is oauth_bp
+        ("shopify_oauth", "oauth_bp"),  # OAuth flow
         ("core_routes", "core_bp"),
         ("shopify_routes", "shopify_bp"),
-        ("webhook_shopify", "webhook_shopify_bp"),  # Fixed: blueprint name is webhook_shopify_bp
-        ("client_telemetry", "client_telemetry_bp"),
-        ("help_routes", "help_bp"),
-        ("profile_routes", "profile_bp"),
+        ("webhook_shopify", "webhook_shopify_bp"),
+        ("client_telemetry", "client_telemetry_bp"),  # Client-side telemetry
+        ("legal_routes", "legal_bp"),  # Privacy/Terms pages
         ("faq_routes", "faq_bp"),
         ("enhanced_features", "enhanced_bp"),
         ("admin_routes", "admin_bp"),
+        # Removed: help_routes, profile_routes (files don't exist)
     ]
 
     registered_blueprints = []
