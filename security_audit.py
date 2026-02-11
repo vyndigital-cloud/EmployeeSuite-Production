@@ -1,0 +1,131 @@
+"""
+Security Audit Mode - Fail-Loud-But-Don't-Crash
+Logs all security and data discrepancies without breaking production
+Enable with: AUDIT_MODE=strict in environment variables
+"""
+import os
+import logging
+from datetime import datetime
+from collections import defaultdict
+from flask import request, session, g
+
+# Audit logger
+audit_logger = logging.getLogger('security_audit')
+audit_logger.setLevel(logging.WARNING)
+
+# Track discrepancy patterns (in-memory for speed)
+discrepancy_stats = defaultdict(int)
+
+# Audit mode configuration
+AUDIT_MODE = os.getenv("AUDIT_MODE", "off")  # off, log, strict
+AUDIT_STRICT = (AUDIT_MODE == "strict")  # True = raise exceptions (DEV ONLY!)
+
+# Routes that are expected to have no JWT/shop (whitelist)
+EXPECTED_NO_AUTH = {
+    '/health', '/ready', '/_ah/health',  # Health checks
+    '/static', '/favicon.ico',            # Static assets
+    '/privacy', '/terms', '/legal',       # Legal pages  
+    '/oauth/install', '/oauth/callback',  # OAuth flow (gets JWT later)
+    '/webhooks',                          # Shopify webhooks (HMAC auth)
+}
+
+def is_whitelisted_route(endpoint):
+    """Check if route is expected to have no authentication"""
+    if not endpoint:
+        return False
+    return any(endpoint.startswith(path) for path in EXPECTED_NO_AUTH)
+
+
+def audit_security_discrepancies(details):
+    """
+    Audit security discrepancies - LOGS but doesn't crash
+    
+    Args:
+        details: Dict with keys: url, endpoint, environment, 
+                is_jwt_verified, shop_domain, user_id
+    """
+    if not request:
+        return
+    
+    endpoint = details.get('endpoint', '')
+    url = details.get('url', '')
+    
+    # Skip whitelisted routes
+    if is_whitelisted_route(endpoint):
+        return
+    
+    # === DISCREPANCY 1: Unverified JWT in Production ===
+    if details.get('environment') == 'production':
+        if not details.get('is_jwt_verified'):
+            if not is_whitelisted_route(endpoint):
+                discrepancy_stats['unverified_jwt'] += 1
+                
+                msg = (
+                    f"🚨 SECURITY DISCREPANCY: Unverified JWT access | "
+                    f"Endpoint: {endpoint} | "
+                    f"Shop: {details.get('shop_domain', 'MISSING')} | "
+                    f"User: {details.get('user_id', 'NONE')} | "
+                    f"URL: {url}"
+                )
+                
+                audit_logger.warning(msg)
+                
+                # STRICT MODE: Crash (DEV ONLY!)
+                if AUDIT_STRICT:
+                    raise PermissionError(msg)
+    
+    # === DISCREPANCY 2: Missing Shop Domain ===
+    shop = details.get('shop_domain')
+    if not shop or shop == 'None':
+        if not is_whitelisted_route(endpoint):
+            discrepancy_stats['missing_shop'] += 1
+            
+            msg = (
+                f"⚠️  DATA DISCREPANCY: Missing shop_domain | "
+                f"Endpoint: {endpoint} | "
+                f"User: {details.get('user_id', 'NONE')} | "
+                f"JWT Verified: {details.get('is_jwt_verified', False)} | "
+                f"URL: {url}"
+            )
+            
+            audit_logger.warning(msg)
+            
+            # STRICT MODE: Crash (DEV ONLY!)
+            if AUDIT_STRICT:
+                raise ValueError(msg)
+    
+    # === DISCREPANCY 3: Session/Cookie Login in Stateless Context ===
+    if details.get('is_jwt_verified') is False and details.get('user_id'):
+        # User is logged in via cookie but JWT verification failed
+        discrepancy_stats['cookie_login_without_jwt'] += 1
+        
+        msg = (
+            f"🔐 AUTH DISCREPANCY: Cookie-based login without JWT | "
+            f"Endpoint: {endpoint} | "
+            f"User: {details.get('user_id')} | "
+            f"Shop: {details.get('shop_domain', 'NONE')}"
+        )
+        
+        audit_logger.info(msg)  # INFO, not WARNING (this is expected fallback)
+
+
+def get_audit_report():
+    """Get current audit statistics"""
+    total_discrepancies = sum(discrepancy_stats.values())
+    
+    return {
+        'timestamp': datetime.utcnow().isoformat(),
+        'audit_mode': AUDIT_MODE,
+        'total_discrepancies': total_discrepancies,
+        'breakdown': dict(discrepancy_stats),
+        'top_issues': sorted(
+            discrepancy_stats.items(), 
+            key=lambda x: x[1], 
+            reverse=True
+        )[:5]
+    }
+
+
+def clear_audit_stats():
+    """Clear audit statistics (call daily)"""
+    discrepancy_stats.clear()
