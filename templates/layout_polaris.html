@@ -363,7 +363,7 @@
                             <span class="quick-menu-shortcut">⌘,</span>
                         </a>
                         <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}"
-                            class="quick-menu-item">
+                            data-auth-required="true" class="quick-menu-item">
                             <span class="quick-menu-item-icon">
                                 <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
                                     <path
@@ -377,8 +377,8 @@
                 </div>
                 <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}" class="nav-btn"
                     data-auth-required="true">Settings</a>
-                <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}"
-                    class="nav-btn nav-btn-primary">Subscribe</a>
+                <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}" class="nav-btn nav-btn-primary"
+                    data-auth-required="true">Subscribe</a>
                 <a href="{{ url_for('admin.logout', shop=shop, host=host) }}" class="nav-btn">Logout</a>
             </div>
         </div>

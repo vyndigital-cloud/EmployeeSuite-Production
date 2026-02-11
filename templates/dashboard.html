@@ -138,7 +138,7 @@
                             <span class="quick-menu-shortcut">⌘,</span>
                         </a>
                         <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}"
-                            class="quick-menu-item">
+                            data-auth-required="true" class="quick-menu-item">
                             <span class="quick-menu-item-icon">💳</span>
                             Subscribe
                         </a>
@@ -146,8 +146,8 @@
                 </div>
                 <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}" class="nav-btn"
                     data-auth-required="true">Settings</a>
-                <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}"
-                    class="nav-btn nav-btn-primary">Subscribe</a>
+                <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}" class="nav-btn nav-btn-primary"
+                    data-auth-required="true">Subscribe</a>
                 <a href="{{ url_for('admin.logout', shop=shop, host=host) }}" class="nav-btn">Logout</a>
             </div>
         </div>
@@ -433,7 +433,7 @@
                     </div>
                     <h3 style="color: #111827; margin-bottom: 8px; font-size: 20px; font-weight: 700;">Subscription Required</h3>
                     <p style="color: #6B7280; margin-bottom: 24px; font-size: 15px; line-height: 1.5;">This feature is available with Employee Suite Pro. Subscribe to unlock full access.</p>
-                    <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}" style="display: inline-block; background: #2563EB; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.2s; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">Upgrade Now →</a>
+                    <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}" data-auth-required="true" style="display: inline-block; background: #2563EB; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.2s; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">Upgrade Now →</a>
                     <p style="color: #9CA3AF; margin-top: 16px; font-size: 13px;">$39/month • 7-day money-back guarantee</p>
                 </div>
             `;
