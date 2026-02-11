@@ -213,7 +213,7 @@ class ErrorLogger:
             print(f"Failed to log API call: {e}")
     
     def log_user_action(self, action, user_id=None, details=None):
-        """Log user actions for debugging"""
+        """Log user actions for debugging with ABSOLUTE VISIBILITY"""
         try:
             context = self.get_context_info()
             
@@ -226,10 +226,23 @@ class ErrorLogger:
             if 'UptimeRobot' in user_agent or (request and request.method == 'HEAD'):
                 return
 
+            # [ABSOLUTE VISIBILITY] Capture FULL request details for forensics
+            comprehensive_details = {
+                **context,
+                'full_url': request.url if request else None,
+                'referer': request.referrer if request else None,
+                'method': request.method if request else None,
+                'user_agent': user_agent,
+                'ip_address': request.headers.get('X-Forwarded-For', request.remote_addr) if request else None,
+                'is_ajax': request.is_xhr if request else False,
+                'query_params': dict(request.args) if request else {},
+                'form_data_keys': list(request.form.keys()) if request and request.form else [],
+            }
+
             # [SECURITY AUDIT] Check for discrepancies (non-blocking by default)
             try:
                 from security_audit import audit_security_discrepancies
-                audit_security_discrepancies(context)
+                audit_security_discrepancies(comprehensive_details)
             except ImportError:
                 pass  # security_audit module not available
             except Exception as audit_error:
@@ -241,10 +254,15 @@ class ErrorLogger:
                 log_msg += f" | User: {user_id}"
             
             # Include shop_domain explicitly in the simple message for easier monitoring
-            shop = context.get('shop_domain', 'None')
+            shop = comprehensive_details.get('shop_domain', 'None')
             log_msg += f" | Shop: {shop}"
             
-            if context:
+            # ALWAYS include comprehensive details for failed requests
+            status_code = comprehensive_details.get('status_code', 200)
+            if status_code >= 400 or 'error' in action.lower() or 'failed' in action.lower():
+                log_msg += f" | FAILED_REQUEST_DETAILS: {json.dumps(comprehensive_details, default=str)}"
+            else:
+                # For successful requests, include basic context
                 log_msg += f" | Details: {json.dumps(context, default=str)}"
                 
             self.user_logger.info(log_msg)
