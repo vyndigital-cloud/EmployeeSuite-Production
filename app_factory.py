@@ -417,6 +417,7 @@ def create_app():
         ("shopify_routes", "shopify_bp"),
         ("webhook_shopify", "webhook_shopify_bp"),
         ("client_telemetry", "client_telemetry_bp"),  # Client-side telemetry
+        ("billing", "billing_bp"),             # Shopify subscription billing
         ("legal_routes", "legal_bp"),  # Privacy/Terms pages
         ("faq_routes", "faq_bp"),
         ("enhanced_features", "enhanced_bp"),
