@@ -226,6 +226,16 @@ class ErrorLogger:
             if 'UptimeRobot' in user_agent or (request and request.method == 'HEAD'):
                 return
 
+            # [SECURITY AUDIT] Check for discrepancies (non-blocking by default)
+            try:
+                from security_audit import audit_security_discrepancies
+                audit_security_discrepancies(context)
+            except ImportError:
+                pass  # security_audit module not available
+            except Exception as audit_error:
+                # Don't let audit failures break logging
+                self.error_logger.debug(f"Security audit check failed: {audit_error}")
+
             log_msg = f"User Action: {action}"
             if user_id:
                 log_msg += f" | User: {user_id}"
