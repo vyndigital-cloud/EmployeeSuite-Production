@@ -221,9 +221,16 @@ class ErrorLogger:
             if details:
                 context.update(details)
             
-            # HEALTH CHECK SILENCING: Skip UptimeRobot or generic HEAD health checks
+            # SILENCE: Health checks and system monitors (prevents 17K+ daily noise)
             user_agent = request.headers.get('User-Agent', '') if request else ''
-            if 'UptimeRobot' in user_agent or (request and request.method == 'HEAD'):
+            endpoint = context.get('endpoint', '')
+            
+            # Skip system heartbeats entirely
+            if 'Render' in user_agent or 'UptimeRobot' in user_agent or endpoint == 'core.health':
+                return  # Silent exit - no logging for automated pings
+            
+            # Also skip HEAD requests (monitoring checks)
+            if request and request.method == 'HEAD':
                 return
 
             # [ABSOLUTE VISIBILITY] Capture FULL request details for forensics
