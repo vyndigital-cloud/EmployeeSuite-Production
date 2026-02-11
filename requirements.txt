@@ -16,3 +16,4 @@ sendgrid>=6.9.7
 Flask-Session>=0.5.0
 redis>=5.0.0
 celery>=5.3.0
+whitenoise>=6.6.0
