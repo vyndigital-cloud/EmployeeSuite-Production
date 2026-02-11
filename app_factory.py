@@ -336,24 +336,25 @@ def create_app():
 
     # Register blueprints (with error handling for missing blueprints)
     blueprints_to_register = [
+        ("oauth_bp", "oauth_bp"),
         ("core_routes", "core_bp"),
-        ("auth", "auth_bp"),
-        (
-            "shopify_oauth",
-            "oauth_bp",
-        ),  # OAuth blueprint with /install and /auth/callback routes
         ("shopify_routes", "shopify_bp"),
-        ("billing", "billing_bp"),
-        ("features_pages", "features_pages_bp"),
-        ("features_routes", "features_bp"),
-        ("legal_routes", "legal_bp"),
-        ("gdpr_compliance", "gdpr_bp"),
-        ("webhook_shopify", "webhook_shopify_bp"),
+        ("webhook_shopify", "webhook_bp"),
+        ("client_telemetry", "client_telemetry_bp"),  # Client-side telemetry
+        ("help_routes", "help_bp"),
+        ("profile_routes", "profile_bp"),
         ("faq_routes", "faq_bp"),
         ("enhanced_features", "enhanced_bp"),
         ("admin_routes", "admin_bp"),
+    ]
+
     registered_blueprints = []
     failed_blueprints = []
+
+    for module_name, blueprint_name in blueprints_to_register:
+        try:
+            module = __import__(module_name)
+            blueprint = getattr(module, blueprint_name)
 
             app.register_blueprint(blueprint)
             registered_blueprints.append(blueprint_name)
