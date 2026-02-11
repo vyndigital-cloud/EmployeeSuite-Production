@@ -170,53 +170,63 @@
         });
     </script>
 
-    <!-- GOLDEN PATH: JWT Navigation Wrapper (INLINE - Safari Safe) -->
+    <!-- OPTION B: App Bridge Redirect API (Official Method) -->
     <script>
-        // CRITICAL: Inlined to avoid 0-byte static asset issue
-        // User 11 on Safari with blocked cookies needs this inline
+        // Wait for App Bridge to be ready
         document.addEventListener('DOMContentLoaded', function () {
-            // Get session token from Shopify App Bridge
-            async function getSessionToken() {
-                try {
-                    if (window.shopify && typeof window.shopify.idToken === 'function') {
-                        return await window.shopify.idToken();
-                    }
-                } catch (e) {
-                    console.error("Failed to get session token:", e);
-                }
-                return null;
+            // Verify App Bridge v3 is loaded
+            if (!window.shopify || !window['app-bridge']) {
+                console.error('❌ App Bridge not loaded - navigation interceptor disabled');
+                return;
             }
 
-            // Navigate with JWT token appended to URL
-            async function navigateWithAuth(url) {
-                try {
-                    const token = await getSessionToken();
-                    if (token) {
-                        const fullUrl = new URL(url, window.location.origin);
-                        fullUrl.searchParams.set('id_token', token);
-                        console.log('✅ Navigating with JWT:', fullUrl.pathname);
-                        window.location.href = fullUrl.toString();
-                    } else {
-                        console.warn('⚠️ JWT not available for navigation to:', url);
-                        window.location.href = url;
-                    }
-                } catch (error) {
-                    console.error('❌ navigateWithAuth failed:', error);
-                    window.location.href = url;
-                }
+            // Initialize App Bridge (required for Redirect API)
+            const urlParams = new URLSearchParams(window.location.search);
+            const host = urlParams.get('host');
+            const apiKey = '{{ config.SHOPIFY_API_KEY }}' || '';
+
+            if (!host || !apiKey) {
+                console.warn('⚠️ Missing host or API key - using fallback navigation');
+                return;
             }
 
-            // Intercept all links with data-auth-required="true"
-            const authLinks = document.querySelectorAll('a[data-auth-required="true"]');
-            authLinks.forEach(function (link) {
-                link.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    navigateWithAuth(this.href);
+            try {
+                // Create App Bridge instance
+                const AppBridge = window['app-bridge'];
+                const createApp = AppBridge.default;
+                const Redirect = AppBridge.actions.Redirect;
+
+                const app = createApp({
+                    apiKey: apiKey,
+                    host: host,
                 });
-            });
 
-            if (authLinks.length > 0) {
-                console.log('✅ JWT Navigation Interceptor: Protecting ' + authLinks.length + ' link(s)');
+                // Intercept all links with data-auth-required="true"
+                const authLinks = document.querySelectorAll('a[data-auth-required="true"]');
+
+                authLinks.forEach(function (link) {
+                    link.addEventListener('click', function (e) {
+                        e.preventDefault();
+
+                        // Extract path from href
+                        const url = new URL(this.href, window.location.origin);
+                        const targetPath = url.pathname + url.search;
+
+                        console.log('✅ App Bridge Redirect:', targetPath);
+
+                        // Use App Bridge Redirect API - JWT automatically included
+                        const redirect = Redirect.create(app);
+                        redirect.dispatch(Redirect.Action.APP, targetPath);
+                    });
+                });
+
+                if (authLinks.length > 0) {
+                    console.log('✅ App Bridge Redirect API: Protecting ' + authLinks.length + ' link(s)');
+                }
+
+            } catch (error) {
+                console.error('❌ App Bridge initialization failed:', error);
+                console.warn('⚠️ Falling back to standard navigation (JWT may be missing)');
             }
         });
     </script>
