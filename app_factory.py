@@ -352,28 +352,8 @@ def create_app():
         ("faq_routes", "faq_bp"),
         ("enhanced_features", "enhanced_bp"),
         ("admin_routes", "admin_bp"),
-    ]
-
     registered_blueprints = []
     failed_blueprints = []
-
-    for module_name, blueprint_name in blueprints_to_register:
-        try:
-            # DEBUGGING: Log detailed blueprint registration
-            app.logger.info(
-                f"🔍 Attempting to register {blueprint_name} from {module_name}"
-            )
-
-            module = __import__(module_name)
-            blueprint = getattr(module, blueprint_name)
-
-            # DEBUGGING: Log blueprint details before registration
-            app.logger.info(f"🔍 Blueprint {blueprint_name} details:")
-            app.logger.info(f"  - Name: {blueprint.name}")
-            app.logger.info(f"  - URL prefix: {blueprint.url_prefix}")
-            app.logger.info(
-                f"  - Routes: {[str(rule) for rule in blueprint.deferred_functions]}"
-            )
 
             app.register_blueprint(blueprint)
             registered_blueprints.append(blueprint_name)

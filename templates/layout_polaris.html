@@ -4,6 +4,34 @@
 <head>
     <meta charset="utf-8" />
     <title>{{ title|default('Employee Suite') }}</title>
+
+    <!-- Titan Beacon: Client-Side Monitoring -->
+    <script>
+        (function () {
+            // Forensic watchdog - detects App Bridge initialization failures
+            const forensicBeacon = setTimeout(() => {
+                fetch('/log_client_error', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        error: 'HANDSHAKE_TIMEOUT',
+                        detail: 'App Bridge failed to initialize within 4s',
+                        url: window.location.href,
+                        agent: navigator.userAgent
+                    })
+                }).catch(err => console.error('Beacon failed:', err));
+            }, 4000);
+
+            // Clear alarm if App Bridge initializes successfully
+            document.addEventListener("DOMContentLoaded", () => {
+                if (window.shopify || window['app-bridge']) {
+                    clearTimeout(forensicBeacon);
+                    console.log('✅ Titan Beacon: App Bridge initialized');
+                }
+            });
+        })();
+    </script>
+
     <!-- Shopify App Bridge - Latest version for idToken -->
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <!-- Shopify App Bridge v3 - For Actions (Redirect, etc) -->
