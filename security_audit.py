@@ -36,18 +36,20 @@ def is_whitelisted_route(endpoint):
     
     path = request.path
     
-    # Whitelisted endpoint names (including blueprint prefixes)
-    WHITELISTED_ENDPOINTS = {
-        'static', 'health', 'ready',
-        'core.health', 'core.ready',  # Blueprint-prefixed
-        'shopify_bp.webhooks',         # Shopify webhooks
+    # Whitelisted endpoint suffixes (blueprint-agnostic)
+    WHITELISTED_SUFFIXES = {
+        'static', 'health', 'ready', 'webhooks',
+        'privacy', 'terms', 'legal', 'favicon',
     }
     
-    # Check endpoint name OR path prefix
-    return (
-        endpoint in WHITELISTED_ENDPOINTS or
-        any(path.startswith(p) for p in EXPECTED_NO_AUTH)
-    )
+    # Check 1: Endpoint suffix match (catches any blueprint.suffix)
+    if endpoint:
+        for suffix in WHITELISTED_SUFFIXES:
+            if endpoint == suffix or endpoint.endswith(f'.{suffix}'):
+                return True
+    
+    # Check 2: Path prefix match
+    return any(path.startswith(p) for p in EXPECTED_NO_AUTH)
 
 
 def audit_security_discrepancies(details):
