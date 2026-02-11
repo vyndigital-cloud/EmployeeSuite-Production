@@ -161,6 +161,7 @@ def verify_session_token(f):
             # [BRIDGE LOADER] Fetch token and redirect with it (don't just reload)
             logger.warning(f"Embedded request without JWT to {request.path}, triggering Bridge Loader")
             api_key = os.getenv("SHOPIFY_API_KEY", "")
+            host = request.args.get("host", "")
             
             # Preserve current path and query params
             current_path = request.path
@@ -174,23 +175,60 @@ def verify_session_token(f):
                         <script>
                             (async function() {{
                                 try {{
-                                    console.log("🔄 Bridge Loader: Fetching fresh token...");
+                                    console.log("🔄 Bridge Loader: Initializing App Bridge...");
                                     
-                                    // Wait for App Bridge to initialize
+                                    // Wait for App Bridge script to load
                                     let attempts = 0;
                                     while (!window.shopify && attempts < 20) {{
                                         await new Promise(resolve => setTimeout(resolve, 100));
                                         attempts++;
                                     }}
                                     
-                                    if (!window.shopify || typeof window.shopify.idToken !== 'function') {{
-                                        console.error("App Bridge not available, forcing top-level redirect");
+                                    if (!window.shopify) {{
+                                        console.error("App Bridge script failed to load");
+                                        window.top.location.href = window.location.href;
+                                        return;
+                                    }}
+                                    
+                                    // Extract host from URL if not provided
+                                    const urlParams = new URLSearchParams(window.location.search);
+                                    const host = urlParams.get('host') || '{host}';
+                                    
+                                    if (!host) {{
+                                        console.error("Missing host parameter");
+                                        window.top.location.href = window.location.href;
+                                        return;
+                                    }}
+                                    
+                                    // Initialize App Bridge
+                                    console.log("🔐 Bridge Loader: Creating App Bridge with API key...");
+                                    window.shopify.createApp({{
+                                        apiKey: '{api_key}',
+                                        host: host
+                                    }});
+                                    
+                                    // Wait for idToken function to be available
+                                    attempts = 0;
+                                    while (typeof window.shopify.idToken !== 'function' && attempts < 20) {{
+                                        await new Promise(resolve => setTimeout(resolve, 100));
+                                        attempts++;
+                                    }}
+                                    
+                                    if (typeof window.shopify.idToken !== 'function') {{
+                                        console.error("idToken function not available after initialization");
                                         window.top.location.href = window.location.href;
                                         return;
                                     }}
                                     
                                     // Fetch fresh token
+                                    console.log("🎫 Bridge Loader: Fetching session token...");
                                     const token = await window.shopify.idToken();
+                                    
+                                    if (!token) {{
+                                        console.error("idToken returned empty");
+                                        window.top.location.href = window.location.href;
+                                        return;
+                                    }}
                                     
                                     // Build URL with token
                                     const url = new URL(window.location.href);
