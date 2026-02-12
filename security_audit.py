@@ -76,6 +76,30 @@ def audit_security_discrepancies(details):
     # Skip whitelisted routes
     if is_whitelisted_route(endpoint):
         return
+    
+    # === DISCREPANCY 1: Unverified JWT (IMMEDIATE ALERT) ===
+    # ABSOLUTE VISIBILITY: Alert on ANY unverified JWT access (not just production)
+    if not details.get('is_jwt_verified'):
+        if not is_whitelisted_route(endpoint):
+            discrepancy_stats['unverified_jwt'] += 1
+            
+            # CRITICAL ALERT: Unverified JWT access detected
+            msg = (
+                f"🚨 CRITICAL ALERT: Unverified JWT Access | "
+                f"Endpoint: {endpoint} | "
+                f"URL: {url} | "
+                f"Shop: {details.get('shop_domain', 'MISSING')} | "
+                f"User: {details.get('user_id', 'NONE')} | "
+                f"Environment: {details.get('environment', 'UNKNOWN')} | "
+                f"Method: {details.get('method', 'UNKNOWN')} | "
+                f"IP: {details.get('ip', 'UNKNOWN')} | "
+                f"User-Agent: {details.get('user_agent', 'NONE')}"
+            )
+            
+            # Log as ERROR for immediate visibility (not just warning)
+            audit_logger.error(msg)
+            
+            # STRICT MODE: Crash (DEV ONLY!)
             if AUDIT_STRICT:
                 raise PermissionError(msg)
     
