@@ -370,607 +370,610 @@ const Sentinel = {
             this.log('❌ CRITICAL: Link test failed', {
                 url,
                 error: error.message,
-            }
+                level: 'CRITICAL'
+            });
+            return false;
+        }
     },
 
     // Dedicated telemetry push for broken links
     async sendTelemetryPush(data) {
-            try {
-                await fetch('/telemetry/log', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: 'SENTINEL_LINK_SCOUT',
-                        timestamp: new Date().toISOString(),
-                        level: 'CRITICAL',
-                        ...data
-                    })
-                });
-                this.log('📤 Telemetry pushed for broken link');
-            } catch (error) {
-                console.error('[Sentinel 🤖] Failed to push telemetry:', error);
-            }
-        },
+        try {
+            await fetch('/telemetry/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: 'SENTINEL_LINK_SCOUT',
+                    timestamp: new Date().toISOString(),
+                    level: 'CRITICAL',
+                    ...data
+                })
+            });
+            this.log('📤 Telemetry pushed for broken link');
+        } catch (error) {
+            console.error('[Sentinel 🤖] Failed to push telemetry:', error);
+        }
+    },
 
     // ==================== SELF-HEALING DOM ====================
 
     // SentinelScout: Shadow-fetch and heal broken links
     async initSentinelScout() {
-            // Scan existing links
-            await this.scoutAllLinks();
+        // Scan existing links
+        await this.scoutAllLinks();
 
-            // Watch for new links with MutationObserver
-            const observer = new MutationObserver(async (mutations) => {
-                for (const mutation of mutations) {
-                    for (const node of mutation.addedNodes) {
-                        if (node.nodeName === 'A') {
-                            await this.scoutLink(node);
-                        } else if (node.querySelectorAll) {
-                            const links = node.querySelectorAll('a');
-                            for (const link of links) {
-                                await this.scoutLink(link);
-                            }
+        // Watch for new links with MutationObserver
+        const observer = new MutationObserver(async (mutations) => {
+            for (const mutation of mutations) {
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeName === 'A') {
+                        await this.scoutLink(node);
+                    } else if (node.querySelectorAll) {
+                        const links = node.querySelectorAll('a');
+                        for (const link of links) {
+                            await this.scoutLink(link);
                         }
                     }
                 }
-            });
+            }
+        });
 
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true
-            });
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
 
-            this.log('🔍 SentinelScout: Watching for broken links');
-        },
+        this.log('🔍 SentinelScout: Watching for broken links');
+    },
 
     async scoutAllLinks() {
-            const links = document.querySelectorAll('a[href]');
-            let scoutedCount = 0;
+        const links = document.querySelectorAll('a[href]');
+        let scoutedCount = 0;
 
-            for (const link of links) {
-                if (link.href.startsWith(window.location.origin)) {
-                    await this.scoutLink(link);
-                    scoutedCount++;
-                }
+        for (const link of links) {
+            if (link.href.startsWith(window.location.origin)) {
+                await this.scoutLink(link);
+                scoutedCount++;
             }
+        }
 
-            this.log(`🔍 SentinelScout: Scanned ${scoutedCount} internal links`);
-        },
+        this.log(`🔍 SentinelScout: Scanned ${scoutedCount} internal links`);
+    },
 
     async scoutLink(link) {
-            if (!link.href || !link.href.startsWith(window.location.origin)) {
-                return;
-            }
+        if (!link.href || !link.href.startsWith(window.location.origin)) {
+            return;
+        }
 
-            // Skip already scouted links
-            if (link.dataset.scouted === 'true') {
-                return;
-            }
+        // Skip already scouted links
+        if (link.dataset.scouted === 'true') {
+            return;
+        }
 
-            try {
-                const response = await fetch(link.href, {
-                    method: 'HEAD',
-                    mode: 'same-origin'
-                });
-
-                if (response.status === 404) {
-                    // GHOST 404 CORRECTION: Redirect to dashboard
-                    const originalHref = link.href;
-                    link.href = '/home'; // Highest-converting route
-                    link.dataset.healed = 'true';
-
-                    this.log('🩹 Self-Healing DOM: 404 link corrected', {
-                        originalHref,
-                        newHref: link.href
-                    });
-
-                    // Send telemetry
-                    await this.sendTelemetryPush({
-                        event_type: '404_LINK_HEALED',
-                        broken_path: originalHref,
-                        healed_path: link.href,
-                        source_page: window.location.href
-                    });
-                }
-
-                link.dataset.scouted = 'true';
-            } catch (error) {
-                // Network error - hide link to prevent user confusion
-                link.style.display = 'none';
-                link.dataset.hidden = 'true';
-
-                this.log('🩹 Self-Healing DOM: Broken link hidden', {
-                    href: link.href,
-                    error: error.message
-                });
-            }
-        },
-
-        // ==================== GLOBAL PROXY ====================
-
-        // Wrap XMLHttpRequest and fetch to auto-inject DNA headers
-        initGlobalProxy() {
-            const sentinel = this;
-
-            // Wrap fetch
-            const originalFetch = window.fetch;
-            window.fetch = async function (...args) {
-                const [url, options = {}] = args;
-
-                // Only modify internal requests
-                const urlString = typeof url === 'string' ? url : url.url;
-                if (urlString && !urlString.startsWith('http')) {
-                    // It's a relative URL - inject DNA
-                    options.headers = options.headers || {};
-
-                    if (sentinel.dnaVault.shop) {
-                        options.headers['X-Shopify-Shop-Domain'] = sentinel.dnaVault.shop;
-                    }
-
-                    if (sentinel.dnaVault.host) {
-                        options.headers['X-Shopify-Host'] = sentinel.dnaVault.host;
-                    }
-
-                    // Get fresh token
-                    const token = await sentinel.getValidToken();
-                    if (token) {
-                        options.headers['Authorization'] = `Bearer ${token}`;
-                    }
-
-                    sentinel.log('🌐 Global Proxy: DNA injected into fetch', {
-                        url: urlString,
-                        hasShop: !!sentinel.dnaVault.shop,
-                        hasHost: !!sentinel.dnaVault.host,
-                        hasToken: !!token
-                    });
-
-                    args[1] = options;
-                }
-
-                return originalFetch.apply(this, args);
-            };
-
-            // Wrap XMLHttpRequest
-            const originalOpen = XMLHttpRequest.prototype.open;
-            const originalSend = XMLHttpRequest.prototype.send;
-
-            XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-                this._sentinel_url = url;
-                this._sentinel_method = method;
-                return originalOpen.call(this, method, url, ...rest);
-            };
-
-            XMLHttpRequest.prototype.send = async function (body) {
-                // Only modify internal requests
-                if (this._sentinel_url && !this._sentinel_url.startsWith('http')) {
-                    if (sentinel.dnaVault.shop) {
-                        this.setRequestHeader('X-Shopify-Shop-Domain', sentinel.dnaVault.shop);
-                    }
-
-                    if (sentinel.dnaVault.host) {
-                        this.setRequestHeader('X-Shopify-Host', sentinel.dnaVault.host);
-                    }
-
-                    // Get fresh token
-                    const token = await sentinel.getValidToken();
-                    if (token) {
-                        this.setRequestHeader('Authorization', `Bearer ${token}`);
-                    }
-
-                    sentinel.log('🌐 Global Proxy: DNA injected into XHR', {
-                        method: this._sentinel_method,
-                        url: this._sentinel_url,
-                        hasShop: !!sentinel.dnaVault.shop,
-                        hasHost: !!sentinel.dnaVault.host,
-                        hasToken: !!token
-                    });
-                }
-
-                return originalSend.call(this, body);
-            };
-
-            this.log('🌐 Global Proxy: Active - auto-injecting DNA headers');
-        },
-
-    async checkAppBridge() {
-            const hasShopify = !!window.shopify;
-            const hasAppBridge = !!window['app-bridge'];
-            const hasIdToken = !!(window.shopify && typeof window.shopify.idToken === 'function');
-
-            this.log("App Bridge State Check", {
-                hasShopify,
-                hasAppBridge,
-                hasIdToken,
-                isReady: hasShopify && hasAppBridge && hasIdToken
+        try {
+            const response = await fetch(link.href, {
+                method: 'HEAD',
+                mode: 'same-origin'
             });
 
-            return hasShopify && hasAppBridge && hasIdToken;
-        },
+            if (response.status === 404) {
+                // GHOST 404 CORRECTION: Redirect to dashboard
+                const originalHref = link.href;
+                link.href = '/home'; // Highest-converting route
+                link.dataset.healed = 'true';
+
+                this.log('🩹 Self-Healing DOM: 404 link corrected', {
+                    originalHref,
+                    newHref: link.href
+                });
+
+                // Send telemetry
+                await this.sendTelemetryPush({
+                    event_type: '404_LINK_HEALED',
+                    broken_path: originalHref,
+                    healed_path: link.href,
+                    source_page: window.location.href
+                });
+            }
+
+            link.dataset.scouted = 'true';
+        } catch (error) {
+            // Network error - hide link to prevent user confusion
+            link.style.display = 'none';
+            link.dataset.hidden = 'true';
+
+            this.log('🩹 Self-Healing DOM: Broken link hidden', {
+                href: link.href,
+                error: error.message
+            });
+        }
+    },
+
+    // ==================== GLOBAL PROXY ====================
+
+    // Wrap XMLHttpRequest and fetch to auto-inject DNA headers
+    initGlobalProxy() {
+        const sentinel = this;
+
+        // Wrap fetch
+        const originalFetch = window.fetch;
+        window.fetch = async function (...args) {
+            const [url, options = {}] = args;
+
+            // Only modify internal requests
+            const urlString = typeof url === 'string' ? url : url.url;
+            if (urlString && !urlString.startsWith('http')) {
+                // It's a relative URL - inject DNA
+                options.headers = options.headers || {};
+
+                if (sentinel.dnaVault.shop) {
+                    options.headers['X-Shopify-Shop-Domain'] = sentinel.dnaVault.shop;
+                }
+
+                if (sentinel.dnaVault.host) {
+                    options.headers['X-Shopify-Host'] = sentinel.dnaVault.host;
+                }
+
+                // Get fresh token
+                const token = await sentinel.getValidToken();
+                if (token) {
+                    options.headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                sentinel.log('🌐 Global Proxy: DNA injected into fetch', {
+                    url: urlString,
+                    hasShop: !!sentinel.dnaVault.shop,
+                    hasHost: !!sentinel.dnaVault.host,
+                    hasToken: !!token
+                });
+
+                args[1] = options;
+            }
+
+            return originalFetch.apply(this, args);
+        };
+
+        // Wrap XMLHttpRequest
+        const originalOpen = XMLHttpRequest.prototype.open;
+        const originalSend = XMLHttpRequest.prototype.send;
+
+        XMLHttpRequest.prototype.open = function (method, url, ...rest) {
+            this._sentinel_url = url;
+            this._sentinel_method = method;
+            return originalOpen.call(this, method, url, ...rest);
+        };
+
+        XMLHttpRequest.prototype.send = async function (body) {
+            // Only modify internal requests
+            if (this._sentinel_url && !this._sentinel_url.startsWith('http')) {
+                if (sentinel.dnaVault.shop) {
+                    this.setRequestHeader('X-Shopify-Shop-Domain', sentinel.dnaVault.shop);
+                }
+
+                if (sentinel.dnaVault.host) {
+                    this.setRequestHeader('X-Shopify-Host', sentinel.dnaVault.host);
+                }
+
+                // Get fresh token
+                const token = await sentinel.getValidToken();
+                if (token) {
+                    this.setRequestHeader('Authorization', `Bearer ${token}`);
+                }
+
+                sentinel.log('🌐 Global Proxy: DNA injected into XHR', {
+                    method: this._sentinel_method,
+                    url: this._sentinel_url,
+                    hasShop: !!sentinel.dnaVault.shop,
+                    hasHost: !!sentinel.dnaVault.host,
+                    hasToken: !!token
+                });
+            }
+
+            return originalSend.call(this, body);
+        };
+
+        this.log('🌐 Global Proxy: Active - auto-injecting DNA headers');
+    },
+
+    async checkAppBridge() {
+        const hasShopify = !!window.shopify;
+        const hasAppBridge = !!window['app-bridge'];
+        const hasIdToken = !!(window.shopify && typeof window.shopify.idToken === 'function');
+
+        this.log("App Bridge State Check", {
+            hasShopify,
+            hasAppBridge,
+            hasIdToken,
+            isReady: hasShopify && hasAppBridge && hasIdToken
+        });
+
+        return hasShopify && hasAppBridge && hasIdToken;
+    },
 
     // BULLET-PROOF LOOP: Comprehensive validation
     async bulletProofLoop() {
-            this.log("🔫 Starting Bullet-Proof Loop");
+        this.log("🔫 Starting Bullet-Proof Loop");
 
-            // 1. Scan all links on load
-            const allLinks = document.querySelectorAll('a[href]');
-            const internalLinks = Array.from(allLinks).filter(link =>
-                link.href.startsWith(window.location.origin)
-            );
-            const protectedLinks = document.querySelectorAll('a[data-auth-required="true"]');
+        // 1. Scan all links on load
+        const allLinks = document.querySelectorAll('a[href]');
+        const internalLinks = Array.from(allLinks).filter(link =>
+            link.href.startsWith(window.location.origin)
+        );
+        const protectedLinks = document.querySelectorAll('a[data-auth-required="true"]');
 
-            this.log("Link Scan Complete", {
-                totalLinks: allLinks.length,
-                internalLinks: internalLinks.length,
-                protectedLinks: protectedLinks.length
+        this.log("Link Scan Complete", {
+            totalLinks: allLinks.length,
+            internalLinks: internalLinks.length,
+            protectedLinks: protectedLinks.length
+        });
+
+        // 2. Verify App Bridge status with timeout
+        const appBridgeStart = Date.now();
+        let appBridgeReady = false;
+        let attempts = 0;
+
+        while (!appBridgeReady && attempts < 50) {
+            appBridgeReady = await this.checkAppBridge();
+            if (!appBridgeReady) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+        }
+
+        const appBridgeLatency = Date.now() - appBridgeStart;
+
+        // 3. Report latency over 1500ms
+        if (appBridgeLatency > 1500) {
+            this.log('⚠️ WARNING: App Bridge initialization exceeded 1500ms', {
+                latency_ms: appBridgeLatency,
+                level: 'WARNING'
             });
 
-            // 2. Verify App Bridge status with timeout
-            const appBridgeStart = Date.now();
-            let appBridgeReady = false;
-            let attempts = 0;
+            await this.sendCriticalEvent({
+                event_type: 'APP_BRIDGE_LATENCY',
+                latency_ms: appBridgeLatency,
+                threshold_ms: 1500
+            });
+        } else if (appBridgeReady) {
+            this.log(`✅ App Bridge ready in ${appBridgeLatency}ms`);
+        } else {
+            this.log('❌ CRITICAL: App Bridge failed to initialize', {
+                latency_ms: appBridgeLatency,
+                level: 'CRITICAL'
+            });
+        }
 
-            while (!appBridgeReady && attempts < 50) {
-                appBridgeReady = await this.checkAppBridge();
-                if (!appBridgeReady) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    attempts++;
-                }
-            }
-
-            const appBridgeLatency = Date.now() - appBridgeStart;
-
-            // 3. Report latency over 1500ms
-            if (appBridgeLatency > 1500) {
-                this.log('⚠️ WARNING: App Bridge initialization exceeded 1500ms', {
-                    latency_ms: appBridgeLatency,
-                    level: 'WARNING'
-                });
-
-                await this.sendCriticalEvent({
-                    event_type: 'APP_BRIDGE_LATENCY',
-                    latency_ms: appBridgeLatency,
-                    threshold_ms: 1500
-                });
-            } else if (appBridgeReady) {
-                this.log(`✅ App Bridge ready in ${appBridgeLatency}ms`);
-            } else {
-                this.log('❌ CRITICAL: App Bridge failed to initialize', {
-                    latency_ms: appBridgeLatency,
-                    level: 'CRITICAL'
-                });
-            }
-
-            return {
-                linksScanned: allLinks.length,
-                appBridgeLatency,
-                appBridgeReady
-            };
-        },
+        return {
+            linksScanned: allLinks.length,
+            appBridgeLatency,
+            appBridgeReady
+        };
+    },
 
     async performWalkthrough() {
-            this.log("🚀 Starting Enhanced Sentinel Walkthrough");
+        this.log("🚀 Starting Enhanced Sentinel Walkthrough");
 
-            // STATE SNAPSHOT: Initial state
-            this.captureStateSnapshot('walkthrough_start');
+        // STATE SNAPSHOT: Initial state
+        this.captureStateSnapshot('walkthrough_start');
 
-            // BULLET-PROOF LOOP
-            const loopResults = await this.bulletProofLoop();
+        // BULLET-PROOF LOOP
+        const loopResults = await this.bulletProofLoop();
 
-            // STATE SNAPSHOT: After App Bridge check
-            this.captureStateSnapshot('post_app_bridge_check');
+        // STATE SNAPSHOT: After App Bridge check
+        this.captureStateSnapshot('post_app_bridge_check');
 
-            // Step: Check for protected links
-            const settingsLinks = document.querySelectorAll('a[data-auth-required="true"][href*="settings"]');
-            const subscribeLinks = document.querySelectorAll('a[data-auth-required="true"][href*="subscribe"]');
+        // Step: Check for protected links
+        const settingsLinks = document.querySelectorAll('a[data-auth-required="true"][href*="settings"]');
+        const subscribeLinks = document.querySelectorAll('a[data-auth-required="true"][href*="subscribe"]');
 
-            this.log("Protected Links Found", {
-                settingsCount: settingsLinks.length,
-                subscribeCount: subscribeLinks.length,
-                totalProtected: settingsLinks.length + subscribeLinks.length
+        this.log("Protected Links Found", {
+            settingsCount: settingsLinks.length,
+            subscribeCount: subscribeLinks.length,
+            totalProtected: settingsLinks.length + subscribeLinks.length
+        });
+
+        // NETWORK INTERCEPTOR: Test a few critical links
+        if (settingsLinks.length > 0) {
+            const testLink = settingsLinks[0].href;
+            this.log("Testing Settings link", { url: testLink });
+            await this.testInternalLink(testLink);
+        }
+
+        // Step: Test click interception
+        if (settingsLinks.length > 0) {
+            const link = settingsLinks[0];
+            this.log("Testing Settings link click", {
+                href: link.href,
+                hasDataAttr: link.hasAttribute('data-auth-required')
             });
 
-            // NETWORK INTERCEPTOR: Test a few critical links
-            if (settingsLinks.length > 0) {
-                const testLink = settingsLinks[0].href;
-                this.log("Testing Settings link", { url: testLink });
-                await this.testInternalLink(testLink);
-            }
-
-            // Step: Test click interception
-            if (settingsLinks.length > 0) {
-                const link = settingsLinks[0];
-                this.log("Testing Settings link click", {
-                    href: link.href,
-                    hasDataAttr: link.hasAttribute('data-auth-required')
-                });
-
-                // Simulate click without actually navigating
-                const clickEvent = new MouseEvent('click', {
-                    bubbles: true,
-                    cancelable: true,
-                    view: window
-                });
-
-                const prevented = !link.dispatchEvent(clickEvent);
-                this.log("Click Test Result", {
-                    wasPreventDefault: prevented,
-                    appBridgeReady: !!window.shopify
-                });
-            }
-
-            // STATE SNAPSHOT: Final state
-            this.captureStateSnapshot('walkthrough_end');
-
-            // Step: Check body ready state
-            const bodyHasClass = document.body.classList.contains('app-ready');
-            this.log("Body Ready State", {
-                hasAppReadyClass: bodyHasClass,
-                bodyOpacity: window.getComputedStyle(document.body).opacity
+            // Simulate click without actually navigating
+            const clickEvent = new MouseEvent('click', {
+                bubbles: true,
+                cancelable: true,
+                view: window
             });
 
-            // Final report
-            await this.report();
-        },
+            const prevented = !link.dispatchEvent(clickEvent);
+            this.log("Click Test Result", {
+                wasPreventDefault: prevented,
+                appBridgeReady: !!window.shopify
+            });
+        }
+
+        // STATE SNAPSHOT: Final state
+        this.captureStateSnapshot('walkthrough_end');
+
+        // Step: Check body ready state
+        const bodyHasClass = document.body.classList.contains('app-ready');
+        this.log("Body Ready State", {
+            hasAppReadyClass: bodyHasClass,
+            bodyOpacity: window.getComputedStyle(document.body).opacity
+        });
+
+        // Final report
+        await this.report();
+    },
 
     async sendCriticalEvent(eventData) {
-            try {
-                await fetch('/client-telemetry/log', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: 'SENTINEL_BOT_CRITICAL',
-                        timestamp: new Date().toISOString(),
-                        level: 'CRITICAL',
-                        event: eventData
-                    })
-                });
-            } catch (error) {
-                console.error('[Sentinel 🤖] Failed to send critical event:', error);
-            }
-        },
+        try {
+            await fetch('/client-telemetry/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: 'SENTINEL_BOT_CRITICAL',
+                    timestamp: new Date().toISOString(),
+                    level: 'CRITICAL',
+                    event: eventData
+                })
+            });
+        } catch (error) {
+            console.error('[Sentinel 🤖] Failed to send critical event:', error);
+        }
+    },
 
     async report() {
-            const summary = {
-                user_id: 'SENTINEL_BOT',
-                timestamp: new Date().toISOString(),
-                total_elapsed_ms: Date.now() - this.startTime,
-                events: this.logs,
-                state_snapshots: this.stateSnapshots,
-                environment: {
-                    userAgent: navigator.userAgent,
-                    url: window.location.href,
-                    referrer: document.referrer || '(none)',  // Track iframe escapes
-                    screenSize: `${window.screen.width}x${window.screen.height}`,
-                    isIframe: window.self !== window.top,
-                    hasShopParam: new URLSearchParams(window.location.search).has('shop'),
-                    hasHostParam: new URLSearchParams(window.location.search).has('host')
-                }
-            };
-
-            // Log referrer explicitly for iframe escape detection
-            if (document.referrer.includes('admin.shopify.com')) {
-                this.log('🦈 SHARK DETECTED: Referrer is admin.shopify.com - iframe escape confirmed');
+        const summary = {
+            user_id: 'SENTINEL_BOT',
+            timestamp: new Date().toISOString(),
+            total_elapsed_ms: Date.now() - this.startTime,
+            events: this.logs,
+            state_snapshots: this.stateSnapshots,
+            environment: {
+                userAgent: navigator.userAgent,
+                url: window.location.href,
+                referrer: document.referrer || '(none)',  // Track iframe escapes
+                screenSize: `${window.screen.width}x${window.screen.height}`,
+                isIframe: window.self !== window.top,
+                hasShopParam: new URLSearchParams(window.location.search).has('shop'),
+                hasHostParam: new URLSearchParams(window.location.search).has('host')
             }
+        };
 
-            this.log("📤 Sending report to backend", {
-                totalEvents: this.logs.length,
-                totalSnapshots: this.stateSnapshots.length,
-                totalTime: summary.total_elapsed_ms
+        // Log referrer explicitly for iframe escape detection
+        if (document.referrer.includes('admin.shopify.com')) {
+            this.log('🦈 SHARK DETECTED: Referrer is admin.shopify.com - iframe escape confirmed');
+        }
+
+        this.log("📤 Sending report to backend", {
+            totalEvents: this.logs.length,
+            totalSnapshots: this.stateSnapshots.length,
+            totalTime: summary.total_elapsed_ms
+        });
+
+        try {
+            const response = await fetch('/client-telemetry/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(summary)
             });
 
-            try {
-                const response = await fetch('/client-telemetry/log', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(summary)
-                });
-
-                if (response.ok) {
-                    console.log('[Sentinel 🤖] ✅ Report sent successfully');
-                } else {
-                    console.error('[Sentinel 🤖] ❌ Report failed:', response.status);
-                }
-            } catch (error) {
-                console.error('[Sentinel 🤖] ❌ Report error:', error);
-            }
-        },
-
-        // LAYER 1: MUTATION OBSERVER - Watch for dynamically added links
-        initMutationObserver() {
-            const observer = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    mutation.addedNodes.forEach((node) => {
-                        // Check if node is a link or contains links
-                        if (node.nodeName === 'A') {
-                            this.contextInjector(node);
-                        } else if (node.querySelectorAll) {
-                            const links = node.querySelectorAll('a');
-                            links.forEach(link => this.contextInjector(link));
-                        }
-                    });
-                });
-            });
-
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true
-            });
-
-            this.log('🔍 MutationObserver: Watching for dynamic links');
-        },
-
-        // Context injector for new links
-        contextInjector(link) {
-            // Only inject for internal links
-            if (!link.href || !link.href.startsWith(window.location.origin)) {
-                return;
-            }
-
-            // Ensure shop and host params are present
-            const urlParams = new URLSearchParams(window.location.search);
-            const shop = urlParams.get('shop');
-            const host = urlParams.get('host');
-
-            if (shop && host) {
-                try {
-                    const linkUrl = new URL(link.href);
-                    if (!linkUrl.searchParams.has('shop')) {
-                        linkUrl.searchParams.set('shop', shop);
-                    }
-                    if (!linkUrl.searchParams.has('host')) {
-                        linkUrl.searchParams.set('host', host);
-                    }
-                    link.href = linkUrl.toString();
-
-                    this.log('🔧 Context injected into dynamic link', {
-                        originalHref: link.getAttribute('href'),
-                        newHref: link.href
-                    });
-                } catch (error) {
-                    this.log('❌ Failed to inject context', { error: error.message });
-                }
-            }
-        },
-
-        // LAYER 2: REQUEST INTERCEPTOR - Wrap fetch for 401/404 detection
-        initFetchInterceptor() {
-            const originalFetch = window.fetch;
-            const sentinel = this;
-
-            window.fetch = async function (...args) {
-                const [url, options] = args;
-
-                try {
-                    const response = await originalFetch.apply(this, args);
-
-                    // Capture 401 or 404 failures
-                    if (response.status === 401 || response.status === 404) {
-                        const failureData = {
-                            url: typeof url === 'string' ? url : url.url,
-                            status: response.status,
-                            statusText: response.statusText,
-                            method: options?.method || 'GET',
-                            timestamp: new Date().toISOString(),
-                            // Full state snapshot
-                            state: {
-                                params: Object.fromEntries(new URLSearchParams(window.location.search)),
-                                headers: options?.headers || {},
-                                localStorage: sentinel.captureLocalStorage(),
-                                cookies: document.cookie,
-                                referrer: document.referrer
-                            }
-                        };
-
-                        sentinel.requestFailures.push(failureData);
-
-                        sentinel.log(`❌ CRITICAL: Fetch ${response.status} detected`, failureData);
-
-                        // Send immediately to backend
-                        await sentinel.sendCriticalEvent({
-                            event_type: 'FETCH_FAILURE',
-                            ...failureData
-                        });
-                    }
-
-                    return response;
-                } catch (error) {
-                    sentinel.log('❌ CRITICAL: Fetch error', {
-                        url: typeof url === 'string' ? url : url.url,
-                        error: error.message
-                    });
-                    throw error;
-                }
-            };
-
-            this.log('🌐 Fetch Interceptor: Monitoring all requests');
-        },
-
-        // Capture localStorage safely
-        captureLocalStorage() {
-            try {
-                const storage = {};
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    storage[key] = localStorage.getItem(key);
-                }
-                return storage;
-            } catch (error) {
-                return { error: 'localStorage not accessible' };
-            }
-        },
-
-        // LAYER 3: APP BRIDGE SPEED-TRAP
-        initAppBridgeSpeedTrap() {
-            // Record DOM load time
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', () => {
-                    this.domLoadTime = Date.now();
-                    this.log('📍 DOMContentLoaded fired', {
-                        elapsed_ms: this.domLoadTime - this.startTime
-                    });
-                    this.checkAppBridgeSpeed();
-                });
+            if (response.ok) {
+                console.log('[Sentinel 🤖] ✅ Report sent successfully');
             } else {
-                this.domLoadTime = Date.now();
-                this.checkAppBridgeSpeed();
+                console.error('[Sentinel 🤖] ❌ Report failed:', response.status);
             }
-        },
+        } catch (error) {
+            console.error('[Sentinel 🤖] ❌ Report error:', error);
+        }
+    },
+
+    // LAYER 1: MUTATION OBSERVER - Watch for dynamically added links
+    initMutationObserver() {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    // Check if node is a link or contains links
+                    if (node.nodeName === 'A') {
+                        this.contextInjector(node);
+                    } else if (node.querySelectorAll) {
+                        const links = node.querySelectorAll('a');
+                        links.forEach(link => this.contextInjector(link));
+                    }
+                });
+            });
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        this.log('🔍 MutationObserver: Watching for dynamic links');
+    },
+
+    // Context injector for new links
+    contextInjector(link) {
+        // Only inject for internal links
+        if (!link.href || !link.href.startsWith(window.location.origin)) {
+            return;
+        }
+
+        // Ensure shop and host params are present
+        const urlParams = new URLSearchParams(window.location.search);
+        const shop = urlParams.get('shop');
+        const host = urlParams.get('host');
+
+        if (shop && host) {
+            try {
+                const linkUrl = new URL(link.href);
+                if (!linkUrl.searchParams.has('shop')) {
+                    linkUrl.searchParams.set('shop', shop);
+                }
+                if (!linkUrl.searchParams.has('host')) {
+                    linkUrl.searchParams.set('host', host);
+                }
+                link.href = linkUrl.toString();
+
+                this.log('🔧 Context injected into dynamic link', {
+                    originalHref: link.getAttribute('href'),
+                    newHref: link.href
+                });
+            } catch (error) {
+                this.log('❌ Failed to inject context', { error: error.message });
+            }
+        }
+    },
+
+    // LAYER 2: REQUEST INTERCEPTOR - Wrap fetch for 401/404 detection
+    initFetchInterceptor() {
+        const originalFetch = window.fetch;
+        const sentinel = this;
+
+        window.fetch = async function (...args) {
+            const [url, options] = args;
+
+            try {
+                const response = await originalFetch.apply(this, args);
+
+                // Capture 401 or 404 failures
+                if (response.status === 401 || response.status === 404) {
+                    const failureData = {
+                        url: typeof url === 'string' ? url : url.url,
+                        status: response.status,
+                        statusText: response.statusText,
+                        method: options?.method || 'GET',
+                        timestamp: new Date().toISOString(),
+                        // Full state snapshot
+                        state: {
+                            params: Object.fromEntries(new URLSearchParams(window.location.search)),
+                            headers: options?.headers || {},
+                            localStorage: sentinel.captureLocalStorage(),
+                            cookies: document.cookie,
+                            referrer: document.referrer
+                        }
+                    };
+
+                    sentinel.requestFailures.push(failureData);
+
+                    sentinel.log(`❌ CRITICAL: Fetch ${response.status} detected`, failureData);
+
+                    // Send immediately to backend
+                    await sentinel.sendCriticalEvent({
+                        event_type: 'FETCH_FAILURE',
+                        ...failureData
+                    });
+                }
+
+                return response;
+            } catch (error) {
+                sentinel.log('❌ CRITICAL: Fetch error', {
+                    url: typeof url === 'string' ? url : url.url,
+                    error: error.message
+                });
+                throw error;
+            }
+        };
+
+        this.log('🌐 Fetch Interceptor: Monitoring all requests');
+    },
+
+    // Capture localStorage safely
+    captureLocalStorage() {
+        try {
+            const storage = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                storage[key] = localStorage.getItem(key);
+            }
+            return storage;
+        } catch (error) {
+            return { error: 'localStorage not accessible' };
+        }
+    },
+
+    // LAYER 3: APP BRIDGE SPEED-TRAP
+    initAppBridgeSpeedTrap() {
+        // Record DOM load time
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.domLoadTime = Date.now();
+                this.log('📍 DOMContentLoaded fired', {
+                    elapsed_ms: this.domLoadTime - this.startTime
+                });
+                this.checkAppBridgeSpeed();
+            });
+        } else {
+            this.domLoadTime = Date.now();
+            this.checkAppBridgeSpeed();
+        }
+    },
 
     async checkAppBridgeSpeed() {
-            const start = this.domLoadTime || Date.now();
-            let ready = false;
-            let attempts = 0;
+        const start = this.domLoadTime || Date.now();
+        let ready = false;
+        let attempts = 0;
 
-            while (!ready && attempts < 50) {
-                ready = !!(window.shopify && window['app-bridge']);
-                if (!ready) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    attempts++;
-                }
+        while (!ready && attempts < 50) {
+            ready = !!(window.shopify && window['app-bridge']);
+            if (!ready) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
             }
-
-            this.appBridgeReadyTime = Date.now();
-            const latency = this.appBridgeReadyTime - start;
-
-            if (latency > 1500) {
-                this.log('🚨 PERFORMANCE BOTTLENECK: App Bridge exceeded 1500ms', {
-                    latency_ms: latency,
-                    threshold_ms: 1500,
-                    level: 'WARNING'
-                });
-
-                await this.sendCriticalEvent({
-                    event_type: 'APP_BRIDGE_SLOW',
-                    latency_ms: latency,
-                    threshold_ms: 1500,
-                    dom_to_ready: latency
-                });
-            } else {
-                this.log(`⚡ App Bridge ready in ${latency}ms (under threshold)`);
-            }
-        },
-
-        // Initialize all interceptors + Proactive Shield
-        initAllLayers() {
-            // PROACTIVE SHIELD: Initialize first to catch early navigation
-            this.initSessionTracking();
-            this.initLinkProxy();
-
-            // Diagnostic layers
-            this.initMutationObserver();
-            this.initFetchInterceptor();
-            this.initAppBridgeSpeedTrap();
-
-            this.log('🚀 All diagnostic layers + Proactive Shield initialized');
         }
-    };
 
-    // Auto-start: Initialize Hydra + layers, then walkthrough
-    if(document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', async () => {
-            await Sentinel.initAllLayers();
-            setTimeout(() => Sentinel.performWalkthrough(), 500);
-        });
+        this.appBridgeReadyTime = Date.now();
+        const latency = this.appBridgeReadyTime - start;
+
+        if (latency > 1500) {
+            this.log('🚨 PERFORMANCE BOTTLENECK: App Bridge exceeded 1500ms', {
+                latency_ms: latency,
+                threshold_ms: 1500,
+                level: 'WARNING'
+            });
+
+            await this.sendCriticalEvent({
+                event_type: 'APP_BRIDGE_SLOW',
+                latency_ms: latency,
+                threshold_ms: 1500,
+                dom_to_ready: latency
+            });
+        } else {
+            this.log(`⚡ App Bridge ready in ${latency}ms (under threshold)`);
+        }
+    },
+
+    // Initialize all interceptors + Proactive Shield
+    initAllLayers() {
+        // PROACTIVE SHIELD: Initialize first to catch early navigation
+        this.initSessionTracking();
+        this.initLinkProxy();
+
+        // Diagnostic layers
+        this.initMutationObserver();
+        this.initFetchInterceptor();
+        this.initAppBridgeSpeedTrap();
+
+        this.log('🚀 All diagnostic layers + Proactive Shield initialized');
+    }
+};
+
+// Auto-start: Initialize Hydra + layers, then walkthrough
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', async () => {
+        await Sentinel.initAllLayers();
+        setTimeout(() => Sentinel.performWalkthrough(), 500);
+    });
 } else {
     (async () => {
         await Sentinel.initAllLayers();
