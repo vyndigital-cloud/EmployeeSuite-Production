@@ -1,10 +1,13 @@
-// Sentinel Bot - Enhanced Diagnostic Client
+// Sentinel Bot - Maximum Diagnostic Client
 // Mimics user behavior to detect App Bridge initialization failures
 
 const Sentinel = {
     logs: [],
     startTime: Date.now(),
+    domLoadTime: null,
+    appBridgeReadyTime: null,
     stateSnapshots: [],
+    requestFailures: [],
 
     log(message, data = {}) {
         const entry = {
@@ -283,14 +286,200 @@ const Sentinel = {
             console.error('[Sentinel 🤖] ❌ Report error:', error);
         }
     }
+},
+
+    // LAYER 1: MUTATION OBSERVER - Watch for dynamically added links
+    initMutationObserver() {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    // Check if node is a link or contains links
+                    if (node.nodeName === 'A') {
+                        this.contextInjector(node);
+                    } else if (node.querySelectorAll) {
+                        const links = node.querySelectorAll('a');
+                        links.forEach(link => this.contextInjector(link));
+                    }
+                });
+            });
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        this.log('🔍 MutationObserver: Watching for dynamic links');
+    },
+
+        // Context injector for new links
+        contextInjector(link) {
+    // Only inject for internal links
+    if (!link.href || !link.href.startsWith(window.location.origin)) {
+        return;
+    }
+
+    // Ensure shop and host params are present
+    const urlParams = new URLSearchParams(window.location.search);
+    const shop = urlParams.get('shop');
+    const host = urlParams.get('host');
+
+    if (shop && host) {
+        try {
+            const linkUrl = new URL(link.href);
+            if (!linkUrl.searchParams.has('shop')) {
+                linkUrl.searchParams.set('shop', shop);
+            }
+            if (!linkUrl.searchParams.has('host')) {
+                linkUrl.searchParams.set('host', host);
+            }
+            link.href = linkUrl.toString();
+
+            this.log('🔧 Context injected into dynamic link', {
+                originalHref: link.getAttribute('href'),
+                newHref: link.href
+            });
+        } catch (error) {
+            this.log('❌ Failed to inject context', { error: error.message });
+        }
+    }
+},
+
+// LAYER 2: REQUEST INTERCEPTOR - Wrap fetch for 401/404 detection
+initFetchInterceptor() {
+    const originalFetch = window.fetch;
+    const sentinel = this;
+
+    window.fetch = async function (...args) {
+        const [url, options] = args;
+
+        try {
+            const response = await originalFetch.apply(this, args);
+
+            // Capture 401 or 404 failures
+            if (response.status === 401 || response.status === 404) {
+                const failureData = {
+                    url: typeof url === 'string' ? url : url.url,
+                    status: response.status,
+                    statusText: response.statusText,
+                    method: options?.method || 'GET',
+                    timestamp: new Date().toISOString(),
+                    // Full state snapshot
+                    state: {
+                        params: Object.fromEntries(new URLSearchParams(window.location.search)),
+                        headers: options?.headers || {},
+                        localStorage: sentinel.captureLocalStorage(),
+                        cookies: document.cookie,
+                        referrer: document.referrer
+                    }
+                };
+
+                sentinel.requestFailures.push(failureData);
+
+                sentinel.log(`❌ CRITICAL: Fetch ${response.status} detected`, failureData);
+
+                // Send immediately to backend
+                await sentinel.sendCriticalEvent({
+                    event_type: 'FETCH_FAILURE',
+                    ...failureData
+                });
+            }
+
+            return response;
+        } catch (error) {
+            sentinel.log('❌ CRITICAL: Fetch error', {
+                url: typeof url === 'string' ? url : url.url,
+                error: error.message
+            });
+            throw error;
+        }
+    };
+
+    this.log('🌐 Fetch Interceptor: Monitoring all requests');
+},
+
+// Capture localStorage safely
+captureLocalStorage() {
+    try {
+        const storage = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            storage[key] = localStorage.getItem(key);
+        }
+        return storage;
+    } catch (error) {
+        return { error: 'localStorage not accessible' };
+    }
+},
+
+// LAYER 3: APP BRIDGE SPEED-TRAP
+initAppBridgeSpeedTrap() {
+    // Record DOM load time
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            this.domLoadTime = Date.now();
+            this.log('📍 DOMContentLoaded fired', {
+                elapsed_ms: this.domLoadTime - this.startTime
+            });
+            this.checkAppBridgeSpeed();
+        });
+    } else {
+        this.domLoadTime = Date.now();
+        this.checkAppBridgeSpeed();
+    }
+},
+    
+    async checkAppBridgeSpeed() {
+    const start = this.domLoadTime || Date.now();
+    let ready = false;
+    let attempts = 0;
+
+    while (!ready && attempts < 50) {
+        ready = !!(window.shopify && window['app-bridge']);
+        if (!ready) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+    }
+
+    this.appBridgeReadyTime = Date.now();
+    const latency = this.appBridgeReadyTime - start;
+
+    if (latency > 1500) {
+        this.log('🚨 PERFORMANCE BOTTLENECK: App Bridge exceeded 1500ms', {
+            latency_ms: latency,
+            threshold_ms: 1500,
+            level: 'WARNING'
+        });
+
+        await this.sendCriticalEvent({
+            event_type: 'APP_BRIDGE_SLOW',
+            latency_ms: latency,
+            threshold_ms: 1500,
+            dom_to_ready: latency
+        });
+    } else {
+        this.log(`⚡ App Bridge ready in ${latency}ms (under threshold)`);
+    }
+},
+
+// Initialize all interceptors
+initAllLayers() {
+    this.initMutationObserver();
+    this.initFetchInterceptor();
+    this.initAppBridgeSpeedTrap();
+    this.log('🚀 All diagnostic layers initialized');
+}
 };
 
-// Auto-start walkthrough after DOM ready
+// Auto-start: Initialize layers first, then walkthrough
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
+        Sentinel.initAllLayers();
         setTimeout(() => Sentinel.performWalkthrough(), 500);
     });
 } else {
+    Sentinel.initAllLayers();
     setTimeout(() => Sentinel.performWalkthrough(), 500);
 }
 
