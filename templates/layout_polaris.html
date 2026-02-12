@@ -508,12 +508,16 @@
             });
         </script>
 
-        <!-- App Bridge Authenticated Navigation -->
+
+        <!-- App Bridge Authenticated Navigation (2026 Updated) -->
         <script src="{{ url_for('static', filename='js/app_bridge_nav.js') }}"></script>
+
+        <!-- App Bridge 4.0 Navigation Helper (2026 Compliance) -->
+        <script src="{{ url_for('static', filename='js/app_bridge_4.js') }}"></script>
 
         <!-- JWT NAVIGATION: Auto-append session tokens to links -->
         <script>
-            console.log('🔒 App Bridge Authenticated Navigation loaded');
+            console.log('🔒 2026 Compliance: App Bridge 4.0 navigation loaded');
         </script>
 
         {% block scripts %}{% endblock %}
