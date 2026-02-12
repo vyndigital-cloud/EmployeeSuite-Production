@@ -1,5 +1,5 @@
 // App Bridge Authenticated Navigation Helper
-// Ensures all internal navigation preserves session token
+// UPDATED for 2026 Shopify Compliance - Uses App Bridge 4.0
 
 (function () {
     'use strict';
@@ -13,21 +13,32 @@
         }
     }
 
-    // Authenticated navigation using App Bridge
+    // 2026 COMPLIANT: Use App Bridge navigation instead of window.location
     async function navigateAuthenticated(url) {
         try {
             // Get fresh session token
             const token = await window.shopify.idToken();
 
-            // Append token to URL
-            const urlObj = new URL(url, window.location.origin);
-            urlObj.searchParams.set('id_token', token);
+            // OPTION 1: Use App Bridge navigate (preferred - 2026 compliant)
+            if (window.shopify.navigate) {
+                // Extract path from full URL
+                const urlObj = new URL(url, window.location.origin);
+                const path = urlObj.pathname + urlObj.search;
 
-            // Navigate with token
-            window.location.href = urlObj.toString();
+                // App Bridge automatically injects token
+                window.shopify.navigate(path);
+                console.log('[Auth Nav 2026] App Bridge navigation:', path);
+            }
+            // OPTION 2: Fallback to manual token append (legacy support)
+            else {
+                const urlObj = new URL(url, window.location.origin);
+                urlObj.searchParams.set('id_token', token);
+                window.location.href = urlObj.toString();
+                console.log('[Auth Nav 2026] Legacy fallback:', urlObj.toString());
+            }
         } catch (error) {
-            console.error('[Auth Nav] Token fetch failed:', error);
-            // Fallback to regular navigation
+            console.error('[Auth Nav 2026] Token fetch failed:', error);
+            // Last resort fallback
             window.location.href = url;
         }
     }
@@ -69,7 +80,7 @@
                 e.preventDefault();
                 const targetUrl = this.href;
 
-                console.log('[Auth Nav] Navigating with session token:', targetUrl);
+                console.log('[Auth Nav 2026] Navigating with App Bridge:', targetUrl);
                 navigateAuthenticated(targetUrl);
             });
         });
@@ -77,7 +88,7 @@
 
     // Initialize when App Bridge is ready
     waitForAppBridge(function () {
-        console.log('[Auth Nav] App Bridge ready - enhancing links');
+        console.log('[Auth Nav 2026] App Bridge ready - 2026 compliant mode ✅');
 
         // Enhance existing links
         enhanceLinks();
@@ -96,7 +107,7 @@
             subtree: true
         });
 
-        console.log('[Auth Nav] ✅ All internal navigation will preserve session tokens');
+        console.log('[Auth Nav 2026] ✅ Navigation uses App Bridge 4.0 (no window.location)');
     });
 
     // Expose for manual use

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Authenticating...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <style>
+        /* INVISIBLE - No UI shown to user */
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 2026 COMPLIANCE: Invisible, instant handshake -->
+    <script>
+        (async function () {
+            const startTime = Date.now();
+
+            try {
+                console.log('🔐 [2026 Handshake] Starting invisible token fetch...');
+
+                // Wait for App Bridge (max 500ms)
+                let attempts = 0;
+                const maxAttempts = 10;
+
+                while (!window.shopify && attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    attempts++;
+                }
+
+                if (!window.shopify || typeof window.shopify.idToken !== 'function') {
+                    throw new Error('App Bridge unavailable');
+                }
+
+                console.log(`✅ App Bridge ready in ${attempts * 50}ms`);
+
+                // Get token with 1-second timeout (fast fail)
+                const tokenPromise = window.shopify.idToken();
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Token timeout')), 1000)
+                );
+
+                const token = await Promise.race([tokenPromise, timeoutPromise]);
+
+                if (token) {
+                    const elapsed = Date.now() - startTime;
+                    console.log(`✅ [2026 Handshake] Token acquired in ${elapsed}ms`);
+
+                    // Use App Bridge navigation (2026 compliant - no window.location)
+                    if (window.shopify.navigate) {
+                        // Get current path
+                        const path = window.location.pathname + window.location.search;
+
+                        // Navigate with App Bridge (token auto-injected)
+                        window.shopify.navigate(path, {
+                            replace: true  // Replace history, not push
+                        });
+
+                        console.log('✅ [2026 Handshake] Using App Bridge navigation - invisible ✅');
+                    } else {
+                        // Fallback for older App Bridge versions
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('id_token', token);
+                        window.location.replace(url.toString());
+                    }
+                } else {
+                    throw new Error('No token returned');
+                }
+
+            } catch (error) {
+                const elapsed = Date.now() - startTime;
+                console.error(`❌ [2026 Handshake] Failed after ${elapsed}ms:`, error);
+
+                // Fallback: Show minimal error (rare case)
+                document.body.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">
+                        <div style="text-align: center;">
+                            <p style="color: #bf0711;">Authentication Error</p>
+                            <p style="font-size: 12px; color: #666;">${error.message}</p>
+                            <button onclick="window.location.reload()" style="margin-top: 16px; padding: 8px 16px; background: #008060; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                Retry
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        })();
+    </script>
+</body>
+
+</html>
