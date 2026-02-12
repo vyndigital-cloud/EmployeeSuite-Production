@@ -74,28 +74,29 @@ function initializeAppBridge() {
     var initAttempts = 0;
     var maxAttempts = 50;
 
-    function init() {
+    async function init() {
         initAttempts++;
         if (window.shopify && window.shopify.idToken) {
             window.shopifyApp = window.shopify;
 
-            // CRITICAL: Get session token for API authentication
+            // FIX 1: Properly await the token (it returns a Promise)
             try {
-                window.sessionToken = window.shopify.idToken();
-                console.log('Session token retrieved successfully');
+                const token = await window.shopify.idToken();
+                console.log('✅ Session token retrieved successfully');
 
-                // Override fetch to automatically include session token
-                setupSessionTokenFetch();
+                // Store for backward compatibility (but prefer fresh fetch)
+                window.sessionToken = token;
 
             } catch (e) {
-                console.error('Failed to get session token:', e);
+                console.error('❌ Failed to get session token:', e);
             }
 
+            // FIX 2: Only set ready AFTER token is secured
             window.appBridgeReady = true;
             return;
         }
         if (initAttempts >= maxAttempts) {
-            console.warn('App Bridge initialization timeout - falling back to cookie auth');
+            console.warn('⚠️ App Bridge timeout - falling back');
             window.appBridgeReady = true;
             return;
         }
@@ -159,23 +160,11 @@ function checkStoreStatus() {
         });
 }
 
+// DEPRECATED: Sentinel.js now handles all token injection globally
+// This function is no longer needed but kept for reference
 function setupSessionTokenFetch() {
-    // We use authenticatedFetch directly in new code, 
-    // but we can also patch the global fetch for legacy calls.
-    var originalFetch = window.fetch;
-
-    window.fetch = async function (url, options) {
-        if (typeof url === 'string' && (url.startsWith('/api/') || url.startsWith('/admin/'))) {
-            // Use our authenticated logic
-            const sessionToken = await window.shopify.idToken().catch(() => null);
-            if (sessionToken) {
-                options = options || {};
-                options.headers = options.headers || {};
-                options.headers['Authorization'] = 'Bearer ' + sessionToken;
-            }
-        }
-        return originalFetch.call(this, url, options);
-    };
+    console.log('ℹ️ Token injection handled by Sentinel.js (global fetch interceptor)');
+    // No-op: Sentinel already intercepts ALL fetch requests
 }
 
 // Error logging functionality
@@ -373,8 +362,8 @@ function cancelPreviousRequest(requestType) {
     }
 }
 
-// API functions - comprehensive implementations
-window.processOrders = function (button) {
+// API functions - 2026 COMPLIANT (async/await + authenticatedFetch)
+window.processOrders = async function (button) {
     if (debounceTimers.processOrders) return;
 
     if (!navigator.onLine) {
@@ -386,68 +375,33 @@ window.processOrders = function (button) {
     setButtonLoading(button, true);
     showLoading('Loading orders...');
 
-    var controller = new AbortController();
-    activeRequests.processOrders = controller;
+    try {
+        // FIX: Use authenticatedFetch (handles token + credentials automatically)
+        const response = await authenticatedFetch('/api/process_orders');
 
-    var apiUrl = '/api/process_orders';
-    if (window.SHOP_PARAM) {
-        apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
+        if (!response.ok) {
+            throw new Error(`Request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Orders Loaded</h3><div style="margin-top: 12px;">' + (data.html || data.message || 'Orders processed successfully') + '</div></div>';
+        } else if (data.action === 'subscribe') {
+            window.showSubscribePrompt();
+        } else {
+            document.getElementById('output').innerHTML = '<div style="color: #dc2626;">' + (data.error || 'Failed to load orders') + '</div>';
+        }
+    } catch (err) {
+        console.error('processOrders error:', err);
+        showErrorMessage('Unable to connect to server. Please try again.');
+    } finally {
+        setButtonLoading(button, false);
+        activeRequests.processOrders = null;
     }
-
-    var fetchOptions = {
-        credentials: 'include',
-        signal: controller.signal
-    };
-
-    // CRITICAL: Add session token for embedded apps
-    if (window.sessionToken) {
-        fetchOptions.headers = fetchOptions.headers || {};
-        fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
-    }
-
-    fetch(apiUrl, fetchOptions)
-        .then(r => {
-            if (controller.signal.aborted) return null;
-
-            // Handle session token expiry
-            if (r.status === 401 && window.shopify && window.shopify.idToken) {
-                // Refresh token and retry
-                try {
-                    window.sessionToken = window.shopify.idToken();
-                    // Retry the request with new token
-                    fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
-                    return fetch(apiUrl, fetchOptions);
-                } catch (e) {
-                    console.error('Token refresh failed:', e);
-                }
-            }
-
-            if (!r.ok) throw new Error('Request failed');
-            return r.json();
-        })
-        .then(d => {
-            if (!d) return;
-
-            setButtonLoading(button, false);
-            activeRequests.processOrders = null;
-
-            if (d.success) {
-                document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Orders Loaded</h3><div style="margin-top: 12px;">' + (d.html || d.message || 'Orders processed successfully') + '</div></div>';
-            } else if (d.action === 'subscribe') {
-                window.showSubscribePrompt();
-            } else {
-                document.getElementById('output').innerHTML = '<div style="color: #dc2626;">' + (d.error || 'Failed to load orders') + '</div>';
-            }
-        })
-        .catch(err => {
-            if (err.name === 'AbortError') return;
-            setButtonLoading(button, false);
-            activeRequests.processOrders = null;
-            showErrorMessage('Unable to connect to server. Please try again.');
-        });
 };
 
-window.updateInventory = function (button) {
+window.updateInventory = async function (button) {
     if (debounceTimers.updateInventory) return;
 
     if (!navigator.onLine) {
@@ -459,68 +413,33 @@ window.updateInventory = function (button) {
     setButtonLoading(button, true);
     showLoading('Loading inventory...');
 
-    var controller = new AbortController();
-    activeRequests.updateInventory = controller;
+    try {
+        // FIX: Use authenticatedFetch (handles token + credentials automatically)
+        const response = await authenticatedFetch('/api/update_inventory');
 
-    var apiUrl = '/api/update_inventory';
-    if (window.SHOP_PARAM) {
-        apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
+        if (!response.ok) {
+            throw new Error(`Request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Inventory Updated</h3><div style="margin-top: 12px;">' + (data.html || data.message || 'Inventory updated successfully') + '</div></div>';
+        } else if (data.action === 'subscribe') {
+            window.showSubscribePrompt();
+        } else {
+            document.getElementById('output').innerHTML = '<div style="color: #dc2626;">' + (data.error || 'Failed to update inventory') + '</div>';
+        }
+    } catch (err) {
+        console.error('updateInventory error:', err);
+        showErrorMessage('Unable to connect to server. Please try again.');
+    } finally {
+        setButtonLoading(button, false);
+        activeRequests.updateInventory = null;
     }
-
-    var fetchOptions = {
-        credentials: 'include',
-        signal: controller.signal
-    };
-
-    // CRITICAL: Add session token for embedded apps
-    if (window.sessionToken) {
-        fetchOptions.headers = fetchOptions.headers || {};
-        fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
-    }
-
-    fetch(apiUrl, fetchOptions)
-        .then(r => {
-            if (controller.signal.aborted) return null;
-
-            // Handle session token expiry
-            if (r.status === 401 && window.shopify && window.shopify.idToken) {
-                // Refresh token and retry
-                try {
-                    window.sessionToken = window.shopify.idToken();
-                    // Retry the request with new token
-                    fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
-                    return fetch(apiUrl, fetchOptions);
-                } catch (e) {
-                    console.error('Token refresh failed:', e);
-                }
-            }
-
-            if (!r.ok) throw new Error('Request failed');
-            return r.json();
-        })
-        .then(d => {
-            if (!d) return;
-
-            setButtonLoading(button, false);
-            activeRequests.updateInventory = null;
-
-            if (d.success) {
-                document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Inventory Updated</h3><div style="margin-top: 12px;">' + (d.html || d.message || 'Inventory updated successfully') + '</div></div>';
-            } else if (d.action === 'subscribe') {
-                window.showSubscribePrompt();
-            } else {
-                document.getElementById('output').innerHTML = '<div style="color: #dc2626;">' + (d.error || 'Failed to update inventory') + '</div>';
-            }
-        })
-        .catch(err => {
-            if (err.name === 'AbortError') return;
-            setButtonLoading(button, false);
-            activeRequests.updateInventory = null;
-            showErrorMessage('Unable to connect to server. Please try again.');
-        });
 };
 
-window.generateReport = function (button) {
+window.generateReport = async function (button) {
     if (debounceTimers.generateReport) return;
 
     if (!navigator.onLine) {
@@ -532,65 +451,30 @@ window.generateReport = function (button) {
     setButtonLoading(button, true);
     showLoading('Generating report...');
 
-    var controller = new AbortController();
-    activeRequests.generateReport = controller;
+    try {
+        // FIX: Use authenticatedFetch (handles token + credentials automatically)
+        const response = await authenticatedFetch('/api/generate_report');
 
-    var apiUrl = '/api/generate_report';
-    if (window.SHOP_PARAM) {
-        apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
+        if (!response.ok) {
+            throw new Error(`Request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Revenue Report Generated</h3><div style="margin-top: 12px;">' + (data.html || data.message || 'Report generated successfully') + '</div></div>';
+        } else if (data.action === 'subscribe') {
+            window.showSubscribePrompt();
+        } else {
+            document.getElementById('output').innerHTML = '<div style="color: #dc2626;">' + (data.error || 'Failed to generate report') + '</div>';
+        }
+    } catch (err) {
+        console.error('generateReport error:', err);
+        showErrorMessage('Unable to connect to server. Please try again.');
+    } finally {
+        setButtonLoading(button, false);
+        activeRequests.generateReport = null;
     }
-
-    var fetchOptions = {
-        credentials: 'include',
-        signal: controller.signal
-    };
-
-    // CRITICAL: Add session token for embedded apps
-    if (window.sessionToken) {
-        fetchOptions.headers = fetchOptions.headers || {};
-        fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
-    }
-
-    fetch(apiUrl, fetchOptions)
-        .then(r => {
-            if (controller.signal.aborted) return null;
-
-            // Handle session token expiry
-            if (r.status === 401 && window.shopify && window.shopify.idToken) {
-                // Refresh token and retry
-                try {
-                    window.sessionToken = window.shopify.idToken();
-                    // Retry the request with new token
-                    fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
-                    return fetch(apiUrl, fetchOptions);
-                } catch (e) {
-                    console.error('Token refresh failed:', e);
-                }
-            }
-
-            if (!r.ok) throw new Error('Request failed');
-            return r.json();
-        })
-        .then(d => {
-            if (!d) return;
-
-            setButtonLoading(button, false);
-            activeRequests.generateReport = null;
-
-            if (d.success) {
-                document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Revenue Report Generated</h3><div style="margin-top: 12px;">' + (d.html || d.message || 'Report generated successfully') + '</div></div>';
-            } else if (d.action === 'subscribe') {
-                window.showSubscribePrompt();
-            } else {
-                document.getElementById('output').innerHTML = '<div style="color: #dc2626;">' + (d.error || 'Failed to generate report') + '</div>';
-            }
-        })
-        .catch(err => {
-            if (err.name === 'AbortError') return;
-            setButtonLoading(button, false);
-            activeRequests.generateReport = null;
-            showErrorMessage('Unable to connect to server. Please try again.');
-        });
 };
 
 
