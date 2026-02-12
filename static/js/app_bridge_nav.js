@@ -84,6 +84,60 @@
         });
     }
 
+    // SAFETY NET: Global click interceptor (catches sidebar, settings, subscribe, etc.)
+    document.addEventListener('click', async (event) => {
+        const link = event.target.closest('a');
+
+        // Skip if not a link
+        if (!link) return;
+
+        // Skip if already processed by individual handler
+        if (link.dataset.authEnhanced) return;
+
+        // Only intercept internal links
+        const href = link.href || link.getAttribute('href');
+        if (!href ||
+            !href.includes(window.location.origin) ||
+            href.startsWith('#') ||
+            href.startsWith('mailto:') ||
+            href.startsWith('tel:') ||
+            href.includes('/static/')) {
+            return;
+        }
+
+        // Let Cmd/Ctrl+Click open in new tab
+        if (event.metaKey || event.ctrlKey) return;
+
+        event.preventDefault();
+
+        console.log('[Auth Nav 2026] Safety Net: Intercepted unprocessed link:', href);
+
+        try {
+            const token = await window.shopify.idToken();
+            const url = new URL(href);
+            url.searchParams.set('id_token', token);
+
+            // Preserve shop/host from current URL
+            const params = new URLSearchParams(window.location.search);
+            ['shop', 'host'].forEach(param => {
+                if (params.has(param)) {
+                    url.searchParams.set(param, params.get(param));
+                }
+            });
+
+            const finalPath = url.pathname + url.search;
+
+            if (window.shopify && window.shopify.navigate) {
+                window.shopify.navigate(finalPath);
+            } else {
+                window.location.href = url.toString();
+            }
+        } catch (error) {
+            console.error('[Auth Nav 2026] Safety Net failed:', error);
+            window.location.href = href; // Fallback
+        }
+    });
+
     // Initialize when App Bridge is ready
     waitForAppBridge(function () {
         console.log('[Auth Nav 2026] App Bridge ready - 2026 compliant mode ✅');
@@ -105,7 +159,7 @@
             subtree: true
         });
 
-        console.log('[Auth Nav 2026] ✅ Navigation uses App Bridge 4.0 (no window.location)');
+        console.log('[Auth Nav 2026] ✅ Global event delegation + individual link enhancement active');
     });
 
     // Expose for manual use
