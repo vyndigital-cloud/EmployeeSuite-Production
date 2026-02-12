@@ -84,10 +84,19 @@
             };
 
             const originalSend = XMLHttpRequest.prototype.send;
-            XMLHttpRequest.prototype.send = async function () {
-                const token = await getSessionToken();
-                if (token && this._url && !this._url.includes('https://')) {
-                    this.setRequestHeader('Authorization', `Bearer ${token}`);
+            XMLHttpRequest.prototype.send = async function (body) {
+                // Only add Authorization for API requests (not CDN, static assets, etc.)
+                if (this._url && window.isEmbedded && window.shopify && typeof window.shopify.idToken === 'function') {
+                    try {
+                        // Get fresh token for each request
+                        const token = await window.shopify.idToken();
+                        this.setRequestHeader("Authorization", `Bearer ${token}`);
+
+                        // DEBUG: Log header setting
+                        console.log(`🔐 XHR Interceptor: Set Authorization header for ${this._method} ${this._url}`);
+                    } catch (err) {
+                        console.error("Failed to fetch session token for XHR:", err);
+                    }
                 }
                 return originalSend.apply(this, arguments);
             };

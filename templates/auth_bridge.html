@@ -63,42 +63,64 @@
     </div>
 
     <script>
-        // GHOST HANDSHAKE: Get fresh JWT and reload
-        (async function () {
+        (async function() {
+            const startTime = Date.now();
+            
             try {
-                console.log('🔐 Auth Bridge: Initiating handshake...');
-
-                // Wait for App Bridge to load
+                console.log("🔐 Auth Bridge: Starting handshake...");
+                
+                // OPTIMIZATION 1: Shorter wait, fail fast
                 let attempts = 0;
-                while (!window.shopify && attempts < 20) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                const maxAttempts = 20; // Reduced from implied longer wait
+                
+                while (!window.shopify && attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 50)); // Reduced from 100ms
                     attempts++;
                 }
-
+                
                 if (!window.shopify || typeof window.shopify.idToken !== 'function') {
-                    throw new Error('App Bridge not available');
+                    throw new Error('App Bridge not available after ' + (attempts * 50) + 'ms');
                 }
-
-                // Get fresh session token
-                const token = await window.shopify.idToken();
-
+                
+                console.log(`✅ App Bridge ready in ${attempts * 50}ms`);
+                
+                // OPTIMIZATION 2: Get token with timeout
+                const tokenPromise = window.shopify.idToken();
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Token fetch timeout')), 2000)
+                );
+                
+                const token = await Promise.race([tokenPromise, timeoutPromise]);
+                
                 if (token) {
-                    // Reload SAME page with token appended
+                    const elapsed = Date.now() - startTime;
+                    console.log(`✅ Token acquired in ${elapsed}ms`);
+                    
+                    // OPTIMIZATION 3: Use replace instead of reload for faster navigation
                     const url = new URL(window.location.href);
                     url.searchParams.set('id_token', token);
-
-                    console.log('✅ Auth Bridge: Token acquired, reloading...');
-
-                    // Use replace to avoid back button issues
+                    
                     window.location.replace(url.toString());
                 } else {
                     throw new Error('Failed to obtain session token');
                 }
-
+                
             } catch (error) {
-                console.error('❌ Auth Bridge failed:', error);
-                document.querySelector('.text').textContent = 'Authentication failed';
-                document.querySelector('.subtext').textContent = 'Please refresh the page';
+                const elapsed = Date.now() - startTime;
+                console.error(`❌ Auth Bridge failed after ${elapsed}ms:`, error);
+                
+                // FALLBACK: Show error message
+                document.body.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">
+                        <div style="text-align: center;">
+                            <p style="color: #bf0711;">❌ Authentication Failed</p>
+                            <p style="font-size: 12px; color: #666;">Error: ${error.message}</p>
+                            <button onclick="window.location.reload()" style="margin-top: 16px; padding: 8px 16px; background: #008060; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                Retry
+                            </button>
+                        </div>
+                    </div>
+                `;
             }
         })();
     </script>

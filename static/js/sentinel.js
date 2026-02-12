@@ -103,10 +103,18 @@ const Sentinel = {
             environment: {
                 userAgent: navigator.userAgent,
                 url: window.location.href,
-                referrer: document.referrer,
-                screenSize: `${window.screen.width}x${window.screen.height}`
+                referrer: document.referrer || '(none)',  // Track iframe escapes
+                screenSize: `${window.screen.width}x${window.screen.height}`,
+                isIframe: window.self !== window.top,
+                hasShopParam: new URLSearchParams(window.location.search).has('shop'),
+                hasHostParam: new URLSearchParams(window.location.search).has('host')
             }
         };
+
+        // Log referrer explicitly for iframe escape detection
+        if (document.referrer.includes('admin.shopify.com')) {
+            this.log('🦈 SHARK DETECTED: Referrer is admin.shopify.com - iframe escape confirmed');
+        }
 
         this.log("📤 Sending report to backend", {
             totalEvents: this.logs.length,
