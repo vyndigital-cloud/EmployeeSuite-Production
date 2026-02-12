@@ -401,8 +401,32 @@ def create_app():
         sys.exit(0)
 
     signal.signal(signal.SIGTERM, titan_last_breath)
-    signal.signal(signal.SIGINT, titan_last_breath)
-
+    signal.signal(signal.SIGINT, titan_last_breath)    
+    # === CONTEXT PROCESSORS ===
+    @app.context_processor
+    def inject_sentinel():
+        """
+        Sentinel Bot: Conditional diagnostic script injection
+        Activate via ?sentinel_mode=true or for specific test users
+        """
+        from flask import request
+        from flask_login import current_user
+        # Check query parameter
+        sentinel_via_param = request.args.get('sentinel_mode') == 'true'
+        
+        # Check for specific test user (User 11 for JWT diagnostics)
+        sentinel_via_user = False
+        if current_user and current_user.is_authenticated:
+            # Only inject for User 11 (test account)
+            sentinel_via_user = getattr(current_user, 'id', None) == 11
+        
+        show_sentinel = sentinel_via_param or sentinel_via_user
+        
+        if show_sentinel:
+            app.logger.info(f"🤖 Sentinel Bot activated | Param: {sentinel_via_param} | User: {sentinel_via_user}")
+        
+        return dict(show_sentinel=show_sentinel)
+    
     @app.context_processor
     def inject_shopify_config():
         """Globally inject Shopify Config for App Bridge 3.0+ actions"""
