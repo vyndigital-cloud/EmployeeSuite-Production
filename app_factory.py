@@ -477,6 +477,7 @@ def create_app():
         ("enhanced_features", "enhanced_bp"),
         ("admin_routes", "admin_bp"),
         ("telemetry_routes", "telemetry_bp"),  # Sentinel Bot endpoint
+        ("auth", "auth_bp"),  # Authentication routes
         # Removed: help_routes, profile_routes (files don't exist)
     ]
 
