@@ -177,7 +177,22 @@ def create_app():
 
                             if store and store.user:
                                 app.logger.info(f"TITAN [JWT_TRUST] Authenticated User {store.user.id} via id_token")
-                                g.current_store = store # Memoize
+                                
+                                # FIX FLIP-FLOP: Persist verification in session
+                                from flask_login import login_user
+                                login_user(store.user, remember=False)
+                                
+                                # Set session to prevent re-verification on every request
+                                session["_user_id"] = store.user.id
+                                session["shop_domain"] = shop
+                                session["shop"] = shop
+                                session.permanent = True
+                                session.modified = True
+                                
+                                # Memoize for this request
+                                g.current_user = store.user
+                                g.current_store = store
+                                
                                 return store.user
                 except Exception as je:
                     app.logger.debug(f"Seamless id_token trust failed: {je}")
@@ -408,9 +423,20 @@ def create_app():
         """
         Sentinel Bot: Conditional diagnostic script injection
         Activate via ?sentinel_mode=true or for specific test users
+        SKIP injection if token already present (prevents over-injection)
         """
         from flask import request
         from flask_login import current_user
+        
+        # FIX: Skip Sentinel if token already present in URL or headers
+        id_token_in_url = request.args.get('id_token')
+        auth_header = request.headers.get('Authorization')
+        has_token = bool(id_token_in_url or auth_header)
+        
+        if has_token:
+            # Token present, Sentinel not needed
+            return dict(show_sentinel=False)
+        
         # Check query parameter
         sentinel_via_param = request.args.get('sentinel_mode') == 'true'
         
