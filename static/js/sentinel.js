@@ -285,8 +285,7 @@ const Sentinel = {
         } catch (error) {
             console.error('[Sentinel 🤖] ❌ Report error:', error);
         }
-    }
-},
+    },
 
     // LAYER 1: MUTATION OBSERVER - Watch for dynamically added links
     initMutationObserver() {
@@ -312,164 +311,164 @@ const Sentinel = {
         this.log('🔍 MutationObserver: Watching for dynamic links');
     },
 
-        // Context injector for new links
-        contextInjector(link) {
-    // Only inject for internal links
-    if (!link.href || !link.href.startsWith(window.location.origin)) {
-        return;
-    }
-
-    // Ensure shop and host params are present
-    const urlParams = new URLSearchParams(window.location.search);
-    const shop = urlParams.get('shop');
-    const host = urlParams.get('host');
-
-    if (shop && host) {
-        try {
-            const linkUrl = new URL(link.href);
-            if (!linkUrl.searchParams.has('shop')) {
-                linkUrl.searchParams.set('shop', shop);
-            }
-            if (!linkUrl.searchParams.has('host')) {
-                linkUrl.searchParams.set('host', host);
-            }
-            link.href = linkUrl.toString();
-
-            this.log('🔧 Context injected into dynamic link', {
-                originalHref: link.getAttribute('href'),
-                newHref: link.href
-            });
-        } catch (error) {
-            this.log('❌ Failed to inject context', { error: error.message });
+    // Context injector for new links
+    contextInjector(link) {
+        // Only inject for internal links
+        if (!link.href || !link.href.startsWith(window.location.origin)) {
+            return;
         }
-    }
-},
 
-// LAYER 2: REQUEST INTERCEPTOR - Wrap fetch for 401/404 detection
-initFetchInterceptor() {
-    const originalFetch = window.fetch;
-    const sentinel = this;
+        // Ensure shop and host params are present
+        const urlParams = new URLSearchParams(window.location.search);
+        const shop = urlParams.get('shop');
+        const host = urlParams.get('host');
 
-    window.fetch = async function (...args) {
-        const [url, options] = args;
+        if (shop && host) {
+            try {
+                const linkUrl = new URL(link.href);
+                if (!linkUrl.searchParams.has('shop')) {
+                    linkUrl.searchParams.set('shop', shop);
+                }
+                if (!linkUrl.searchParams.has('host')) {
+                    linkUrl.searchParams.set('host', host);
+                }
+                link.href = linkUrl.toString();
 
-        try {
-            const response = await originalFetch.apply(this, args);
-
-            // Capture 401 or 404 failures
-            if (response.status === 401 || response.status === 404) {
-                const failureData = {
-                    url: typeof url === 'string' ? url : url.url,
-                    status: response.status,
-                    statusText: response.statusText,
-                    method: options?.method || 'GET',
-                    timestamp: new Date().toISOString(),
-                    // Full state snapshot
-                    state: {
-                        params: Object.fromEntries(new URLSearchParams(window.location.search)),
-                        headers: options?.headers || {},
-                        localStorage: sentinel.captureLocalStorage(),
-                        cookies: document.cookie,
-                        referrer: document.referrer
-                    }
-                };
-
-                sentinel.requestFailures.push(failureData);
-
-                sentinel.log(`❌ CRITICAL: Fetch ${response.status} detected`, failureData);
-
-                // Send immediately to backend
-                await sentinel.sendCriticalEvent({
-                    event_type: 'FETCH_FAILURE',
-                    ...failureData
+                this.log('🔧 Context injected into dynamic link', {
+                    originalHref: link.getAttribute('href'),
+                    newHref: link.href
                 });
+            } catch (error) {
+                this.log('❌ Failed to inject context', { error: error.message });
             }
+        }
+    },
 
-            return response;
+    // LAYER 2: REQUEST INTERCEPTOR - Wrap fetch for 401/404 detection
+    initFetchInterceptor() {
+        const originalFetch = window.fetch;
+        const sentinel = this;
+
+        window.fetch = async function (...args) {
+            const [url, options] = args;
+
+            try {
+                const response = await originalFetch.apply(this, args);
+
+                // Capture 401 or 404 failures
+                if (response.status === 401 || response.status === 404) {
+                    const failureData = {
+                        url: typeof url === 'string' ? url : url.url,
+                        status: response.status,
+                        statusText: response.statusText,
+                        method: options?.method || 'GET',
+                        timestamp: new Date().toISOString(),
+                        // Full state snapshot
+                        state: {
+                            params: Object.fromEntries(new URLSearchParams(window.location.search)),
+                            headers: options?.headers || {},
+                            localStorage: sentinel.captureLocalStorage(),
+                            cookies: document.cookie,
+                            referrer: document.referrer
+                        }
+                    };
+
+                    sentinel.requestFailures.push(failureData);
+
+                    sentinel.log(`❌ CRITICAL: Fetch ${response.status} detected`, failureData);
+
+                    // Send immediately to backend
+                    await sentinel.sendCriticalEvent({
+                        event_type: 'FETCH_FAILURE',
+                        ...failureData
+                    });
+                }
+
+                return response;
+            } catch (error) {
+                sentinel.log('❌ CRITICAL: Fetch error', {
+                    url: typeof url === 'string' ? url : url.url,
+                    error: error.message
+                });
+                throw error;
+            }
+        };
+
+        this.log('🌐 Fetch Interceptor: Monitoring all requests');
+    },
+
+    // Capture localStorage safely
+    captureLocalStorage() {
+        try {
+            const storage = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                storage[key] = localStorage.getItem(key);
+            }
+            return storage;
         } catch (error) {
-            sentinel.log('❌ CRITICAL: Fetch error', {
-                url: typeof url === 'string' ? url : url.url,
-                error: error.message
+            return { error: 'localStorage not accessible' };
+        }
+    },
+
+    // LAYER 3: APP BRIDGE SPEED-TRAP
+    initAppBridgeSpeedTrap() {
+        // Record DOM load time
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.domLoadTime = Date.now();
+                this.log('📍 DOMContentLoaded fired', {
+                    elapsed_ms: this.domLoadTime - this.startTime
+                });
+                this.checkAppBridgeSpeed();
             });
-            throw error;
-        }
-    };
-
-    this.log('🌐 Fetch Interceptor: Monitoring all requests');
-},
-
-// Capture localStorage safely
-captureLocalStorage() {
-    try {
-        const storage = {};
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            storage[key] = localStorage.getItem(key);
-        }
-        return storage;
-    } catch (error) {
-        return { error: 'localStorage not accessible' };
-    }
-},
-
-// LAYER 3: APP BRIDGE SPEED-TRAP
-initAppBridgeSpeedTrap() {
-    // Record DOM load time
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
+        } else {
             this.domLoadTime = Date.now();
-            this.log('📍 DOMContentLoaded fired', {
-                elapsed_ms: this.domLoadTime - this.startTime
-            });
             this.checkAppBridgeSpeed();
-        });
-    } else {
-        this.domLoadTime = Date.now();
-        this.checkAppBridgeSpeed();
-    }
-},
-    
-    async checkAppBridgeSpeed() {
-    const start = this.domLoadTime || Date.now();
-    let ready = false;
-    let attempts = 0;
-
-    while (!ready && attempts < 50) {
-        ready = !!(window.shopify && window['app-bridge']);
-        if (!ready) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
         }
+    },
+
+    async checkAppBridgeSpeed() {
+        const start = this.domLoadTime || Date.now();
+        let ready = false;
+        let attempts = 0;
+
+        while (!ready && attempts < 50) {
+            ready = !!(window.shopify && window['app-bridge']);
+            if (!ready) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+        }
+
+        this.appBridgeReadyTime = Date.now();
+        const latency = this.appBridgeReadyTime - start;
+
+        if (latency > 1500) {
+            this.log('🚨 PERFORMANCE BOTTLENECK: App Bridge exceeded 1500ms', {
+                latency_ms: latency,
+                threshold_ms: 1500,
+                level: 'WARNING'
+            });
+
+            await this.sendCriticalEvent({
+                event_type: 'APP_BRIDGE_SLOW',
+                latency_ms: latency,
+                threshold_ms: 1500,
+                dom_to_ready: latency
+            });
+        } else {
+            this.log(`⚡ App Bridge ready in ${latency}ms (under threshold)`);
+        }
+    },
+
+    // Initialize all interceptors
+    initAllLayers() {
+        this.initMutationObserver();
+        this.initFetchInterceptor();
+        this.initAppBridgeSpeedTrap();
+        this.log('🚀 All diagnostic layers initialized');
     }
-
-    this.appBridgeReadyTime = Date.now();
-    const latency = this.appBridgeReadyTime - start;
-
-    if (latency > 1500) {
-        this.log('🚨 PERFORMANCE BOTTLENECK: App Bridge exceeded 1500ms', {
-            latency_ms: latency,
-            threshold_ms: 1500,
-            level: 'WARNING'
-        });
-
-        await this.sendCriticalEvent({
-            event_type: 'APP_BRIDGE_SLOW',
-            latency_ms: latency,
-            threshold_ms: 1500,
-            dom_to_ready: latency
-        });
-    } else {
-        this.log(`⚡ App Bridge ready in ${latency}ms (under threshold)`);
-    }
-},
-
-// Initialize all interceptors
-initAllLayers() {
-    this.initMutationObserver();
-    this.initFetchInterceptor();
-    this.initAppBridgeSpeedTrap();
-    this.log('🚀 All diagnostic layers initialized');
-}
 };
 
 // Auto-start: Initialize layers first, then walkthrough
