@@ -13,32 +13,30 @@
         }
     }
 
-    // 2026 COMPLIANT: Use App Bridge navigation instead of window.location
+    // 2026 COMPLIANT: "Tokenize" navigation - append token to URL
     async function navigateAuthenticated(url) {
         try {
             // Get fresh session token
             const token = await window.shopify.idToken();
 
-            // OPTION 1: Use App Bridge navigate (preferred - 2026 compliant)
-            if (window.shopify.navigate) {
-                // Extract path from full URL
-                const urlObj = new URL(url, window.location.origin);
-                const path = urlObj.pathname + urlObj.search;
+            // CRITICAL: Append token to URL (page loads can't use headers!)
+            const urlObj = new URL(url, window.location.origin);
+            urlObj.searchParams.set('id_token', token);
 
-                // App Bridge automatically injects token
-                window.shopify.navigate(path);
-                console.log('[Auth Nav 2026] App Bridge navigation:', path);
-            }
-            // OPTION 2: Fallback to manual token append (legacy support)
-            else {
-                const urlObj = new URL(url, window.location.origin);
-                urlObj.searchParams.set('id_token', token);
+            const finalPath = urlObj.pathname + urlObj.search;
+
+            // Use App Bridge navigate (preferred - 2026 compliant)
+            if (window.shopify && window.shopify.navigate) {
+                window.shopify.navigate(finalPath);
+                console.log('[Auth Nav 2026] App Bridge navigation with token:', finalPath);
+            } else {
+                // Fallback to direct navigation
                 window.location.href = urlObj.toString();
                 console.log('[Auth Nav 2026] Legacy fallback:', urlObj.toString());
             }
         } catch (error) {
             console.error('[Auth Nav 2026] Token fetch failed:', error);
-            // Last resort fallback
+            // Last resort fallback (no token)
             window.location.href = url;
         }
     }
