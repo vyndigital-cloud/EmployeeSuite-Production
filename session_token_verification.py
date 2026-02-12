@@ -7,7 +7,7 @@ import os
 from functools import wraps
 
 import jwt
-from flask import jsonify, request
+from flask import jsonify, request, g
 from flask_login import current_user
 
 # Replace the import at the top:
