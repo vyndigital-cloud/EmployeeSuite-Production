@@ -1,4 +1,4 @@
-// Sentinel Bot - Maximum Diagnostic Client
+// Sentinel Bot - Maximum Diagnostic Client with Proactive Shield
 // Mimics user behavior to detect App Bridge initialization failures
 
 const Sentinel = {
@@ -8,6 +8,8 @@ const Sentinel = {
     appBridgeReadyTime: null,
     stateSnapshots: [],
     requestFailures: [],
+    currentShop: null,
+    currentHost: null,
 
     log(message, data = {}) {
         const entry = {
@@ -18,6 +20,78 @@ const Sentinel = {
         };
         this.logs.push(entry);
         console.log(`[Sentinel 🤖] ${message}`, data);
+    },
+
+    // PROACTIVE SHIELD: Track shop/host in sessionStorage
+    initSessionTracking() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const shop = urlParams.get('shop');
+        const host = urlParams.get('host');
+
+        if (shop) {
+            sessionStorage.setItem('currentShop', shop);
+            this.currentShop = shop;
+        } else {
+            this.currentShop = sessionStorage.getItem('currentShop');
+        }
+
+        if (host) {
+            sessionStorage.setItem('currentHost', host);
+            this.currentHost = host;
+        } else {
+            this.currentHost = sessionStorage.getItem('currentHost');
+        }
+
+        this.log('🛡️ Session tracking initialized', {
+            shop: this.currentShop,
+            host: this.currentHost
+        });
+    },
+
+    // LINK PROXY: Intercept all clicks and ensure params
+    initLinkProxy() {
+        document.addEventListener('click', (event) => {
+            const link = event.target.closest('a');
+
+            if (!link || !link.href) return;
+
+            // Only intercept internal links
+            if (!link.href.startsWith(window.location.origin)) return;
+
+            // Skip if already has shop/host or is external
+            const linkUrl = new URL(link.href);
+
+            // Append from sessionStorage if missing
+            if (this.currentShop && !linkUrl.searchParams.has('shop')) {
+                linkUrl.searchParams.set('shop', this.currentShop);
+                event.preventDefault();
+
+                this.log('🛡️ Link Proxy: Injected shop parameter', {
+                    originalHref: link.href,
+                    shop: this.currentShop
+                });
+
+                link.href = linkUrl.toString();
+                link.click();
+                return;
+            }
+
+            if (this.currentHost && !linkUrl.searchParams.has('host')) {
+                linkUrl.searchParams.set('host', this.currentHost);
+                event.preventDefault();
+
+                this.log('🛡️ Link Proxy: Injected host parameter', {
+                    originalHref: link.href,
+                    host: this.currentHost
+                });
+
+                link.href = linkUrl.toString();
+                link.click();
+                return;
+            }
+        }, true); // Capture phase
+
+        this.log('🛡️ Link Proxy: Active - protecting all navigation');
     },
 
     // STATE SNAPSHOT: Track shop/host parameters
@@ -48,7 +122,7 @@ const Sentinel = {
         return snapshot;
     },
 
-    // NETWORK INTERCEPTOR: Verify internal links
+    // NETWORK INTERCEPTOR: Verify internal links + Telemetry Push
     async testInternalLink(url) {
         try {
             const response = await fetch(url, {
@@ -57,19 +131,22 @@ const Sentinel = {
             });
 
             if (response.status !== 200) {
-                this.log('❌ CRITICAL: Internal link returned non-200', {
+                const failureData = {
                     url,
                     status: response.status,
                     statusText: response.statusText,
-                    level: 'CRITICAL'
-                });
+                    level: 'CRITICAL',
+                    sourcePage: window.location.href
+                };
 
-                // Send to backend immediately
-                await this.sendCriticalEvent({
+                this.log('❌ CRITICAL: Internal link returned non-200', failureData);
+
+                // TELEMETRY PUSH: Send to backend with source page
+                await this.sendTelemetryPush({
                     event_type: 'LINK_VALIDATION_FAILURE',
-                    url,
-                    status: response.status,
-                    statusText: response.statusText
+                    broken_path: url,
+                    source_page: window.location.href,
+                    ...failureData
                 });
             }
 
@@ -81,6 +158,25 @@ const Sentinel = {
                 level: 'CRITICAL'
             });
             return false;
+        }
+    },
+
+    // Dedicated telemetry push for broken links
+    async sendTelemetryPush(data) {
+        try {
+            await fetch('/telemetry/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: 'SENTINEL_LINK_SCOUT',
+                    timestamp: new Date().toISOString(),
+                    level: 'CRITICAL',
+                    ...data
+                })
+            });
+            this.log('📤 Telemetry pushed for broken link');
+        } catch (error) {
+            console.error('[Sentinel 🤖] Failed to push telemetry:', error);
         }
     },
 
@@ -462,12 +558,18 @@ const Sentinel = {
         }
     },
 
-    // Initialize all interceptors
+    // Initialize all interceptors + Proactive Shield
     initAllLayers() {
+        // PROACTIVE SHIELD: Initialize first to catch early navigation
+        this.initSessionTracking();
+        this.initLinkProxy();
+
+        // Diagnostic layers
         this.initMutationObserver();
         this.initFetchInterceptor();
         this.initAppBridgeSpeedTrap();
-        this.log('🚀 All diagnostic layers initialized');
+
+        this.log('🚀 All diagnostic layers + Proactive Shield initialized');
     }
 };
 

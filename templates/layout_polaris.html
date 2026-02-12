@@ -1,8 +1,17 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
-    <meta charset="utf-8" />
+    {% if show_sentinel %}
+    <!-- SENTINEL BOT: PRIORITY INJECTION - Must load first to catch shark early -->
+    <script>
+        console.log('🤖 Sentinel Bot: PRIORITY LOAD - Starting before all other scripts');
+    </script>
+    <script src="{{ url_for('static', filename='js/sentinel.js') }}"></script>
+    {% endif %}
+
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>{{ title|default('Employee Suite') }}</title>
 
     <!-- Titan Beacon: Client-Side Monitoring -->
@@ -271,14 +280,6 @@
         });
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-    {% if show_sentinel %}
-    <!-- SENTINEL BOT: Diagnostic Script -->
-    <script>
-        console.log('🤖 Sentinel Bot: ACTIVE - Forensic diagnostics enabled');
-    </script>
-    <script src="{{ url_for('static', filename='js/sentinel.js') }}"></script>
-    {% endif %}
 
     <!-- Critical: Prevent any blocking - render immediately -->
     <style>
