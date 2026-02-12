@@ -867,21 +867,52 @@ const Sentinel = {
         }
     },
 
-    // LAYER 2: REQUEST INTERCEPTOR - Wrap fetch for 401/404 detection
+    // LAYER 2: REQUEST INTERCEPTOR - Wrap fetch for 401/404 detection + AUTO-INJECT TOKEN
     initFetchInterceptor() {
         const originalFetch = window.fetch;
         const sentinel = this;
 
         window.fetch = async function (...args) {
-            const [url, options] = args;
+            let [url, options = {}] = args;
+
+            // AUTO-INJECT AUTHORIZATION HEADER for API calls
+            const urlStr = typeof url === 'string' ? url : url.url;
+            const isInternalAPI = urlStr.startsWith('/api/') ||
+                urlStr.startsWith('/features/') ||
+                urlStr.startsWith('/shopify/');
+
+            if (isInternalAPI) {
+                try {
+                    // Get fresh token
+                    const token = await sentinel.getValidToken();
+
+                    if (token) {
+                        // Inject Authorization header
+                        options.headers = options.headers || {};
+                        options.headers['Authorization'] = `Bearer ${token}`;
+
+                        sentinel.log('🔐 API Auth: Injected token', {
+                            url: urlStr,
+                            hasToken: true
+                        });
+                    } else {
+                        sentinel.log('⚠️ API Auth: No token available', { url: urlStr });
+                    }
+                } catch (error) {
+                    sentinel.log('❌ API Auth: Token injection failed', {
+                        url: urlStr,
+                        error: error.message
+                    });
+                }
+            }
 
             try {
-                const response = await originalFetch.apply(this, args);
+                const response = await originalFetch.call(this, url, options);
 
                 // Capture 401 or 404 failures
                 if (response.status === 401 || response.status === 404) {
                     const failureData = {
-                        url: typeof url === 'string' ? url : url.url,
+                        url: urlStr,
                         status: response.status,
                         statusText: response.statusText,
                         method: options?.method || 'GET',
@@ -910,14 +941,14 @@ const Sentinel = {
                 return response;
             } catch (error) {
                 sentinel.log('❌ CRITICAL: Fetch error', {
-                    url: typeof url === 'string' ? url : url.url,
+                    url: urlStr,
                     error: error.message
                 });
                 throw error;
             }
         };
 
-        this.log('🌐 Fetch Interceptor: Monitoring all requests');
+        this.log('🌐 Fetch Interceptor: Monitoring + Auto-injecting tokens for API calls');
     },
 
     // Capture localStorage safely
