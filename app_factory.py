@@ -30,12 +30,15 @@ def create_app():
             ),
             "SQLALCHEMY_DATABASE_URI": os.getenv("DATABASE_URL", "sqlite:///app.db"),
             "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-            "SQLALCHEMY_ENGINE_OPTIONS": {
-                "pool_size": 10,
-                "max_overflow": 20,
-                "pool_pre_ping": True,
-                "pool_recycle": 3600,
-            },
+            "SQLALCHEMY_ENGINE_OPTIONS": os.getenv(
+                "SQLALCHEMY_ENGINE_OPTIONS", # Allow override
+                {
+                    "pool_size": 10,
+                    "max_overflow": 20,
+                    "pool_pre_ping": True,
+                    "pool_recycle": 300, # Triangle: 5 mins to prevent stale connections
+                },
+            ),
             "WTF_CSRF_ENABLED": True,
             "WTF_CSRF_TIME_LIMIT": 3600,
             # Session cookie configuration for login persistence

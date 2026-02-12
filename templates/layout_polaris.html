@@ -12,6 +12,7 @@
 
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title|default('Employee Suite') }}</title>
 
     <!-- Titan Beacon: Client-Side Monitoring -->
@@ -19,7 +20,7 @@
         (function () {
             // Forensic watchdog - detects App Bridge initialization failures
             const forensicBeacon = setTimeout(() => {
-                fetch('/log_client_error', {
+                fetch('/api/log_error', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -141,9 +142,11 @@
 
         // Initialize App Bridge state
         window.appBridgeReady = false;
-        window.isEmbedded = !!new URLSearchParams(
-            window.location.search,
-        ).get("host");
+        // ROBUST EMBEDDED DETECTION: Check URL params OR iframe state
+        const urlParams = new URLSearchParams(window.location.search);
+        window.isEmbedded = !!urlParams.get("host") || (window.self !== window.top);
+
+        console.log(`🕵️ Environment Check: Embedded=${window.isEmbedded} (Host Param=${!!urlParams.get("host")}, Iframe=${window.self !== window.top})`);
 
         // Helper to open pages via App Bridge (Manual JWT Append)
         window.openPage = async function (path) {
@@ -225,58 +228,80 @@
             }
 
             // Initialize App Bridge (required for Redirect API)
+            // TRIANGLE OF PERSISTENCE: Dynamic Host Handshake
             const urlParams = new URLSearchParams(window.location.search);
             const host = urlParams.get('host');
             const apiKey = '{{ config.SHOPIFY_API_KEY }}' || '';
 
-            if (!host || !apiKey) {
-                console.warn('⚠️ Missing host or API key - using fallback navigation');
-                return;
-            }
+            if (host) {
+                try {
+                    // Create App Bridge instance
+                    const AppBridge = window['app-bridge'];
+                    const createApp = AppBridge.default;
+                    const Redirect = AppBridge.actions.Redirect;
 
-            try {
-                // Create App Bridge instance
-                const AppBridge = window['app-bridge'];
-                const createApp = AppBridge.default;
-                const Redirect = AppBridge.actions.Redirect;
-
-                const app = createApp({
-                    apiKey: apiKey,
-                    host: host,
-                });
-
-                // Intercept all links with data-auth-required="true"
-                const authLinks = document.querySelectorAll('a[data-auth-required="true"]');
-
-                authLinks.forEach(function (link) {
-                    link.addEventListener('click', function (e) {
-                        e.preventDefault();
-
-                        // Extract path from href
-                        const url = new URL(this.href, window.location.origin);
-                        const targetPath = url.pathname + url.search;
-
-                        console.log('✅ App Bridge Redirect:', targetPath);
-
-                        // Use App Bridge Redirect API - JWT automatically included
-                        const redirect = Redirect.create(app);
-                        redirect.dispatch(Redirect.Action.APP, targetPath);
+                    const app = createApp({
+                        apiKey: apiKey,
+                        host: host,
+                        forceRedirect: true // CRITICAL: Ensures app stays in Shopify
                     });
-                });
 
-                if (authLinks.length > 0) {
-                    console.log('✅ App Bridge Redirect API: Protecting ' + authLinks.length + ' link(s)');
+                    // Toast and TitleBar
+                    const Toast = AppBridge.actions.Toast;
+                    const TitleBar = AppBridge.actions.TitleBar;
+
+                    window.shopify = app;
+                    window.shopify.Toast = Toast;
+                    window.shopify.TitleBar = TitleBar;
+                    window.shopify.Redirect = Redirect;
+
+                    // Expose idToken helper
+                    window.shopify.idToken = async () => {
+                        try {
+                            const getSessionToken = AppBridge.utilities.getSessionToken;
+                            const token = await getSessionToken(app);
+                            return token;
+                        } catch (err) {
+                            console.error("SESSION TOKEN ERROR", err);
+                            throw err;
+                        }
+                    };
+
+                    console.log('✅ App Bridge Initialized via Dynamic Host Handshake');
+
+                    // Intercept all links with data-auth-required="true"
+                    const authLinks = document.querySelectorAll('a[data-auth-required="true"]');
+
+                    authLinks.forEach(function (link) {
+                        link.addEventListener('click', function (e) {
+                            e.preventDefault();
+
+                            // Extract path from href
+                            const url = new URL(this.href, window.location.origin);
+                            const targetPath = url.pathname + url.search;
+
+                            console.log('✅ App Bridge Redirect:', targetPath);
+
+                            // Use App Bridge Redirect API - JWT automatically included
+                            const redirect = Redirect.create(app);
+                            redirect.dispatch(Redirect.Action.APP, targetPath);
+                        });
+                    });
+
+                    if (authLinks.length > 0) {
+                        console.log('✅ App Bridge Redirect API: Protecting ' + authLinks.length + ' link(s)');
+                    }
+
+                } catch (e) {
+                    console.error('❌ App Bridge Initialization Failed:', e);
                 }
-
-                // Signal that app is ready - show body
-                document.body.classList.add('app-ready');
-
-            } catch (error) {
-                console.error('❌ App Bridge initialization failed:', error);
-                console.warn('⚠️ Falling back to standard navigation (JWT may be missing)');
-                // Show body even if App Bridge fails
-                document.body.classList.add('app-ready');
+            } else {
+                console.error("Critical Failure: No host parameter found. App Bridge cannot initialize.");
             }
+            // Signal that app is ready - show body
+            document.body.classList.add('app-ready');
+
+
         });
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -401,7 +426,7 @@
                             <strong>CSV Exports</strong>
                             <span class="quick-menu-shortcut">⌘E</span>
                         </a>
-                        <a href="{{ url_for('enhanced.get_scheduled_reports', shop=shop, host=host) }}"
+                        <a href="{{ url_for('enhanced.scheduled_reports_page', shop=shop, host=host) }}"
                             class="quick-menu-item">
                             <span class="quick-menu-item-icon">
                                 <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">

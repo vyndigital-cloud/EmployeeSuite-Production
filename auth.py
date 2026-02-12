@@ -222,6 +222,7 @@ def login():
             pass
 
     # If we have shop (from params or extracted), redirect to OAuth
+    # If we have shop (from params or extracted), redirect to OAuth
     if is_embedded and shop:
         # Redirect to OAuth install flow (Shopify's embedded auth)
         # Direct URL construction with new OAuth prefix
@@ -229,10 +230,24 @@ def login():
         if host:
             install_url += f"&host={host}"
         logger.info(f"Embedded app login request - redirecting to OAuth: {install_url}")
-        # Use safe_redirect for embedded apps to break out of iframe
-        from utils import safe_redirect
-
-        return safe_redirect(install_url, shop=shop, host=host)
+        
+        # TRIANGLE OF PERSISTENCE: OAuth Escape Hatch
+        # Use raw JavaScript to force a top-level redirect, breaking out of the iframe
+        return f"""
+        <html>
+            <head>
+                <script>
+                    window.top.location.href = "{install_url}";
+                </script>
+            </head>
+            <body>
+                <script>
+                    window.top.location.href = "{install_url}";
+                </script>
+                <p>Redirecting to installation...</p>
+            </body>
+        </html>
+        """
 
     # If embedded but no shop found, show error message instead of login form
     if is_embedded:

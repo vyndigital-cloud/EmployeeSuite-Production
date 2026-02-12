@@ -39,6 +39,14 @@ _CONFIG_CACHE = {
     "REMEMBER_COOKIE_SAMESITE": "None",
     "REMEMBER_COOKIE_SECURE": True,
     "SESSION_COOKIE_HTTPONLY": True,
+    
+    # Pre-Ping Database Guard (Triangle of Persistence)
+    "SQLALCHEMY_ENGINE_OPTIONS": {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+        "pool_size": 10,
+        "max_overflow": 20,
+    },
 }
 
 # Critical Security Check
