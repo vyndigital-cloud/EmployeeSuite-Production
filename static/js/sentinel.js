@@ -1,9 +1,10 @@
-// Sentinel Bot - Automated Diagnostic Client
+// Sentinel Bot - Enhanced Diagnostic Client
 // Mimics user behavior to detect App Bridge initialization failures
 
 const Sentinel = {
     logs: [],
     startTime: Date.now(),
+    stateSnapshots: [],
 
     log(message, data = {}) {
         const entry = {
@@ -14,6 +15,70 @@ const Sentinel = {
         };
         this.logs.push(entry);
         console.log(`[Sentinel 🤖] ${message}`, data);
+    },
+
+    // STATE SNAPSHOT: Track shop/host parameters
+    captureStateSnapshot(context = 'unknown') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const snapshot = {
+            context,
+            timestamp: new Date().toISOString(),
+            elapsed_ms: Date.now() - this.startTime,
+            url: window.location.href,
+            shop: urlParams.get('shop') || 'MISSING',
+            host: urlParams.get('host') || 'MISSING',
+            hasIdToken: urlParams.has('id_token')
+        };
+
+        this.stateSnapshots.push(snapshot);
+
+        // SHARK OF GLASS DETECTION: Missing shop/host
+        if (!urlParams.has('shop') || !urlParams.has('host')) {
+            this.log('🦈 SHARK OF GLASS DETECTED: shop/host parameters missing!', {
+                context,
+                shop: snapshot.shop,
+                host: snapshot.host,
+                url: window.location.href
+            });
+        }
+
+        return snapshot;
+    },
+
+    // NETWORK INTERCEPTOR: Verify internal links
+    async testInternalLink(url) {
+        try {
+            const response = await fetch(url, {
+                method: 'HEAD',
+                mode: 'same-origin'
+            });
+
+            if (response.status !== 200) {
+                this.log('❌ CRITICAL: Internal link returned non-200', {
+                    url,
+                    status: response.status,
+                    statusText: response.statusText,
+                    level: 'CRITICAL'
+                });
+
+                // Send to backend immediately
+                await this.sendCriticalEvent({
+                    event_type: 'LINK_VALIDATION_FAILURE',
+                    url,
+                    status: response.status,
+                    statusText: response.statusText
+                });
+            }
+
+            return response.status === 200;
+        } catch (error) {
+            this.log('❌ CRITICAL: Link test failed', {
+                url,
+                error: error.message,
+                level: 'CRITICAL'
+            });
+            return false;
+        }
     },
 
     async checkAppBridge() {
@@ -31,14 +96,79 @@ const Sentinel = {
         return hasShopify && hasAppBridge && hasIdToken;
     },
 
+    // BULLET-PROOF LOOP: Comprehensive validation
+    async bulletProofLoop() {
+        this.log("🔫 Starting Bullet-Proof Loop");
+
+        // 1. Scan all links on load
+        const allLinks = document.querySelectorAll('a[href]');
+        const internalLinks = Array.from(allLinks).filter(link =>
+            link.href.startsWith(window.location.origin)
+        );
+        const protectedLinks = document.querySelectorAll('a[data-auth-required="true"]');
+
+        this.log("Link Scan Complete", {
+            totalLinks: allLinks.length,
+            internalLinks: internalLinks.length,
+            protectedLinks: protectedLinks.length
+        });
+
+        // 2. Verify App Bridge status with timeout
+        const appBridgeStart = Date.now();
+        let appBridgeReady = false;
+        let attempts = 0;
+
+        while (!appBridgeReady && attempts < 50) {
+            appBridgeReady = await this.checkAppBridge();
+            if (!appBridgeReady) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+        }
+
+        const appBridgeLatency = Date.now() - appBridgeStart;
+
+        // 3. Report latency over 1500ms
+        if (appBridgeLatency > 1500) {
+            this.log('⚠️ WARNING: App Bridge initialization exceeded 1500ms', {
+                latency_ms: appBridgeLatency,
+                level: 'WARNING'
+            });
+
+            await this.sendCriticalEvent({
+                event_type: 'APP_BRIDGE_LATENCY',
+                latency_ms: appBridgeLatency,
+                threshold_ms: 1500
+            });
+        } else if (appBridgeReady) {
+            this.log(`✅ App Bridge ready in ${appBridgeLatency}ms`);
+        } else {
+            this.log('❌ CRITICAL: App Bridge failed to initialize', {
+                latency_ms: appBridgeLatency,
+                level: 'CRITICAL'
+            });
+        }
+
+        return {
+            linksScanned: allLinks.length,
+            appBridgeLatency,
+            appBridgeReady
+        };
+    },
+
     async performWalkthrough() {
-        this.log("🚀 Starting Sentinel Walkthrough");
+        this.log("🚀 Starting Enhanced Sentinel Walkthrough");
 
-        // Step 1: Initial state check
-        await new Promise(resolve => setTimeout(resolve, 100));
-        const initialReady = await this.checkAppBridge();
+        // STATE SNAPSHOT: Initial state
+        this.captureStateSnapshot('walkthrough_start');
 
-        // Step 2: Check for protected links
+        // BULLET-PROOF LOOP
+        const loopResults = await this.bulletProofLoop();
+
+        // STATE SNAPSHOT: After App Bridge check
+        this.captureStateSnapshot('post_app_bridge_check');
+
+        // Step: Check for protected links
         const settingsLinks = document.querySelectorAll('a[data-auth-required="true"][href*="settings"]');
         const subscribeLinks = document.querySelectorAll('a[data-auth-required="true"][href*="subscribe"]');
 
@@ -48,20 +178,14 @@ const Sentinel = {
             totalProtected: settingsLinks.length + subscribeLinks.length
         });
 
-        // Step 3: Wait for App Bridge (max 5 seconds)
-        let attempts = 0;
-        while (!await this.checkAppBridge() && attempts < 50) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
+        // NETWORK INTERCEPTOR: Test a few critical links
+        if (settingsLinks.length > 0) {
+            const testLink = settingsLinks[0].href;
+            this.log("Testing Settings link", { url: testLink });
+            await this.testInternalLink(testLink);
         }
 
-        if (attempts >= 50) {
-            this.log("❌ CRITICAL: App Bridge failed to initialize within 5 seconds");
-        } else {
-            this.log(`✅ App Bridge ready after ${attempts * 100}ms`);
-        }
-
-        // Step 4: Test click interception
+        // Step: Test click interception
         if (settingsLinks.length > 0) {
             const link = settingsLinks[0];
             this.log("Testing Settings link click", {
@@ -83,7 +207,10 @@ const Sentinel = {
             });
         }
 
-        // Step 5: Check body ready state
+        // STATE SNAPSHOT: Final state
+        this.captureStateSnapshot('walkthrough_end');
+
+        // Step: Check body ready state
         const bodyHasClass = document.body.classList.contains('app-ready');
         this.log("Body Ready State", {
             hasAppReadyClass: bodyHasClass,
@@ -94,12 +221,30 @@ const Sentinel = {
         await this.report();
     },
 
+    async sendCriticalEvent(eventData) {
+        try {
+            await fetch('/client-telemetry/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: 'SENTINEL_BOT_CRITICAL',
+                    timestamp: new Date().toISOString(),
+                    level: 'CRITICAL',
+                    event: eventData
+                })
+            });
+        } catch (error) {
+            console.error('[Sentinel 🤖] Failed to send critical event:', error);
+        }
+    },
+
     async report() {
         const summary = {
             user_id: 'SENTINEL_BOT',
             timestamp: new Date().toISOString(),
             total_elapsed_ms: Date.now() - this.startTime,
             events: this.logs,
+            state_snapshots: this.stateSnapshots,
             environment: {
                 userAgent: navigator.userAgent,
                 url: window.location.href,
@@ -118,6 +263,7 @@ const Sentinel = {
 
         this.log("📤 Sending report to backend", {
             totalEvents: this.logs.length,
+            totalSnapshots: this.stateSnapshots.length,
             totalTime: summary.total_elapsed_ms
         });
 
