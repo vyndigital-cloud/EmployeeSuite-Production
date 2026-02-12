@@ -105,6 +105,17 @@ def verify_session_token(f):
         elif id_token_param:
             token = id_token_param
 
+        # GHOST HANDSHAKE: If no JWT on GET request, serve auth bridge
+        if not token and request.method == 'GET':
+            shop = request.args.get('shop')
+            host = request.args.get('host')
+            
+            # Only serve bridge if we have shop/host (embedded context)
+            if shop and host:
+                from flask import render_template
+                logger.info(f"🔐 Auth Bridge: Serving handshake for {request.endpoint} | Shop: {shop}")
+                return render_template('auth_bridge.html'), 200
+
         if token:
 
             try:

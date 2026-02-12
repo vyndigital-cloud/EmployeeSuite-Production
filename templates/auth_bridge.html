@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Authenticating...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #f6f6f7;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .auth-bridge {
+            text-align: center;
+            padding: 32px;
+        }
+
+        .spinner {
+            border: 3px solid #e1e3e5;
+            border-top: 3px solid #5c6ac4;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .text {
+            color: #637381;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        .subtext {
+            color: #919eab;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-bridge">
+        <div class="spinner"></div>
+        <div class="text">Securing your connection...</div>
+        <div class="subtext">This will only take a moment</div>
+    </div>
+
+    <script>
+        // GHOST HANDSHAKE: Get fresh JWT and reload
+        (async function () {
+            try {
+                console.log('🔐 Auth Bridge: Initiating handshake...');
+
+                // Wait for App Bridge to load
+                let attempts = 0;
+                while (!window.shopify && attempts < 20) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                if (!window.shopify || typeof window.shopify.idToken !== 'function') {
+                    throw new Error('App Bridge not available');
+                }
+
+                // Get fresh session token
+                const token = await window.shopify.idToken();
+
+                if (token) {
+                    // Reload SAME page with token appended
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('id_token', token);
+
+                    console.log('✅ Auth Bridge: Token acquired, reloading...');
+
+                    // Use replace to avoid back button issues
+                    window.location.replace(url.toString());
+                } else {
+                    throw new Error('Failed to obtain session token');
+                }
+
+            } catch (error) {
+                console.error('❌ Auth Bridge failed:', error);
+                document.querySelector('.text').textContent = 'Authentication failed';
+                document.querySelector('.subtext').textContent = 'Please refresh the page';
+            }
+        })();
+    </script>
+</body>
+
+</html>
