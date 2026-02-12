@@ -18,6 +18,10 @@ except ImportError:
 
 def generate_request_id():
     """Generate unique request ID for log correlation"""
+    # OPTIMIZATION: Skip UUID generation for health check noise
+    if request.path == '/health' or 'UptimeRobot' in request.headers.get('User-Agent', ''):
+        return "HEALTH"
+    
     if not hasattr(g, 'request_id'):
         g.request_id = str(uuid.uuid4())[:8]  # Short ID for readability
     return g.request_id
