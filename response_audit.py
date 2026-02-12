@@ -36,23 +36,34 @@ def audit_response_discrepancies(response):
     if request.endpoint in ('static', None) or request.path.startswith(('/static', '/health', '/_ah')):
         return response
     
-    # === Check 1: JWT Verification Status ===
-    # If request was NOT JWT verified but returned 200, that's a potential security gap
+    # === Check 1: JWT Verification Status + Auto-Redirect ===
+    # If request was NOT JWT verified but returned 200, redirect to auth
     is_jwt_verified = getattr(request, 'session_token_verified', None)
     
-    # Only flag if:
-    # 1. We expected JWT verification (production + embedded context)
-    # 2. JWT was NOT verified
-    # 3. Response was successful (200)
-    if response.status_code == 200:
+    # Protected routes that REQUIRE JWT verification
+    protected_routes = ['/dashboard', '/features', '/settings', '/api', '/shopify']
+    is_protected = any(request.path.startswith(route) for route in protected_routes)
+    
+    if response.status_code == 200 and is_protected:
         if is_jwt_verified is False:  # Explicitly False (not None)
-            # Check if this route SHOULD have JWT
-            shop = getattr(request, 'shop_domain', None)
-            embedded = request.headers.get('Sec-Fetch-Dest') == 'iframe' or request.args.get('embedded') == '1'
+            # JWT verification failed on protected route
+            # Instead of returning 200 with wrong content, redirect to auth
+            from flask import redirect, url_for
             
-            if embedded and shop:
-                issues.append("UNVERIFIED_JWT_SUCCESS")
-                status = "SECURITY_DISCREPANCY"
+            shop = getattr(request, 'shop_domain', None) or request.args.get('shop')
+            host = request.args.get('host', '')
+            
+            if shop:
+                logger.warning(
+                    f"🔒 JWT Verification Failed - Redirecting to auth | "
+                    f"Path: {request.path} | Shop: {shop}"
+                )
+                # Redirect to auth flow
+                return redirect(url_for('auth.login', shop=shop, host=host, _external=True))
+            else:
+                # No shop context - return 401
+                issues.append("UNVERIFIED_JWT_NO_SHOP")
+                status = "SECURITY_BLOCK"
                 response_stats['unverified_jwt_200'] += 1
     
     # === Check 2: High Latency ===

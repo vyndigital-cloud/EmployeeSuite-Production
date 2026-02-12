@@ -501,6 +501,21 @@
             });
         </script>
 
+        <!-- Initialize Sentinel -->
+        <script>
+            Sentinel.initAllLayers().then(() => {
+                console.log('✅ Sentinel + Hydra ready');
+            });
+        </script>
+
+        <!-- App Bridge Authenticated Navigation -->
+        <script src="{{ url_for('static', filename='js/app_bridge_nav.js') }}"></script>
+
+        <!-- JWT NAVIGATION: Auto-append session tokens to links -->
+        <script>
+            console.log('🔒 App Bridge Authenticated Navigation loaded');
+        </script>
+
         {% block scripts %}{% endblock %}
 
         <!-- Load external dashboard JavaScript -->
