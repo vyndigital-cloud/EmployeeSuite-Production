@@ -446,6 +446,7 @@ def create_app():
         ("faq_routes", "faq_bp"),
         ("enhanced_features", "enhanced_bp"),
         ("admin_routes", "admin_bp"),
+        ("telemetry_routes", "telemetry_bp"),  # Sentinel Bot endpoint
         # Removed: help_routes, profile_routes (files don't exist)
     ]
 
