@@ -309,6 +309,10 @@ def create_app():
         from unified_error_boundary import generate_request_id
         request_id = generate_request_id()
         
+        # SILENCE THE NOISE: Don't log 200 OKs for health checks
+        if request.path == '/health' and response.status_code == 200:
+            return response
+        
         if hasattr(g, 'titan_start_time'):
             latency = time.time() - g.titan_start_time
             latency_ms = int(latency * 1000)

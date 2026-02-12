@@ -212,6 +212,19 @@ class ErrorLogger:
         except Exception as e:
             print(f"Failed to log API call: {e}")
     
+    def mask_identity(self, email):
+        """Masks email to protect identity in production logs (TITAN Shield)"""
+        if not email or "@" not in email:
+            return "ghost_user"
+        
+        # Custom alias for TITAN operator
+        if "finessor06" in email.lower():
+            return "TITAN_OPERATOR_01"
+        
+        # Generic masking for other emails
+        parts = email.split("@")
+        return f"{parts[0][0]}***@{parts[1]}"
+    
     def log_user_action(self, action, user_id=None, details=None):
         """Log user actions for debugging with ABSOLUTE VISIBILITY"""
         try:
