@@ -223,7 +223,39 @@ const Sentinel = {
         // Refresh every 4 minutes (240 seconds)
         this.silentPulseInterval = setInterval(async () => {
             this.log('💓 Silent Pulse: Starting background refresh');
-            await this.refreshTokenBackground();
+
+            try {
+                const token = await this.refreshTokenBackground();
+
+                // Send heartbeat to backend
+                if (token && this.dnaVault.shop) {
+                    await fetch('/telemetry/heartbeat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            shop: this.dnaVault.shop,
+                            status: 'verified',
+                            token_preview: token.substring(0, 10)
+                        })
+                    });
+                    this.log('💓 Heartbeat sent to Mission Control');
+                }
+            } catch (error) {
+                this.log('❌ Silent Pulse failed', { error: error.message });
+
+                // Send failed heartbeat
+                if (this.dnaVault.shop) {
+                    await fetch('/telemetry/heartbeat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            shop: this.dnaVault.shop,
+                            status: 'failed',
+                            error: error.message
+                        })
+                    });
+                }
+            }
         }, 4 * 60 * 1000);
 
         this.log('💓 Silent Pulse started - refreshing every 4 minutes');
@@ -950,30 +982,40 @@ const Sentinel = {
             });
         } else {
             this.log(`⚡ App Bridge ready in ${latency}ms (under threshold)`);
-        }
-    },
+        },
 
-    // Initialize all interceptors + Proactive Shield
-    initAllLayers() {
-        // PROACTIVE SHIELD: Initialize first to catch early navigation
-        this.initSessionTracking();
-        this.initLinkProxy();
+        // ==================== RESOURCE ERROR RECOVERY ====================
 
-        // Diagnostic layers
-        this.initMutationObserver();
-        this.initFetchInterceptor();
-        this.initAppBridgeSpeedTrap();
+        // Sentinel Recovery: Catch failed scripts/images
+        initResourceRecovery() {
+            window.addEventListener('error', async (event) => {
+                // Only handle resource errors
+                if (!event.target || (!event.target.tagName)) return;
 
-        this.log('🚀 All diagnostic layers + Proactive Shield initialized');
-    }
-};
+                const tag = event.target.tagName;
+                if (tag === 'IMG' || tag === 'SCRIPT' || tag === 'LINK') {
+                    const resource = event.target.src || event.target.href || 'unknown';
 
-// Auto-start: Initialize Hydra + layers, then walkthrough
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', async () => {
-        await Sentinel.initAllLayers();
-        setTimeout(() => Sentinel.performWalkthrough(), 500);
-    });
+                    this.log('🛡️ Sentinel Recovery: Resource failed to load', {
+                        type: tag,
+                        resource,
+                        level: 'WARNING'
+                    });
+
+                    // Send error recovery telemetry
+                    if (this.dnaVault.shop) {
+                        try {
+                            await fetch('/telemetry/error_recovery', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    type: 'resource_fail',
+                                    shop: this.dnaVault.shop,
+                                    resource,
+                                    tag,
+                                    page: window.location.href
+            setTimeout(() => Sentinel.performWalkthrough(), 500);
+        });
 } else {
     (async () => {
         await Sentinel.initAllLayers();

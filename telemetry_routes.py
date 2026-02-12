@@ -1,20 +1,25 @@
 """
-Client Telemetry Routes
-Receives diagnostic data from Sentinel Bot and other client-side instrumentation
+Telemetry Routes - Client-Side Diagnostic Reporting
+Receives forensic data from Sentinel Bot and other client-side monitors
 """
 
 from flask import Blueprint, request, jsonify
 import logging
+import json
 from datetime import datetime
 
-telemetry_bp = Blueprint('telemetry', __name__, url_prefix='/client-telemetry')
-logger = logging.getLogger(__name__)
+telemetry_bp = Blueprint('telemetry', __name__, url_prefix='/telemetry')
+
+# Dedicated logger for telemetry
+telemetry_logger = logging.getLogger('telemetry')
+telemetry_logger.setLevel(logging.INFO)
+
 
 @telemetry_bp.route('/log', methods=['POST'])
-def receive_client_log():
+def client_telemetry_log():
     """
-    Receives telemetry data from Sentinel Bot
-    Logs forensic information about App Bridge initialization
+    Receives diagnostic logs from Sentinel Bot
+    Used for forensic analysis of App Bridge failures
     """
     try:
         data = request.get_json()
@@ -23,33 +28,14 @@ def receive_client_log():
             return jsonify({'error': 'No data provided'}), 400
         
         user_id = data.get('user_id', 'UNKNOWN')
+        timestamp = data.get('timestamp', datetime.utcnow().isoformat())
+        level = data.get('level', 'INFO')
+        
+        # Log the telemetry report
+        telemetry_logger.info(f"🤖 SENTINEL REPORT | User: {user_id} | Level: {level}")
+        
+        # Log events if provided
         events = data.get('events', [])
-        environment = data.get('environment', {})
-        total_elapsed = data.get('total_elapsed_ms', 0)
-        
-        # Log summary
-        logger.info(
-            f"🤖 SENTINEL REPORT | "
-            f"User: {user_id} | "
-            f"Events: {len(events)} | "
-            f"Total Time: {total_elapsed}ms | "
-            f"URL: {environment.get('url', 'unknown')}"
-        )
-        
-        # Log each event with details
-        for event in events:
-            timestamp = event.get('timestamp', 'unknown')
-            elapsed = event.get('elapsed_ms', 0)
-            message = event.get('message', '')
-            
-            # Extract relevant data fields (excluding timestamp/elapsed/message)
-            data_fields = {k: v for k, v in event.items() 
-                          if k not in ['timestamp', 'elapsed_ms', 'message']}
-            
-            log_line = f"🤖 [{elapsed}ms] {message}"
-            if data_fields:
-                log_line += f" | {data_fields}"
-            
             logger.info(log_line)
         
         # Log critical failures
