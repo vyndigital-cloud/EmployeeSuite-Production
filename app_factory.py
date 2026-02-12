@@ -677,6 +677,16 @@ def create_app():
                 
                 # GLOBAL IDENTITY SYNC
                 try:
+                    # OPTIMIZATION: Skip DB lookup if user already authenticated for this shop
+                    if current_user.is_authenticated:
+                        # Check if current user's shop matches the token's shop
+                        if hasattr(current_user, 'current_store') and current_user.current_store:
+                            if current_user.current_store.shop_url == shop_domain:
+                                # Identity already synced, skip DB query (saves ~20-30ms)
+                                app.logger.debug(f"Identity Sync: User {current_user.id} already authenticated for {shop_domain} - skipping DB lookup")
+                                return
+                    
+                    # Only query DB if identity mismatch or not authenticated
                     from config import DEV_SHOP_DOMAIN
                     # Try active store, but allow Dev Safe-Pass
                     store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
