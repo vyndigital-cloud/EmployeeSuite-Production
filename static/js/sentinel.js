@@ -982,38 +982,39 @@ const Sentinel = {
             });
         } else {
             this.log(`⚡ App Bridge ready in ${latency}ms (under threshold)`);
-        },
+        }
+    },
 
-        // ==================== RESOURCE ERROR RECOVERY ====================
+    // ==================== RESOURCE ERROR RECOVERY ====================
 
-        // Sentinel Recovery: Catch failed scripts/images
-        initResourceRecovery() {
-            window.addEventListener('error', async (event) => {
-                // Only handle resource errors
-                if (!event.target || (!event.target.tagName)) return;
+    // Sentinel Recovery: Catch failed scripts/images
+    initResourceRecovery() {
+        window.addEventListener('error', async (event) => {
+            // Only handle resource errors
+            if (!event.target || (!event.target.tagName)) return;
 
-                const tag = event.target.tagName;
-                if (tag === 'IMG' || tag === 'SCRIPT' || tag === 'LINK') {
-                    const resource = event.target.src || event.target.href || 'unknown';
+            const tag = event.target.tagName;
+            if (tag === 'IMG' || tag === 'SCRIPT' || tag === 'LINK') {
+                const resource = event.target.src || event.target.href || 'unknown';
 
-                    this.log('🛡️ Sentinel Recovery: Resource failed to load', {
-                        type: tag,
-                        resource,
-                        level: 'WARNING'
-                    });
+                this.log('🛡️ Sentinel Recovery: Resource failed to load', {
+                    type: tag,
+                    resource,
+                    level: 'WARNING'
+                });
 
-                    // Send error recovery telemetry
-                    if (this.dnaVault.shop) {
-                        try {
-                            await fetch('/telemetry/error_recovery', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    type: 'resource_fail',
-                                    shop: this.dnaVault.shop,
-                                    resource,
-                                    tag,
-                                    page: window.location.href
+                // Send error recovery telemetry
+                if (this.dnaVault.shop) {
+                    try {
+                        await fetch('/telemetry/error_recovery', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                type: 'resource_fail',
+                                shop: this.dnaVault.shop,
+                                resource,
+                                tag,
+                                page: window.location.href
             setTimeout(() => Sentinel.performWalkthrough(), 500);
         });
 } else {
