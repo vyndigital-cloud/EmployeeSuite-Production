@@ -319,16 +319,17 @@ def home():
         # Import only when needed to speed up startup
         from models import ShopifyStore, User, db
         
-        # Grab the shop and host from the URL specifically
-        shop = request.args.get('shop')
-        host = request.args.get('host') # Grab the host from the URL
+        # 🎯 TITAN FIX: Prioritize the verified identity from the middleware
+        shop = g.get('shop_domain') or request.args.get('shop')
+        host = g.get('host') or request.args.get('host')
         
+        # Update session only if we found something new
         if shop:
             session['shop'] = shop
         if host:
-            session['host'] = host # Store it!
-            
-        # Fallback to session for the rest of calculation
+            session['host'] = host
+        
+        # Fallback to session if still not found
         if not shop:
             shop = session.get('shop')
         if not host:
@@ -857,8 +858,9 @@ def subscribe_redirect():
 @core_bp.route("/settings")
 def settings_redirect():
     """Redirect to Shopify settings using App Bridge to preserve JWT trust"""
-    shop = request.args.get("shop", "")
-    host = request.args.get("host", "")
+    # 🎯 TITAN FIX: Prioritize verified identity from middleware
+    shop = g.get('shop_domain', '') or request.args.get("shop", "")
+    host = g.get('host', '') or request.args.get("host", "")
     target_url = url_for("shopify.shopify_settings", shop=shop, host=host, _external=True)
     return f'''
         <!DOCTYPE html>

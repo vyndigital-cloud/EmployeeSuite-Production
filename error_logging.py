@@ -277,13 +277,28 @@ class ErrorLogger:
             shop = comprehensive_details.get('shop_domain', 'None')
             log_msg += f" | Shop: {shop}"
             
+            # [ABSOLUTE PRIVACY] Mask the context before logging
+            masked_context = context.copy()
+            if 'user_email' in masked_context:
+                masked_context['user_email'] = self.mask_identity(masked_context['user_email'])
+            
+            # Scrub query params for the operator's email
+            if 'query_params' in comprehensive_details:
+                masked_query = {}
+                for key, value in comprehensive_details['query_params'].items():
+                    if "finessor06" in str(value).lower():
+                        masked_query[key] = "[REDACTED_OPERATOR]"
+                    else:
+                        masked_query[key] = value
+                comprehensive_details['query_params'] = masked_query
+            
             # ALWAYS include comprehensive details for failed requests
             status_code = comprehensive_details.get('status_code', 200)
             if status_code >= 400 or 'error' in action.lower() or 'failed' in action.lower():
                 log_msg += f" | FAILED_REQUEST_DETAILS: {json.dumps(comprehensive_details, default=str)}"
             else:
-                # For successful requests, include basic context
-                log_msg += f" | Details: {json.dumps(context, default=str)}"
+                # For successful requests, include masked context
+                log_msg += f" | Details: {json.dumps(masked_context, default=str)}"
                 
             self.user_logger.info(log_msg)
             

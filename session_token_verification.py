@@ -105,15 +105,17 @@ def verify_session_token(f):
         elif id_token_param:
             token = id_token_param
 
-        # GHOST HANDSHAKE: If no JWT on GET request, serve 2026 invisible bridge
-        if not token and request.method == 'GET':
+        # GHOST HANDSHAKE: Only serve if we truly have NO identity
+        # If g.current_user exists, we are already "welded" - skip the bridge!
+        if not token and request.method == 'GET' and not g.get('current_user'):
             shop = request.args.get('shop')
             host = request.args.get('host')
             
             # Only serve bridge if we have shop/host (embedded context)
             if shop and host:
                 from flask import render_template
-                logger.info(f"🔐 Auth Bridge 2026: Invisible handshake for {request.endpoint} | Shop: {shop}")
+                # Lower log level to DEBUG so it doesn't clutter production
+                logger.debug(f"🤫 Silent Bridge fallback for {request.endpoint}")
                 return render_template('auth_bridge_2026.html'), 200
 
         if token:
