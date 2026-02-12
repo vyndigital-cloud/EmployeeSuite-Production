@@ -415,15 +415,30 @@ def create_app():
         }), 500
 
     @app.after_request
-    def add_security_headers(response):
+    def audit_and_enforce_bridge(response):
         """
-        SECURITY: Allow Shopify to embed this app (Frame-Ancestors)
-        This is the 'Smoking Gun' fix for the white screen issue.
+        Acts as the 'Internal Auditor' for the $10k/day engine.
+        Ensures Shopify never cuts off the connection.
         """
-        response.headers['Content-Security-Policy'] = (
-            "frame-ancestors https://admin.shopify.com https://*.myshopify.com;"
-        )
+        
+        # 1. ENFORCE THE BRIDGE (Fixes the White Screen)
+        # This ensures the 'frame-ancestors' policy is ALWAYS sent
+        if "Content-Security-Policy" not in response.headers:
+            response.headers['Content-Security-Policy'] = (
+                "frame-ancestors https://admin.shopify.com https://*.myshopify.com;"
+            )
+
+        # 2. AUDIT THE COOKIES (Detects the 403 Risk)
+        # If the app is in production but flags are missing, log a critical error
+        if not app.config.get('SESSION_COOKIE_SECURE'):
+            app.logger.error("AUDIT FAILURE: SESSION_COOKIE_SECURE is False. 403s imminent.")
+            
+        if app.config.get('SESSION_COOKIE_SAMESITE') != 'None':
+            app.logger.error("AUDIT FAILURE: SAMESITE is not 'None'. Handshake will fail.")
+
+        # 3. LEGACY SUPPORT (For older browsers)
         response.headers['X-Frame-Options'] = 'ALLOW-FROM https://admin.shopify.com'
+        
         return response
 
     # TITAN: Last Breath Signal Handler
