@@ -3,14 +3,27 @@ import logging.handlers
 import os
 import sys
 import traceback
+import hashlib
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from config import get_config_safe
 
 
+class StaticFileFilter(logging.Filter):
+    """Filter to exclude /static file requests from logs"""
+    
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Exclude requests to /static paths"""
+        if hasattr(record, 'msg') and isinstance(record.msg, str):
+            # Filter out /static requests - they're noise
+            if '/static/' in record.msg or 'GET /static' in record.msg:
+                return False
+        return True
+
+
 class SecurityFilter(logging.Filter):
-    """Filter to remove sensitive data from logs"""
+    """Filter to remove sensitive data from logs and pseudonymize emails"""
 
     SENSITIVE_KEYS = {
         "password",
@@ -27,7 +40,7 @@ class SecurityFilter(logging.Filter):
     }
 
     def filter(self, record: logging.LogRecord) -> bool:
-        """Filter sensitive information from log records"""
+        """Filter sensitive information from log records + pseudonymize emails"""
         if hasattr(record, "msg") and isinstance(record.msg, str):
             # Check for sensitive data in message
             msg_lower = record.msg.lower()
@@ -36,12 +49,30 @@ class SecurityFilter(logging.Filter):
                     # Replace with redacted version
                     record.msg = self._redact_sensitive_data(record.msg)
                     break
+            
+            # Pseudonymize emails
+            record.msg = self._pseudonymize_emails(record.msg)
 
         # Also check args if present
         if hasattr(record, "args") and record.args:
             record.args = tuple(self._redact_if_sensitive(arg) for arg in record.args)
 
         return True
+
+    def _pseudonymize_emails(self, text: str) -> str:
+        """Replace email addresses with SHA256 hashes for privacy"""
+        import re
+        
+        # Regex to match email addresses
+        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        
+        def hash_email(match):
+            email = match.group(0)
+            # SHA256 hash of email
+            hashed = hashlib.sha256(email.encode()).hexdigest()[:16]
+            return f"user_{hashed}"
+        
+        return re.sub(email_pattern, hash_email, text)
 
     def _redact_sensitive_data(self, text: str) -> str:
         """Redact sensitive data from text"""
@@ -199,6 +230,7 @@ def setup_logging(app=None) -> logging.Logger:
 
     console_handler.setFormatter(console_formatter)
     console_handler.addFilter(SecurityFilter())
+    console_handler.addFilter(StaticFileFilter())  # Filter /static noise
     root_logger.addHandler(console_handler)
 
     # File handler for persistent logs
@@ -215,6 +247,7 @@ def setup_logging(app=None) -> logging.Logger:
         file_formatter = StructuredFormatter()
         file_handler.setFormatter(file_formatter)
         file_handler.addFilter(SecurityFilter())
+        file_handler.addFilter(StaticFileFilter())  # Filter /static noise
         root_logger.addHandler(file_handler)
 
         # Error file handler for errors only
@@ -227,6 +260,7 @@ def setup_logging(app=None) -> logging.Logger:
         error_handler.setLevel(logging.ERROR)
         error_handler.setFormatter(file_formatter)
         error_handler.addFilter(SecurityFilter())
+        error_handler.addFilter(StaticFileFilter())  # Filter /static noise
         root_logger.addHandler(error_handler)
 
     # Configure specific loggers
