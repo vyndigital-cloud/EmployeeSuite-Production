@@ -95,6 +95,32 @@
             console.log("🚀 Stateless Pivot: App Bridge Interceptor Active");
         })();
 
+        // CLICK INTERCEPTOR: Prevent navigation before App Bridge ready
+        document.addEventListener('click', function (e) {
+            const link = e.target.closest('a[data-auth-required="true"]');
+            if (link && !window.shopify) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.warn('⚠️ App Bridge not ready. Intercepting click to prevent JWT loss.');
+
+                // Visual feedback - disable link temporarily
+                link.style.opacity = '0.5';
+                link.style.pointerEvents = 'none';
+
+                // Re-enable after App Bridge loads (max 3 second timeout)
+                const checkReady = setInterval(() => {
+                    if (window.shopify) {
+                        clearInterval(checkReady);
+                        link.style.opacity = '1';
+                        link.style.pointerEvents = 'auto';
+                        console.log('✅ App Bridge ready. Link re-enabled.');
+                    }
+                }, 100);
+
+                setTimeout(() => clearInterval(checkReady), 3000);
+            }
+        }, true); // Use capture phase to intercept early
+
         // Initialize App Bridge state
         window.appBridgeReady = false;
         window.isEmbedded = !!new URLSearchParams(
