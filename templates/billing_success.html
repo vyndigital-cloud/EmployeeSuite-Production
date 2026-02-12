@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Subscription Confirmed</title>
+    <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var apiKey = "{{ config.SHOPIFY_API_KEY }}";
+            var host = "{{ host }}";
+
+            // Check if we have valid App Bridge config
+            if (apiKey && host) {
+                var AppBridge = window['app-bridge'];
+                var createApp = AppBridge.default;
+                var actions = AppBridge.actions;
+                var Redirect = actions.Redirect;
+
+                var app = createApp({
+                    apiKey: apiKey,
+                    host: host,
+                });
+
+                // Navigate back to home using App Bridge
+                var redirect = Redirect.create(app);
+                redirect.dispatch(Redirect.Action.APP, "/");
+            } else {
+                // Fallback if something is missing
+                window.location.href = "/?shop={{ shop }}&host={{ host }}";
+            }
+        });
+    </script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            display: flex;
+            align-items: center;
+            justify_content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f6f6f7;
+        }
+
+        .container {
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #008060;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <p>Finalizing subscription...</p>
+    </div>
+</body>
+
+</html>

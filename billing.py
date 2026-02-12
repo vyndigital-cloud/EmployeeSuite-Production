@@ -514,23 +514,12 @@ def subscribe():
             store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
 
         # Validate store connection
-        has_store = False
-        if store:
-            access_token = store.get_access_token()
-            if access_token:
-                try:
-                    from shopify_graphql import ShopifyGraphQLClient
-                    client = ShopifyGraphQLClient(store.shop_url, access_token)
-                    query = "query { shop { name } }"
-                    result = client.execute_query(query)
-                    if "error" not in result and "errors" not in result:
-                        has_store = True
-                    else:
-                        logger.warning(f"Store connection validation failed for {store.shop_url}")
-                        has_store = False
-                except Exception as e:
-                    logger.warning(f"Store connection check failed: {e}")
-                    has_store = False
+        # TITAN OPTIMIZATION: Trust local DB state for render speed.
+        # GraphQL check is moved to the actual charge creation (POST)
+        has_store = bool(store and store.access_token)
+        if store and not store.is_active:
+             # If we explicitly know it's inactive, flag it
+             has_store = False
 
         # Set shop from store if not provided
         if not shop and store:
