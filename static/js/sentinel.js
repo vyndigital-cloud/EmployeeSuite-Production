@@ -948,7 +948,7 @@ const Sentinel = {
             }
         };
 
-        this.log('🌐 Fetch Interceptor: Monitoring + Auto-injecting tokens for API calls');
+        this.log('🌐 Fetch Interceptor: Auto-injecting Authorization headers for ALL internal requests');
     },
 
     // Capture localStorage safely
