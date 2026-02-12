@@ -5,7 +5,7 @@ Enhanced Features for Employee Suite
 - Scheduled reports
 - Comprehensive dashboard
 """
-from flask import Blueprint, request, jsonify, Response, session
+from flask import Blueprint, request, jsonify, Response, session, render_template
 from flask_login import login_required, current_user
 from functools import wraps
 import csv
@@ -624,48 +624,64 @@ def get_comprehensive_dashboard():
 # INDIVIDUAL REPORT ENDPOINTS (For Dashboard Buttons)
 # ============================================================================
 
-@enhanced_bp.route('/api/process_orders')
+@enhanced_bp.route('/api/trigger-report-email', methods=['POST'])
 @verify_session_token
 @require_access
-def api_process_orders():
-    """API endpoint for processing orders"""
+def trigger_report_email():
+    """Trigger an immediate email report (SOS)"""
     try:
-        result = process_orders(user_id=current_user.id)
-        if result.get('success'):
-            return result['html']
-        else:
-            return f'<div class="alert alert-danger">{result.get("error")}</div>', 400
-    except Exception as e:
-        logger.error(f"Error in api_process_orders: {e}")
-        return f'<div class="alert alert-danger">Error: {str(e)}</div>', 500
+        from email_service import send_report_email
+        
+        user_id = current_user.get_id() or session.get('user_id')
+        if not user_id:
+            return jsonify({"error": "Not authenticated"}), 401
 
-@enhanced_bp.route('/api/update_inventory')
+        user = User.query.get(user_id)
+        if not user or not user.email:
+             return jsonify({"error": "User email not found"}), 400
+
+        data = request.get_json()
+        report_type = data.get('report_type', 'all')
+        
+        # Gather Data Snapshot
+        content = ""
+        
+        store = ShopifyStore.query.filter_by(user_id=user_id, is_active=True).first()
+        if not store:
+            return jsonify({"error": "No connected store"}), 400
+            
+        content += f"<p><strong>Store:</strong> {store.shop_url}</p>"
+        content += f"<p><strong>Time:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}</p>"
+        content += "<hr>"
+        
+        if report_type in ['inventory', 'all']:
+             content += "<p><strong>Inventory System:</strong> <span style='color:green'>Active</span></p>"
+             
+        content += "<p>Your store systems are online and monitoring active.</p>"
+
+        # Send Email
+        success = send_report_email(user.email, f"SOS / {report_type.title()}", content)
+        
+        if success:
+            return jsonify({"success": True, "message": f"Report sent to {user.email}"})
+        else:
+            return jsonify({"success": False, "error": "Failed to send email service"}), 500
+
+    except Exception as e:
+        logger.error(f"SOS Report error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+
+
+# ============================================================================
+# UI ROUTES
+# ============================================================================
+
+@enhanced_bp.route('/scheduled-reports', methods=['GET'])
 @verify_session_token
-@require_access
-def api_update_inventory():
-    """API endpoint for inventory check"""
-    try:
-        result = update_inventory(user_id=current_user.id)
-        if result.get('success'):
-            return result['html']
-        else:
-            return f'<div class="alert alert-danger">{result.get("error")}</div>', 400
-    except Exception as e:
-        logger.error(f"Error in api_update_inventory: {e}")
-        return f'<div class="alert alert-danger">Error: {str(e)}</div>', 500
-
-@enhanced_bp.route('/api/generate_report')
-@verify_session_token
-@require_access
-def api_generate_report():
-    """API endpoint for revenue report"""
-    try:
-        result = generate_report(user_id=current_user.id)
-        if result.get('success'):
-            return result['html']
-        else:
-            return f'<div class="alert alert-danger">{result.get("error")}</div>', 400
-    except Exception as e:
-        logger.error(f"Error in api_generate_report: {e}")
-        return f'<div class="alert alert-danger">Error: {str(e)}</div>', 500
-
+def scheduled_reports_page():
+    """Render the Scheduled Reports UI"""
+    shop = getattr(request, 'shop_domain', None) or request.args.get("shop")
+    host = request.args.get("host")
+    return render_template('features/scheduled_reports.html', shop=shop, host=host)

@@ -414,6 +414,18 @@ def create_app():
             "success": False
         }), 500
 
+    @app.after_request
+    def add_security_headers(response):
+        """
+        SECURITY: Allow Shopify to embed this app (Frame-Ancestors)
+        This is the 'Smoking Gun' fix for the white screen issue.
+        """
+        response.headers['Content-Security-Policy'] = (
+            "frame-ancestors https://admin.shopify.com https://*.myshopify.com;"
+        )
+        response.headers['X-Frame-Options'] = 'ALLOW-FROM https://admin.shopify.com'
+        return response
+
     # TITAN: Last Breath Signal Handler
     def titan_last_breath(sig, frame):
         app.logger.info(f"TITAN [SIGNAL] Process {os.getpid()} received {sig}. Taking last breath... Reap confirmed.")
@@ -473,7 +485,7 @@ def create_app():
         ("client_telemetry", "client_telemetry_bp"),  # Client-side telemetry
         ("billing", "billing_bp"),             # Shopify subscription billing
         ("legal_routes", "legal_bp"),  # Privacy/Terms pages
-        ("faq_routes", "faq_bp"),
+
         ("enhanced_features", "enhanced_bp"),
         ("admin_routes", "admin_bp"),
         ("telemetry_routes", "telemetry_bp"),  # Sentinel Bot endpoint
