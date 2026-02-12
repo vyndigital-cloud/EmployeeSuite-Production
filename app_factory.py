@@ -478,6 +478,7 @@ def create_app():
         ("admin_routes", "admin_bp"),
         ("telemetry_routes", "telemetry_bp"),  # Sentinel Bot endpoint
         ("auth", "auth_bp"),  # Authentication routes
+        ("gdpr_compliance", "gdpr_bp"),  # GDPR Webhooks - CRITICAL
         # Removed: help_routes, profile_routes (files don't exist)
     ]
 
