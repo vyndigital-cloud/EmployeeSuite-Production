@@ -51,21 +51,22 @@
                     const elapsed = Date.now() - startTime;
                     console.log(`✅ [2026 Handshake] Token acquired in ${elapsed}ms`);
 
-                    // Use App Bridge navigation (2026 compliant - no window.location)
-                    if (window.shopify.navigate) {
-                        // Get current path
-                        const path = window.location.pathname + window.location.search;
+                    // CRITICAL: Page loads can't use Authorization headers!
+                    // Must append token to URL for backend to read it
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('id_token', token);
+                    const pathWithToken = url.pathname + url.search;
 
-                        // Navigate with App Bridge (token auto-injected)
-                        window.shopify.navigate(path, {
+                    // Use App Bridge navigation (2026 compliant)
+                    if (window.shopify.navigate) {
+                        // Navigate with token in URL (not header - page loads don't send headers!)
+                        window.shopify.navigate(pathWithToken, {
                             replace: true  // Replace history, not push
                         });
 
-                        console.log('✅ [2026 Handshake] Using App Bridge navigation - invisible ✅');
+                        console.log('✅ [2026 Handshake] App Bridge navigation with URL token ✅');
                     } else {
-                        // Fallback for older App Bridge versions
-                        const url = new URL(window.location.href);
-                        url.searchParams.set('id_token', token);
+                        // Fallback: Direct URL navigation with token
                         window.location.replace(url.toString());
                     }
                 } else {
