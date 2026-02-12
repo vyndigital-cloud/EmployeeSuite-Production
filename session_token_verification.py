@@ -133,7 +133,8 @@ def verify_session_token(f):
                         "verify_iat": True,
                         "require": ["iss", "dest", "aud", "sub", "exp", "nbf", "iat"],
                     },
-                    audience=current_api_key
+                    audience=current_api_key,
+                    leeway=10  # 10-second tolerance for clock drift (Render vs Shopify)
                 )
 
                 # Verify destination
@@ -319,7 +320,8 @@ def verify_session_token_stateless(token):
                 "verify_iat": True,
                 "require": ["iss", "dest", "aud", "sub", "exp", "nbf", "iat"],
             },
-            audience=current_api_key
+            audience=current_api_key,
+            leeway=10  # 10-second tolerance for clock drift (Render vs Shopify)
         )
         logger.debug(f"Stateless JWT: Verified for {payload.get('dest')}")
         return payload
