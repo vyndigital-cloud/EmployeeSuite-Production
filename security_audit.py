@@ -81,27 +81,38 @@ def audit_security_discrepancies(details):
     # ABSOLUTE VISIBILITY: Alert on ANY unverified JWT access (not just production)
     if not details.get('is_jwt_verified'):
         if not is_whitelisted_route(endpoint):
-            discrepancy_stats['unverified_jwt'] += 1
             
-            # CRITICAL ALERT: Unverified JWT access detected
-            msg = (
-                f"🚨 CRITICAL ALERT: Unverified JWT Access | "
-                f"Endpoint: {endpoint} | "
-                f"URL: {url} | "
-                f"Shop: {details.get('shop_domain', 'MISSING')} | "
-                f"User: {details.get('user_id', 'NONE')} | "
-                f"Environment: {details.get('environment', 'UNKNOWN')} | "
-                f"Method: {details.get('method', 'UNKNOWN')} | "
-                f"IP: {details.get('ip', 'UNKNOWN')} | "
-                f"User-Agent: {details.get('user_agent', 'NONE')}"
-            )
+            # GHOST HANDSHAKE CHECK: Skip alert if auth bridge will handle this
+            # Auth bridge serves on: GET requests with shop + host params
+            method = details.get('method', '')
+            has_shop = 'shop=' in url
+            has_host = 'host=' in url
+            is_get = method == 'GET'
+            will_serve_auth_bridge = is_get and has_shop and has_host
             
-            # Log as ERROR for immediate visibility (not just warning)
-            audit_logger.error(msg)
-            
-            # STRICT MODE: Crash (DEV ONLY!)
-            if AUDIT_STRICT:
-                raise PermissionError(msg)
+            # Only fire alert if auth bridge WON'T handle it
+            if not will_serve_auth_bridge:
+                discrepancy_stats['unverified_jwt'] += 1
+                
+                # CRITICAL ALERT: Unverified JWT access detected
+                msg = (
+                    f"🚨 CRITICAL ALERT: Unverified JWT Access | "
+                    f"Endpoint: {endpoint} | "
+                    f"URL: {url} | "
+                    f"Shop: {details.get('shop_domain', 'MISSING')} | "
+                    f"User: {details.get('user_id', 'NONE')} | "
+                    f"Environment: {details.get('environment', 'UNKNOWN')} | "
+                    f"Method: {details.get('method', 'UNKNOWN')} | "
+                    f"IP: {details.get('ip', 'UNKNOWN')} | "
+                    f"User-Agent: {details.get('user_agent', 'NONE')}"
+                )
+                
+                # Log as ERROR for immediate visibility (not just warning)
+                audit_logger.error(msg)
+                
+                # STRICT MODE: Crash (DEV ONLY!)
+                if AUDIT_STRICT:
+                    raise PermissionError(msg)
     
     # === DISCREPANCY 2: Missing Shop Domain ===
     shop = details.get('shop_domain')
