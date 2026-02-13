@@ -834,7 +834,14 @@ def create_app():
         if request.endpoint in whitelisted_endpoints:
             return
 
-        # 2. Allow path-based overrides for extra safety
+        # 2. THE TITAN WELD: Priority JWT Bypass (Moved to Top)
+        # If the global_jwt_verification already found a valid token, 
+        # STOP checking for cookies. Safari will NEVER give you a cookie.
+        if getattr(request, 'session_token_verified', False):
+            app.logger.debug(f"Handshake Secured: Trusting JWT for {request.path}")
+            return 
+
+        # 3. Allow path-based overrides for extra safety
         whitelist_paths = ["/static", "/debug", "/oauth/", "/auth/", "/webhook/", "/favicon.ico", "/health"]
         if any(request.path.startswith(path) for path in whitelist_paths):
             return
@@ -844,15 +851,7 @@ def create_app():
         if getattr(g, 'current_user', None) and g.current_user.is_authenticated:
             return
 
-        # 3. Identity Integrity Check (URL vs Session vs JWT)
-        jwt_verified = getattr(request, 'session_token_verified', False)
-
-        # TITAN OVERRIDE: If JWT is verified, we bypass the cookie-based session checks entirely.
-        if jwt_verified:
-            app.logger.debug(f"TITAN [BYPASS] Trusting JWT for {request.path}. Skipping session check.")
-            return # <--- This is the weld that stops the logout loop.
-
-        # Only proceed to session checks if JWT is NOT present/verified
+        # 4. Identity Integrity Check (URL vs Session vs JWT)
         url_shop = request.args.get("shop")
         session_shop = session.get("shop_domain")
 
