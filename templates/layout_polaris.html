@@ -411,6 +411,22 @@
         </footer>
     </div>
     <!-- End .page-wrapper -->
+    <!-- Automated Verification: Safety Catch -->
+    <script>
+        if (typeof window.openPage !== 'function') {
+            console.warn("🚨 ALERT: openPage not found. Force-loading fallback.");
+            // Log this failure immediately
+            fetch('/api/log_error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    error_type: 'GhostFunctionError',
+                    error_message: 'FATAL: window.openPage is missing after load',
+                    error_location: 'layout_polaris.html'
+                })
+            }).catch(e => console.error("Failed to log fallback warning:", e));
+        }
+    </script>
 </body>
 
 </html>

@@ -24,11 +24,11 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // CRITICAL: Navigation helper for tabs and external links
-// This fixes the "ReferenceError: Can't find variable: openPage" bug
+// This ensures the function is globally accessible even in nested Shopify iframes
 window.openPage = function (pageName, elmnt, color) {
-    console.log("Navigating to:", pageName);
+    console.log("Switching to page:", pageName);
 
-    // 1. If it's a URL, navigate using App Bridge
+    // 0. Handle External Links/App Bridge
     if (pageName.startsWith('/') || pageName.startsWith('http')) {
         if (window.appNavigate) {
             window.appNavigate(pageName);
@@ -38,26 +38,35 @@ window.openPage = function (pageName, elmnt, color) {
         return;
     }
 
-    // 2. If it's a Tab ID, switch tabs
-    var i, tabcontent, tablinks;
-    tabcontent = document.getElementsByClassName("tabcontent");
-    for (i = 0; i < tabcontent.length; i++) {
+    // 1. Hide all elements with class="tabcontent"
+    const tabcontent = document.getElementsByClassName("tabcontent");
+    for (let i = 0; i < tabcontent.length; i++) {
         tabcontent[i].style.display = "none";
     }
-    tablinks = document.getElementsByClassName("tablink");
-    for (i = 0; i < tablinks.length; i++) {
+
+    // 2. Remove the background color of all tablinks/buttons
+    const tablinks = document.getElementsByClassName("tablink");
+    for (let i = 0; i < tablinks.length; i++) {
         tablinks[i].style.backgroundColor = "";
     }
 
-    var targetTab = document.getElementById(pageName);
-    if (targetTab) {
-        targetTab.style.display = "block";
-    }
-
-    if (elmnt) {
-        elmnt.style.backgroundColor = color || "";
+    // 3. Show the specific tab content
+    const targetPage = document.getElementById(pageName);
+    if (targetPage) {
+        targetPage.style.display = "block";
+        if (elmnt) elmnt.style.backgroundColor = color;
+    } else {
+        console.error("Tab content ID not found:", pageName);
     }
 };
+
+// Set the default tab on load
+document.addEventListener("DOMContentLoaded", function () {
+    const defaultTab = document.getElementById("defaultOpen");
+    if (defaultTab) {
+        defaultTab.click();
+    }
+});
 
 function initializeApp() {
     // Initialize App Bridge
