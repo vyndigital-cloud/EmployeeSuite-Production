@@ -22,7 +22,7 @@ from input_validation import sanitize_input, validate_url
 from logging_config import logger
 from models import ShopifyStore, db
 from session_token_verification import verify_session_token
-from shopify_utils import normalize_shop_url
+from shopify_utils import normalize_shop_url, app_bridge_redirect
 
 shopify_bp = Blueprint("shopify", __name__)
 
@@ -62,7 +62,7 @@ def shopify_settings():
     if not shop:
         # If we STILL don't have it, log a CRITICAL failure for the CCTV
         logger.error("🚨 CCTV CRITICAL: Identity recovery failed. Redirecting to manual login.")
-        return redirect(url_for('auth.login'))
+        return app_bridge_redirect(url_for('auth.login'))
 
     # 2. Force identity sync: Ensure Flask-Login matches the JWT shop
     # CRITICAL: Only trust this sync if the session token was actually verified
@@ -86,7 +86,7 @@ def shopify_settings():
         install_url = get_install_url(shop)
         if host:
             install_url += f"&host={host}"
-        return redirect(install_url)
+        return app_bridge_redirect(install_url)
     # Get user's store
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
 
@@ -406,7 +406,7 @@ def disconnect_store():
 
     if not shop:
         logger.error("Disconnect: No shop domain in verified JWT!")
-        return redirect(url_for("auth.login", error="Identity verification failed"))
+        return app_bridge_redirect(url_for("auth.login", error="Identity verification failed"))
 
     # Since @require_zero_trust is present, current_user IS authenticated
     # BUT we just logged them out above. We need to find the store by the verified shop.
@@ -414,12 +414,12 @@ def disconnect_store():
     
     if not store:
         logger.warning(f"Disconnect: No active store found for {shop}")
-        return redirect(url_for("auth.login", success="Store already disconnected.", shop=shop, host=host))
+        return app_bridge_redirect(url_for("auth.login", success="Store already disconnected.", shop=shop, host=host))
 
     user = store.user
     if not user:
         logger.error(f"Disconnect: Store {shop} has no associated user")
-        return redirect(url_for("auth.login", error="Account integrity error"))
+        return app_bridge_redirect(url_for("auth.login", error="Account integrity error"))
         return redirect(
             url_for(
                 "shopify.shopify_settings",
@@ -449,7 +449,7 @@ def disconnect_store():
             ]
             for key in shopify_keys:
                 session.pop(key, None)
-            return redirect(
+            return app_bridge_redirect(
                 url_for(
                     "shopify.shopify_settings",
                     error="Please log in to disconnect your store.",
@@ -472,7 +472,7 @@ def disconnect_store():
         ]
         for key in shopify_keys:
             session.pop(key, None)
-        return redirect(
+        return app_bridge_redirect(
             url_for(
                 "shopify.shopify_settings",
                 error="No active store found to disconnect.",

@@ -34,6 +34,7 @@ from access_control import require_access
 
 # Deferred imports moved inside functions for faster startup
 from utils import safe_redirect
+from shopify_utils import app_bridge_redirect
 
 
 @core_bp.route("/admin")
@@ -349,30 +350,7 @@ def home():
                     # No active store found - send to settings where they can reconnect
                     logger.info(f"Embedded app accessed without active store for {shop}, redirecting to settings")
                     target_path = url_for("shopify.shopify_settings")
-                    api_key = os.getenv("SHOPIFY_API_KEY", "")
-                    return f'''
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
-                            <script>
-                                var AppBridge = window['app-bridge'];
-                                var createApp = AppBridge.default;
-                                var actions = AppBridge.actions;
-                                var Redirect = actions.Redirect;
-
-                                var app = createApp({{
-                                    apiKey: "{api_key}",
-                                    host: new URLSearchParams(location.search).get("host"),
-                                }});
-
-                                var redirect = Redirect.create(app);
-                                redirect.dispatch(Redirect.Action.APP, "{target_path}");
-                            </script>
-                        </head>
-                        <body><p>Connecting store... <a href="{target_path}">Click here if not redirected</a></p></body>
-                        </html>
-                    ''', 200
+                    return app_bridge_redirect(target_path)
             except Exception as db_error:
                 logger.error(f"Database error checking store: {db_error}")
                 # Continue anyway - might be a temporary DB issue

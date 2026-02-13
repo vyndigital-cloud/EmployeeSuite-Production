@@ -4,6 +4,7 @@ Centralized logic for safe GID parsing, type conversion, and common helpers.
 Helps prevent 500 errors from invalid input formats.
 """
 import re
+import os
 from typing import Optional, Union, Any
 from flask import request, session
 
@@ -276,3 +277,31 @@ def truncate_string(text: str, max_length: int = 50, suffix: str = '...') -> str
         return text
         
     return text[:max_length - len(suffix)] + suffix
+
+
+def app_bridge_redirect(url: str):
+    """
+    Return a JavaScript snippet to trigger an App Bridge redirect.
+    Bypasses the backend 302 redirect to avoid whitelist checks.
+    """
+    api_key = os.environ.get("SHOPIFY_API_KEY", "")
+    return f'''
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {{
+                    if (window.shopify) {{
+                        // App Bridge v4 automatically handles navigation
+                        window.location.href = '{url}';
+                    }} else {{
+                        // Fallback
+                        window.location.href = '{url}';
+                    }}
+                }});
+            </script>
+        </head>
+        <body>Redirecting...</body>
+    </html>
+    '''

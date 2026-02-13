@@ -19,23 +19,23 @@ var debounceTimers = {
 };
 
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initializeApp();
 });
 
 function initializeApp() {
     // Initialize App Bridge
     initializeAppBridge();
-    
+
     // Initialize error logging
     initializeErrorLogging();
-    
+
     // Set up event listeners
     setupEventListeners();
-    
+
     // Initialize network status
     updateConnectionStatus();
-    
+
     console.log('Dashboard JavaScript fully initialized');
 }
 
@@ -64,19 +64,19 @@ function initializeAppBridge() {
         initAttempts++;
         if (window.shopify && window.shopify.idToken) {
             window.shopifyApp = window.shopify;
-            
+
             // CRITICAL: Get session token for API authentication
             try {
                 window.sessionToken = window.shopify.idToken();
                 console.log('Session token retrieved successfully');
-                
+
                 // Override fetch to automatically include session token
                 setupSessionTokenFetch();
-                
+
             } catch (e) {
                 console.error('Failed to get session token:', e);
             }
-            
+
             window.appBridgeReady = true;
             return;
         }
@@ -93,21 +93,21 @@ function initializeAppBridge() {
 function setupSessionTokenFetch() {
     // Store original fetch
     var originalFetch = window.fetch;
-    
+
     // Override fetch to include session token
-    window.fetch = function(url, options) {
+    window.fetch = function (url, options) {
         options = options || {};
-        
+
         // Only add token for API calls to our server
         if (url.startsWith('/api/') || url.startsWith('/admin/')) {
             options.headers = options.headers || {};
-            
+
             // Add session token if available
             if (window.sessionToken) {
                 options.headers['Authorization'] = 'Bearer ' + window.sessionToken;
             }
         }
-        
+
         return originalFetch.call(this, url, options);
     };
 }
@@ -140,10 +140,10 @@ function initializeErrorLogging() {
 
             fetch('/api/log_error', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(errorLog),
                 credentials: 'include'
-            }).catch(function(err) {
+            }).catch(function (err) {
                 originalConsoleError.call(console, 'Failed to log error to backend:', err);
             });
         } catch (e) {
@@ -154,7 +154,7 @@ function initializeErrorLogging() {
     }
 
     // Global error handler
-    window.addEventListener('error', function(event) {
+    window.addEventListener('error', function (event) {
         logJavaScriptError(
             'JavaScriptError',
             event.message || 'Unknown error',
@@ -169,7 +169,7 @@ function initializeErrorLogging() {
     }, true);
 
     // Unhandled promise rejection handler
-    window.addEventListener('unhandledrejection', function(event) {
+    window.addEventListener('unhandledrejection', function (event) {
         var error = event.reason;
         var errorMessage = error ? (error.message || error.toString() || 'Unhandled promise rejection') : 'Unknown promise rejection';
         var stackTrace = error && error.stack ? error.stack : 'No stack trace';
@@ -192,7 +192,7 @@ function initializeErrorLogging() {
 // Set up all event listeners
 function setupEventListeners() {
     // Button click handling with event delegation
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         var btn = e.target.closest('.card-btn[data-action]');
         if (!btn) return;
 
@@ -216,11 +216,11 @@ function setupEventListeners() {
     });
 
     // Network status listeners
-    window.addEventListener('online', function() {
+    window.addEventListener('online', function () {
         updateConnectionStatus();
     });
-    
-    window.addEventListener('offline', function() {
+
+    window.addEventListener('offline', function () {
         updateConnectionStatus();
     });
 }
@@ -271,20 +271,20 @@ function showLoading(message) {
 }
 
 // Global function to show subscribe prompt
-window.showSubscribePrompt = function() {
+window.showSubscribePrompt = function () {
     var outputEl = document.getElementById('output');
     if (!outputEl) return;
-    
+
     // Get shop/host params for URL
     var params = new URLSearchParams(window.location.search);
     var shop = params.get('shop') || window.SHOP_PARAM || '';
     var host = params.get('host') || window.HOST_PARAM || '';
-    
+
     var subscribeUrl = '/subscribe';
     var sep = '?';
     if (shop) { subscribeUrl += sep + 'shop=' + encodeURIComponent(shop); sep = '&'; }
     if (host) { subscribeUrl += sep + 'host=' + encodeURIComponent(host); }
-    
+
     outputEl.innerHTML = `
         <div style="padding: 40px; background: #fff; border-radius: 16px; border: 1px solid #e5e7eb; text-align: center; animation: fadeIn 0.3s ease-in; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
             <div style="margin-bottom: 20px; display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background: #FEF2F2; border-radius: 50%;">
@@ -309,41 +309,41 @@ function cancelPreviousRequest(requestType) {
 }
 
 // API functions - comprehensive implementations
-window.processOrders = function(button) {
+window.processOrders = function (button) {
     if (debounceTimers.processOrders) return;
-    
+
     if (!navigator.onLine) {
         showErrorMessage('No internet connection. Please check your network and try again.');
         return;
     }
-    
+
     cancelPreviousRequest('processOrders');
     setButtonLoading(button, true);
     showLoading('Loading orders...');
-    
+
     var controller = new AbortController();
     activeRequests.processOrders = controller;
-    
+
     var apiUrl = '/api/process_orders';
     if (window.SHOP_PARAM) {
         apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
     }
-    
-    var fetchOptions = { 
+
+    var fetchOptions = {
         credentials: 'include',
         signal: controller.signal
     };
-    
+
     // CRITICAL: Add session token for embedded apps
     if (window.sessionToken) {
         fetchOptions.headers = fetchOptions.headers || {};
         fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
     }
-    
+
     fetch(apiUrl, fetchOptions)
         .then(r => {
             if (controller.signal.aborted) return null;
-            
+
             // Handle session token expiry
             if (r.status === 401 && window.shopify && window.shopify.idToken) {
                 // Refresh token and retry
@@ -356,16 +356,16 @@ window.processOrders = function(button) {
                     console.error('Token refresh failed:', e);
                 }
             }
-            
+
             if (!r.ok) throw new Error('Request failed');
             return r.json();
         })
         .then(d => {
             if (!d) return;
-            
+
             setButtonLoading(button, false);
             activeRequests.processOrders = null;
-            
+
             if (d.success) {
                 document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Orders Loaded</h3><div style="margin-top: 12px;">' + (d.html || d.message || 'Orders processed successfully') + '</div></div>';
             } else if (d.action === 'subscribe') {
@@ -382,41 +382,41 @@ window.processOrders = function(button) {
         });
 };
 
-window.updateInventory = function(button) {
+window.updateInventory = function (button) {
     if (debounceTimers.updateInventory) return;
-    
+
     if (!navigator.onLine) {
         showErrorMessage('No internet connection. Please check your network and try again.');
         return;
     }
-    
+
     cancelPreviousRequest('updateInventory');
     setButtonLoading(button, true);
     showLoading('Loading inventory...');
-    
+
     var controller = new AbortController();
     activeRequests.updateInventory = controller;
-    
+
     var apiUrl = '/api/update_inventory';
     if (window.SHOP_PARAM) {
         apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
     }
-    
-    var fetchOptions = { 
+
+    var fetchOptions = {
         credentials: 'include',
         signal: controller.signal
     };
-    
+
     // CRITICAL: Add session token for embedded apps
     if (window.sessionToken) {
         fetchOptions.headers = fetchOptions.headers || {};
         fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
     }
-    
+
     fetch(apiUrl, fetchOptions)
         .then(r => {
             if (controller.signal.aborted) return null;
-            
+
             // Handle session token expiry
             if (r.status === 401 && window.shopify && window.shopify.idToken) {
                 // Refresh token and retry
@@ -429,16 +429,16 @@ window.updateInventory = function(button) {
                     console.error('Token refresh failed:', e);
                 }
             }
-            
+
             if (!r.ok) throw new Error('Request failed');
             return r.json();
         })
         .then(d => {
             if (!d) return;
-            
+
             setButtonLoading(button, false);
             activeRequests.updateInventory = null;
-            
+
             if (d.success) {
                 document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Inventory Updated</h3><div style="margin-top: 12px;">' + (d.html || d.message || 'Inventory updated successfully') + '</div></div>';
             } else if (d.action === 'subscribe') {
@@ -455,41 +455,41 @@ window.updateInventory = function(button) {
         });
 };
 
-window.generateReport = function(button) {
+window.generateReport = function (button) {
     if (debounceTimers.generateReport) return;
-    
+
     if (!navigator.onLine) {
         showErrorMessage('No internet connection. Please check your network and try again.');
         return;
     }
-    
+
     cancelPreviousRequest('generateReport');
     setButtonLoading(button, true);
     showLoading('Generating report...');
-    
+
     var controller = new AbortController();
     activeRequests.generateReport = controller;
-    
+
     var apiUrl = '/api/generate_report';
     if (window.SHOP_PARAM) {
         apiUrl += '?shop=' + encodeURIComponent(window.SHOP_PARAM);
     }
-    
-    var fetchOptions = { 
+
+    var fetchOptions = {
         credentials: 'include',
         signal: controller.signal
     };
-    
+
     // CRITICAL: Add session token for embedded apps
     if (window.sessionToken) {
         fetchOptions.headers = fetchOptions.headers || {};
         fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
     }
-    
+
     fetch(apiUrl, fetchOptions)
         .then(r => {
             if (controller.signal.aborted) return null;
-            
+
             // Handle session token expiry
             if (r.status === 401 && window.shopify && window.shopify.idToken) {
                 // Refresh token and retry
@@ -502,16 +502,16 @@ window.generateReport = function(button) {
                     console.error('Token refresh failed:', e);
                 }
             }
-            
+
             if (!r.ok) throw new Error('Request failed');
             return r.json();
         })
         .then(d => {
             if (!d) return;
-            
+
             setButtonLoading(button, false);
             activeRequests.generateReport = null;
-            
+
             if (d.success) {
                 document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Revenue Report Generated</h3><div style="margin-top: 12px;">' + (d.html || d.message || 'Report generated successfully') + '</div></div>';
             } else if (d.action === 'subscribe') {
@@ -529,25 +529,30 @@ window.generateReport = function(button) {
 };
 
 // Navigation helper
-window.openPage = function(path) {
+// Navigation helper - Single Entry Point
+window.internalNav = function (path) {
     var params = new URLSearchParams(window.location.search);
-    var shop = params.get('shop');
-    var host = params.get('host');
+    var shop = params.get('shop') || window.SHOP_PARAM;
+    var host = params.get('host') || window.HOST_PARAM;
     var embedded = params.get('embedded') || (host ? '1' : '');
 
     var sep = path.indexOf('?') > -1 ? '&' : '?';
     var dest = path;
 
-    if (shop) dest += sep + 'shop=' + shop;
-    if (host) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'host=' + host;
-    if (embedded) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'embedded=' + embedded;
+    if (shop && dest.indexOf('shop=') === -1) dest += sep + 'shop=' + encodeURIComponent(shop);
+    if (host && dest.indexOf('host=') === -1) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'host=' + encodeURIComponent(host);
 
+    // App Bridge v4 automatically intercepts this if initialized
+    console.log('Navigating to:', dest);
     window.location.href = dest;
     return false;
 };
 
+// Alias for compatibility
+window.openPage = window.internalNav;
+
 // Handle resource loading errors gracefully
-window.addEventListener('error', function(e) {
+window.addEventListener('error', function (e) {
     if (e.target && (e.target.tagName === 'LINK' || e.target.tagName === 'SCRIPT')) {
         console.warn('Resource failed to load:', e.target.src || e.target.href);
         return;
@@ -563,7 +568,7 @@ function escapeHtml(text) {
         '"': '&quot;',
         "'": '&#039;'
     };
-    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    return text.replace(/[&<>"']/g, function (m) { return map[m]; });
 }
 
 // Safe HTML builder for dynamic content
