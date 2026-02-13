@@ -801,6 +801,26 @@ def create_app():
             request.session_token_verified = getattr(request, 'session_token_verified', False)
 
     # ============================================================================
+    # DEATH-PROOF LOGGING SWITCH
+    # ============================================================================
+    @app.route('/api/debug', methods=['POST'])
+    def debug_gate():
+        """
+        THE SIGNAL: Zero-auth, Zero-middleware logging endpoint.
+        If this hits, the network is good.
+        If the log is empty, the browser is failing before fetch.
+        If this 404s, the path is wrong.
+        """
+        # NO AUTH. NO SESSION. NO JUNK.
+        try:
+            data = request.get_json(force=True, silent=True)
+            print(f"!!! REAL ERROR DETECTED: {data}") # This goes to Render logs no matter what
+            return jsonify({"status": "received"}), 200
+        except Exception as e:
+            print(f"!!! DEBUG GATE ERROR: {e}")
+            return jsonify({"status": "error", "message": str(e)}), 200
+
+    # ============================================================================
     # GLOBAL ZERO-TRUST HARD-LOCK MIDDLEWARE
     # ============================================================================
     @app.before_request
@@ -827,7 +847,8 @@ def create_app():
             'gdpr_compliance.customers_data_request',
             'gdpr_compliance.customers_redact',
             'gdpr_compliance.shop_redact',
-            'health'
+            'health',
+            'debug_gate'
         ]
         
         # 1. Allow Whitelisted Endpoints immediately
