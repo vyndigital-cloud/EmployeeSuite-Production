@@ -23,6 +23,42 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeApp();
 });
 
+// CRITICAL: Navigation helper for tabs and external links
+// This fixes the "ReferenceError: Can't find variable: openPage" bug
+window.openPage = function (pageName, elmnt, color) {
+    console.log("Navigating to:", pageName);
+
+    // 1. If it's a URL, navigate using App Bridge
+    if (pageName.startsWith('/') || pageName.startsWith('http')) {
+        if (window.appNavigate) {
+            window.appNavigate(pageName);
+        } else {
+            window.location.href = pageName;
+        }
+        return;
+    }
+
+    // 2. If it's a Tab ID, switch tabs
+    var i, tabcontent, tablinks;
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+    tablinks = document.getElementsByClassName("tablink");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].style.backgroundColor = "";
+    }
+
+    var targetTab = document.getElementById(pageName);
+    if (targetTab) {
+        targetTab.style.display = "block";
+    }
+
+    if (elmnt) {
+        elmnt.style.backgroundColor = color || "";
+    }
+};
+
 function initializeApp() {
     // Initialize App Bridge
     initializeAppBridge();

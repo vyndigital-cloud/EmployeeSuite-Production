@@ -204,6 +204,37 @@
 </div>
 {% endblock %} {% block scripts %}
 <script>
+    // AUTOMATED VERIFICATION: Check for required functions on load
+    window.onload = function() {
+        // Allow time for all scripts to load
+        setTimeout(() => {
+            const requiredFunctions = ['openPage', 'processOrders', 'updateInventory', 'generateReport'];
+            const missingFunctions = [];
+            
+            requiredFunctions.forEach(fn => {
+                if (typeof window[fn] !== 'function') {
+                    console.error(`CRITICAL: ${fn} is missing! Stopping execution.`);
+                    missingFunctions.push(fn);
+                    
+                    // Send a high-priority alert to your logger
+                    fetch('/api/log_error', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            error_type: 'GhostFunctionError',
+                            error_message: `FATAL: ${fn} missing on load`,
+                            error_location: 'dashboard.html'
+                        })
+                    }).catch(e => console.error("Failed to log ghost function:", e));
+                }
+            });
+            
+            if (missingFunctions.length === 0) {
+                console.log("✅ All core functions verified.");
+            }
+        }, 1000);
+    };
+
     function showAlert(message, type) {
         const container = document.getElementById("alert-container");
         const alert = document.createElement("div");
