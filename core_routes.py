@@ -19,6 +19,7 @@ from flask import (
     request,
     session,
     url_for,
+    current_app,
 )
 from flask_login import current_user
 from session_token_verification import verify_session_token
@@ -476,6 +477,7 @@ def home():
             host=host or "",
             plan_name="Employee Suite Pro",
             plan_price=39,
+            api_key=current_app.config.get("SHOPIFY_API_KEY", "")
         )
         
     except Exception as e:

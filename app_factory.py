@@ -28,6 +28,8 @@ def create_app():
             "SECRET_KEY": os.getenv(
                 "SECRET_KEY", "dev-secret-key-change-in-production"
             ),
+            "SHOPIFY_API_KEY": os.getenv("SHOPIFY_API_KEY", ""),
+            "SHOPIFY_API_SECRET": os.getenv("SHOPIFY_API_SECRET", ""),
             "SQLALCHEMY_DATABASE_URI": os.getenv("DATABASE_URL", "sqlite:///app.db"),
             "SQLALCHEMY_TRACK_MODIFICATIONS": False,
             "SQLALCHEMY_ENGINE_OPTIONS": os.getenv(
