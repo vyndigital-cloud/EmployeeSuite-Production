@@ -1,0 +1,2479 @@
+# CONTEXT FOR GEMINI
+
+================================================================================
+# FILE: app_factory.py
+================================================================================
+"""
+Simple App Factory
+"""
+
+import logging
+import os
+import time
+import signal
+import sys
+import traceback
+from datetime import timedelta
+
+from flask import Flask, request, jsonify, g, session, redirect, url_for, render_template_string, current_app
+from werkzeug.middleware.proxy_fix import ProxyFix
+from models import db, User, ShopifyStore
+
+
+def create_app():
+    """Create Flask app with comprehensive error handling"""
+    app = Flask(__name__)
+    app.static_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), "static")
+    app.static_url_path = "/static"
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+    # Enhanced config
+    app.config.update(
+        {
+            "SECRET_KEY": os.getenv(
+                "SECRET_KEY", "dev-secret-key-change-in-production"
+            ),
+            "SQLALCHEMY_DATABASE_URI": os.getenv("DATABASE_URL", "sqlite:///app.db"),
+            "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+            "SQLALCHEMY_ENGINE_OPTIONS": {
+                "pool_size": 10,
+                "max_overflow": 20,
+                "pool_pre_ping": True,
+                "pool_recycle": 3600,
+            },
+            "WTF_CSRF_ENABLED": True,
+            "WTF_CSRF_TIME_LIMIT": 3600,
+            # Session cookie configuration for login persistence
+            "SESSION_COOKIE_SECURE": True,    # CRITICAL: Mandatory for SameSite=None
+            "SESSION_COOKIE_HTTPONLY": True,  # Prevent JavaScript access
+            "SESSION_COOKIE_SAMESITE": "None",  # CRITICAL: Mandatory for Embedded Apps
+            "SESSION_COOKIE_DOMAIN": None,  # Don't restrict domain for flexibility
+            "SESSION_COOKIE_PATH": "/",  # Available on all paths
+            "REMEMBER_COOKIE_SECURE": True,
+            "REMEMBER_COOKIE_HTTPONLY": True,
+            "REMEMBER_COOKIE_SAMESITE": "None",  # CRITICAL FIX: None for cross-site compatibility
+            "REMEMBER_COOKIE_DURATION": 2592000,  # 30 days
+            "SESSION_COOKIE_NAME": "__Host-session",
+            "PERMANENT_SESSION_LIFETIME": timedelta(days=7),  # Safari Grace: 7 days for iframe
+            # Server-side Session Config
+            "SESSION_TYPE": os.getenv(
+                "SESSION_TYPE", "sqlalchemy"
+            ),  # Default to DB if not set
+            "SESSION_PERMANENT": True,
+            "SESSION_USE_SIGNER": True,
+            "SESSION_KEY_PREFIX": "missioncontrol:session:",
+            # TITAN: Static Asset Latency Fix
+            "SEND_FILE_MAX_AGE_DEFAULT": 31536000,  # 1 year caching for CSS/JS
+        }
+    )
+
+    # Initialize database with error handling FIRST
+    try:
+        from models import db
+
+        db.init_app(app)
+
+        # Auto-run database migrations on startup (production-safe)
+        with app.app_context():
+            try:
+                from sqlalchemy import inspect, text
+
+                inspector = inspect(db.engine)
+                columns = [col["name"] for col in inspector.get_columns("users")]
+
+                if "trial_started_at" not in columns:
+                    app.logger.info("🔧 Adding missing trial_started_at column...")
+                    db.session.execute(
+                        text("""
+                        ALTER TABLE users
+                        ADD COLUMN trial_started_at TIMESTAMP WITH TIME ZONE
+                    """)
+                    )
+                    db.session.commit()
+                    app.logger.info("✅ Successfully added trial_started_at column")
+
+                if "current_store_id" not in columns:
+                    app.logger.info("🔧 Adding missing current_store_id column to users...")
+                    db.session.execute(
+                        text("""
+                        ALTER TABLE users
+                        ADD COLUMN current_store_id INTEGER REFERENCES shopify_stores(id) ON DELETE SET NULL
+                    """)
+                    )
+                    db.session.commit()
+                    app.logger.info("✅ Successfully added current_store_id column")
+                
+                app.logger.debug("✅ Database schema up to date")
+            except Exception as migration_error:
+                app.logger.warning(
+                    f"Migration check failed (non-critical): {migration_error}"
+                )
+                # Don't crash the app if migration fails - it might already exist
+                try:
+                    db.session.rollback()
+                except:
+                    pass
+
+    except ImportError:
+        # Fallback database initialization
+        from flask_sqlalchemy import SQLAlchemy
+
+        db = SQLAlchemy()
+        db.init_app(app)
+
+    # KILLED SERVER SESSIONS: No longer using Flask-Session or Redis/SQLAlchemy sessions.
+    # We are now Level 100 Stateless JWT (Shopify Session Tokens).
+    app.config["SESSION_TYPE"] = None
+
+    # Initialize login manager
+    try:
+        from flask_login import LoginManager
+
+        login_manager = LoginManager()
+        login_manager.init_app(app)
+        login_manager.login_view = "auth.login"
+
+        @login_manager.user_loader
+        def load_user(user_id):
+            try:
+                from models import User
+
+                return User.query.get(int(user_id))
+            except Exception as e:
+                app.logger.error(f"Error loading user {user_id}: {e}")
+                return None
+
+        @login_manager.request_loader
+        def load_user_from_request(request):
+            """
+            Load user from request - LEVEL 100 Stateless JWT (Shopify Session Tokens).
+            Mandatory: RETURN None on failure, NEVER redirect().
+            """
+            from sqlalchemy.orm import joinedload
+            from models import User, ShopifyStore, db
+
+            # 1. TITAN: Trust id_token (JWT) from Shopify - Absolute Priority
+            id_token = request.args.get("id_token") or request.headers.get("Authorization", "").replace("Bearer ", "")
+            if id_token:
+                try:
+                    from session_token_verification import verify_session_token_stateless
+                    payload = verify_session_token_stateless(id_token)
+                    if payload:
+                        # sub is the Shopify User ID / Shop Domain linkage
+                        shop = payload.get("dest", "").replace("https://", "").split("/")[0]
+                        if shop:
+                            # Flag request as verified for middleware downstream
+                            request.session_token_verified = True
+                            request.shop_domain = shop
+                            
+                            # [RE-WELD] Priority 1: Active Store
+                            store = db.session.query(ShopifyStore).options(joinedload(ShopifyStore.user)).filter(
+                                ShopifyStore.shop_url == shop, 
+                                ShopifyStore.is_active == True
+                            ).first()
+                            
+                            # [RE-WELD] Priority 2: Inactive Store (Deep Recovery)
+                            if not store:
+                                store = db.session.query(ShopifyStore).options(joinedload(ShopifyStore.user)).filter(
+                                    ShopifyStore.shop_url == shop
+                                ).first()
+                                if store:
+                                    app.logger.info(f"TITAN [RE-WELD] JWT Valid, recovered User {store.user_id} via inactive Store {shop}")
+
+                            if store and store.user:
+                                app.logger.info(f"TITAN [JWT_TRUST] Authenticated User {store.user.id} via id_token")
+                                
+                                # FIX FLIP-FLOP: Persist verification in session
+                                from flask_login import login_user
+                                login_user(store.user, remember=False)
+                                
+                                # Set session to prevent re-verification on every request
+                                session["_user_id"] = store.user.id
+                                session["shop_domain"] = shop
+                                session["shop"] = shop
+                                session.permanent = True
+                                session.modified = True
+                                
+                                # Memoize for this request
+                                g.current_user = store.user
+                                g.current_store = store
+                                
+                                return store.user
+                except Exception as je:
+                    app.logger.debug(f"Seamless id_token trust failed: {je}")
+
+            # 2. Check session cookie - FALLBACK
+            user_id = session.get("_user_id")
+            if user_id:
+                try:
+                    # [LATENCY CRUSH] Fetch User and their Welded Store in a SINGLE JOIN
+                    user = db.session.query(User).options(joinedload(User.current_store)).get(int(user_id))
+                    if user:
+                        # Memoize for global access
+                        g.current_store = user.current_store
+                        # Sync shop_domain to request for middleware consistency
+                        if user.current_store:
+                            request.shop_domain = user.current_store.shop_url
+                        return user
+                except Exception as e:
+                    app.logger.debug(f"Session-based user load failed: {e}")
+
+            # 3. Check HMAC for OAuth flow (fallback)
+            shop = request.args.get("shop")
+            if shop and request.args.get("hmac"):
+                from shopify_oauth import verify_hmac
+                if not verify_hmac(request.args):
+                    app.logger.warning(f"Invalid HMAC attempt for shop: {shop}")
+                    return None
+
+                from shopify_utils import normalize_shop_url
+                shop = normalize_shop_url(shop)
+                from config import DEV_SHOP_DOMAIN
+                
+                # [RE-WELD] Priority 1: Active Store
+                store = db.session.query(ShopifyStore).options(joinedload(ShopifyStore.user)).filter(
+                    ShopifyStore.shop_url == shop, 
+                    ShopifyStore.is_active == True
+                ).first()
+                
+                # [RE-WELD] Priority 2: Inactive Store (Deep Recovery)
+                if not store:
+                    store = db.session.query(ShopifyStore).options(joinedload(ShopifyStore.user)).filter(
+                        ShopifyStore.shop_url == shop
+                    ).first()
+                    if store:
+                        app.logger.info(f"TITAN [RE-WELD] HMAC Valid, recovered User {store.user_id} via inactive Store {shop}")
+
+                if store and store.user:
+                    from flask_login import login_user
+                    login_user(store.user, remember=False)
+                    
+                    # [TITAN] Global Memoization
+                    g.current_user = store.user
+                    g.current_store = store
+                    
+                    request.shop_domain = shop
+                    session["shop_domain"] = shop
+                    session["_user_id"] = store.user.id
+                    session["shop"] = shop
+                    session.permanent = True
+                    session.modified = True 
+
+                    app.logger.info(f"🔗 HMAC AUTH SUCCESS: User {store.user.id} authenticated for shop {shop}.")
+                    return store.user
+                else:
+                    app.logger.error(f"HMAC Valid for {shop} but associated user is missing.")
+                    return None
+
+            return None
+    except Exception as e:
+        app.logger.error(f"Failed to initialize login manager: {e}")
+        raise
+
+    # Setup logging
+    try:
+        from logging_config import setup_logging
+        setup_logging(app)
+    except ImportError:
+        logging.basicConfig(level=logging.INFO)
+        app.logger.setLevel(logging.INFO)
+
+    # ============================================================================
+    # TITAN MONITORING: Global Observer Layer
+    # ============================================================================
+    @app.before_request
+    def titan_observer_before():
+        """TITAN: Record start time and log incoming request"""
+        # Generate unique request ID for log correlation
+        from unified_error_boundary import generate_request_id
+        request_id = generate_request_id()
+        
+        # FAST TRACK: Bypass heavy logging for health check monitors (eliminate 600-700ms latency)
+        user_agent = request.headers.get('User-Agent', '')
+        if request.path == '/health' or 'Render' in user_agent or 'UptimeRobot' in user_agent:
+            # DEBUG level for noise
+            app.logger.debug(f"HEALTH_CHECK [{request_id}] {request.method} {request.path}")
+            return None
+        
+        # Skip static assets (DEBUG level)
+        if request.path.startswith('/static/') or request.path.endswith('.ico'):
+            app.logger.debug(f"STATIC [{request_id}] {request.path}")
+            return None
+        
+        g.titan_start_time = time.time()
+        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        
+        # INFO level for normal requests
+        app.logger.info(
+            f"TITAN [HIT] [{request_id}] {request.method} {request.path} | IP: {client_ip} | Referer: {request.referrer}"
+        )
+
+    @app.after_request
+    def titan_observer_after(response):
+        """TITAN: Calculate latency and log response status"""
+        from unified_error_boundary import generate_request_id
+        request_id = generate_request_id()
+        
+        # SILENCE THE NOISE: Don't log 200 OKs for health checks
+        if request.path == '/health' and response.status_code == 200:
+            return response
+        
+        if hasattr(g, 'titan_start_time'):
+            latency = time.time() - g.titan_start_time
+            latency_ms = int(latency * 1000)
+            
+            # Metadata enrichment
+            shop = getattr(g, 'shop_domain', request.args.get('shop', 'NONE'))
+            user_id = getattr(g, 'user_id', 'NONE')
+            status_code = response.status_code
+            
+            # Log level classification
+            if status_code >= 500:
+                # CRITICAL: Server errors
+                app.logger.critical(
+                    f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
+                    f"Status: {status_code} | Latency: {latency_ms}ms | "
+                    f"User: {user_id} | Shop: {shop}"
+                )
+            elif status_code >= 400:
+                # WARNING: Client errors
+                app.logger.warning(
+                    f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
+                    f"Status: {status_code} | Latency: {latency_ms}ms | "
+                    f"User: {user_id} | Shop: {shop}"
+                )
+            else:
+                # INFO: Success
+                app.logger.info(
+                    f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
+                    f"Status: {status_code} | Latency: {latency_ms}ms | "
+                    f"User: {user_id} | Shop: {shop}"
+                )
+        return response
+
+    # ============================================================================
+    # TITAN: Sentinel System Handlers
+    # ============================================================================
+    @app.errorhandler(404)
+    def titan_404_handler(error):
+        """TITAN: Enhanced 404 handler with referer tracking and security audit"""
+        from unified_error_boundary import generate_request_id
+        request_id = generate_request_id()
+        
+        # Classify: WARNING for API routes, DEBUG for assets
+        is_api_route = request.path.startswith('/api/') or request.path.startswith('/settings/')
+        is_asset = request.path.startswith('/static/') or request.path.endswith(('.ico', '.css', '.js', '.png', '.jpg'))
+        
+        shop = request.args.get('shop', 'NONE')
+        referer = request.referrer or 'NONE'
+        
+        if is_api_route:
+            # WARNING: Missing API endpoint
+            app.logger.warning(
+                f"🚧 MISSING_API_ROUTE [{request_id}] {request.method} {request.url} | "
+                f"Referer: {referer} | Shop: {shop}"
+            )
+            
+            # Log to security audit
+            try:
+                from security_audit import audit_logger
+                audit_logger.warning(
+                    f"404 on API route: {request.path} | Referer: {referer} | Shop: {shop}"
+                )
+            except ImportError:
+                pass
+                
+        elif is_asset:
+            # DEBUG: Missing static asset
+            app.logger.debug(f"MISSING_ASSET [{request_id}] {request.path} | Referer: {referer}")
+        else:
+            # INFO: Missing regular page
+            app.logger.info(f"MISSING_PAGE [{request_id}] {request.path} | Referer: {referer}")
+        
+        return jsonify({
+            'error': 'Not Found',
+            'message': 'The requested resource does not exist on the Titan node.',
+            'path': request.path,
+            'request_id': request_id
+        }), 404
+
+    @app.errorhandler(Exception)
+    @app.errorhandler(500)
+    def titan_500_handler(error):
+        """TITAN: Critical capture of all system crashes"""
+        tb = traceback.format_exc()
+        app.logger.critical(
+            f"TITAN [CRASH] {request.method} {request.path}\n{tb}"
+        )
+        
+        try:
+            from models import db
+            db.session.rollback()
+        except:
+            pass
+
+        return jsonify({
+            "error": "Titan System Failure",
+            "message": "An internal error was caught and logged by the Titan Observer.",
+            "traceback": tb.splitlines()[-1] if tb else "No traceback",
+            "success": False
+        }), 500
+
+    # TITAN: Last Breath Signal Handler
+    def titan_last_breath(sig, frame):
+        app.logger.info(f"TITAN [SIGNAL] Process {os.getpid()} received {sig}. Taking last breath... Reap confirmed.")
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, titan_last_breath)
+    signal.signal(signal.SIGINT, titan_last_breath)    
+    # === CONTEXT PROCESSORS ===
+    @app.context_processor
+    def inject_sentinel():
+        """
+        Sentinel Bot: Conditional diagnostic script injection
+        Activate via ?sentinel_mode=true or for specific test users
+        SKIP injection if token already present (prevents over-injection)
+        """
+        from flask import request
+        from flask_login import current_user
+        
+        # FIX: Skip Sentinel if token already present in URL or headers
+        id_token_in_url = request.args.get('id_token')
+        auth_header = request.headers.get('Authorization')
+        has_token = bool(id_token_in_url or auth_header)
+        
+        if has_token:
+            # Token present, Sentinel not needed
+            return dict(show_sentinel=False)
+        
+        # Check query parameter
+        sentinel_via_param = request.args.get('sentinel_mode') == 'true'
+        
+        # Check for specific test user (User 11 for JWT diagnostics)
+        sentinel_via_user = False
+        if current_user and current_user.is_authenticated:
+            # Only inject for User 11 (test account)
+            sentinel_via_user = getattr(current_user, 'id', None) == 11
+        
+        show_sentinel = sentinel_via_param or sentinel_via_user
+        
+        if show_sentinel:
+            app.logger.info(f"🤖 Sentinel Bot activated | Param: {sentinel_via_param} | User: {sentinel_via_user}")
+        
+        return dict(show_sentinel=show_sentinel)
+    
+    @app.context_processor
+    def inject_shopify_config():
+        """Globally inject Shopify Config for App Bridge 3.0+ actions"""
+        return {
+            "SHOPIFY_API_KEY": os.getenv("SHOPIFY_API_KEY", "")
+        }
+
+    # Register blueprints (with error handling for missing blueprints)
+    blueprints_to_register = [
+        ("shopify_oauth", "oauth_bp"),  # OAuth flow
+        ("core_routes", "core_bp"),
+        ("shopify_routes", "shopify_bp"),
+        ("webhook_shopify", "webhook_shopify_bp"),
+        ("client_telemetry", "client_telemetry_bp"),  # Client-side telemetry
+        ("billing", "billing_bp"),             # Shopify subscription billing
+        ("legal_routes", "legal_bp"),  # Privacy/Terms pages
+
+        ("enhanced_features", "enhanced_bp"),
+        ("admin_routes", "admin_bp"),
+        ("telemetry_routes", "telemetry_bp"),  # Sentinel Bot endpoint
+        ("auth", "auth_bp"),  # Authentication routes
+        ("gdpr_compliance", "gdpr_bp"),  # GDPR Webhooks - CRITICAL
+        # Removed: help_routes, profile_routes (files don't exist)
+    ]
+
+    registered_blueprints = []
+    failed_blueprints = []
+
+    for module_name, blueprint_name in blueprints_to_register:
+        try:
+            module = __import__(module_name)
+            blueprint = getattr(module, blueprint_name)
+
+            app.register_blueprint(blueprint)
+            registered_blueprints.append(blueprint_name)
+            app.logger.info(f"✅ Registered blueprint: {blueprint_name}")
+
+            # DEBUGGING: Special OAuth blueprint verification
+            if blueprint_name == "oauth_bp":
+                app.logger.info(f"🔍 OAuth blueprint registered successfully")
+                app.logger.info(f"  - Blueprint name: {blueprint.name}")
+                app.logger.info(f"  - URL prefix: {blueprint.url_prefix}")
+
+                # Check if routes are actually registered
+                oauth_routes = [
+                    rule
+                    for rule in app.url_map.iter_rules()
+                    if "oauth" in rule.endpoint
+                ]
+                app.logger.info(f"  - OAuth routes found: {len(oauth_routes)}")
+                for route in oauth_routes:
+                    app.logger.info(
+                        f"    * {route.endpoint}: {route.rule} {list(route.methods)}"
+                    )
+                app.logger.info(
+                    f"✅ OAuth blueprint registered - /auth/callback route should be available"
+                )
+
+        except (ImportError, AttributeError) as e:
+            failed_blueprints.append(f"{blueprint_name}: {str(e)}")
+            app.logger.warning(
+                f"❌ Could not register blueprint {blueprint_name} from {module_name}: {e}"
+            )
+
+            # Special handling for OAuth blueprint failure
+            if blueprint_name == "oauth_bp":
+                app.logger.error(
+                    f"❌ CRITICAL: OAuth blueprint failed to register - /auth/callback will return 404!"
+                )
+
+        except Exception as e:
+            # Catch any other blueprint registration errors
+            failed_blueprints.append(f"{blueprint_name}: CRITICAL ERROR - {str(e)}")
+            app.logger.error(
+                f"💥 CRITICAL ERROR registering blueprint {blueprint_name}: {e}"
+            )
+            # Don't raise here - continue with other blueprints
+
+    app.logger.info(
+        f"Blueprint registration complete: {len(registered_blueprints)} successful, {len(failed_blueprints)} failed"
+    )
+
+    if failed_blueprints:
+        app.logger.warning(f"Failed blueprints: {failed_blueprints}")
+        # Store failed blueprints info for debugging
+        app.config["FAILED_BLUEPRINTS"] = failed_blueprints
+
+    # Titan Sentinel Handlers have replaced legacy handlers.
+
+
+    # ============================================================================
+    # LEVEL 100 IDENTITY MIDDLEWARE (Stateless JWT / Context Extraction)
+    # ============================================================================
+    # Global 5-minute cache for shop identity (shop_domain -> (user_id, store_id, is_active, expiry))
+    app._shop_identity_cache = {}
+    @app.before_request
+    def extract_identity_context():
+        """
+        Global middleware to extract identity from JWT (Authorization: Bearer <token>)
+        or Shopify Headers/Params. Populates request.shop_domain and g.current_user.
+        """
+        # [EBAY-LEVEL] Skip identity checks for static files (Performance + Crash Prevention)
+        if request.endpoint == 'static' or request.path.startswith(('/static', '/health')):
+            return
+        
+        import time
+        from models import User, ShopifyStore, db  # Added db to prevent UnboundLocalError
+        from shopify_utils import normalize_shop_url
+        
+        now = time.time()
+        g.current_user = None
+        
+        # 1. Extract Shop Domain from all possible sources (Prioritize Header/Params)
+        shop = (
+            request.headers.get('X-Shopify-Shop-Domain') or
+            request.args.get('shop') or
+            request.form.get('shop') or
+            session.get('shop_domain') or
+            session.get('shop') or # Legacy session key fallback
+            'None'
+        )
+        
+        if shop != 'None':
+            request.shop_domain = normalize_shop_url(shop)
+        else:
+            request.shop_domain = None
+
+        # 2. Check 5-minute Cache for this shop
+        if request.shop_domain and request.shop_domain in app._shop_identity_cache:
+            user_id, store_id, is_active, expiry = app._shop_identity_cache[request.shop_domain]
+            if now < expiry and is_active:
+                try:
+                    from sqlalchemy.orm import joinedload
+                    # [LATENCY CRUSH] Single Join lookup for cached hit
+                    g.current_user = db.session.query(User).options(joinedload(User.current_store)).get(user_id)
+                    if g.current_user:
+                        g.current_store = g.current_user.current_store
+                        return # SUCCESS: Cache hit
+                except Exception as e:
+                    # [PRODUCTION HARDENING] Graceful degradation on DB hiccup
+                    app.logger.error(f"Identity cache lookup failed: {e}")
+                    g.current_user = None
+
+        # 3. Handle Stateless JWT (Authorization Header)
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            try:
+                from session_token_verification import verify_session_token_stateless
+                payload = verify_session_token_stateless(auth_header.split(" ")[1])
+                if payload:
+                    dest = payload.get("dest", "")
+                    request.shop_domain = dest.replace("https://", "").split("/")[0]
+            except Exception as e:
+                app.logger.debug(f"JWT stateless extraction failed: {e}")
+
+        # 4. Database Lookup & Cache Update
+        if request.shop_domain:
+            try:
+                from models import db
+                from sqlalchemy.orm import joinedload
+                # [HOTFIX] Explicit and Clean Lookup to avoid ambiguous FK stalls
+                store = db.session.query(ShopifyStore).options(joinedload(ShopifyStore.user)).filter(
+                    ShopifyStore.shop_url == request.shop_domain,
+                    ShopifyStore.is_active == True
+                ).first()
+                
+                if store and store.user:
+                    g.current_user = store.user
+                    g.current_store = store # TITAN MEMOIZATION
+                    # Update 5-minute Cache
+                    app._shop_identity_cache[request.shop_domain] = (
+                        g.current_user.id, store.id, store.is_active, now + 300
+                    )
+            except Exception as e:
+                # [PRODUCTION HARDENING] Graceful degradation on DB hiccup (SSL connection errors, etc.)
+                app.logger.error(f"Identity extraction DB lookup failed: {e}")
+                g.current_user = None
+
+        # 5. Last Fallback: Logged in user from Flask-Login
+        # Ensure we don't overwrite the global current_user proxy
+        from flask_login import current_user as login_manager_user
+        
+        # FIX: Check the login manager status safely
+        is_authed = False
+        try:
+            is_authed = login_manager_user.is_authenticated
+        except AttributeError:
+            is_authed = False
+
+        if not g.get('current_user') and is_authed:
+            g.current_user = login_manager_user
+
+    @app.before_request
+    def global_jwt_verification():
+        """
+        GLOBAL IDENTITY EXTRACTION: Performs JWT verification for every request.
+        Sets request.session_token_verified and request.shop_domain.
+        Also performs GLOBAL IDENTITY SYNC to ensure current_user matches JWT.
+        """
+        from flask import request
+        from flask_login import current_user, login_user
+        from models import ShopifyStore
+        from session_token_verification import get_bearer_token, verify_session_token_stateless
+
+        token = get_bearer_token() or request.args.get("id_token")
+        if token:
+            payload = verify_session_token_stateless(token)
+            if payload:
+                # [FINALITY] Extract shop domain ONLY from 'dest' payload
+                dest = payload.get("dest", "")
+                if not dest:
+                    app.logger.warning("Global JWT verification failed: Missing 'dest' in payload")
+                    request.session_token_verified = False
+                    return
+
+                shop_domain = dest.replace("https://", "").split("/")[0]
+                request.shop_domain = shop_domain
+                request.session_token_verified = True
+                app.logger.debug(f"Global JWT Verified (Legend Tier): {shop_domain}")
+                
+                # GLOBAL IDENTITY SYNC
+                try:
+                    # OPTIMIZATION: Skip DB lookup if user already authenticated for this shop
+                    if current_user.is_authenticated:
+                        # Check if current user's shop matches the token's shop
+                        if hasattr(current_user, 'current_store') and current_user.current_store:
+                            if current_user.current_store.shop_url == shop_domain:
+                                # Identity already synced, skip DB query (saves ~20-30ms)
+                                app.logger.debug(f"Identity Sync: User {current_user.id} already authenticated for {shop_domain} - skipping DB lookup")
+                                return
+                    
+                    # Only query DB if identity mismatch or not authenticated
+                    from config import DEV_SHOP_DOMAIN
+                    # Try active store, but allow Dev Safe-Pass
+                    store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
+                    if not store and shop_domain == DEV_SHOP_DOMAIN:
+                        store = ShopifyStore.query.filter_by(shop_url=shop_domain).first()
+                        
+                    if store and store.user:
+                        if not current_user.is_authenticated or current_user.id != store.user.id:
+                            app.logger.info(f"Identity Sync (Global JWT): Logging in {store.user.id} for {shop_domain}")
+                            login_user(store.user)
+                except Exception as e:
+                    app.logger.error(f"Global Identity Sync error: {e}")
+            else:
+                # Token present but invalid
+                request.session_token_verified = False
+                app.logger.warning("Global JWT verification failed: Invalid token")
+        else:
+            # Fallback for manual check if needed
+            request.session_token_verified = getattr(request, 'session_token_verified', False)
+
+    # ============================================================================
+    # GLOBAL ZERO-TRUST HARD-LOCK MIDDLEWARE
+    # ============================================================================
+    @app.before_request
+    def hard_lock_middleware():
+        """
+        MANDATORY SECURITY GATE: Enforces Zero-Trust across all functional routes.
+        1. Authentication (Flask-Login)
+        2. Active Store Presence (DB Check)
+        3. Identity Integrity (Session vs JWT vs URL)
+        """
+        from flask import jsonify, redirect, request, session, url_for
+        from flask_login import current_user, logout_user
+        from shopify_utils import normalize_shop_url
+
+        # [LOOP-BREAKER] Strict Endpoint Whitelisting
+        # request.endpoint is None for 404s, which is fine to check auth for
+        whitelisted_endpoints = [
+            'auth.login',
+            'oauth.install',
+            'oauth.callback',
+            'static',
+            'webhook_shopify.app_uninstall',
+            'webhook_shopify.app_subscription_update',
+            'gdpr_compliance.customers_data_request',
+            'gdpr_compliance.customers_redact',
+            'gdpr_compliance.shop_redact',
+            'health'
+        ]
+        
+        # 1. Allow Whitelisted Endpoints immediately
+        if request.endpoint in whitelisted_endpoints:
+            return
+
+        # 2. Allow path-based overrides for extra safety
+        whitelist_paths = ["/static", "/debug", "/oauth/", "/auth/", "/webhook/", "/favicon.ico", "/health"]
+        if any(request.path.startswith(path) for path in whitelist_paths):
+            return
+
+        # [NEW] Allow if identity was already established by HMAC/JWT in this request
+        from flask import g
+        if getattr(g, 'current_user', None) and g.current_user.is_authenticated:
+            return
+
+        # 3. Identity Integrity Check (URL vs Session vs JWT)
+        url_shop = request.args.get("shop")
+        session_shop = session.get("shop_domain")
+        jwt_verified = getattr(request, 'session_token_verified', False)
+
+        if url_shop:
+            url_shop = normalize_shop_url(url_shop)
+            
+            # If we have a verified JWT, the shop MUST match its destination
+            if jwt_verified and request.shop_domain != url_shop:
+                app.logger.error(f"🚨 JWT MISMATCH: URL={url_shop}, JWT={request.shop_domain}")
+                return jsonify({"error": "Identity mismatch", "action": "refresh"}), 403
+
+            # If we have a session, it MUST match the URL shop
+            if session_shop and normalize_shop_url(session_shop) != url_shop:
+                app.logger.warning(f"🚨 SESSION MISMATCH: URL={url_shop}, Session={session_shop}. Purging.")
+                session.clear()
+                logout_user()
+                # Use breakout only if we are absolutely sure we are in a browser context
+                if url_shop and not request.is_json:
+                    goto_url = url_for("oauth.install", shop=url_shop, _external=True)
+                    return f'''
+                        <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+                        <script>
+                            if (window.top !== window.self) {{
+                                window.top.location.href = "{goto_url}";
+                            }} else {{
+                                window.location.href = "{goto_url}";
+                            }}
+                        </script>
+                    ''', 200
+                return None # Let @login_required handle it
+
+        # [LOCAL HELPER] The Final Weld Handshake
+        def trigger_reauth_flow():
+            shop = url_shop or session_shop
+            if shop:
+                app.logger.info(f"🔄 Identity Finality: Triggering re-auth handshake for {shop}")
+                # Ensure load_user_from_request is available in scope
+                # NEVER return a redirect here, either return a user or None
+                return load_user_from_request(request)
+            return None
+
+        # 4. The Final Weld: Identity Guard
+        from flask_login import current_user as login_manager_user
+        user_val = g.get('current_user') or login_manager_user
+        
+        if not hasattr(user_val, 'is_authenticated') or not user_val.is_authenticated:
+            # Attempt one last re-weld before failing
+            user_val = trigger_reauth_flow()
+            if not user_val or not user_val.is_authenticated:
+                if request.is_json:
+                    return jsonify({"error": "Authentication required", "action": "reauth"}), 401
+                # If we have a shop, we can return None and let @login_required redirect if it's an HTML request
+                # BUT the user wants no redirects in the "loader" path.
+                return None
+
+        # 5. Active Store Check
+        if not user_val.active_shop:
+            app.logger.warning(f"User {user_val.id} accessed {request.path} without active shop")
+            if request.is_json or not request.accept_mimetypes.accept_html:
+                 return jsonify({"error": "Active store connection required", "action": "connect"}), 403
+            
+            # If we are truly missing a store, we can return None to force a 401/403
+            # Or return the install breakout for HTML
+            if not request.is_json and url_shop:
+                return None # Let the view/decorator handle it
+
+
+    @app.after_request
+    def set_safari_compatible_cookies(response):
+        """
+        SAFARI FIX: Ensure all cookies have SameSite=Lax; Secure for Safari compatibility.
+        Critical for embedded Shopify apps in Safari which blocks third-party cookies by default.
+        """
+        from flask import request
+
+        # Only apply to embedded app requests
+        if request.args.get("embedded") or request.args.get("host"):
+            # Force SameSite=None; Secure for Safari compatibility
+            session_name = app.config.get("SESSION_COOKIE_NAME", "session")
+            for cookie_name in [session_name, "remember_token"]:
+                if any(header.startswith(f"{cookie_name}=") for header in response.headers.getlist("Set-Cookie")):
+                    # Modify existing Set-Cookie headers
+                    cookies = []
+                    for header in response.headers.getlist("Set-Cookie"):
+                        if header.startswith(f"{cookie_name}="):
+                            # Ensure SameSite=None; Secure
+                            if "SameSite" not in header:
+                                header += "; SameSite=None; Secure"
+                            else:
+                                # Replace any existing SameSite with None
+                                import re
+                                header = re.sub(r'SameSite=(Lax|Strict)', 'SameSite=None', header)
+                                if "Secure" not in header:
+                                    header += "; Secure"
+                        cookies.append(header)
+
+                    # Replace Set-Cookie headers
+                    response.headers.remove("Set-Cookie")
+                    for cookie in cookies:
+                        response.headers.add("Set-Cookie", cookie)
+
+            app.logger.debug(f"🍪 Safari-compatible cookies set for {request.path}")
+
+        return response
+
+    @app.after_request
+    def force_session_commit(response):
+        """
+        CRITICAL FIX: Force session to commit before response is sent.
+        Prevents session loss between routes (especially /dashboard → /settings/shopify).
+        """
+        try:
+            from flask import session
+            from flask_login import current_user
+
+            # Only force commit for successful responses
+            if response.status_code < 400:
+                # Mark session as modified to force save
+                session.modified = True
+
+                # If user is authenticated, ensure session has user_id
+                if hasattr(current_user, "is_authenticated") and current_user.is_authenticated:
+                    user_id = current_user.get_id()
+                    if user_id and session.get("_user_id") != user_id:
+                        session["_user_id"] = user_id
+                        session.permanent = True
+                        app.logger.debug(
+                            f"Session commit: Ensured _user_id={user_id} in session"
+                        )
+        except Exception as e:
+            app.logger.error(f"Error in force_session_commit: {e}")
+
+        return response
+
+    @app.before_request
+    def cctv_watchdog():
+        """THE WATCHDOG: Surveillance & Neutralization"""
+        from flask import session
+        
+        from models import ShopifyStore, db
+        from shopify_utils import normalize_shop_url
+        
+        # 1. SCAN THE PORCH
+        shop = request.args.get('shop')
+        user_id = session.get('_user_id')
+        
+        # 2. DETECT THE BS
+        if shop and user_id:
+            try:
+                shop = normalize_shop_url(shop)
+                store = ShopifyStore.query.filter_by(shop_url=shop).first()
+                
+                # 3. NEUTRALIZE & REPORT
+                if store and store.user_id != int(user_id):
+                    old_id = store.user_id
+                    store.user_id = int(user_id) # The Hijack
+                    db.session.commit()
+                    
+                    # THE SNITCH (Speed of Light notification)
+                    app.logger.info(f"🚨 CCTV: Re-homed {shop} from User {old_id} to User {user_id}. Threat neutralized.")
+            except Exception as e:
+                app.logger.warning(f"⚠️ CCTV Watchdog encountered an issue: {e}")
+                db.session.rollback()
+
+
+    @app.route("/health")
+    def health_check():
+        """Legend Tier Observability: Verify DB and Redis connectivity"""
+        from flask import jsonify
+        from models import db
+        import redis
+        
+        status = {"status": "healthy", "database": "unknown", "redis": "unknown"}
+        
+        # 1. Check Database
+        try:
+            from sqlalchemy import text
+            db.session.execute(text("SELECT 1"))
+            status["database"] = "connected"
+        except Exception as e:
+            app.logger.error(f"Health Check Failure (DB): {e}")
+            status["database"] = "error"
+            status["status"] = "degraded"
+            
+        # 2. Check Redis
+        try:
+            # [REDIS CIRCUIT BREAKER] Only connect if REDIS_URL is explicitly set
+            redis_url = os.getenv("REDIS_URL")
+            if not redis_url:
+                app.logger.info("🔄 TITAN [REDIS] No REDIS_URL configured, running in bypass mode (direct DB)")
+                return jsonify({"status": "healthy", "redis": "disabled"}), 200
+            
+            r = redis.from_url(redis_url)
+            r.ping()
+            return jsonify({"status": "healthy", "redis": "connected"}), 200
+        except redis.RedisError as e:
+            app.logger.warning(f"🔴 TITAN [REDIS] Circuit open. Redis unreachable: {e}")
+            return jsonify({"status": "healthy", "redis": "unreachable"}), 200
+        except Exception as e:
+            app.logger.error(f"Health check failed: {e}")
+            return jsonify({"status": "unhealthy", "error": str(e)}), 500
+
+    return app
+
+
+def create_fortress_app():
+    """Alias for compatibility"""
+    return create_app()
+
+================================================================================
+# FILE: config.py
+================================================================================
+"""
+Ultra-Fast Configuration - Minimal overhead
+"""
+import os
+
+# Pre-compute all config values at module load time
+_CONFIG_CACHE = {
+    "SECRET_KEY": os.getenv("SECRET_KEY"),  # Must be set in environment
+    "SHOPIFY_API_KEY": os.getenv("SHOPIFY_API_KEY", ""),
+    "SHOPIFY_API_SECRET": os.getenv("SHOPIFY_API_SECRET", ""),
+    "SHOPIFY_APP_HANDLE": os.getenv("SHOPIFY_APP_HANDLE", "employee-suite-7"),  # True app handle from Partners Dashboard
+    "DATABASE_URL": os.getenv("DATABASE_URL", "sqlite:///app.db"),
+    "ENVIRONMENT": os.getenv("ENVIRONMENT", "production"),
+    "SQLALCHEMY_DATABASE_URI": os.getenv("DATABASE_URL", "sqlite:///app.db"),
+    "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+    "WTF_CSRF_ENABLED": True,
+    "MAX_CONTENT_LENGTH": 16 * 1024 * 1024,
+    "SHOPIFY_API_VERSION": os.getenv("SHOPIFY_API_VERSION", "2025-10"),
+    "BASE_URL": os.getenv("BASE_URL", os.getenv("APP_URL", "https://employeesuite-production.onrender.com")).rstrip("/"),
+    "APP_URL": os.getenv("APP_URL", os.getenv("SHOPIFY_APP_URL", "https://employeesuite-production.onrender.com")).rstrip("/"),
+    "DEBUG": os.getenv("DEBUG", "False").lower() == "true",
+    "ENCRYPTION_KEY": os.getenv("ENCRYPTION_KEY", ""),
+    "SENDGRID_API_KEY": os.getenv("SENDGRID_API_KEY", ""),
+    "DEV_SHOP_DOMAIN": os.getenv("DEV_SHOP_DOMAIN", "test-shop.myshopify.com"),
+    "ADMIN_EMAIL": os.getenv("ADMIN_EMAIL", "essentials@example.com"),
+    "LOG_LEVEL": "CRITICAL",
+    
+    # Session Configuration (Server-Side)
+    "SESSION_TYPE": "redis" if os.getenv("REDIS_URL") else "sqlalchemy",
+    "SESSION_PERMANENT": True,
+    "SESSION_USE_SIGNER": True,
+    "SESSION_KEY_PREFIX": "missioncontrol:session:",
+    "SESSION_REDIS": None,  # Will be set in app_factory if using redis
+    "SESSION_TYPE_FORCE": os.getenv("SESSION_TYPE", ""),
+    
+    # Global Cookie Hardening (Fix 14)
+    "SESSION_COOKIE_SAMESITE": "None",
+    "SESSION_COOKIE_SECURE": True,
+    "REMEMBER_COOKIE_SAMESITE": "None",
+    "REMEMBER_COOKIE_SECURE": True,
+    "SESSION_COOKIE_HTTPONLY": True,
+}
+
+# Critical Security Check
+if _CONFIG_CACHE["SECRET_KEY"] == "dev-secret-key-change-in-production" and _CONFIG_CACHE["ENVIRONMENT"] == "production":
+    print("⚠️  WARNING: Running in PRODUCTION with default SECRET_KEY! Sessions will be invalidated on restart!")
+
+
+# Fast config access
+def get_config():
+    """Return pre-computed config"""
+    return _CONFIG_CACHE
+
+def get_config_safe(key, default=None):
+    """Ultra-fast config getter"""
+    return _CONFIG_CACHE.get(key, default)
+
+# Direct exports for fastest access
+config = _CONFIG_CACHE
+SHOPIFY_API_VERSION = _CONFIG_CACHE["SHOPIFY_API_VERSION"]
+DEBUG_MODE = _CONFIG_CACHE["DEBUG"]
+ENCRYPTION_KEY = _CONFIG_CACHE["ENCRYPTION_KEY"]
+SENDGRID_API_KEY = _CONFIG_CACHE["SENDGRID_API_KEY"]
+DEV_SHOP_DOMAIN = _CONFIG_CACHE["DEV_SHOP_DOMAIN"]
+ADMIN_EMAIL = _CONFIG_CACHE["ADMIN_EMAIL"]
+
+# Production-grade database connection pool settings (prevents SSL connection errors)
+SQLALCHEMY_ENGINE_OPTIONS = {
+    "pool_pre_ping": True,       # Verifies connection is alive before every request (prevents stale connections)
+    "pool_recycle": 280,         # Recycles connections before they time out (Render DB limit ~300s)
+    "pool_size": 10,             # Maintains a healthy pool of ready connections
+    "max_overflow": 20,          # Allows for bursts without dropping requests
+    "pool_timeout": 15,          # Max seconds to wait for connection from pool
+    "echo": False,               # Disable SQL logging for performance
+    "connect_args": {
+        "sslmode": "require",    # Forces secure SSL connection
+        "keepalives": 1,         # Enables TCP keepalives
+        "keepalives_idle": 30,   # Seconds before sending keepalive probe
+        "keepalives_interval": 10,  # Seconds between keepalive probes
+        "keepalives_count": 5,   # Max keepalive probes before declaring connection dead
+    }
+}
+
+# Legacy alias for backwards compatibility
+AUTO_SCALING_ENGINE_OPTIONS = SQLALCHEMY_ENGINE_OPTIONS
+
+def validate_email_config():
+    """Validate email configuration on startup"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    issues = []
+    
+    if not get_config_safe("SENDGRID_API_KEY"):
+        issues.append("SENDGRID_API_KEY not set")
+    
+    if not get_config_safe("SMTP_USERNAME") and not get_config_safe("SENDGRID_API_KEY"):
+        issues.append("No email service configured (neither SendGrid nor SMTP)")
+    
+    if issues:
+        logger.warning(f"Email configuration issues: {', '.join(issues)}")
+    
+    return len(issues) == 0
+
+# Call this in app startup
+EMAIL_CONFIG_VALID = validate_email_config()
+
+class ConfigValidationError(Exception):
+    pass
+"""
+Configuration Management
+"""
+
+
+================================================================================
+# FILE: shopify_utils.py
+================================================================================
+"""
+Shopify Utilities
+Centralized logic for safe GID parsing, type conversion, and common helpers.
+Helps prevent 500 errors from invalid input formats.
+"""
+import re
+from typing import Optional, Union, Any
+from flask import request, session
+
+# Use fallback logger if logging_config not available
+try:
+    from logging_config import logger
+except ImportError:
+    import logging
+    logger = logging.getLogger(__name__)
+
+def normalize_shop_url(shop_url: str) -> Optional[str]:
+    """
+    Normalize a shop URL with comprehensive validation
+    
+    Args:
+        shop_url: The raw shop URL string.
+        
+    Returns:
+        str: Normalized URL (e.g. 'store.myshopify.com') or None if invalid.
+    """
+    if not shop_url or not isinstance(shop_url, str):
+        return None
+        
+    try:
+        shop = (
+            shop_url.lower()
+            .replace("https://", "")
+            .replace("http://", "")
+            .replace("www.", "")
+            .strip()
+        )
+        
+        # Basic validation
+        if not shop or len(shop) > 255 or len(shop) < 3:
+            return None
+            
+        # Remove any path components
+        shop = shop.split('/')[0]
+        
+        # Add .myshopify.com if not present
+        if not shop.endswith(".myshopify.com"):
+            if "." not in shop:
+                shop = f"{shop}.myshopify.com"
+            elif not shop.endswith(".myshopify.com"):
+                return None  # Invalid domain
+        
+        # Validate final format
+        if not re.match(r'^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]\.myshopify\.com$', shop):
+            return None
+            
+        return shop
+    except Exception as e:
+        logger.warning(f"Error normalizing shop URL '{shop_url}': {e}")
+        return None
+
+def validate_csrf_token(req: request, sess: session) -> bool:
+    """
+    Validate CSRF for Shopify embedded apps.
+    
+    Args:
+        req: Flask request object
+        sess: Flask session object
+        
+    Returns:
+        bool: True if valid, False otherwise
+    """
+    try:
+        # For Shopify embedded apps, we can validate the shop parameter
+        # and session consistency as a form of CSRF protection
+        shop_from_form = req.form.get("shop") or req.args.get("shop", "")
+        shop_from_session = sess.get("shop") or sess.get("current_shop", "")
+
+        if shop_from_form and shop_from_session:
+            # Normalize both before comparing
+            return normalize_shop_url(shop_from_form) == normalize_shop_url(shop_from_session)
+
+        # If no shop validation possible, check referer
+        referer = req.headers.get("Referer", "")
+        return "myshopify.com" in referer or "admin.shopify.com" in referer
+    except Exception as e:
+        logger.warning(f"CSRF validation error: {e}")
+        return False
+
+def parse_gid(gid: Union[str, int, None]) -> Optional[int]:
+    """
+    Safely extract the numeric ID from a Shopify Global ID (GID).
+    
+    Args:
+        gid: The GID string (e.g. 'gid://shopify/Shop/12345'), numeric string, or int.
+        
+    Returns:
+        int: The numeric ID if successful.
+        None: If parsing fails or input is None.
+    """
+    if gid is None:
+        return None
+        
+    # If it's already an integer, return it
+    if isinstance(gid, int):
+        return gid if gid > 0 else None
+        
+    # If it's a string
+    if isinstance(gid, str):
+        gid = gid.strip()
+        if not gid:
+            return None
+            
+        # Try to parse as pure number string
+        if gid.isdigit():
+            return int(gid)
+            
+        # Try to parse as GID URI
+        if '/' in gid:
+            try:
+                # Take the last part after the slash
+                last_part = gid.split('/')[-1]
+                # Handle potential query params if they exist (though rare in GID)
+                clean_id = last_part.split('?')[0]
+                if clean_id.isdigit():
+                    return int(clean_id)
+            except Exception as e:
+                logger.warning(f"Failed to parse GID '{gid}': {e}")
+                
+    logger.warning(f"Could not parse valid ID from: {gid}")
+    return None
+
+def format_gid(numeric_id: Union[str, int], resource_type: str = 'Shop') -> str:
+    """
+    Format a numeric ID into a Shopify Global ID (GID).
+    
+    Args:
+        numeric_id: The numeric ID.
+        resource_type: The Shopify resource type (e.g. 'Shop', 'AppSubscription').
+        
+    Returns:
+        str: The formatted GID.
+    """
+    return f"gid://shopify/{resource_type}/{numeric_id}"
+
+def safe_int(value: Any, default: Optional[int] = None) -> Optional[int]:
+    """
+    Safely convert a value to int.
+    
+    Args:
+        value: The value to convert.
+        default: The default value to return if conversion fails.
+        
+    Returns:
+        int: The converted integer or default.
+    """
+    try:
+        if value is None:
+            return default
+        if isinstance(value, (int, float)):
+            return int(value)
+        if isinstance(value, str):
+            value = value.strip()
+            if value.isdigit():
+                return int(value)
+            # Handle negative numbers
+            if value.startswith('-') and value[1:].isdigit():
+                return int(value)
+        return default
+    except (ValueError, TypeError, AttributeError):
+        return default
+
+def safe_float(value: Any, default: Optional[float] = None) -> Optional[float]:
+    """
+    Safely convert a value to float.
+    
+    Args:
+        value: The value to convert.
+        default: The default value to return if conversion fails.
+        
+    Returns:
+        float: The converted float or default.
+    """
+    try:
+        if value is None:
+            return default
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+def extract_shop_from_request(req: request) -> Optional[str]:
+    """
+    Extract and normalize shop domain from request.
+    
+    Args:
+        req: Flask request object
+        
+    Returns:
+        str: Normalized shop domain or None
+    """
+    # Try different sources
+    shop = (
+        req.args.get('shop') or 
+        req.form.get('shop') or 
+        req.headers.get('X-Shopify-Shop-Domain') or
+        getattr(req, 'shop_domain', None)
+    )
+    
+    if shop:
+        return normalize_shop_url(shop)
+        
+    return None
+
+def is_shopify_request(req: request) -> bool:
+    """
+    Check if request is from Shopify.
+    
+    Args:
+        req: Flask request object
+        
+    Returns:
+        bool: True if from Shopify
+    """
+    # Check various indicators
+    referer = req.headers.get('Referer', '')
+    user_agent = req.headers.get('User-Agent', '')
+    
+    shopify_indicators = [
+        'myshopify.com' in referer,
+        'admin.shopify.com' in referer,
+        'Shopify' in user_agent,
+        req.headers.get('X-Shopify-Shop-Domain'),
+        req.headers.get('X-Shopify-Hmac-Sha256'),
+        req.args.get('shop'),
+        req.form.get('shop')
+    ]
+    
+    return any(shopify_indicators)
+
+def format_currency(amount: Union[str, int, float], currency: str = 'USD') -> str:
+    """
+    Format amount as currency.
+    
+    Args:
+        amount: The amount to format
+        currency: Currency code (default: USD)
+        
+    Returns:
+        str: Formatted currency string
+    """
+    try:
+        amount = float(amount)
+        if currency.upper() == 'USD':
+            return f"${amount:,.2f}"
+        else:
+            return f"{amount:,.2f} {currency}"
+    except (ValueError, TypeError):
+        return f"0.00 {currency}"
+
+def truncate_string(text: str, max_length: int = 50, suffix: str = '...') -> str:
+    """
+    Truncate string to max length with suffix.
+    
+    Args:
+        text: String to truncate
+        max_length: Maximum length
+        suffix: Suffix to add if truncated
+        
+    Returns:
+        str: Truncated string
+    """
+    if not text or not isinstance(text, str):
+        return ''
+        
+    if len(text) <= max_length:
+        return text
+        
+    return text[:max_length - len(suffix)] + suffix
+
+================================================================================
+# FILE: templates/layout_polaris.html
+================================================================================
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    {% if show_sentinel %}
+    <!-- SENTINEL BOT: PRIORITY INJECTION - Must load first to catch shark early -->
+    <script>
+        console.log('🤖 Sentinel Bot: PRIORITY LOAD - Starting before all other scripts');
+    </script>
+    <script src="{{ url_for('static', filename='js/sentinel.js') }}"></script>
+    {% endif %}
+
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title|default('Employee Suite') }}</title>
+
+    <!-- Titan Beacon: Client-Side Monitoring -->
+    <script>
+        (function () {
+            // Forensic watchdog - detects App Bridge initialization failures
+            const forensicBeacon = setTimeout(() => {
+                fetch('/api/log_error', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        error: 'HANDSHAKE_TIMEOUT',
+                        detail: 'App Bridge failed to initialize within 4s',
+                        url: window.location.href,
+                        agent: navigator.userAgent
+                    })
+                }).catch(err => console.error('Beacon failed:', err));
+            }, 4000);
+
+            // Clear alarm if App Bridge initializes successfully
+            document.addEventListener("DOMContentLoaded", () => {
+                if (window.shopify || window['app-bridge']) {
+                    clearTimeout(forensicBeacon);
+                    console.log('✅ Titan Beacon: App Bridge initialized');
+                }
+            });
+        })();
+    </script>
+
+    <!-- Shopify App Bridge - Latest version for idToken -->
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <!-- Shopify App Bridge v3 - For Actions (Redirect, etc) -->
+    <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+
+    <!-- Shopify Polaris Design System -->
+    <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/styles.css" />
+    <script src="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/polaris.min.js"></script>
+    <!-- Phosphor Icons CSS removed - using inline SVGs -->
+    <!-- Stateless Pivot: App Bridge Interceptor -->
+    <script>
+        (function () {
+            // INTERCEPTOR: Inject Shopify Session Token into every request
+            async function getSessionToken() {
+                try {
+                    if (window.shopify && typeof window.shopify.idToken === 'function') {
+                        return await window.shopify.idToken();
+                    }
+                } catch (e) {
+                    console.error("Failed to get Shopify Session Token:", e);
+                }
+                return null;
+            }
+
+            // 1. Intercept Fetch API
+            const originalFetch = window.fetch;
+            window.fetch = async function () {
+                const args = [...arguments];
+                const token = await getSessionToken();
+
+                if (token) {
+                    const options = args[1] || {};
+                    options.headers = options.headers || {};
+
+                    if (options.headers instanceof Headers) {
+                        options.headers.set('Authorization', `Bearer ${token}`);
+                    } else {
+                        options.headers['Authorization'] = `Bearer ${token}`;
+                    }
+                    args[1] = options;
+                }
+                return originalFetch.apply(this, args);
+            };
+
+            // 2. Intercept XMLHttpRequest
+            const originalOpen = XMLHttpRequest.prototype.open;
+            XMLHttpRequest.prototype.open = function () {
+                this._url = arguments[1];
+                return originalOpen.apply(this, arguments);
+            };
+
+            const originalSend = XMLHttpRequest.prototype.send;
+            XMLHttpRequest.prototype.send = async function (body) {
+                // Only add Authorization for API requests (not CDN, static assets, etc.)
+                if (this._url && window.isEmbedded && window.shopify && typeof window.shopify.idToken === 'function') {
+                    try {
+                        // Get fresh token for each request
+                        const token = await window.shopify.idToken();
+                        this.setRequestHeader("Authorization", `Bearer ${token}`);
+
+                        // DEBUG: Log header setting
+                        console.log(`🔐 XHR Interceptor: Set Authorization header for ${this._method} ${this._url}`);
+                    } catch (err) {
+                        console.error("Failed to fetch session token for XHR:", err);
+                    }
+                }
+                return originalSend.apply(this, arguments);
+            };
+
+            console.log("🚀 Stateless Pivot: App Bridge Interceptor Active");
+        })();
+
+        // CLICK INTERCEPTOR: Prevent navigation before App Bridge ready
+        document.addEventListener('click', function (e) {
+            const link = e.target.closest('a[data-auth-required="true"]');
+            if (link && !window.shopify) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.warn('⚠️ App Bridge not ready. Intercepting click to prevent JWT loss.');
+
+                // Visual feedback - disable link temporarily
+                link.style.opacity = '0.5';
+                link.style.pointerEvents = 'none';
+
+                // Re-enable after App Bridge loads (max 3 second timeout)
+                const checkReady = setInterval(() => {
+                    if (window.shopify) {
+                        clearInterval(checkReady);
+                        link.style.opacity = '1';
+                        link.style.pointerEvents = 'auto';
+                        console.log('✅ App Bridge ready. Link re-enabled.');
+                    }
+                }, 100);
+
+                setTimeout(() => clearInterval(checkReady), 3000);
+            }
+        }, true); // Use capture phase to intercept early
+
+        // Initialize App Bridge state
+        window.appBridgeReady = false;
+        // ROBUST EMBEDDED DETECTION: Check URL params OR iframe state
+        const urlParams = new URLSearchParams(window.location.search);
+        window.isEmbedded = !!urlParams.get("host") || (window.self !== window.top);
+
+        console.log(`🕵️ Environment Check: Embedded=${window.isEmbedded} (Host Param=${!!urlParams.get("host")}, Iframe=${window.self !== window.top})`);
+
+        // Helper to open pages via App Bridge (Manual JWT Append)
+        window.openPage = async function (path) {
+            if (window.shopify && typeof window.shopify.idToken === 'function') {
+                try {
+                    // 1. Grab a fresh token RIGHT NOW
+                    const token = await window.shopify.idToken();
+
+                    // 2. Attach it to the URL manually
+                    const url = new URL(path, window.location.origin);
+                    url.searchParams.set('id_token', token);
+
+                    // Only set shop/host if they exist (prevent empty strings)
+                    const currentParams = new URLSearchParams(window.location.search);
+                    const shop = currentParams.get('shop');
+                    const host = currentParams.get('host');
+
+                    if (shop) url.searchParams.set('shop', shop);
+                    if (host) url.searchParams.set('host', host);
+
+                    // 3. Dispatch the redirect with the payload included
+                    const Redirect = window['app-bridge'].actions.Redirect;
+                    const redirect = Redirect.create(window.shopify);
+                    redirect.dispatch(Redirect.Action.APP, url.pathname + url.search);
+
+                    console.log("🚀 Manual JWT Append Navigation to:", url.pathname + url.search);
+                    return false;
+                } catch (e) {
+                    console.error("JWT Navigation Failure", e);
+                    // Last resort fallback - don't use location.href, use standard param append
+                }
+            }
+
+            // Fallback for non-embedded context or if App Bridge not ready
+            var params = new URLSearchParams(window.location.search);
+            var shop = params.get("shop");
+            var host = params.get("host");
+            var embedded = params.get("embedded") || (host ? "1" : "");
+            var sep = path.indexOf("?") > -1 ? "&" : "?";
+            var dest = path;
+            if (shop) dest += sep + "shop=" + shop;
+            if (host)
+                dest +=
+                    (dest.indexOf("?") > -1 ? "&" : "?") + "host=" + host;
+            if (embedded)
+                dest +=
+                    (dest.indexOf("?") > -1 ? "&" : "?") +
+                    "embedded=" +
+                    embedded;
+            window.location.href = dest;
+            return false;
+        };
+
+        // NEW: Global Link Interceptor for Stateless Pivot
+        document.addEventListener('click', function (e) {
+            const link = e.target.closest('a');
+            if (!link || !link.href) return;
+
+            // Only intercept internal links (same origin)
+            if (link.href.startsWith(window.location.origin)) {
+                const path = link.getAttribute('href');
+                // Skip if it's a hash or already has target="_blank"
+                if (path === '#' || link.target === '_blank') return;
+
+                e.preventDefault();
+                window.openPage(path);
+            }
+        });
+    </script>
+
+    <!-- OPTION B: App Bridge Redirect API (Official Method) -->
+    <script>
+        // Wait for App Bridge to be ready
+        document.addEventListener('DOMContentLoaded', function () {
+            // Verify App Bridge v3 is loaded
+            if (!window.shopify || !window['app-bridge']) {
+                console.error('❌ App Bridge not loaded - navigation interceptor disabled');
+                return;
+            }
+
+            // Initialize App Bridge (required for Redirect API)
+            const urlParams = new URLSearchParams(window.location.search);
+            const host = urlParams.get('host');
+            const apiKey = '{{ config.SHOPIFY_API_KEY }}' || '';
+
+            if (!host || !apiKey) {
+                console.warn('⚠️ Missing host or API key - using fallback navigation');
+                return;
+            }
+
+            try {
+                // Create App Bridge instance
+                const AppBridge = window['app-bridge'];
+                const createApp = AppBridge.default;
+                const Redirect = AppBridge.actions.Redirect;
+
+                const app = createApp({
+                    apiKey: apiKey,
+                    host: host,
+                });
+
+                // Intercept all links with data-auth-required="true"
+                const authLinks = document.querySelectorAll('a[data-auth-required="true"]');
+
+                authLinks.forEach(function (link) {
+                    link.addEventListener('click', function (e) {
+                        e.preventDefault();
+
+                        // Extract path from href
+                        const url = new URL(this.href, window.location.origin);
+                        const targetPath = url.pathname + url.search;
+
+                        console.log('✅ App Bridge Redirect:', targetPath);
+
+                        // Use App Bridge Redirect API - JWT automatically included
+                        const redirect = Redirect.create(app);
+                        redirect.dispatch(Redirect.Action.APP, targetPath);
+                    });
+                });
+
+                if (authLinks.length > 0) {
+                    console.log('✅ App Bridge Redirect API: Protecting ' + authLinks.length + ' link(s)');
+                }
+
+                // Signal that app is ready - show body
+                document.body.classList.add('app-ready');
+
+            } catch (error) {
+                console.error('❌ App Bridge initialization failed:', error);
+                console.warn('⚠️ Falling back to standard navigation (JWT may be missing)');
+                // Show body even if App Bridge fails
+                document.body.classList.add('app-ready');
+            }
+        });
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Critical: Prevent any blocking - render immediately -->
+    <style>
+        /* LOADING STATE: Hide body until App Bridge ready */
+        body {
+            opacity: 0;
+            transition: opacity 0.3s ease-in;
+        }
+
+        body.app-ready {
+            opacity: 1;
+        }
+
+        /* Loading overlay */
+        .app-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f6f6f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        body.app-ready .app-loading {
+            display: none;
+        }
+
+        /* Inline critical CSS - no blocking */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+    </style>
+    <!-- Defer non-critical resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- External Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}" />
+    <style>
+        /* Critical overrides only */
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Hide header when embedded */
+        body.embedded .header {
+            display: none !important;
+        }
+
+        body.embedded footer {
+            display: none !important;
+        }
+    </style>
+
+    <!-- Google Analytics - Load after page renders -->
+    <script>
+        // Defer analytics loading
+        window.addEventListener("load", function () {
+            var script = document.createElement("script");
+            script.async = true;
+            script.src =
+                "https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3";
+            document.head.appendChild(script);
+
+            script.onload = function () {
+                window.dataLayer = window.dataLayer || [];
+                function gtag() {
+                    dataLayer.push(arguments);
+                }
+                gtag("js", new Date());
+                gtag("config", "G-RBBQ4X7FJ3");
+            };
+        });
+    </script>
+
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+    <div class="header">
+        <div class="header-content">
+            <a href="{{ url_for('core.dashboard', shop=shop, host=host) }}" class="logo logo-link">
+                <span>Employee Suite</span>
+            </a>
+            <div class="header-nav">
+                <div class="quick-menu">
+                    <button class="quick-menu-btn" onclick="toggleQuickMenu(event)">
+                        <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
+                            <path
+                                d="M215.79,118.17a8,8,0,0,0-5-5.66L153.18,90.9l14.66-73.33a8,8,0,0,0-13.69-7L73.39,111.48a8,8,0,0,0,3.84,13.4l57.63,21.61L120.2,220a8,8,0,0,0,13.69,7l80.8-100.8A8,8,0,0,0,215.79,118.17Z">
+                            </path>
+                        </svg>
+                        Quick Access
+                    </button>
+                    <div class="quick-menu-dropdown" id="quickMenu">
+                        <a href="{{ url_for('enhanced.export_orders_csv', shop=shop, host=host) }}"
+                            class="quick-menu-item" style="
+                                    background: linear-gradient(
+                                        135deg,
+                                        #f0fdf4 0%,
+                                        #dcfce7 100%
+                                    );
+                                    border: 1px solid #bbf7d0;
+                                ">
+                            <span class="quick-menu-item-icon">
+                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
+                                    <path
+                                        d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-40-64a8,8,0,0,1-8,8H136v16h16a8,8,0,0,1,0,16H136v16a8,8,0,0,1-16,0V192H104a8,8,0,0,1,0-16h16V160H104a8,8,0,0,1,0-16h16V128a8,8,0,0,1,16,0v16h16A8,8,0,0,1,160,152Z">
+                                    </path>
+                                </svg>
+                            </span>
+                            <strong>CSV Exports</strong>
+                            <span class="quick-menu-shortcut">⌘E</span>
+                        </a>
+                        <a href="{{ url_for('enhanced.scheduled_reports_page', shop=shop, host=host) }}"
+                            class="quick-menu-item">
+                            <span class="quick-menu-item-icon">
+                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
+                                    <path
+                                        d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM48,208V96H208V208Zm116-76a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H172A8,8,0,0,1,164,132Zm-44,0a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H128A8,8,0,0,1,120,132Zm-44,0a8,8,0,0,1,8-8H84a8,8,0,0,1,0,16H84A8,8,0,0,1,76,132Zm88,40a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H172A8,8,0,0,1,164,172Zm-44,0a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H128A8,8,0,0,1,120,172Zm-44,0a8,8,0,0,1,8-8H84a8,8,0,0,1,0,16H84A8,8,0,0,1,76,172Z">
+                                    </path>
+                                </svg>
+                            </span>
+                            Scheduled Reports
+                            <span class="quick-menu-shortcut">⌘S</span>
+                        </a>
+                        <a href="{{ url_for('core.dashboard', shop=shop, host=host) }}" class="quick-menu-item">
+                            <span class="quick-menu-item-icon">
+                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
+                                    <path
+                                        d="M224,176a8,8,0,0,1-8,8H176v40a8,8,0,0,1-16,0V184a8,8,0,0,1,8-8h48A8,8,0,0,1,224,176ZM144,224H80V184a8,8,0,0,0-8-8H40a8,8,0,0,0,0,16H72v32a8,8,0,0,0,16,0V192h48v32A8,8,0,0,0,144,224ZM223.31,76.69l-96-48a8,8,0,0,0-7.16,0l-96,48A8,8,0,0,0,20,83.86l4,92A8,8,0,0,0,32,184h8a8,8,0,0,0,0-16H39.81l-3.3-76L128,137.9l91.49-45.75L216.24,168H200a8,8,0,0,0,0,16h24a8,8,0,0,0,8-7.65l-4-96A8,8,0,0,0,223.31,76.69ZM128,120,47.88,79.94,128,39.88l80.12,40.06Z">
+                                    </path>
+                                </svg>
+                            </span>
+                            Comprehensive Dashboard
+                            <span class="quick-menu-shortcut">⌘D</span>
+                        </a>
+                        <a href="{{ url_for('core.home', shop=shop, host=host) }}" class="quick-menu-item">
+                            <span class="quick-menu-item-icon">
+                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
+                                    <path
+                                        d="M222.14,58.87A8,8,0,0,0,216,56H54.68L49.79,29.14A16,16,0,0,0,34.05,16H16a8,8,0,0,0,0,16H34.05L57.28,159.26A29.71,29.71,0,0,0,53.6,174.21a32,32,0,1,0,61.6,12.61H183.2a32,32,0,1,0,32-32H89a16,16,0,0,1-15.17-11.4l-3.32-13.4H200a16,16,0,0,0,15.61-12.87l16-80A8,8,0,0,0,222.14,58.87Z">
+                                    </path>
+                                </svg>
+                            </span>
+                            New Features
+                        </a>
+                        <div style="
+                                    border-top: 1px solid #e1e3e5;
+                                    margin: 8px 0;
+                                "></div>
+                        <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}"
+                            data-auth-required="true" class="quick-menu-item">
+                            <span class="quick-menu-item-icon">
+                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
+                                    <path
+                                        d="M128,80a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Zm88-29.84q.06-2.16,0-4.32l14.92-18.64a8,8,0,0,0,1.48-7.06,107.21,107.21,0,0,0-10.88-26.25,8,8,0,0,0-6-3.93l-23.72-2.64q-1.48-1.56-3-3t-3.13-2.84l-2.63-23.72a8,8,0,0,0-3.93-6,107.71,107.71,0,0,0-26.25-10.87,8,8,0,0,0-7.06,1.48L131.32,40h-6.64L110.06,21.36a8,8,0,0,0-7.06-1.48,107.71,107.71,0,0,0-26.25,10.87,8,8,0,0,0-3.93,6l-2.64,23.72q-1.54,1.4-3.09,2.88t-3,3l-23.72,2.64a8,8,0,0,0-6,3.93A107.21,107.21,0,0,0,23.54,95.1a8,8,0,0,0,1.48,7.06L39.94,120.8q-.06,2.16,0,4.32L25.02,143.76a8,8,0,0,0-1.48,7.06,107.21,107.21,0,0,0,10.88,26.25,8,8,0,0,0,6,3.93l23.72,2.64q1.49,1.56,3,3t3.13,2.84l2.63,23.72a8,8,0,0,0,3.93,6,107.71,107.71,0,0,0,26.25,10.87,8,8,0,0,0,7.06-1.48L124.68,216h6.64l14.62,18.64a8,8,0,0,0,7.06,1.48,107.71,107.71,0,0,0,26.25-10.87,8,8,0,0,0,3.93-6l2.64-23.72q1.54-1.4,3.09-2.88t3-3l23.72-2.64a8,8,0,0,0,6-3.93,107.21,107.21,0,0,0,10.87-26.25,8,8,0,0,0-1.48-7.06ZM208,137l-18.29,22.85-3.21,29,2.86-25.05a91.76,91.76,0,0,1-5.18,9L184,180l-28.7,3.19L180.29,180q-2,2-4.14,3.93L153.29,206l-29,3.22L149.36,184a92.46,92.46,0,0,1-10.74,0L135,209.24l-7-8.91,7,8.91L121.36,184q-5.34.42-10.74,0l-3.66,32.9L102.71,206l-22.86-22.13,1.38,3.28q-2.1-1.93-4.15-3.93l-25.05,2.86L80.59,173a91.76,91.76,0,0,1-9,5.18L48,155.22l22.86-18.29,25.05-3.21-25.05,2.86a92.17,92.17,0,0,1,0-17.16L48,100.78l23.55-23.11,8.91,7.13L71.55,61.71l25.05,2.86,3.28-1.38q1.93-2.1,3.93-4.15l3.19-28.7,29-3.22L106.64,72a92.46,92.46,0,0,1,10.74,0L121,46.76l7,8.91L121,46.76l13.62,25.26q5.34-.42,10.74,0l3.66-32.9,4.25,16.85,22.86,22.13-1.38-3.28q2.1,1.93,4.15,3.93l25.05-2.86L175.41,83a91.76,91.76,0,0,1,9-5.18L208,100.78l-22.86,18.29-25.05,3.21,25.05-2.86a92.17,92.17,0,0,1,0,17.16Z">
+                                    </path>
+                                </svg>
+                            </span>
+                            Settings
+                            <span class="quick-menu-shortcut">⌘,</span>
+                        </a>
+                        <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}"
+                            data-auth-required="true" class="quick-menu-item">
+                            <span class="quick-menu-item-icon">
+                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
+                                    <path
+                                        d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48Zm0,16H32V96H224ZM224,192H32V112H224v80Zm-24-32a8,8,0,0,1-8,8H136a8,8,0,0,1,0-16h56A8,8,0,0,1,200,160Z">
+                                    </path>
+                                </svg>
+                            </span>
+                            Subscribe
+                        </a>
+                    </div>
+                </div>
+                <a href="{{ url_for('shopify.shopify_settings', shop=shop, host=host) }}" class="nav-btn"
+                    data-auth-required="true">Settings</a>
+                <a href="{{ url_for('core.subscribe_redirect', shop=shop, host=host) }}" class="nav-btn nav-btn-primary"
+                    data-auth-required="true">Subscribe</a>
+                <a href="{{ url_for('auth.logout', shop=shop, host=host) }}" class="nav-btn">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-wrapper">
+        <div class="container">{% block content %}{% endblock %}</div>
+
+        <script>
+            // Essential inline JavaScript
+
+            // Quick Menu Toggle
+            function toggleQuickMenu(event) {
+                event.stopPropagation();
+                var menu = document.getElementById("quickMenu");
+                if (menu) {
+                    menu.classList.toggle("show");
+                }
+            }
+
+            // Close quick menu when clicking outside
+            document.addEventListener("click", function (e) {
+                var menu = document.getElementById("quickMenu");
+                var btn = e.target.closest(".quick-menu-btn");
+                if (
+                    menu &&
+                    !btn &&
+                    !e.target.closest(".quick-menu-dropdown")
+                ) {
+                    menu.classList.remove("show");
+                }
+            });
+        </script>
+
+        <!-- Initialize Sentinel -->
+        <script>
+            Sentinel.initAllLayers().then(() => {
+                console.log('✅ Sentinel + Hydra ready');
+            });
+        </script>
+
+
+        <!-- App Bridge Authenticated Navigation (2026 Updated) -->
+        <script src="{{ url_for('static', filename='js/app_bridge_nav.js') }}"></script>
+
+        <!-- App Bridge 4.0 Navigation Helper (2026 Compliance) -->
+        <script src="{{ url_for('static', filename='js/app_bridge_4.js') }}"></script>
+
+        <!-- JWT NAVIGATION: Auto-append session tokens to links -->
+        <script>
+            console.log('🔒 2026 Compliance: App Bridge 4.0 navigation loaded');
+        </script>
+
+        {% block scripts %}{% endblock %}
+
+        <!-- Load external dashboard JavaScript -->
+        <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+
+        <footer style="
+                    margin-top: 64px;
+                    padding: 32px 24px;
+                    border-top: 1px solid #e1e3e5;
+                    text-align: center;
+                    background: #ffffff;
+                ">
+            <div style="max-width: 1200px; margin: 0 auto">
+                <div style="
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 16px;
+                            font-size: 14px;
+                            margin-bottom: 16px;
+                        ">
+                    <a href="{{ url_for('core.faq', shop=shop, host=host) }}" style="
+                                color: #6d7175;
+                                text-decoration: none;
+                                font-weight: 400;
+                                transition: color 0.15s;
+                            ">FAQ</a>
+                    <span style="color: #e1e3e5">|</span>
+                    <a href="{{ url_for('legal.privacy', shop=shop, host=host) }}" style="
+                                color: #6d7175;
+                                text-decoration: none;
+                                font-weight: 400;
+                                transition: color 0.15s;
+                            ">Privacy Policy</a>
+                    <span style="color: #e1e3e5">|</span>
+                    <a href="{{ url_for('legal.terms', shop=shop, host=host) }}" style="
+                                color: #6d7175;
+                                text-decoration: none;
+                                font-weight: 400;
+                                transition: color 0.15s;
+                            ">Terms of Service</a>
+                </div>
+                <div style="
+                            color: #8c9196;
+                            font-size: 13px;
+                            font-weight: 400;
+                            text-align: center;
+                        ">
+                    © 2026 Employee Suite. All rights reserved.
+                </div>
+            </div>
+        </footer>
+    </div>
+    <!-- End .page-wrapper -->
+</body>
+
+</html>
+================================================================================
+# FILE: static/js/dashboard.js
+================================================================================
+/* Dashboard JavaScript - All functionality moved here from template */
+
+// Global variables
+window.appBridgeReady = false;
+window.isEmbedded = false;
+window.shopifyApp = null;
+
+// Request management
+var activeRequests = {
+    processOrders: null,
+    updateInventory: null,
+    generateReport: null
+};
+
+var debounceTimers = {
+    processOrders: null,
+    updateInventory: null,
+    generateReport: null
+};
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function () {
+    initializeApp();
+});
+
+function initializeApp() {
+    // Initialize App Bridge
+    initializeAppBridge();
+
+    // Initialize error logging
+    initializeErrorLogging();
+
+    // Set up event listeners
+    setupEventListeners();
+
+    // Initialize network status
+    updateConnectionStatus();
+
+    // Check store connection status via JWT
+    checkStoreStatus();
+
+    console.log('Dashboard JavaScript fully initialized');
+}
+
+// Initialize App Bridge for Shopify embedded apps
+function initializeAppBridge() {
+    // App Bridge v4: Get shop and host from URL or App Bridge config
+    var urlParams = new URLSearchParams(window.location.search);
+    var host = urlParams.get('host');
+    var shop = urlParams.get('shop');
+
+    // Robust Fallback: Use window.shopify.config if parameters are missing
+    if (!shop && window.shopify && window.shopify.config) {
+        shop = window.shopify.config.shop;
+        console.log('🔗 Falling back to window.shopify.config.shop:', shop);
+    }
+
+    if (!host && window.shopify && window.shopify.config) {
+        host = window.shopify.config.host;
+        console.log('🔗 Falling back to window.shopify.config.host:', host);
+    }
+
+    window.isEmbedded = !!host || (window.self !== window.top);
+    window.SHOP_PARAM = shop || '';
+    window.HOST_PARAM = host || '';
+
+    if (!host && !window.shopify) {
+        window.shopifyApp = null;
+        window.appBridgeReady = true;
+        return;
+    }
+
+    // App Bridge v4: Wait for shopify object and get session token
+    var initAttempts = 0;
+    var maxAttempts = 50;
+
+    async function init() {
+        initAttempts++;
+        if (window.shopify && window.shopify.idToken) {
+            window.shopifyApp = window.shopify;
+
+            // FIX 1: Properly await the token (it returns a Promise)
+            try {
+                const token = await window.shopify.idToken();
+                console.log('✅ Session token retrieved successfully');
+
+                // Store for backward compatibility (but prefer fresh fetch)
+                window.sessionToken = token;
+
+            } catch (e) {
+                console.error('❌ Failed to get session token:', e);
+            }
+
+            // FIX 2: Only set ready AFTER token is secured
+            window.appBridgeReady = true;
+            return;
+        }
+        if (initAttempts >= maxAttempts) {
+            console.warn('⚠️ App Bridge timeout - falling back');
+            window.appBridgeReady = true;
+            return;
+        }
+        setTimeout(init, 100);
+    }
+    init();
+}
+
+// Replace standard fetch with this Authenticated Fetch
+async function authenticatedFetch(url, options = {}) {
+    // Fallback to standard fetch if not embedded
+    if (!window.isEmbedded || !window.shopify) {
+        return fetch(url, options);
+    }
+
+    try {
+        // Get fresh JWT from Shopify - this is a promise
+        const sessionToken = await window.shopify.idToken();
+
+        options.headers = {
+            ...options.headers,
+            'Authorization': `Bearer ${sessionToken}`,
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+
+        // CRITICAL: Omit cookies to prevent Safari from blocking the request in iframes
+        options.credentials = 'omit';
+
+        return fetch(url, options);
+    } catch (e) {
+        console.error('JWT Fetch Error:', e);
+        // CRITICAL: Do NOT fall back to cookie-based fetch in embedded mode
+        // This causes 401/403 errors and confuses the backend
+        if (window.isEmbedded) {
+            console.error('🚫 Aborting fetch: Failed to get session token in embedded mode');
+            throw new Error('Session token unavailable');
+        }
+        return fetch(url, options);
+    }
+}
+
+// Check store connection status via JWT
+function checkStoreStatus() {
+    if (!window.isEmbedded) return;
+
+    authenticatedFetch('/api/store/status')
+        .then(res => res.json())
+        .then(data => {
+            if (data.is_connected) {
+                console.log('Store is connected (verified via JWT)');
+                const connectSec = document.getElementById('connect-section');
+                const mainDash = document.getElementById('main-dash');
+
+                if (connectSec) connectSec.style.display = 'none';
+                if (mainDash) mainDash.style.display = 'block';
+            } else {
+                console.log('Store is not connected according to API');
+                const connectSec = document.getElementById('connect-section');
+                const mainDash = document.getElementById('main-dash');
+
+                if (connectSec) connectSec.style.display = 'block';
+                if (mainDash) mainDash.style.display = 'none';
+            }
+        })
+        .catch(err => {
+            console.error('Error checking store status:', err);
+        });
+}
+
+// DEPRECATED: Sentinel.js now handles all token injection globally
+// This function is no longer needed but kept for reference
+function setupSessionTokenFetch() {
+    console.log('ℹ️ Token injection handled by Sentinel.js (global fetch interceptor)');
+    // No-op: Sentinel already intercepts ALL fetch requests
+}
+
+// Error logging functionality
+function initializeErrorLogging() {
+    var originalConsoleError = console.error;
+    var isLoggingError = false;
+
+    function logJavaScriptError(errorType, errorMessage, errorLocation, errorData, stackTrace) {
+        if (isLoggingError) {
+            originalConsoleError.call(console, '[ERROR LOGGED]', errorType, ':', errorMessage);
+            return;
+        }
+
+        isLoggingError = true;
+        try {
+            var errorLog = {
+                timestamp: new Date().toISOString(),
+                error_type: errorType,
+                error_message: errorMessage,
+                error_location: errorLocation,
+                stack_trace: stackTrace,
+                error_data: errorData || {},
+                user_agent: navigator.userAgent,
+                url: window.location.href,
+                referer: document.referrer,
+                session_id: 'js-session-' + Date.now()
+            };
+
+            authenticatedFetch('/api/log_error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(errorLog)
+            }).catch(function (err) {
+                originalConsoleError.call(console, 'Failed to log error to backend:', err);
+            });
+        } catch (e) {
+            originalConsoleError.call(console, 'Error logging system failed:', e);
+        } finally {
+            isLoggingError = false;
+        }
+    }
+
+    // Global error handler
+    window.addEventListener('error', function (event) {
+        logJavaScriptError(
+            'JavaScriptError',
+            event.message || 'Unknown error',
+            event.filename + ':' + event.lineno + ':' + event.colno,
+            {
+                error: event.error ? event.error.toString() : null,
+                type: event.type,
+                target: event.target ? event.target.tagName : null
+            },
+            event.error ? (event.error.stack || 'No stack trace') : 'No stack trace'
+        );
+    }, true);
+
+    // Unhandled promise rejection handler
+    window.addEventListener('unhandledrejection', function (event) {
+        var error = event.reason;
+        var errorMessage = error ? (error.message || error.toString() || 'Unhandled promise rejection') : 'Unknown promise rejection';
+        var stackTrace = error && error.stack ? error.stack : 'No stack trace';
+
+        logJavaScriptError(
+            'UnhandledPromiseRejection',
+            errorMessage,
+            'Promise rejection',
+            {
+                reason: error ? error.toString() : null,
+                promise: event.promise ? event.promise.toString() : null
+            },
+            stackTrace
+        );
+
+        event.preventDefault();
+    });
+}
+
+// Set up all event listeners
+function setupEventListeners() {
+    // Button click handling with event delegation
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.card-btn[data-action]');
+        if (!btn) return;
+
+        var action = btn.getAttribute('data-action');
+        if (!action || btn.disabled) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Route to appropriate function
+        if (window[action] && typeof window[action] === 'function') {
+            try {
+                window[action](btn);
+            } catch (err) {
+                console.error('Error executing function:', action, err);
+                showErrorMessage('An error occurred. Please refresh the page and try again.');
+            }
+        } else {
+            console.error('Function not found for action:', action);
+        }
+    });
+
+    // Network status listeners
+    window.addEventListener('online', function () {
+        updateConnectionStatus();
+    });
+
+    window.addEventListener('offline', function () {
+        updateConnectionStatus();
+    });
+}
+
+// Network status detection
+function updateConnectionStatus() {
+    var isOnline = navigator.onLine;
+    var statusEl = document.getElementById('connection-status');
+    if (statusEl) {
+        if (isOnline) {
+            statusEl.style.display = 'none';
+        } else {
+            statusEl.style.display = 'block';
+            statusEl.innerHTML = '<div style="padding: 8px 16px; background: #fffbf0; border: 1px solid #fef3c7; border-radius: 6px; font-size: 13px; color: #202223; text-align: center;">⚠️ No internet connection</div>';
+        }
+    }
+}
+
+// Utility functions
+function showErrorMessage(message) {
+    var outputEl = document.getElementById('output');
+    if (outputEl) {
+        outputEl.innerHTML = '<div style="padding: 20px; background: #fff4f4; border: 1px solid #fecaca; border-radius: 8px;"><div style="color: #d72c0d; font-weight: 600;">' + message + '</div></div>';
+    }
+}
+
+function setButtonLoading(button, isLoading) {
+    if (isLoading) {
+        button.disabled = true;
+        button.style.opacity = '0.7';
+        button.style.cursor = 'wait';
+        var originalText = button.innerHTML;
+        button.dataset.originalText = originalText;
+        button.innerHTML = '<span style="display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 8px;"></span>Loading...';
+    } else {
+        button.disabled = false;
+        button.style.opacity = '1';
+        button.style.cursor = 'pointer';
+        if (button.dataset.originalText) {
+            button.innerHTML = button.dataset.originalText;
+            delete button.dataset.originalText;
+        }
+    }
+}
+
+function showLoading(message) {
+    document.getElementById('output').innerHTML = '<div class="loading"><div class="spinner"></div><div class="loading-text">' + message + '</div></div>';
+}
+
+// Global function to show subscribe prompt
+window.showSubscribePrompt = function () {
+    var outputEl = document.getElementById('output');
+    if (!outputEl) return;
+
+    // Get shop/host params for URL
+    var params = new URLSearchParams(window.location.search);
+    var shop = params.get('shop') || window.SHOP_PARAM || '';
+    var host = params.get('host') || window.HOST_PARAM || '';
+
+    var subscribeUrl = '/subscribe';
+    var sep = '?';
+    if (shop) { subscribeUrl += sep + 'shop=' + encodeURIComponent(shop); sep = '&'; }
+    if (host) { subscribeUrl += sep + 'host=' + encodeURIComponent(host); }
+
+    outputEl.innerHTML = `
+        <div style="padding: 40px; background: #fff; border-radius: 16px; border: 1px solid #e5e7eb; text-align: center; animation: fadeIn 0.3s ease-in; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+            <div style="margin-bottom: 20px; display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background: #FEF2F2; border-radius: 50%;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+            </div>
+            <h3 style="color: #111827; margin-bottom: 8px; font-size: 20px; font-weight: 700;">Subscription Required</h3>
+            <p style="color: #6B7280; margin-bottom: 24px; font-size: 15px; line-height: 1.5;">This feature is available with Employee Suite Pro. Subscribe to unlock full access.</p>
+            <a href="${subscribeUrl}" onclick="openPage('${subscribeUrl}'); return false;" style="display: inline-block; background: #2563EB; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.2s; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">Upgrade Now →</a>
+            <p style="color: #9CA3AF; margin-top: 16px; font-size: 13px;">$39/month • 7-day money-back guarantee</p>
+        </div>
+    `;
+};
+
+function cancelPreviousRequest(requestType) {
+    if (activeRequests[requestType] && activeRequests[requestType].abort) {
+        activeRequests[requestType].abort();
+        activeRequests[requestType] = null;
+    }
+}
+
+// API functions - 2026 COMPLIANT (async/await + authenticatedFetch)
+window.processOrders = async function (button) {
+    if (debounceTimers.processOrders) return;
+
+    if (!navigator.onLine) {
+        showErrorMessage('No internet connection. Please check your network and try again.');
+        return;
+    }
+
+    cancelPreviousRequest('processOrders');
+    setButtonLoading(button, true);
+    showLoading('Loading orders...');
+
+    try {
+        // FIX: Use authenticatedFetch (handles token + credentials automatically)
+        const response = await authenticatedFetch('/api/process_orders');
+
+        if (!response.ok) {
+            throw new Error(`Request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Orders Loaded</h3><div style="margin-top: 12px;">' + (data.html || data.message || 'Orders processed successfully') + '</div></div>';
+        } else if (data.action === 'subscribe') {
+            window.showSubscribePrompt();
+        } else {
+            document.getElementById('output').innerHTML = '<div style="color: #dc2626;">' + (data.error || 'Failed to load orders') + '</div>';
+        }
+    } catch (err) {
+        console.error('processOrders error:', err);
+        showErrorMessage('Unable to connect to server. Please try again.');
+    } finally {
+        setButtonLoading(button, false);
+        activeRequests.processOrders = null;
+    }
+};
+
+window.updateInventory = async function (button) {
+    if (debounceTimers.updateInventory) return;
+
+    if (!navigator.onLine) {
+        showErrorMessage('No internet connection. Please check your network and try again.');
+        return;
+    }
+
+    cancelPreviousRequest('updateInventory');
+    setButtonLoading(button, true);
+    showLoading('Loading inventory...');
+
+    try {
+        // FIX: Use authenticatedFetch (handles token + credentials automatically)
+        const response = await authenticatedFetch('/api/update_inventory');
+
+        if (!response.ok) {
+            throw new Error(`Request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Inventory Updated</h3><div style="margin-top: 12px;">' + (data.html || data.message || 'Inventory updated successfully') + '</div></div>';
+        } else if (data.action === 'subscribe') {
+            window.showSubscribePrompt();
+        } else {
+            document.getElementById('output').innerHTML = '<div style="color: #dc2626;">' + (data.error || 'Failed to update inventory') + '</div>';
+        }
+    } catch (err) {
+        console.error('updateInventory error:', err);
+        showErrorMessage('Unable to connect to server. Please try again.');
+    } finally {
+        setButtonLoading(button, false);
+        activeRequests.updateInventory = null;
+    }
+};
+
+window.generateReport = async function (button) {
+    if (debounceTimers.generateReport) return;
+
+    if (!navigator.onLine) {
+        showErrorMessage('No internet connection. Please check your network and try again.');
+        return;
+    }
+
+    cancelPreviousRequest('generateReport');
+    setButtonLoading(button, true);
+    showLoading('Generating report...');
+
+    try {
+        // FIX: Use authenticatedFetch (handles token + credentials automatically)
+        const response = await authenticatedFetch('/api/generate_report');
+
+        if (!response.ok) {
+            throw new Error(`Request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('output').innerHTML = '<div style="animation: fadeIn 0.3s ease-in;"><h3 class="success">✅ Revenue Report Generated</h3><div style="margin-top: 12px;">' + (data.html || data.message || 'Report generated successfully') + '</div></div>';
+        } else if (data.action === 'subscribe') {
+            window.showSubscribePrompt();
+        } else {
+            document.getElementById('output').innerHTML = '<div style="color: #dc2626;">' + (data.error || 'Failed to generate report') + '</div>';
+        }
+    } catch (err) {
+        console.error('generateReport error:', err);
+        showErrorMessage('Unable to connect to server. Please try again.');
+    } finally {
+        setButtonLoading(button, false);
+        activeRequests.generateReport = null;
+    }
+};
+
+
+// Handle resource loading errors gracefully
+window.addEventListener('error', function (e) {
+    if (e.target && (e.target.tagName === 'LINK' || e.target.tagName === 'SCRIPT')) {
+        console.warn('Resource failed to load:', e.target.src || e.target.href);
+        return;
+    }
+}, true);
+
+// Ensure all HTML content is properly escaped when building dynamic content
+function escapeHtml(text) {
+    var map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, function (m) { return map[m]; });
+}
+
+// Safe HTML builder for dynamic content
+function buildHtmlContent(data) {
+    var html = '';
+    if (data && typeof data === 'object') {
+        for (var key in data) {
+            if (data.hasOwnProperty(key)) {
+                html += '<div class="data-item">';
+                html += '<span class="key">' + escapeHtml(String(key)) + ':</span> ';
+                html += '<span class="value">' + escapeHtml(String(data[key])) + '</span>';
+                html += '</div>';
+            }
+        }
+    }
+    return html;
+}

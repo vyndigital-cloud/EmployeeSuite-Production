@@ -1,0 +1,68 @@
+{% extends "layout_polaris.html" %}
+
+{% block content %}
+<div class="Polaris-Page">
+    <div class="Polaris-Box"
+        style="--pc-box-padding-block-start-xs:var(--p-space-16);--pc-box-padding-block-end-xs:var(--p-space-16);--pc-box-padding-inline-start-xs:var(--p-space-16);--pc-box-padding-inline-end-xs:var(--p-space-16); display: flex; justify-content: center; align-items: center; min-height: 60vh;">
+
+        <div class="Polaris-LegacyCard" style="max-width: 600px; width: 100%;">
+            <div class="Polaris-LegacyCard__Section">
+                <div class="Polaris-EmptyState">
+                    <div class="Polaris-EmptyState__Section">
+                        <div class="Polaris-EmptyState__DetailsContainer">
+                            <div class="Polaris-EmptyState__Details">
+                                <div class="Polaris-Text--root Polaris-Text--heading4xl Polaris-Text--block">{{
+                                    error_code }}</div>
+                                <div class="Polaris-Text--root Polaris-Text--headingMd Polaris-Text--block"
+                                    style="margin-bottom: 1rem;">
+                                    {{ error_message or "Something went wrong" }}
+                                </div>
+                                <div
+                                    class="Polaris-Text--root Polaris-Text--bodyMd Polaris-Text--block Polaris-Text--subdued">
+                                    <p>Don't worry, we've been notified. This is likely a temporary hiccup.</p>
+                                    {% if error_details %}
+                                    <div
+                                        style="margin-top: 1rem; padding: 1rem; background-color: var(--p-color-bg-surface-secondary); border-radius: var(--p-border-radius-200); text-align: left;">
+                                        <code
+                                            style="word-break: break-all; font-size: 0.8rem;">{{ error_details }}</code>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="Polaris-EmptyState__Actions">
+                                    <div
+                                        class="Polaris-Stack Polaris-Stack--alignmentCenter Polaris-Stack--distributionCenter">
+                                        <div class="Polaris-Stack__Item">
+                                            <button
+                                                class="Polaris-Button Polaris-Button--variantPrimary Polaris-Button--sizeLarge"
+                                                onclick="window.location.reload();">
+                                                <span class="Polaris-Button__Content">
+                                                    <span class="Polaris-Button__Text">Try Again</span>
+                                                </span>
+                                            </button>
+                                        </div>
+                                        <div class="Polaris-Stack__Item">
+                                            <a href="mailto:support@golproductions.com"
+                                                class="Polaris-Button Polaris-Button--sizeLarge">
+                                                <span class="Polaris-Button__Content">
+                                                    <span class="Polaris-Button__Text">Contact Support</span>
+                                                </span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="Polaris-EmptyState__Section">
+                        <div class="Polaris-EmptyState__ImageContainer">
+                            <img src="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                                role="presentation" alt="" class="Polaris-EmptyState__Image">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

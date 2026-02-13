@@ -1,0 +1,657 @@
+Status: 404
+Content: <!DOCTYPE html>
+<html lang="en">
+
+<head>
+    
+
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Suite</title>
+
+    <!-- Titan Beacon: Client-Side Monitoring -->
+    <script>
+        (function () {
+            // Forensic watchdog - detects App Bridge initialization failures
+            const forensicBeacon = setTimeout(() => {
+                fetch('/api/log_error', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        error: 'HANDSHAKE_TIMEOUT',
+                        detail: 'App Bridge failed to initialize within 4s',
+                        url: window.location.href,
+                        agent: navigator.userAgent
+                    })
+                }).catch(err => console.error('Beacon failed:', err));
+            }, 4000);
+
+            // Clear alarm if App Bridge initializes successfully
+            document.addEventListener("DOMContentLoaded", () => {
+                if (window.shopify || window['app-bridge']) {
+                    clearTimeout(forensicBeacon);
+                    console.log('✅ Titan Beacon: App Bridge initialized');
+                }
+            });
+        })();
+    </script>
+
+    <!-- Shopify App Bridge - Latest version for idToken -->
+    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <!-- Shopify App Bridge v3 - For Actions (Redirect, etc) -->
+    <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
+
+    <!-- Shopify Polaris Design System -->
+    <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/styles.css" />
+    <script src="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/polaris.min.js"></script>
+    <!-- Phosphor Icons CSS removed - using inline SVGs -->
+    <!-- Stateless Pivot: App Bridge Interceptor -->
+    <script>
+        (function () {
+            // INTERCEPTOR: Inject Shopify Session Token into every request
+            async function getSessionToken() {
+                try {
+                    if (window.shopify && typeof window.shopify.idToken === 'function') {
+                        return await window.shopify.idToken();
+                    }
+                } catch (e) {
+                    console.error("Failed to get Shopify Session Token:", e);
+                }
+                return null;
+            }
+
+            // 1. Intercept Fetch API
+            const originalFetch = window.fetch;
+            window.fetch = async function () {
+                const args = [...arguments];
+                const token = await getSessionToken();
+
+                if (token) {
+                    const options = args[1] || {};
+                    options.headers = options.headers || {};
+
+                    if (options.headers instanceof Headers) {
+                        options.headers.set('Authorization', `Bearer ${token}`);
+                    } else {
+                        options.headers['Authorization'] = `Bearer ${token}`;
+                    }
+                    args[1] = options;
+                }
+                return originalFetch.apply(this, args);
+            };
+
+            // 2. Intercept XMLHttpRequest
+            const originalOpen = XMLHttpRequest.prototype.open;
+            XMLHttpRequest.prototype.open = function () {
+                this._url = arguments[1];
+                return originalOpen.apply(this, arguments);
+            };
+
+            const originalSend = XMLHttpRequest.prototype.send;
+            XMLHttpRequest.prototype.send = async function (body) {
+                // Only add Authorization for API requests (not CDN, static assets, etc.)
+                if (this._url && window.isEmbedded && window.shopify && typeof window.shopify.idToken === 'function') {
+                    try {
+                        // Get fresh token for each request
+                        const token = await window.shopify.idToken();
+                        this.setRequestHeader("Authorization", `Bearer ${token}`);
+
+                        // DEBUG: Log header setting
+                        console.log(`🔐 XHR Interceptor: Set Authorization header for ${this._method} ${this._url}`);
+                    } catch (err) {
+                        console.error("Failed to fetch session token for XHR:", err);
+                    }
+                }
+                return originalSend.apply(this, arguments);
+            };
+
+            console.log("🚀 Stateless Pivot: App Bridge Interceptor Active");
+        })();
+
+        // CLICK INTERCEPTOR: Prevent navigation before App Bridge ready
+        document.addEventListener('click', function (e) {
+            const link = e.target.closest('a[data-auth-required="true"]');
+            if (link && !window.shopify) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.warn('⚠️ App Bridge not ready. Intercepting click to prevent JWT loss.');
+
+                // Visual feedback - disable link temporarily
+                link.style.opacity = '0.5';
+                link.style.pointerEvents = 'none';
+
+                // Re-enable after App Bridge loads (max 3 second timeout)
+                const checkReady = setInterval(() => {
+                    if (window.shopify) {
+                        clearInterval(checkReady);
+                        link.style.opacity = '1';
+                        link.style.pointerEvents = 'auto';
+                        console.log('✅ App Bridge ready. Link re-enabled.');
+                    }
+                }, 100);
+
+                setTimeout(() => clearInterval(checkReady), 3000);
+            }
+        }, true); // Use capture phase to intercept early
+
+        // Initialize App Bridge state
+        window.appBridgeReady = false;
+        // ROBUST EMBEDDED DETECTION: Check URL params OR iframe state
+        const urlParams = new URLSearchParams(window.location.search);
+        window.isEmbedded = !!urlParams.get("host") || (window.self !== window.top);
+
+        console.log(`🕵️ Environment Check: Embedded=${window.isEmbedded} (Host Param=${!!urlParams.get("host")}, Iframe=${window.self !== window.top})`);
+
+        // Helper to open pages via App Bridge (Manual JWT Append)
+        window.openPage = async function (path) {
+            if (window.shopify && typeof window.shopify.idToken === 'function') {
+                try {
+                    // 1. Grab a fresh token RIGHT NOW
+                    const token = await window.shopify.idToken();
+
+                    // 2. Attach it to the URL manually
+                    const url = new URL(path, window.location.origin);
+                    url.searchParams.set('id_token', token);
+
+                    // Only set shop/host if they exist (prevent empty strings)
+                    const currentParams = new URLSearchParams(window.location.search);
+                    const shop = currentParams.get('shop');
+                    const host = currentParams.get('host');
+
+                    if (shop) url.searchParams.set('shop', shop);
+                    if (host) url.searchParams.set('host', host);
+
+                    // 3. Dispatch the redirect with the payload included
+                    const Redirect = window['app-bridge'].actions.Redirect;
+                    const redirect = Redirect.create(window.shopify);
+                    redirect.dispatch(Redirect.Action.APP, url.pathname + url.search);
+
+                    console.log("🚀 Manual JWT Append Navigation to:", url.pathname + url.search);
+                    return false;
+                } catch (e) {
+                    console.error("JWT Navigation Failure", e);
+                    // Last resort fallback - don't use location.href, use standard param append
+                }
+            }
+
+            // Fallback for non-embedded context or if App Bridge not ready
+            var params = new URLSearchParams(window.location.search);
+            var shop = params.get("shop");
+            var host = params.get("host");
+            var embedded = params.get("embedded") || (host ? "1" : "");
+            var sep = path.indexOf("?") > -1 ? "&" : "?";
+            var dest = path;
+            if (shop) dest += sep + "shop=" + shop;
+            if (host)
+                dest +=
+                    (dest.indexOf("?") > -1 ? "&" : "?") + "host=" + host;
+            if (embedded)
+                dest +=
+                    (dest.indexOf("?") > -1 ? "&" : "?") +
+                    "embedded=" +
+                    embedded;
+            window.location.href = dest;
+            return false;
+        };
+
+        // NEW: Global Link Interceptor for Stateless Pivot
+        document.addEventListener('click', function (e) {
+            const link = e.target.closest('a');
+            if (!link || !link.href) return;
+
+            // Only intercept internal links (same origin)
+            if (link.href.startsWith(window.location.origin)) {
+                const path = link.getAttribute('href');
+                // Skip if it's a hash or already has target="_blank"
+                if (path === '#' || link.target === '_blank') return;
+
+                e.preventDefault();
+                window.openPage(path);
+            }
+        });
+    </script>
+
+    <!-- OPTION B: App Bridge Redirect API (Official Method) -->
+    <script>
+        // Wait for App Bridge to be ready
+        document.addEventListener('DOMContentLoaded', function () {
+            // Verify App Bridge v3 is loaded
+            if (!window.shopify || !window['app-bridge']) {
+                console.error('❌ App Bridge not loaded - navigation interceptor disabled');
+                return;
+            }
+
+            // Initialize App Bridge (required for Redirect API)
+            // TRIANGLE OF PERSISTENCE: Dynamic Host Handshake
+            const urlParams = new URLSearchParams(window.location.search);
+            const host = urlParams.get('host');
+            const apiKey = '' || '';
+
+            if (host) {
+                try {
+                    // Create App Bridge instance
+                    const AppBridge = window['app-bridge'];
+                    const createApp = AppBridge.default;
+                    const Redirect = AppBridge.actions.Redirect;
+
+                    const app = createApp({
+                        apiKey: apiKey,
+                        host: host,
+                        forceRedirect: true // CRITICAL: Ensures app stays in Shopify
+                    });
+
+                    // Toast and TitleBar
+                    const Toast = AppBridge.actions.Toast;
+                    const TitleBar = AppBridge.actions.TitleBar;
+
+                    window.shopify = app;
+                    window.shopify.Toast = Toast;
+                    window.shopify.TitleBar = TitleBar;
+                    window.shopify.Redirect = Redirect;
+
+                    // Expose idToken helper
+                    window.shopify.idToken = async () => {
+                        try {
+                            const getSessionToken = AppBridge.utilities.getSessionToken;
+                            const token = await getSessionToken(app);
+                            return token;
+                        } catch (err) {
+                            console.error("SESSION TOKEN ERROR", err);
+                            throw err;
+                        }
+                    };
+
+                    console.log('✅ App Bridge Initialized via Dynamic Host Handshake');
+
+                    // Intercept all links with data-auth-required="true"
+                    const authLinks = document.querySelectorAll('a[data-auth-required="true"]');
+
+                    authLinks.forEach(function (link) {
+                        link.addEventListener('click', function (e) {
+                            e.preventDefault();
+
+                            // Extract path from href
+                            const url = new URL(this.href, window.location.origin);
+                            const targetPath = url.pathname + url.search;
+
+                            console.log('✅ App Bridge Redirect:', targetPath);
+
+                            // Use App Bridge Redirect API - JWT automatically included
+                            const redirect = Redirect.create(app);
+                            redirect.dispatch(Redirect.Action.APP, targetPath);
+                        });
+                    });
+
+                    if (authLinks.length > 0) {
+                        console.log('✅ App Bridge Redirect API: Protecting ' + authLinks.length + ' link(s)');
+                    }
+
+                } catch (e) {
+                    console.error('❌ App Bridge Initialization Failed:', e);
+                }
+            } else {
+                console.error("Critical Failure: No host parameter found. App Bridge cannot initialize.");
+            }
+            // Signal that app is ready - show body
+            document.body.classList.add('app-ready');
+
+
+        });
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Critical: Prevent any blocking - render immediately -->
+    <style>
+        /* LOADING STATE: Hide body until App Bridge ready */
+        body {
+            opacity: 0;
+            transition: opacity 0.3s ease-in;
+        }
+
+        body.app-ready {
+            opacity: 1;
+        }
+
+        /* Loading overlay */
+        .app-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f6f6f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        body.app-ready .app-loading {
+            display: none;
+        }
+
+        /* Inline critical CSS - no blocking */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+    </style>
+    <!-- Defer non-critical resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- External Stylesheet -->
+    <link rel="stylesheet" href="/static/css/dashboard.css" />
+    <style>
+        /* Critical overrides only */
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Hide header when embedded */
+        body.embedded .header {
+            display: none !important;
+        }
+
+        body.embedded footer {
+            display: none !important;
+        }
+    </style>
+
+    <!-- Google Analytics - Load after page renders -->
+    <script>
+        // Defer analytics loading
+        window.addEventListener("load", function () {
+            var script = document.createElement("script");
+            script.async = true;
+            script.src =
+                "https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3";
+            document.head.appendChild(script);
+
+            script.onload = function () {
+                window.dataLayer = window.dataLayer || [];
+                function gtag() {
+                    dataLayer.push(arguments);
+                }
+                gtag("js", new Date());
+                gtag("config", "G-RBBQ4X7FJ3");
+            };
+        });
+    </script>
+
+    
+</head>
+
+<body>
+    <div class="header">
+        <div class="header-content">
+            <a href="/dashboard?shop=&amp;host=" class="logo logo-link">
+                <span>Employee Suite</span>
+            </a>
+            <div class="header-nav">
+                <div class="quick-menu">
+                    <button class="quick-menu-btn" onclick="toggleQuickMenu(event)">
+                        <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
+                            <path
+                                d="M215.79,118.17a8,8,0,0,0-5-5.66L153.18,90.9l14.66-73.33a8,8,0,0,0-13.69-7L73.39,111.48a8,8,0,0,0,3.84,13.4l57.63,21.61L120.2,220a8,8,0,0,0,13.69,7l80.8-100.8A8,8,0,0,0,215.79,118.17Z">
+                            </path>
+                        </svg>
+                        Quick Access
+                    </button>
+                    <div class="quick-menu-dropdown" id="quickMenu">
+                        <a href="/api/export/orders?shop=&amp;host="
+                            class="quick-menu-item" style="
+                                    background: linear-gradient(
+                                        135deg,
+                                        #f0fdf4 0%,
+                                        #dcfce7 100%
+                                    );
+                                    border: 1px solid #bbf7d0;
+                                ">
+                            <span class="quick-menu-item-icon">
+                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
+                                    <path
+                                        d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-40-64a8,8,0,0,1-8,8H136v16h16a8,8,0,0,1,0,16H136v16a8,8,0,0,1-16,0V192H104a8,8,0,0,1,0-16h16V160H104a8,8,0,0,1,0-16h16V128a8,8,0,0,1,16,0v16h16A8,8,0,0,1,160,152Z">
+                                    </path>
+                                </svg>
+                            </span>
+                            <strong>CSV Exports</strong>
+                            <span class="quick-menu-shortcut">⌘E</span>
+                        </a>
+                        <a href="/scheduled-reports?shop=&amp;host="
+                            class="quick-menu-item">
+                            <span class="quick-menu-item-icon">
+                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
+                                    <path
+                                        d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM48,208V96H208V208Zm116-76a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H172A8,8,0,0,1,164,132Zm-44,0a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H128A8,8,0,0,1,120,132Zm-44,0a8,8,0,0,1,8-8H84a8,8,0,0,1,0,16H84A8,8,0,0,1,76,132Zm88,40a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H172A8,8,0,0,1,164,172Zm-44,0a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H128A8,8,0,0,1,120,172Zm-44,0a8,8,0,0,1,8-8H84a8,8,0,0,1,0,16H84A8,8,0,0,1,76,172Z">
+                                    </path>
+                                </svg>
+                            </span>
+                            Scheduled Reports
+                            <span class="quick-menu-shortcut">⌘S</span>
+                        </a>
+                        <a href="/dashboard?shop=&amp;host=" class="quick-menu-item">
+                            <span class="quick-menu-item-icon">
+                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
+                                    <path
+                                        d="M224,176a8,8,0,0,1-8,8H176v40a8,8,0,0,1-16,0V184a8,8,0,0,1,8-8h48A8,8,0,0,1,224,176ZM144,224H80V184a8,8,0,0,0-8-8H40a8,8,0,0,0,0,16H72v32a8,8,0,0,0,16,0V192h48v32A8,8,0,0,0,144,224ZM223.31,76.69l-96-48a8,8,0,0,0-7.16,0l-96,48A8,8,0,0,0,20,83.86l4,92A8,8,0,0,0,32,184h8a8,8,0,0,0,0-16H39.81l-3.3-76L128,137.9l91.49-45.75L216.24,168H200a8,8,0,0,0,0,16h24a8,8,0,0,0,8-7.65l-4-96A8,8,0,0,0,223.31,76.69ZM128,120,47.88,79.94,128,39.88l80.12,40.06Z">
+                                    </path>
+                                </svg>
+                            </span>
+                            Comprehensive Dashboard
+                            <span class="quick-menu-shortcut">⌘D</span>
+                        </a>
+                        <a href="/?shop=&amp;host=" class="quick-menu-item">
+                            <span class="quick-menu-item-icon">
+                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
+                                    <path
+                                        d="M222.14,58.87A8,8,0,0,0,216,56H54.68L49.79,29.14A16,16,0,0,0,34.05,16H16a8,8,0,0,0,0,16H34.05L57.28,159.26A29.71,29.71,0,0,0,53.6,174.21a32,32,0,1,0,61.6,12.61H183.2a32,32,0,1,0,32-32H89a16,16,0,0,1-15.17-11.4l-3.32-13.4H200a16,16,0,0,0,15.61-12.87l16-80A8,8,0,0,0,222.14,58.87Z">
+                                    </path>
+                                </svg>
+                            </span>
+                            New Features
+                        </a>
+                        <div style="
+                                    border-top: 1px solid #e1e3e5;
+                                    margin: 8px 0;
+                                "></div>
+                        <a href="/settings/shopify?shop=&amp;host="
+                            data-auth-required="true" class="quick-menu-item">
+                            <span class="quick-menu-item-icon">
+                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
+                                    <path
+                                        d="M128,80a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Zm88-29.84q.06-2.16,0-4.32l14.92-18.64a8,8,0,0,0,1.48-7.06,107.21,107.21,0,0,0-10.88-26.25,8,8,0,0,0-6-3.93l-23.72-2.64q-1.48-1.56-3-3t-3.13-2.84l-2.63-23.72a8,8,0,0,0-3.93-6,107.71,107.71,0,0,0-26.25-10.87,8,8,0,0,0-7.06,1.48L131.32,40h-6.64L110.06,21.36a8,8,0,0,0-7.06-1.48,107.71,107.71,0,0,0-26.25,10.87,8,8,0,0,0-3.93,6l-2.64,23.72q-1.54,1.4-3.09,2.88t-3,3l-23.72,2.64a8,8,0,0,0-6,3.93A107.21,107.21,0,0,0,23.54,95.1a8,8,0,0,0,1.48,7.06L39.94,120.8q-.06,2.16,0,4.32L25.02,143.76a8,8,0,0,0-1.48,7.06,107.21,107.21,0,0,0,10.88,26.25,8,8,0,0,0,6,3.93l23.72,2.64q1.49,1.56,3,3t3.13,2.84l2.63,23.72a8,8,0,0,0,3.93,6,107.71,107.71,0,0,0,26.25,10.87,8,8,0,0,0,7.06-1.48L124.68,216h6.64l14.62,18.64a8,8,0,0,0,7.06,1.48,107.71,107.71,0,0,0,26.25-10.87,8,8,0,0,0,3.93-6l2.64-23.72q1.54-1.4,3.09-2.88t3-3l23.72-2.64a8,8,0,0,0,6-3.93,107.21,107.21,0,0,0,10.87-26.25,8,8,0,0,0-1.48-7.06ZM208,137l-18.29,22.85-3.21,29,2.86-25.05a91.76,91.76,0,0,1-5.18,9L184,180l-28.7,3.19L180.29,180q-2,2-4.14,3.93L153.29,206l-29,3.22L149.36,184a92.46,92.46,0,0,1-10.74,0L135,209.24l-7-8.91,7,8.91L121.36,184q-5.34.42-10.74,0l-3.66,32.9L102.71,206l-22.86-22.13,1.38,3.28q-2.1-1.93-4.15-3.93l-25.05,2.86L80.59,173a91.76,91.76,0,0,1-9,5.18L48,155.22l22.86-18.29,25.05-3.21-25.05,2.86a92.17,92.17,0,0,1,0-17.16L48,100.78l23.55-23.11,8.91,7.13L71.55,61.71l25.05,2.86,3.28-1.38q1.93-2.1,3.93-4.15l3.19-28.7,29-3.22L106.64,72a92.46,92.46,0,0,1,10.74,0L121,46.76l7,8.91L121,46.76l13.62,25.26q5.34-.42,10.74,0l3.66-32.9,4.25,16.85,22.86,22.13-1.38-3.28q2.1,1.93,4.15,3.93l25.05-2.86L175.41,83a91.76,91.76,0,0,1,9-5.18L208,100.78l-22.86,18.29-25.05,3.21,25.05-2.86a92.17,92.17,0,0,1,0,17.16Z">
+                                    </path>
+                                </svg>
+                            </span>
+                            Settings
+                            <span class="quick-menu-shortcut">⌘,</span>
+                        </a>
+                        <a href="/subscribe?shop=&amp;host="
+                            data-auth-required="true" class="quick-menu-item">
+                            <span class="quick-menu-item-icon">
+                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
+                                    <path
+                                        d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48Zm0,16H32V96H224ZM224,192H32V112H224v80Zm-24-32a8,8,0,0,1-8,8H136a8,8,0,0,1,0-16h56A8,8,0,0,1,200,160Z">
+                                    </path>
+                                </svg>
+                            </span>
+                            Subscribe
+                        </a>
+                    </div>
+                </div>
+                <a href="/settings/shopify?shop=&amp;host=" class="nav-btn"
+                    data-auth-required="true">Settings</a>
+                <a href="/subscribe?shop=&amp;host=" class="nav-btn nav-btn-primary"
+                    data-auth-required="true">Subscribe</a>
+                <a href="/logout?shop=&amp;host=" class="nav-btn">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-wrapper">
+        <div class="container">
+<div class="Polaris-Page">
+    <div class="Polaris-Box"
+        style="--pc-box-padding-block-start-xs:var(--p-space-16);--pc-box-padding-block-end-xs:var(--p-space-16);--pc-box-padding-inline-start-xs:var(--p-space-16);--pc-box-padding-inline-end-xs:var(--p-space-16); display: flex; justify-content: center; align-items: center; min-height: 60vh;">
+
+        <div class="Polaris-LegacyCard" style="max-width: 600px; width: 100%;">
+            <div class="Polaris-LegacyCard__Section">
+                <div class="Polaris-EmptyState">
+                    <div class="Polaris-EmptyState__Section">
+                        <div class="Polaris-EmptyState__DetailsContainer">
+                            <div class="Polaris-EmptyState__Details">
+                                <div class="Polaris-Text--root Polaris-Text--heading4xl Polaris-Text--block">404</div>
+                                <div class="Polaris-Text--root Polaris-Text--headingMd Polaris-Text--block"
+                                    style="margin-bottom: 1rem;">
+                                    Page Not Found
+                                </div>
+                                <div
+                                    class="Polaris-Text--root Polaris-Text--bodyMd Polaris-Text--block Polaris-Text--subdued">
+                                    <p>Don't worry, we've been notified. This is likely a temporary hiccup.</p>
+                                    
+                                </div>
+                                <div class="Polaris-EmptyState__Actions">
+                                    <div
+                                        class="Polaris-Stack Polaris-Stack--alignmentCenter Polaris-Stack--distributionCenter">
+                                        <div class="Polaris-Stack__Item">
+                                            <button
+                                                class="Polaris-Button Polaris-Button--variantPrimary Polaris-Button--sizeLarge"
+                                                onclick="window.location.reload();">
+                                                <span class="Polaris-Button__Content">
+                                                    <span class="Polaris-Button__Text">Try Again</span>
+                                                </span>
+                                            </button>
+                                        </div>
+                                        <div class="Polaris-Stack__Item">
+                                            <a href="mailto:support@golproductions.com"
+                                                class="Polaris-Button Polaris-Button--sizeLarge">
+                                                <span class="Polaris-Button__Content">
+                                                    <span class="Polaris-Button__Text">Contact Support</span>
+                                                </span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="Polaris-EmptyState__Section">
+                        <div class="Polaris-EmptyState__ImageContainer">
+                            <img src="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                                role="presentation" alt="" class="Polaris-EmptyState__Image">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+</div>
+
+        <script>
+            // Essential inline JavaScript
+
+            // Quick Menu Toggle
+            function toggleQuickMenu(event) {
+                event.stopPropagation();
+                var menu = document.getElementById("quickMenu");
+                if (menu) {
+                    menu.classList.toggle("show");
+                }
+            }
+
+            // Close quick menu when clicking outside
+            document.addEventListener("click", function (e) {
+                var menu = document.getElementById("quickMenu");
+                var btn = e.target.closest(".quick-menu-btn");
+                if (
+                    menu &&
+                    !btn &&
+                    !e.target.closest(".quick-menu-dropdown")
+                ) {
+                    menu.classList.remove("show");
+                }
+            });
+        </script>
+
+        <!-- Initialize Sentinel -->
+        <script>
+            Sentinel.initAllLayers().then(() => {
+                console.log('✅ Sentinel + Hydra ready');
+            });
+        </script>
+
+
+        <!-- App Bridge Authenticated Navigation (2026 Updated) -->
+        <script src="/static/js/app_bridge_nav.js"></script>
+
+        <!-- App Bridge 4.0 Navigation Helper (2026 Compliance) -->
+        <script src="/static/js/app_bridge_4.js"></script>
+
+        <!-- JWT NAVIGATION: Auto-append session tokens to links -->
+        <script>
+            console.log('🔒 2026 Compliance: App Bridge 4.0 navigation loaded');
+        </script>
+
+        
+
+        <!-- Load external dashboard JavaScript -->
+        <script src="/static/js/dashboard.js"></script>
+
+        <footer style="
+                    margin-top: 64px;
+                    padding: 32px 24px;
+                    border-top: 1px solid #e1e3e5;
+                    text-align: center;
+                    background: #ffffff;
+                ">
+            <div style="max-width: 1200px; margin: 0 auto">
+                <div style="
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 16px;
+                            font-size: 14px;
+                            margin-bottom: 16px;
+                        ">
+                    <a href="/faq?shop=&amp;host=" style="
+                                color: #6d7175;
+                                text-decoration: none;
+                                font-weight: 400;
+                                transition: color 0.15s;
+                            ">FAQ</a>
+                    <span style="color: #e1e3e5">|</span>
+                    <a href="/privacy?shop=&amp;host=" style="
+                                color: #6d7175;
+                                text-decoration: none;
+                                font-weight: 400;
+                                transition: color 0.15s;
+                            ">Privacy Policy</a>
+                    <span style="color: #e1e3e5">|</span>
+                    <a href="/terms?shop=&amp;host=" style="
+                                color: #6d7175;
+                                text-decoration: none;
+                                font-weight: 400;
+                                transition: color 0.15s;
+                            ">Terms of Service</a>
+                </div>
+                <div style="
+                            color: #8c9196;
+                            font-size: 13px;
+                            font-weight: 400;
+                            text-align: center;
+                        ">
+                    © 2026 Employee Suite. All rights reserved.
+                </div>
+            </div>
+        </footer>
+    </div>
+    <!-- End .page-wrapper -->
+</body>
+
+</html>

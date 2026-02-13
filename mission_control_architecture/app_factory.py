@@ -10,7 +10,7 @@ import sys
 import traceback
 from datetime import timedelta
 
-from flask import Flask, request, jsonify, g, session, redirect, url_for, render_template_string, current_app, render_template
+from flask import Flask, request, jsonify, g, session, redirect, url_for, render_template_string, current_app
 from werkzeug.middleware.proxy_fix import ProxyFix
 from models import db, User, ShopifyStore
 
@@ -30,15 +30,12 @@ def create_app():
             ),
             "SQLALCHEMY_DATABASE_URI": os.getenv("DATABASE_URL", "sqlite:///app.db"),
             "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-            "SQLALCHEMY_ENGINE_OPTIONS": os.getenv(
-                "SQLALCHEMY_ENGINE_OPTIONS", # Allow override
-                {
-                    "pool_size": 10,
-                    "max_overflow": 20,
-                    "pool_pre_ping": True,
-                    "pool_recycle": 300, # Triangle: 5 mins to prevent stale connections
-                },
-            ),
+            "SQLALCHEMY_ENGINE_OPTIONS": {
+                "pool_size": 10,
+                "max_overflow": 20,
+                "pool_pre_ping": True,
+                "pool_recycle": 3600,
+            },
             "WTF_CSRF_ENABLED": True,
             "WTF_CSRF_TIME_LIMIT": 3600,
             # Session cookie configuration for login persistence
@@ -417,33 +414,6 @@ def create_app():
             "success": False
         }), 500
 
-    @app.after_request
-    def audit_and_enforce_bridge(response):
-        """
-        Acts as the 'Internal Auditor' for the $10k/day engine.
-        Ensures Shopify never cuts off the connection.
-        """
-        
-        # 1. ENFORCE THE BRIDGE (Fixes the White Screen)
-        # This ensures the 'frame-ancestors' policy is ALWAYS sent
-        if "Content-Security-Policy" not in response.headers:
-            response.headers['Content-Security-Policy'] = (
-                "frame-ancestors https://admin.shopify.com https://*.myshopify.com;"
-            )
-
-        # 2. AUDIT THE COOKIES (Detects the 403 Risk)
-        # If the app is in production but flags are missing, log a critical error
-        if not app.config.get('SESSION_COOKIE_SECURE'):
-            app.logger.error("AUDIT FAILURE: SESSION_COOKIE_SECURE is False. 403s imminent.")
-            
-        if app.config.get('SESSION_COOKIE_SAMESITE') != 'None':
-            app.logger.error("AUDIT FAILURE: SAMESITE is not 'None'. Handshake will fail.")
-
-        # 3. LEGACY SUPPORT (For older browsers)
-        response.headers['X-Frame-Options'] = 'ALLOW-FROM https://admin.shopify.com'
-        
-        return response
-
     # TITAN: Last Breath Signal Handler
     def titan_last_breath(sig, frame):
         app.logger.info(f"TITAN [SIGNAL] Process {os.getpid()} received {sig}. Taking last breath... Reap confirmed.")
@@ -509,7 +479,6 @@ def create_app():
         ("telemetry_routes", "telemetry_bp"),  # Sentinel Bot endpoint
         ("auth", "auth_bp"),  # Authentication routes
         ("gdpr_compliance", "gdpr_bp"),  # GDPR Webhooks - CRITICAL
-        ("diagnostic_routes", "diagnostic_bp"), # Infrastructure Health Check
         # Removed: help_routes, profile_routes (files don't exist)
     ]
 
@@ -575,29 +544,7 @@ def create_app():
         # Store failed blueprints info for debugging
         app.config["FAILED_BLUEPRINTS"] = failed_blueprints
 
-
-    # ============================================================================
-    # GLOBAL ERROR HANDLERS (Automated Handshake Protection)
-    # ============================================================================
-    @app.errorhandler(404)
-    def not_found_error(error):
-        if request.path.startswith(('/api', '/webhooks', '/static')):
-            return jsonify({'error': 'Not found'}), 404
-        return render_template('error_polaris.html', error_code='404', error_message='Page Not Found'), 404
-
-    @app.errorhandler(500)
-    def internal_error(error):
-        db.session.rollback()
-        if request.path.startswith(('/api', '/webhooks', '/static')):
-            return jsonify({'error': 'Internal server error'}), 500
-        return render_template('error_polaris.html', error_code='500', error_message='Internal Server Error', error_details=str(error)), 500
-
-    @app.errorhandler(Exception)
-    def unhandled_exception(error):
-        app.logger.error(f"Unhandled Exception: {error}", exc_info=True)
-        if request.path.startswith(('/api', '/webhooks', '/static')):
-            return jsonify({'error': str(error)}), 500
-        return render_template('error_polaris.html', error_code='500', error_message='Something went wrong', error_details=str(error)), 500
+    # Titan Sentinel Handlers have replaced legacy handlers.
 
 
     # ============================================================================

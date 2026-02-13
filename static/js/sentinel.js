@@ -550,6 +550,10 @@ const Sentinel = {
                 const token = await sentinel.getValidToken();
                 if (token) {
                     options.headers['Authorization'] = `Bearer ${token}`;
+                } else if (window.self !== window.top) {
+                    // CRITICAL: Abort if in iframe and no token available
+                    sentinel.log('🚫 Global Proxy: Aborted fetch - No token in iframe', { url: urlString });
+                    throw new Error('Sentinel Proxy: Aborted unauthenticated iframe request');
                 }
 
                 sentinel.log('🌐 Global Proxy: DNA injected into fetch', {
@@ -1046,9 +1050,21 @@ const Sentinel = {
                                 resource,
                                 tag,
                                 page: window.location.href
-            setTimeout(() => Sentinel.performWalkthrough(), 500);
-        });
-} else {
+                            })
+                        });
+                    } catch (e) {
+                        // Silent fail for telemetry
+                    }
+                }
+            }
+        }, true);
+    }
+};
+
+// Expose for manual debugging
+window.Sentinel = Sentinel;
+// Auto-start logic if needed
+if (window.location.search.indexOf('sentinel_walkthrough=1') > -1) {
     (async () => {
         await Sentinel.initAllLayers();
         setTimeout(() => Sentinel.performWalkthrough(), 500);

@@ -76,3 +76,60 @@ def test_email_send():
             'has_body': hasattr(e, 'body'),
             'body': e.body.decode() if hasattr(e, 'body') else None
         }), 500
+
+@diagnostic_bp.route('/health')
+def health_check():
+    """
+    Automated Audit Endpoint: Checks core infrastructure health.
+    Returns 200 if healthy, 503 if critical failure.
+    """
+    try:
+        from models import db
+        import time
+        import os # Ensure os is imported
+        
+        status = {
+            'status': 'healthy',
+            'timestamp': time.time(),
+            'services': {
+                'database': 'unknown',
+                'redis': 'unknown',
+                'celery': 'unknown'
+            }
+        }
+        
+        http_code = 200
+        
+        # 1. Database Check
+        try:
+            from sqlalchemy import text
+            db.session.execute(text('SELECT 1'))
+            status['services']['database'] = 'connected'
+        except Exception as e:
+            status['services']['database'] = f'error: {str(e)}'
+            status['status'] = 'degraded'
+            http_code = 503
+            
+        # 2. Redis Check
+        try:
+            import redis
+            r = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+            if r.ping():
+                status['services']['redis'] = 'connected'
+        except Exception as e:
+            status['services']['redis'] = f'error: {str(e)}'
+            status['status'] = 'degraded' 
+            
+        # 3. Celery Check
+        try:
+            from celery.app import app_or_default
+            app = app_or_default()
+            with app.connection_for_read() as conn:
+                conn.ensure_connection(max_retries=1)
+                status['services']['celery'] = 'broker_connected'
+        except Exception as e:
+            status['services']['celery'] = f'error: {str(e)}'
+            
+        return jsonify(status), http_code
+    except Exception as e:
+        return jsonify({'critical_error': str(e), 'type': str(type(e))}), 500
