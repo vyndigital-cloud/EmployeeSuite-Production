@@ -171,6 +171,14 @@ def verify_session_token(f):
             if current_user.is_authenticated:
                 logger.debug(f"Allowing unverified embedded request for authenticated user {current_user.id}")
                 return f(*args, **kwargs)
+                
+            # [KILL SWITCH] API Routes MUST return JSON, never HTML
+            if request.is_json or request.path.startswith('/api/'):
+                return jsonify({
+                    "error": "Authentication required", 
+                    "action": "reauth",
+                    "reason": "missing_token"
+                }), 401
 
             # [BRIDGE LOADER] Fetch token and redirect with it (don't just reload)
             logger.warning(f"Embedded request without JWT to {request.path}, triggering Bridge Loader")
