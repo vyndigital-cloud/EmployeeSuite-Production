@@ -371,6 +371,7 @@ def home():
                     "low_stock_items": 3,
                 },
                 shop="demo-store.myshopify.com",
+                current_shop="demo-store.myshopify.com",
                 APP_URL=request.url_root.rstrip("/"),
                 host="",
             )

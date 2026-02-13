@@ -15,6 +15,9 @@
         // Initialize App Bridge - moved to external JS file
         window.appBridgeReady = false;
         window.isEmbedded = !!new URLSearchParams(window.location.search).get('host');
+        // Seed from template for standalone/dev mode
+        window.SHOP_PARAM = "{{ shop }}";
+        window.HOST_PARAM = "{{ host }}";
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <!-- Critical: Prevent any blocking - render immediately -->

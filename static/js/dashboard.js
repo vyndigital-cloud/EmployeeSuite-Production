@@ -46,8 +46,9 @@ function initializeAppBridge() {
     var shop = urlParams.get('shop');
 
     window.isEmbedded = !!host;
-    window.SHOP_PARAM = shop || '';
-    window.HOST_PARAM = host || '';
+    // CRITICAL: Preserve template-injected values for dev mode
+    window.SHOP_PARAM = shop || window.SHOP_PARAM || '';
+    window.HOST_PARAM = host || window.HOST_PARAM || '';
     window.ID_TOKEN = urlParams.get('id_token') || '';
 
     if (!host) {
