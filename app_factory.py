@@ -521,6 +521,7 @@ def create_app():
 
         ("enhanced_features", "enhanced_bp"),
         ("features_pages", "features_pages_bp"),
+        ("features_routes", "features_bp"),
         ("admin_routes", "admin_bp"),
         ("telemetry_routes", "telemetry_bp"),  # Sentinel Bot endpoint
         ("auth", "auth_bp"),  # Authentication routes
@@ -598,8 +599,29 @@ def create_app():
     @app.errorhandler(404)
     def not_found_error(error):
         if request.path.startswith(('/api', '/webhooks', '/static')):
-            return jsonify({'error': 'Not found'}), 404
-        return render_template('error_polaris.html', error_code='404', error_message='Page Not Found'), 404
+            return jsonify({"error": "Not Found"}), 404
+        
+        # ROOT GATE: If we hit 404 on the root or unexpected path, 
+        # try to redirect to dashboard if shop/host are present.
+        shop = request.args.get('shop')
+        host = request.args.get('host')
+        if not request.path or request.path == '/':
+            if shop and host:
+                from shopify_utils import app_bridge_redirect
+                return app_bridge_redirect('/features/dashboard')
+            return redirect(url_for('oauth.install'))
+
+        return render_template('error_polaris.html', error=error), 404
+
+    @app.route('/')
+    def root_gate():
+        """Root landing page - redirects to dashboard or install flow"""
+        shop = request.args.get('shop')
+        host = request.args.get('host')
+        if shop and host:
+            from shopify_utils import app_bridge_redirect
+            return app_bridge_redirect('/features/dashboard')
+        return redirect(url_for('oauth.install'))
 
     @app.errorhandler(500)
     def internal_error(error):
@@ -831,9 +853,13 @@ def create_app():
             url_shop = normalize_shop_url(url_shop)
             
             # If we have a verified JWT, the shop MUST match its destination
-            if jwt_verified and request.shop_domain != url_shop:
-                app.logger.error(f"🚨 JWT MISMATCH: URL={url_shop}, JWT={request.shop_domain}")
-                return jsonify({"error": "Identity mismatch", "action": "refresh"}), 403
+            if jwt_verified:
+                if request.shop_domain != url_shop:
+                    app.logger.error(f"🚨 JWT MISMATCH: URL={url_shop}, JWT={request.shop_domain}")
+                    return jsonify({"error": "Identity mismatch", "action": "refresh"}), 403
+                # TITAN: If JWT is verified and matches URL, we SKIP session checks entirely
+                # This prevents the "Identity Tug-of-War" in Safari/Iframes
+                return 
 
             # If we have a session, it MUST match the URL shop
             if session_shop and normalize_shop_url(session_shop) != url_shop:

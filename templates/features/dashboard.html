@@ -105,7 +105,7 @@
         </button>
 
         <button
-            onclick="window.location.href='{{ url_for('enhanced.scheduled_reports_page', shop=shop, host=host) }}'; return false;"
+            onclick="appNavigate('{{ url_for('enhanced.scheduled_reports_page', shop=shop, host=host) }}'); return false;"
             class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px">
             <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
                 <path

@@ -72,49 +72,6 @@ def trigger_report_email():
         return jsonify({"error": str(e)}), 500
 
 
-@features_bp.route("/welcome")
-@require_access
-def welcome():
-    shop = request.args.get("shop", "")
-    host = request.args.get("host", "")
-
-    return render_template("features/welcome.html", shop=shop, host=host)
-
-
-@features_bp.route("/csv-exports")
-@require_access
-def csv_exports():
-    shop = request.args.get("shop", "")
-    host = request.args.get("host", "")
-
-    return render_template("features/csv_exports.html", shop=shop, host=host)
-
-
-@features_bp.route("/scheduled-reports")
-@require_access
-def scheduled_reports():
-    shop = request.args.get("shop", "")
-    host = request.args.get("host", "")
-    success = request.args.get("success", "")
-    error = request.args.get("error", "")
-
-    return render_template(
-        "features/scheduled_reports.html",
-        shop=shop,
-        host=host,
-        success=success,
-        error=error,
-    )
-
-
-@features_bp.route("/dashboard")
-@require_access
-def comprehensive_dashboard():
-    shop = request.args.get("shop", "")
-    host = request.args.get("host", "")
-
-    return render_template("features/dashboard.html", shop=shop, host=host)
-
 
 @features_bp.route("/api/dashboard/comprehensive")
 @require_access

@@ -114,37 +114,14 @@
             console.log("🚀 Stateless Pivot: App Bridge Interceptor Active");
         })();
 
-        // CLICK INTERCEPTOR: Prevent navigation before App Bridge ready
-        document.addEventListener('click', function (e) {
-            const link = e.target.closest('a[data-auth-required="true"]');
-            if (link && !window.shopify) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.warn('⚠️ App Bridge not ready. Intercepting click to prevent JWT loss.');
-
-                // Visual feedback - disable link temporarily
-                link.style.opacity = '0.5';
-                link.style.pointerEvents = 'none';
-
-                // Re-enable after App Bridge loads (max 3 second timeout)
-                const checkReady = setInterval(() => {
-                    if (window.shopify) {
-                        clearInterval(checkReady);
-                        link.style.opacity = '1';
-                        link.style.pointerEvents = 'auto';
-                        console.log('✅ App Bridge ready. Link re-enabled.');
-                    }
-                }, 100);
-
-                setTimeout(() => clearInterval(checkReady), 3000);
-            }
+        // CLICK INTERCEPTOR: Removed in favor of centralized app_bridge_nav.js
     </script>
 
     <script>
-            // Inject Config for app_bridge_nav.js
-            window.SHOPIFY_API_KEY = '{{ config.SHOPIFY_API_KEY }}';
-            window.SHOP_PARAM = '{{ shop }}';
-            window.HOST_PARAM = '{{ host }}';
+        // Inject Config for app_bridge_nav.js
+        window.SHOPIFY_API_KEY = '{{ config.SHOPIFY_API_KEY }}';
+        window.SHOP_PARAM = '{{ shop }}';
+        window.HOST_PARAM = '{{ host }}';
     </script>
     <script src="{{ url_for('static', filename='js/app_bridge_nav.js') }}"></script>
 
@@ -212,23 +189,23 @@
 
     <!-- Google Analytics - Load after page renders -->
     <script>
-            // Defer analytics loading
-            window.addEventListener("load", function () {
-                var script = document.createElement("script");
-                script.async = true;
-                script.src =
-                    "https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3";
-                document.head.appendChild(script);
+        // Defer analytics loading
+        window.addEventListener("load", function () {
+            var script = document.createElement("script");
+            script.async = true;
+            script.src =
+                "https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3";
+            document.head.appendChild(script);
 
-                script.onload = function () {
-                    window.dataLayer = window.dataLayer || [];
-                    function gtag() {
-                        dataLayer.push(arguments);
-                    }
-                    gtag("js", new Date());
-                    gtag("config", "G-RBBQ4X7FJ3");
-                };
-            });
+            script.onload = function () {
+                window.dataLayer = window.dataLayer || [];
+                function gtag() {
+                    dataLayer.push(arguments);
+                }
+                gtag("js", new Date());
+                gtag("config", "G-RBBQ4X7FJ3");
+            };
+        });
     </script>
 
     {% block extra_head %}{% endblock %}
@@ -378,16 +355,7 @@
         </script>
 
 
-        <!-- App Bridge Authenticated Navigation (2026 Updated) -->
-        <script src="{{ url_for('static', filename='js/app_bridge_nav.js') }}"></script>
-
-        <!-- App Bridge 4.0 Navigation Helper (2026 Compliance) -->
-        <script src="{{ url_for('static', filename='js/app_bridge_4.js') }}"></script>
-
-        <!-- JWT NAVIGATION: Auto-append session tokens to links -->
-        <script>
-            console.log('🔒 2026 Compliance: App Bridge 4.0 navigation loaded');
-        </script>
+        <!-- App Bridge Authenticated Navigation (Centralized) -->
 
         {% block scripts %}{% endblock %}
 

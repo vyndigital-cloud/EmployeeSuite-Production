@@ -42,4 +42,32 @@ def test_navigation_settings(page: Page):
         assert "shop=" in page.url
         assert "/settings/shopify" in page.url
     
-    print(f"✅ Navigation Successful! Current URL: {page.url}")
+
+def test_root_gate_redirect(page: Page):
+    """
+    Verify the Root Gate correctly redirects to the dashboard.
+    """
+    # Visit root with shop/host
+    response = page.goto("http://localhost:5000/?shop=test.myshopify.com&host=testhost")
+    assert response.ok
+    
+    # It should land on /features/dashboard
+    # Note: app_bridge_redirect uses JS to redirect
+    page.wait_for_url("**/features/dashboard*")
+    assert "/features/dashboard" in page.url
+    assert "shop=test.myshopify.com" in page.url
+    assert "host=testhost" in page.url
+    
+    print(f"✅ Root Gate Successful! Led to: {page.url}")
+
+def test_features_welcome_load(page: Page):
+    """
+    Verify the /features/welcome page (newly registered blueprint) loads correctly.
+    """
+    response = page.goto("http://localhost:5000/features/welcome?shop=test.myshopify.com&host=testhost")
+    assert response.ok
+    
+    # Check for content on the welcome page
+    expect(page.get_by_text("Automate Your Store")).to_be_visible()
+    
+    print(f"✅ Features Welcome Page Loads! URL: {page.url}")

@@ -71,8 +71,8 @@ function initializeAppBridge() {
                 window.sessionToken = window.shopify.idToken();
                 console.log('Session token retrieved successfully');
 
-                // Override fetch to automatically include session token
-                setupSessionTokenFetch();
+                // [REMOVED] Redundant fetch interceptor - now handled by layout_polaris.html
+                // setupSessionTokenFetch();
 
             } catch (e) {
                 console.error('Failed to get session token:', e);
@@ -91,27 +91,7 @@ function initializeAppBridge() {
     init();
 }
 
-function setupSessionTokenFetch() {
-    // Store original fetch
-    var originalFetch = window.fetch;
-
-    // Override fetch to include session token
-    window.fetch = function (url, options) {
-        options = options || {};
-
-        // Only add token for API calls to our server
-        if (url.startsWith('/api/') || url.startsWith('/admin/')) {
-            options.headers = options.headers || {};
-
-            // Add session token if available
-            if (window.sessionToken) {
-                options.headers['Authorization'] = 'Bearer ' + window.sessionToken;
-            }
-        }
-
-        return originalFetch.call(this, url, options);
-    };
-}
+// [REMOVED] setupSessionTokenFetch logic - now handled by layout_polaris.html
 
 // Error logging functionality
 function initializeErrorLogging() {
@@ -529,28 +509,10 @@ window.generateReport = function (button) {
         });
 };
 
-// Navigation helper
 // Navigation helper - Single Entry Point
-window.internalNav = function (path) {
-    var params = new URLSearchParams(window.location.search);
-    var shop = params.get('shop') || window.SHOP_PARAM;
-    var host = params.get('host') || window.HOST_PARAM;
-    var embedded = params.get('embedded') || (host ? '1' : '');
-
-    var sep = path.indexOf('?') > -1 ? '&' : '?';
-    var dest = path;
-
-    if (shop && dest.indexOf('shop=') === -1) dest += sep + 'shop=' + encodeURIComponent(shop);
-    if (host && dest.indexOf('host=') === -1) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'host=' + encodeURIComponent(host);
-
-    // App Bridge v4 automatically intercepts this if initialized
-    console.log('Navigating to:', dest);
-    window.location.href = dest;
-    return false;
-};
-
-// Alias for compatibility
-window.openPage = window.internalNav;
+// REMOVED: Redundant override moved to app_bridge_nav.js
+// window.internalNav = function (path) { ... };
+// window.openPage = window.internalNav;
 
 // Handle resource loading errors gracefully
 window.addEventListener('error', function (e) {
