@@ -491,9 +491,22 @@ def create_app():
     
     @app.context_processor
     def inject_shopify_config():
-        """Globally inject Shopify Config for App Bridge 3.0+ actions"""
+        """Globally inject Shopify Config and Query Params for App Bridge"""
+        shop = (
+            request.args.get('shop') or 
+            request.headers.get('X-Shopify-Shop-Domain') or 
+            g.get('shop_domain') or 
+            session.get('shop')
+        )
+        host = (
+            request.args.get('host') or 
+            g.get('host') or 
+            session.get('host')
+        )
         return {
-            "SHOPIFY_API_KEY": os.getenv("SHOPIFY_API_KEY", "")
+            "SHOPIFY_API_KEY": os.getenv("SHOPIFY_API_KEY", ""),
+            "shop": shop,
+            "host": host
         }
 
     # Register blueprints (with error handling for missing blueprints)
@@ -507,6 +520,7 @@ def create_app():
         ("legal_routes", "legal_bp"),  # Privacy/Terms pages
 
         ("enhanced_features", "enhanced_bp"),
+        ("features_pages", "features_pages_bp"),
         ("admin_routes", "admin_bp"),
         ("telemetry_routes", "telemetry_bp"),  # Sentinel Bot endpoint
         ("auth", "auth_bp"),  # Authentication routes

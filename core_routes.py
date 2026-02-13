@@ -848,56 +848,14 @@ def subscribe_redirect():
     """Redirect to billing subscribe using App Bridge to preserve JWT trust"""
     shop = request.args.get("shop", "")
     host = request.args.get("host", "")
-    
-    # Build the target URL with query params
-    target_url = url_for("billing.subscribe", shop=shop, host=host, _external=True)
-    
-    # Use App Bridge redirect to maintain JWT context
-    return f'''
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
-            <script>
-                const targetUrl = "{target_url}";
-                if (window.top !== window.self) {{
-                    window.top.location.href = targetUrl;
-                }} else {{
-                    window.location.href = targetUrl;
-                }}
-            </script>
-        </head>
-        <body>
-            <p>Redirecting to subscription... <a href="{target_url}">Click here if not redirected</a></p>
-        </body>
-        </html>
-    ''', 200
-
-
+    return app_bridge_redirect(url_for("billing.subscribe", shop=shop, host=host))
 @core_bp.route("/settings")
 def settings_redirect():
     """Redirect to Shopify settings using App Bridge to preserve JWT trust"""
     # 🎯 TITAN FIX: Prioritize verified identity from middleware
     shop = g.get('shop_domain', '') or request.args.get("shop", "")
     host = g.get('host', '') or request.args.get("host", "")
-    target_url = url_for("shopify.shopify_settings", shop=shop, host=host, _external=True)
-    return f'''
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
-            <script>
-                const targetUrl = "{target_url}";
-                if (window.top !== window.self) {{
-                    window.top.location.href = targetUrl;
-                }} else {{
-                    window.location.href = targetUrl;
-                }}
-            </script>
-        </head>
-        <body><p>Redirecting to settings... <a href="{target_url}">Click here if not redirected</a></p></body>
-        </html>
-    ''', 200
+    return app_bridge_redirect(url_for("shopify.shopify_settings", shop=shop, host=host))
 
 
 

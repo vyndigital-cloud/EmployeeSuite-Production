@@ -519,25 +519,12 @@ def disconnect_store():
             host=host,
         )
         
-        return f'''
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
-                <script>
-                    const targetUrl = "{target_url}";
-                    if (window.top !== window.self) {{
-                        window.top.location.href = targetUrl;
-                    }} else {{
-                        window.location.href = targetUrl;
-                    }}
-                </script>
-            </head>
-            <body>
-                <p>Redirecting... <a href="{target_url}">Click here if you are not redirected.</a></p>
-            </body>
-            </html>
-        ''', 200
+        return app_bridge_redirect(url_for(
+            "shopify.shopify_settings",
+            success="Disconnected.",
+            shop=shop_domain,
+            host=host,
+        ))
 
     except Exception as e:
         logger.error(

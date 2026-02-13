@@ -558,28 +558,4 @@
     {% endif %}
 </div>
 
-<!-- App Bridge Robust Initialization (Fix 7) -->
-<script>
-    (function () {
-        const urlParams = new URLSearchParams(window.location.search);
-        const host = urlParams.get("host") || "{{ host }}";
-        const shop = urlParams.get("shop") || "{{ shop }}";
-
-        if (!host || host === "None" || host === "") {
-            console.error("Missing Host parameter - App Bridge initialization may be degraded");
-        }
-
-        // App Bridge v4 initialization (integrated with shopifycloud/app-bridge.js)
-        if (window.shopify) {
-            console.log("App Bridge detected, initializing with shop:", shop);
-            // v4 doesn't need explicit createApp in most cases if using shopify.idToken()
-            // but we ensure the global parameters are set for our own scripts
-            window.isEmbedded = !!host;
-            window.SHOP_PARAM = shop;
-            window.HOST_PARAM = host;
-        } else {
-            console.warn("Shopify App Bridge script not loaded yet");
-        }
-    })();
-</script>
 {% endblock %}

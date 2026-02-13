@@ -12,6 +12,7 @@ from flask import (
     session,
     url_for,
 )
+from shopify_utils import app_bridge_redirect
 from flask_bcrypt import Bcrypt
 from flask_login import current_user, login_required, login_user, logout_user
 
@@ -413,15 +414,7 @@ def login():
             # Preserve embedded params if this is an embedded app request
             # For embedded apps, redirect to dashboard with params (dashboard handles embedded better)
             if is_embedded and shop:
-                # Build URL with all embedded parameters
-                params = {"shop": shop, "embedded": "1"}
-                if host:
-                    params["host"] = host
-                dashboard_url = url_for("core.dashboard", **params)
-                # Use safe_redirect for embedded apps to break out of iframe
-                from utils import safe_redirect
-
-                return safe_redirect(dashboard_url, shop=shop, host=host)
+                return app_bridge_redirect(url_for("core.dashboard", shop=shop, host=host))
             # For standalone, redirect to dashboard
             # CRITICAL: Ensure session is saved before redirect
             try:
@@ -541,6 +534,8 @@ def logout():
     logger.info(f"User {user_id} logged out successfully - session cleared")
 
     # Pass params back to login route so it can handle embedded redirect
+    if is_embedded:
+        return app_bridge_redirect(url_for("auth.login", shop=shop, host=host, embedded=embedded))
     return redirect(url_for("auth.login", shop=shop, host=host, embedded=embedded))
 
 

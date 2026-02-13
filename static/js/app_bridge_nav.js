@@ -1,167 +1,128 @@
-// App Bridge Authenticated Navigation Helper
-// UPDATED for 2026 Shopify Compliance - Uses App Bridge 4.0
+/**
+ * App Bridge Navigation and Handshake Hardening
+ * Centrally managed script to prevent "Virtual 404" errors and maintain the Shopify context.
+ */
 
 (function () {
-    'use strict';
+    // 1. Handshake Initialization
+    const urlParams = new URLSearchParams(window.location.search);
+    let host = urlParams.get('host') || window.HOST_PARAM;
+    let shop = urlParams.get('shop') || window.SHOP_PARAM;
 
-    // Wait for App Bridge to be ready
-    function waitForAppBridge(callback) {
-        if (window.shopify && window.shopify.idToken) {
-            callback();
-        } else {
-            setTimeout(() => waitForAppBridge(callback), 100);
+    // Persistence: If host is missing from URL, try sessionStorage (recovery mode)
+    if (!host || host === 'None') {
+        host = sessionStorage.getItem('shopify_host');
+        if (host) {
+            console.log('🔄 Restored host from sessionStorage:', host);
         }
+    } else {
+        sessionStorage.setItem('shopify_host', host);
     }
 
-    // 2026 COMPLIANT: "Tokenize" navigation - append token to URL
-    async function navigateAuthenticated(url) {
+    if (!shop || shop === 'None') {
+        shop = sessionStorage.getItem('shopify_shop');
+    } else {
+        sessionStorage.setItem('shopify_shop', shop);
+    }
+
+    const apiKey = window.SHOPIFY_API_KEY || '';
+
+    if (host && window['app-bridge']) {
         try {
-            // Get fresh session token
-            const token = await window.shopify.idToken();
+            const AppBridge = window['app-bridge'];
+            const createApp = AppBridge.default;
+            const Redirect = AppBridge.actions.Redirect;
 
-            // CRITICAL: Append token to URL (page loads can't use headers!)
-            const urlObj = new URL(url, window.location.origin);
-            urlObj.searchParams.set('id_token', token);
-
-            const finalPath = urlObj.pathname + urlObj.search;
-
-            // Use App Bridge navigate (preferred - 2026 compliant)
-            if (window.shopify && window.shopify.navigate) {
-                window.shopify.navigate(finalPath);
-                console.log('[Auth Nav 2026] App Bridge navigation with token:', finalPath);
-            } else {
-                // Fallback to direct navigation
-                window.location.href = urlObj.toString();
-                console.log('[Auth Nav 2026] Legacy fallback:', urlObj.toString());
-            }
-        } catch (error) {
-            console.error('[Auth Nav 2026] Token fetch failed:', error);
-            // Last resort fallback (no token)
-            window.location.href = url;
-        }
-    }
-
-    // Convert all internal links to use authenticated navigation
-    function enhanceLinks() {
-        // Find all internal links
-        const links = document.querySelectorAll('a[href]');
-
-        links.forEach(link => {
-            const href = link.getAttribute('href');
-
-            // Skip external links, anchors, and special protocols
-            if (!href || href.startsWith('#') || href.startsWith('http') ||
-                href.startsWith('mailto:') || href.startsWith('tel:')) {
-                return;
-            }
-
-            // Skip already enhanced links
-            if (link.dataset.authEnhanced) {
-                return;
-            }
-
-            // Skip static files
-            if (href.includes('/static/')) {
-                return;
-            }
-
-            // Mark as enhanced
-            link.dataset.authEnhanced = 'true';
-
-            // Intercept clicks
-            link.addEventListener('click', function (e) {
-                // Let Cmd/Ctrl+Click open in new tab normally
-                if (e.metaKey || e.ctrlKey) {
-                    return;
-                }
-
-                e.preventDefault();
-                const targetUrl = this.href;
-
-                console.log('[Auth Nav 2026] Navigating with App Bridge:', targetUrl);
-                navigateAuthenticated(targetUrl);
-            });
-        });
-    }
-
-    // SAFETY NET: Global click interceptor (catches sidebar, settings, subscribe, etc.)
-    document.addEventListener('click', async (event) => {
-        const link = event.target.closest('a');
-
-        // Skip if not a link
-        if (!link) return;
-
-        // Skip if already processed by individual handler
-        if (link.dataset.authEnhanced) return;
-
-        // Only intercept internal links
-        const href = link.href || link.getAttribute('href');
-        if (!href ||
-            !href.includes(window.location.origin) ||
-            href.startsWith('#') ||
-            href.startsWith('mailto:') ||
-            href.startsWith('tel:') ||
-            href.includes('/static/')) {
-            return;
-        }
-
-        // Let Cmd/Ctrl+Click open in new tab
-        if (event.metaKey || event.ctrlKey) return;
-
-        event.preventDefault();
-
-        console.log('[Auth Nav 2026] Safety Net: Intercepted unprocessed link:', href);
-
-        try {
-            const token = await window.shopify.idToken();
-            const url = new URL(href);
-            url.searchParams.set('id_token', token);
-
-            // Preserve shop/host from current URL
-            const params = new URLSearchParams(window.location.search);
-            ['shop', 'host'].forEach(param => {
-                if (params.has(param)) {
-                    url.searchParams.set(param, params.get(param));
-                }
+            const app = createApp({
+                apiKey: apiKey,
+                host: host,
+                forceRedirect: true
             });
 
-            const finalPath = url.pathname + url.search;
+            window.shopify = app;
+            window.shopify.Redirect = Redirect;
+            window.shopify.host = host;
+            window.shopify.shop = shop;
 
-            if (window.shopify && window.shopify.navigate) {
-                window.shopify.navigate(finalPath);
-            } else {
-                window.location.href = url.toString();
-            }
-        } catch (error) {
-            console.error('[Auth Nav 2026] Safety Net failed:', error);
-            window.location.href = href; // Fallback
+            // Initialize global redirect instance
+            const redirectInstance = Redirect.create(app);
+            window.shopify.redirect = redirectInstance;
+
+            // Expose idToken helper
+            window.shopify.idToken = async () => {
+                const getSessionToken = AppBridge.utilities.getSessionToken;
+                return await getSessionToken(app);
+            };
+
+            // Expose Toast and TitleBar
+            window.shopify.Toast = AppBridge.actions.Toast;
+            window.shopify.TitleBar = AppBridge.actions.TitleBar;
+
+            console.log('✅ App Bridge Handshake Successful');
+
+            // 2. Global "Single-Entry" Interceptors
+            // Re-define internalNav to use App Bridge Redirect
+            window.internalNav = function (path) {
+                console.log('🔀 App Bridge Redirect to:', path);
+                redirectInstance.dispatch(Redirect.Action.APP, path);
+            };
+
+            // Global Navigation Helper as requested
+            window.appNavigate = function (path) {
+                // Ensure the path has shop and host if possible
+                var dest = path;
+                if (dest.indexOf('?') === -1 && window.location.search) {
+                    dest += window.location.search;
+                }
+                window.internalNav(dest);
+            };
+
+            // Backwards compatibility
+            window.openPage = window.appNavigate;
+
+        } catch (e) {
+            console.error('❌ App Bridge Handshake Failed:', e);
+        }
+    } else if (!host) {
+        console.error('🚨 Missing host parameter - Handshake will fail');
+    }
+
+    // 3. Fallback Navigation (for when App Bridge isn't ready or initialized)
+    if (!window.internalNav) {
+        window.internalNav = function (path) {
+            var dest = path;
+            var sep = dest.indexOf('?') > -1 ? '&' : '?';
+            if (shop && dest.indexOf('shop=') === -1) dest += sep + 'shop=' + encodeURIComponent(shop);
+            if (host && dest.indexOf('host=') === -1) dest += (dest.indexOf('?') > -1 ? '&' : '?') + 'host=' + encodeURIComponent(host);
+            window.location.href = dest;
+        };
+    }
+
+    // 4. Click Interceptor
+    document.addEventListener('click', function (e) {
+        const link = e.target.closest('a');
+        if (!link || !link.href) return;
+
+        // Skip external, blank, or hash links
+        if (link.target === '_blank' || !link.href.startsWith(window.location.origin)) return;
+        const path = link.getAttribute('href');
+        if (path === '#' || path.startsWith('javascript:')) return;
+
+        e.preventDefault();
+        window.internalNav(path);
+    });
+
+    // 5. Form Interceptor
+    document.addEventListener('submit', function (e) {
+        const form = e.target;
+        if (form.method.toLowerCase() === 'get' && form.action.startsWith(window.location.origin)) {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const searchParams = new URLSearchParams(formData);
+            const action = form.getAttribute('action');
+            const path = action.split('?')[0].replace(window.location.origin, '') + '?' + searchParams.toString();
+            window.internalNav(path);
         }
     });
 
-    // Initialize when App Bridge is ready
-    waitForAppBridge(function () {
-        console.log('[Auth Nav 2026] App Bridge ready - 2026 compliant mode ✅');
-
-        // Enhance existing links
-        enhanceLinks();
-
-        // Watch for dynamically added links
-        const observer = new MutationObserver(function (mutations) {
-            mutations.forEach(function (mutation) {
-                if (mutation.addedNodes.length) {
-                    enhanceLinks();
-                }
-            });
-        });
-
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-
-        console.log('[Auth Nav 2026] ✅ Global event delegation + individual link enhancement active');
-    });
-
-    // Expose for manual use
-    window.navigateAuthenticated = navigateAuthenticated;
 })();

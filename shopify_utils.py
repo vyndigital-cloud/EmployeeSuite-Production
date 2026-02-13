@@ -292,12 +292,22 @@ def app_bridge_redirect(url: str):
             <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
             <script>
                 document.addEventListener('DOMContentLoaded', function() {{
+                    const urlParams = new URLSearchParams(window.location.search);
+                    let targetUrl = '{url}';
+                    
+                    // Preserve host if missing from target URL but present in current context
+                    if (!targetUrl.includes('host=') && (urlParams.get('host') || window.HOST_PARAM)) {{
+                        const host = urlParams.get('host') || window.HOST_PARAM;
+                        const sep = targetUrl.indexOf('?') > -1 ? '&' : '?';
+                        targetUrl += sep + 'host=' + encodeURIComponent(host);
+                    }}
+
                     if (window.shopify) {{
                         // App Bridge v4 automatically handles navigation
-                        window.location.href = '{url}';
+                        window.location.href = targetUrl;
                     }} else {{
                         // Fallback
-                        window.location.href = '{url}';
+                        window.location.href = targetUrl;
                     }}
                 }});
             </script>

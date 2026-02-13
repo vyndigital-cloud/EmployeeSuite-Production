@@ -1069,13 +1069,11 @@ def cancel_subscription():
         pass
 
     if not user:
-        settings_url = f"/settings?error=Authentication required&shop={shop}&host={host}"
-        return safe_redirect(settings_url, shop=shop, host=host)
+        return app_bridge_redirect(url_for('shopify.shopify_settings', error="Authentication required", shop=shop, host=host))
 
     store = ShopifyStore.query.filter_by(user_id=user.id, is_active=True).first()
     if not store or not store.charge_id:
-        settings_url = f"/settings?error=No active subscription found&shop={shop}&host={host}"
-        return safe_redirect(settings_url, shop=shop, host=host)
+        return app_bridge_redirect(url_for('shopify.shopify_settings', error="No active subscription found", shop=shop, host=host))
 
     url = f"https://{store.shop_url}/admin/api/{SHOPIFY_API_VERSION}/recurring_application_charges/{store.charge_id}.json"
     headers = {
@@ -1090,16 +1088,13 @@ def cancel_subscription():
             store.charge_id = None
             db.session.commit()
             logger.info(f"Subscription cancelled for {store.shop_url}")
-            settings_url = f"/settings?success=Subscription cancelled&shop={shop}&host={host}"
-            return safe_redirect(settings_url, shop=shop, host=host)
+            return app_bridge_redirect(url_for('shopify.shopify_settings', success="Subscription cancelled", shop=shop, host=host))
         else:
             logger.error(f"Failed to cancel subscription: {response.status_code}")
-            settings_url = f"/settings?error=Failed to cancel subscription&shop={shop}&host={host}"
-            return safe_redirect(settings_url, shop=shop, host=host)
+            return app_bridge_redirect(url_for('shopify.shopify_settings', error="Failed to cancel subscription", shop=shop, host=host))
     except Exception as e:
         logger.error(f"Error cancelling subscription: {e}")
-        settings_url = f"/settings?error={str(e)}&shop={shop}&host={host}"
-        return safe_redirect(settings_url, shop=shop, host=host)
+        return app_bridge_redirect(url_for('shopify.shopify_settings', error=str(e), shop=shop, host=host))
 
 
 @billing_bp.route("/test-billing", methods=["GET", "POST"])

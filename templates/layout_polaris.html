@@ -138,172 +138,16 @@
 
                 setTimeout(() => clearInterval(checkReady), 3000);
             }
-        }, true); // Use capture phase to intercept early
-
-        // Initialize App Bridge state
-        window.appBridgeReady = false;
-        // ROBUST EMBEDDED DETECTION: Check URL params OR iframe state
-        const urlParams = new URLSearchParams(window.location.search);
-        window.isEmbedded = !!urlParams.get("host") || (window.self !== window.top);
-
-        console.log(`🕵️ Environment Check: Embedded=${window.isEmbedded} (Host Param=${!!urlParams.get("host")}, Iframe=${window.self !== window.top})`);
-
-        // Helper to open pages via App Bridge (Manual JWT Append)
-        window.openPage = async function (path) {
-            if (window.shopify && typeof window.shopify.idToken === 'function') {
-                try {
-                    // 1. Grab a fresh token RIGHT NOW
-                    const token = await window.shopify.idToken();
-
-                    // 2. Attach it to the URL manually
-                    const url = new URL(path, window.location.origin);
-                    url.searchParams.set('id_token', token);
-
-                    // Only set shop/host if they exist (prevent empty strings)
-                    const currentParams = new URLSearchParams(window.location.search);
-                    const shop = currentParams.get('shop');
-                    const host = currentParams.get('host');
-
-                    if (shop) url.searchParams.set('shop', shop);
-                    if (host) url.searchParams.set('host', host);
-
-                    // 3. Dispatch the redirect with the payload included
-                    const Redirect = window['app-bridge'].actions.Redirect;
-                    const redirect = Redirect.create(window.shopify);
-                    redirect.dispatch(Redirect.Action.APP, url.pathname + url.search);
-
-                    console.log("🚀 Manual JWT Append Navigation to:", url.pathname + url.search);
-                    return false;
-                } catch (e) {
-                    console.error("JWT Navigation Failure", e);
-                    // Last resort fallback - don't use location.href, use standard param append
-                }
-            }
-
-            // Fallback for non-embedded context or if App Bridge not ready
-            var params = new URLSearchParams(window.location.search);
-            var shop = params.get("shop");
-            var host = params.get("host");
-            var embedded = params.get("embedded") || (host ? "1" : "");
-            var sep = path.indexOf("?") > -1 ? "&" : "?";
-            var dest = path;
-            if (shop) dest += sep + "shop=" + shop;
-            if (host)
-                dest +=
-                    (dest.indexOf("?") > -1 ? "&" : "?") + "host=" + host;
-            if (embedded)
-                dest +=
-                    (dest.indexOf("?") > -1 ? "&" : "?") +
-                    "embedded=" +
-                    embedded;
-            window.location.href = dest;
-            return false;
-        };
-
-        // NEW: Global Link Interceptor for Stateless Pivot
-        document.addEventListener('click', function (e) {
-            const link = e.target.closest('a');
-            if (!link || !link.href) return;
-
-            // Only intercept internal links (same origin)
-            if (link.href.startsWith(window.location.origin)) {
-                const path = link.getAttribute('href');
-                // Skip if it's a hash or already has target="_blank"
-                if (path === '#' || link.target === '_blank') return;
-
-                e.preventDefault();
-                window.openPage(path);
-            }
-        });
     </script>
 
-    <!-- OPTION B: App Bridge Redirect API (Official Method) -->
     <script>
-        // Wait for App Bridge to be ready
-        document.addEventListener('DOMContentLoaded', function () {
-            // Verify App Bridge v3 is loaded
-            if (!window.shopify || !window['app-bridge']) {
-                console.error('❌ App Bridge not loaded - navigation interceptor disabled');
-                return;
-            }
-
-            // Initialize App Bridge (required for Redirect API)
-            // TRIANGLE OF PERSISTENCE: Dynamic Host Handshake
-            const urlParams = new URLSearchParams(window.location.search);
-            const host = urlParams.get('host');
-            const apiKey = '{{ config.SHOPIFY_API_KEY }}' || '';
-
-            if (host) {
-                try {
-                    // Create App Bridge instance
-                    const AppBridge = window['app-bridge'];
-                    const createApp = AppBridge.default;
-                    const Redirect = AppBridge.actions.Redirect;
-
-                    const app = createApp({
-                        apiKey: apiKey,
-                        host: host,
-                        forceRedirect: true // CRITICAL: Ensures app stays in Shopify
-                    });
-
-                    // Toast and TitleBar
-                    const Toast = AppBridge.actions.Toast;
-                    const TitleBar = AppBridge.actions.TitleBar;
-
-                    window.shopify = app;
-                    window.shopify.Toast = Toast;
-                    window.shopify.TitleBar = TitleBar;
-                    window.shopify.Redirect = Redirect;
-
-                    // Expose idToken helper
-                    window.shopify.idToken = async () => {
-                        try {
-                            const getSessionToken = AppBridge.utilities.getSessionToken;
-                            const token = await getSessionToken(app);
-                            return token;
-                        } catch (err) {
-                            console.error("SESSION TOKEN ERROR", err);
-                            throw err;
-                        }
-                    };
-
-                    console.log('✅ App Bridge Initialized via Dynamic Host Handshake');
-
-                    // Intercept all links with data-auth-required="true"
-                    const authLinks = document.querySelectorAll('a[data-auth-required="true"]');
-
-                    authLinks.forEach(function (link) {
-                        link.addEventListener('click', function (e) {
-                            e.preventDefault();
-
-                            // Extract path from href
-                            const url = new URL(this.href, window.location.origin);
-                            const targetPath = url.pathname + url.search;
-
-                            console.log('✅ App Bridge Redirect:', targetPath);
-
-                            // Use App Bridge Redirect API - JWT automatically included
-                            const redirect = Redirect.create(app);
-                            redirect.dispatch(Redirect.Action.APP, targetPath);
-                        });
-                    });
-
-                    if (authLinks.length > 0) {
-                        console.log('✅ App Bridge Redirect API: Protecting ' + authLinks.length + ' link(s)');
-                    }
-
-                } catch (e) {
-                    console.error('❌ App Bridge Initialization Failed:', e);
-                }
-            } else {
-                console.error("Critical Failure: No host parameter found. App Bridge cannot initialize.");
-            }
-            // Signal that app is ready - show body
-            document.body.classList.add('app-ready');
-
-
-        });
+            // Inject Config for app_bridge_nav.js
+            window.SHOPIFY_API_KEY = '{{ config.SHOPIFY_API_KEY }}';
+            window.SHOP_PARAM = '{{ shop }}';
+            window.HOST_PARAM = '{{ host }}';
     </script>
+    <script src="{{ url_for('static', filename='js/app_bridge_nav.js') }}"></script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <!-- Critical: Prevent any blocking - render immediately -->
@@ -368,23 +212,23 @@
 
     <!-- Google Analytics - Load after page renders -->
     <script>
-        // Defer analytics loading
-        window.addEventListener("load", function () {
-            var script = document.createElement("script");
-            script.async = true;
-            script.src =
-                "https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3";
-            document.head.appendChild(script);
+            // Defer analytics loading
+            window.addEventListener("load", function () {
+                var script = document.createElement("script");
+                script.async = true;
+                script.src =
+                    "https://www.googletagmanager.com/gtag/js?id=G-RBBQ4X7FJ3";
+                document.head.appendChild(script);
 
-            script.onload = function () {
-                window.dataLayer = window.dataLayer || [];
-                function gtag() {
-                    dataLayer.push(arguments);
-                }
-                gtag("js", new Date());
-                gtag("config", "G-RBBQ4X7FJ3");
-            };
-        });
+                script.onload = function () {
+                    window.dataLayer = window.dataLayer || [];
+                    function gtag() {
+                        dataLayer.push(arguments);
+                    }
+                    gtag("js", new Date());
+                    gtag("config", "G-RBBQ4X7FJ3");
+                };
+            });
     </script>
 
     {% block extra_head %}{% endblock %}
