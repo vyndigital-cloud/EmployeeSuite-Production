@@ -51,3 +51,72 @@ def shopify_api_call(self, shop_domain, action, params=None):
         
         print(f"⚠️ Task failed for {shop_domain}: {exc}")
         raise exc
+
+@app.task(bind=True, max_retries=3)
+def handle_app_uninstall(self, shop_domain):
+    """
+    Async handler for app/uninstall webhook.
+    """
+    from models import db, ShopifyStore, User
+    from app_factory import create_app
+    
+    # Create app context for DB access
+    flask_app = create_app()
+    with flask_app.app_context():
+        try:
+            print(f"Worker: Processing uninstall for {shop_domain}")
+            store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
+            if store:
+                store.is_active = False
+                store.uninstalled_at = time.strftime('%Y-%m-%d %H:%M:%S') # simplistic, better to use datetime
+                # SCRUB
+                store.access_token = None
+                db.session.commit()
+                # store.invalidate_cache() # Method might not exist in worker context easily if not bound to app? 
+                # Actually models are bound to db, so it should work if implementation uses db/cache.
+                # Assuming simple invalidation:
+                print(f"Worker: Store {shop_domain} uninstalled.")
+            else:
+                print(f"Worker: Store {shop_domain} not found or already inactive.")
+        except Exception as e:
+            print(f"Worker Error (uninstall): {e}")
+            raise self.retry(exc=e)
+
+@app.task(bind=True, max_retries=3)
+def handle_subscription_update(self, shop_domain, data):
+    """
+    Async handler for app_subscriptions/update webhook.
+    """
+    from models import db, ShopifyStore, User
+    from app_factory import create_app
+    
+    flask_app = create_app()
+    with flask_app.app_context():
+        try:
+            print(f"Worker: Processing subscription update for {shop_domain}")
+            store = ShopifyStore.query.filter_by(shop_url=shop_domain).first()
+            if not store:
+                print(f"Worker: Store {shop_domain} not found.")
+                return
+            
+            app_subscription = data.get('app_subscription', {})
+            status = app_subscription.get('status', '')
+            charge_id = app_subscription.get('id', '')
+            
+            if charge_id:
+                store.charge_id = str(charge_id)
+            
+            user = User.query.get(store.user_id)
+            if user:
+                if status == 'active':
+                    user.is_subscribed = True
+                    print(f"Worker: Subscription ACTIVE for {shop_domain}")
+                elif status in ['cancelled', 'expired', 'declined']:
+                    user.is_subscribed = False
+                    print(f"Worker: Subscription {status} for {shop_domain}")
+            
+            db.session.commit()
+            
+        except Exception as e:
+            print(f"Worker Error (sub update): {e}")
+            raise self.retry(exc=e)

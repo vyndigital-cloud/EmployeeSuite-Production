@@ -40,121 +40,88 @@ def verify_shopify_webhook(data, hmac_header):
 @webhook_shopify_bp.route('/webhooks/app/uninstall', methods=['POST'])
 @log_errors("WEBHOOK_ERROR")
 def app_uninstall():
-    """Handle app uninstall webhook from Shopify"""
+    """
+    Handle app uninstall webhook from Shopify - ASYNC & IDEMPOTENT
+    """
     try:
-        # Log webhook received
-        error_logger.log_system_event("WEBHOOK_RECEIVED", {
-            'type': 'app/uninstall',
-            'shop_domain': request.headers.get('X-Shopify-Shop-Domain', '')
-        })
-        # Verify webhook signature
+        # 1. Verify Signature
         hmac_header = request.headers.get('X-Shopify-Hmac-Sha256')
-        # Get raw bytes for HMAC verification (not decoded string)
         raw_data = request.get_data(as_text=False)
         if not verify_shopify_webhook(raw_data, hmac_header):
             logger.warning("Invalid webhook signature for app/uninstall")
-            return jsonify({'error': 'Invalid signature'}), 401
-        
-        data = request.get_json()
+            return jsonify({'error': 'Invalid signature'}), 401 # Shopify will retry, but that's okay for security failure
+
+        # 2. Idempotency Guard (Redis)
+        webhook_id = request.headers.get('X-Shopify-Webhook-Id')
+        if webhook_id:
+            try:
+                import redis
+                r = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+                key = f"webhook_processed:{webhook_id}"
+                if r.get(key):
+                    logger.info(f"Duplicate App Uninstall Webhook {webhook_id} ignored.")
+                    return jsonify({'status': 'ignored_duplicate'}), 200
+                r.setex(key, 86400, "1") # 24h TTL
+            except Exception as re:
+                logger.warning(f"Redis Idempotency Check Failed: {re}")
+
+        # 3. Extract Data safely
         shop_domain = request.headers.get('X-Shopify-Shop-Domain', '')
         if shop_domain:
             shop_domain = shop_domain.lower().replace('https://', '').replace('http://', '').replace('www.', '').strip()
             if not shop_domain.endswith('.myshopify.com') and '.' not in shop_domain:
                 shop_domain = f"{shop_domain}.myshopify.com"
-
         
         if not shop_domain:
-            logger.error("Missing shop domain in app/uninstall webhook")
             return jsonify({'error': 'Missing shop domain'}), 400
-        
-        logger.info(f"App uninstall webhook received for shop: {shop_domain}")
-        
-        # Find and deactivate the store
-        store = ShopifyStore.query.filter_by(shop_url=shop_domain, is_active=True).first()
-        if store:
-            store.is_active = False
-            store.uninstalled_at = datetime.utcnow()
-            
-            # SCRUB: Clear the access token to ensure it's "stale" and unusable
-            store.access_token = None
-            
-            db.session.commit()
-            store.invalidate_cache() # [LEGEND TIER] Purge settings
-            logger.info(f"Store {shop_domain} marked as uninstalled")
-        else:
-            logger.warning(f"Store {shop_domain} not found for uninstall")
-        
-        # Log successful processing
-        error_logger.log_system_event("WEBHOOK_PROCESSED", {
-            'type': 'app/uninstall',
-            'shop_domain': shop_domain,
-            'status': 'success'
-        })
-        
-        return jsonify({'status': 'success'}), 200
-        
+
+        # 4. Async Handoff
+        try:
+            from worker import handle_app_uninstall
+            handle_app_uninstall.delay(shop_domain)
+            logger.info(f"Queued async uninstall for {shop_domain}")
+        except Exception as we:
+            logger.error(f"Failed to queue uninstall task: {we}")
+            # Fallback? No, if Redis is down, we might be in trouble, but let's return 200 to satisfy Shopify
+            # or 500 to retry later. 
+            # Given "Zero Downtime" goal, if queue fails, we probably WANT Shopify to retry.
+            return jsonify({'error': 'Queue failed'}), 500
+
+        return jsonify({'status': 'queued'}), 200
+
     except Exception as e:
-        error_logger.log_error(e, "WEBHOOK_PROCESSING_ERROR", {
-            'webhook_type': 'app/uninstall',
-            'shop_domain': request.headers.get('X-Shopify-Shop-Domain', '')
-        })
         logger.error(f"Error handling app/uninstall webhook: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
-
-
-@webhook_shopify_bp.route('/webhooks/app_subscriptions/cancel', methods=['POST'])
-@log_errors("WEBHOOK_ERROR")
-def app_subscription_cancel():
-    """Explicit handler for app subscription cancellation"""
-    try:
-        # Verify webhook signature
-        hmac_header = request.headers.get('X-Shopify-Hmac-Sha256')
-        raw_data = request.get_data(as_text=False)
-        if not verify_shopify_webhook(raw_data, hmac_header):
-            return jsonify({'error': 'Invalid signature'}), 401
-        
-        data = request.get_json()
-        shop_domain = request.headers.get('X-Shopify-Shop-Domain', '')
-        
-        # Find the store
-        store = ShopifyStore.query.filter_by(shop_url=shop_domain).first()
-        if store:
-            user = User.query.get(store.user_id)
-            if user:
-                user.is_subscribed = False
-                # Wipe cache immediately
-                if hasattr(User, '_access_cache') and user.id in User._access_cache:
-                    del User._access_cache[user.id]
-                logger.info(f"🚫 Subscription CANCELLED for shop {shop_domain}")
-            
-            db.session.commit()
-            if store:
-                store.invalidate_cache() # [LEGEND TIER] Purge settings
-            
-        return jsonify({'status': 'success'}), 200
-    except Exception as e:
-        logger.error(f"Error handling app_subscriptions/cancel: {e}")
         return jsonify({'error': str(e)}), 500
 
 
 @webhook_shopify_bp.route('/webhooks/app_subscriptions/update', methods=['POST'])
 @log_errors("WEBHOOK_ERROR")
 def app_subscription_update():
-    """Handle app subscription update webhook from Shopify"""
+    """
+    Handle app subscription update webhook from Shopify - ASYNC & IDEMPOTENT
+    """
     try:
-        # Log webhook received
-        error_logger.log_system_event("WEBHOOK_RECEIVED", {
-            'type': 'app_subscriptions/update',
-            'shop_domain': request.headers.get('X-Shopify-Shop-Domain', '')
-        })
-        # Verify webhook signature
+        # 1. Verify Signature
         hmac_header = request.headers.get('X-Shopify-Hmac-Sha256')
-        # Get raw bytes for HMAC verification (not decoded string)
         raw_data = request.get_data(as_text=False)
         if not verify_shopify_webhook(raw_data, hmac_header):
-            logger.warning("Invalid webhook signature for app_subscriptions/update")
             return jsonify({'error': 'Invalid signature'}), 401
         
+        # 2. Idempotency Guard
+        webhook_id = request.headers.get('X-Shopify-Webhook-Id')
+        if webhook_id:
+            try:
+                import redis
+                r = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+                key = f"webhook_processed:{webhook_id}"
+                if r.get(key):
+                    logger.info(f"Duplicate Subscription Webhook {webhook_id} ignored.")
+                    return jsonify({'status': 'ignored_duplicate'}), 200
+                r.setex(key, 86400, "1")
+            except Exception as re:
+                logger.warning(f"Redis Idempotency Check Failed: {re}")
+        
+        # 3. Extract Data
         data = request.get_json()
         shop_domain = request.headers.get('X-Shopify-Shop-Domain', '')
         if shop_domain:
@@ -162,42 +129,19 @@ def app_subscription_update():
             if not shop_domain.endswith('.myshopify.com') and '.' not in shop_domain:
                 shop_domain = f"{shop_domain}.myshopify.com"
 
-        
         if not shop_domain:
-            logger.error("Missing shop domain in app_subscriptions/update webhook")
             return jsonify({'error': 'Missing shop domain'}), 400
+
+        # 4. Async Handoff
+        try:
+            from worker import handle_subscription_update
+            handle_subscription_update.delay(shop_domain, data)
+            logger.info(f"Queued async subscription update for {shop_domain}")
+        except Exception as we:
+            logger.error(f"Failed to queue subscription task: {we}")
+            return jsonify({'error': 'Queue failed'}), 500
         
-        logger.info(f"App subscription update webhook received for shop: {shop_domain}")
-        
-        # Find the store
-        store = ShopifyStore.query.filter_by(shop_url=shop_domain).first()
-        if not store:
-            logger.warning(f"Store {shop_domain} not found for subscription update")
-            return jsonify({'error': 'Store not found'}), 404
-        
-        # Update subscription status based on webhook data
-        # Shopify sends status: active, cancelled, expired, etc.
-        app_subscription = data.get('app_subscription', {})
-        status = app_subscription.get('status', '')
-        charge_id = app_subscription.get('id', '')
-        
-        # Update charge_id if provided
-        if charge_id:
-            store.charge_id = str(charge_id)
-        
-        # Update user subscription status
-        user = User.query.get(store.user_id)
-        if user:
-            if status == 'active':
-                user.is_subscribed = True
-                logger.info(f"Subscription activated for shop {shop_domain}")
-            elif status in ['cancelled', 'expired', 'declined']:
-                user.is_subscribed = False
-                logger.info(f"Subscription {status} for shop {shop_domain}")
-        
-        db.session.commit()
-        
-        return jsonify({'status': 'success'}), 200
+        return jsonify({'status': 'queued'}), 200
         
     except Exception as e:
         logger.error(f"Error handling app_subscriptions/update webhook: {e}", exc_info=True)
