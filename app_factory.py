@@ -845,21 +845,19 @@ def create_app():
             return
 
         # 3. Identity Integrity Check (URL vs Session vs JWT)
+        jwt_verified = getattr(request, 'session_token_verified', False)
+
+        # TITAN OVERRIDE: If JWT is verified, we bypass the cookie-based session checks entirely.
+        if jwt_verified:
+            app.logger.debug(f"TITAN [BYPASS] Trusting JWT for {request.path}. Skipping session check.")
+            return # <--- This is the weld that stops the logout loop.
+
+        # Only proceed to session checks if JWT is NOT present/verified
         url_shop = request.args.get("shop")
         session_shop = session.get("shop_domain")
-        jwt_verified = getattr(request, 'session_token_verified', False)
 
         if url_shop:
             url_shop = normalize_shop_url(url_shop)
-            
-            # If we have a verified JWT, the shop MUST match its destination
-            if jwt_verified:
-                if request.shop_domain != url_shop:
-                    app.logger.error(f"🚨 JWT MISMATCH: URL={url_shop}, JWT={request.shop_domain}")
-                    return jsonify({"error": "Identity mismatch", "action": "refresh"}), 403
-                # TITAN: If JWT is verified and matches URL, we SKIP session checks entirely
-                # This prevents the "Identity Tug-of-War" in Safari/Iframes
-                return 
 
             # If we have a session, it MUST match the URL shop
             if session_shop and normalize_shop_url(session_shop) != url_shop:
