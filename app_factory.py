@@ -820,6 +820,20 @@ def create_app():
             print(f"!!! DEBUG GATE ERROR: {e}")
             return jsonify({"status": "error", "message": str(e)}), 200
 
+    @app.route('/api/log_error', methods=['POST'])
+    def log_error():
+        # 1. Grab the raw data
+        try:
+            data = request.get_json(force=True, silent=True) or {}
+        except Exception:
+            data = {"error": "Failed to parse JSON"}
+        
+        # 2. FORCE PRINT TO STDOUT (This shows up in Render Logs immediately)
+        import sys
+        print(f"\n!!! [AGENT ALERT] ERROR DATA: {data}\n", file=sys.stderr)
+        
+        return jsonify({"status": "captured"}), 200
+
     # ============================================================================
     # GLOBAL ZERO-TRUST HARD-LOCK MIDDLEWARE
     # ============================================================================
@@ -848,7 +862,8 @@ def create_app():
             'gdpr_compliance.customers_redact',
             'gdpr_compliance.shop_redact',
             'health',
-            'debug_gate'
+            'debug_gate',
+            'log_error'
         ]
         
         # 1. Allow Whitelisted Endpoints immediately
