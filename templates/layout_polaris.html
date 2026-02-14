@@ -383,12 +383,14 @@
             });
         </script>
 
-        <!-- Initialize Sentinel -->
+        <!-- Initialize Sentinel (Only if loaded) -->
+        {% if show_sentinel %}
         <script>
             Sentinel.initAllLayers().then(() => {
                 console.log('✅ Sentinel + Hydra ready');
             });
         </script>
+        {% endif %}
 
 
         <!-- App Bridge Authenticated Navigation (Centralized) -->
