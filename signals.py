@@ -102,7 +102,7 @@ def register_signals(app):
     # Enhanced features
     from enhanced_features import enhanced_bp
     from features_pages import features_pages_bp
-    from session_token_verification import verify_session_token
+
     from order_processing import process_orders
     from inventory import update_inventory
     from reporting import generate_report

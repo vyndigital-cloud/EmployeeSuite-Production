@@ -100,7 +100,7 @@ def init_shopify(app):
     # Enhanced features
     from enhanced_features import enhanced_bp
     from features_pages import features_pages_bp
-    from session_token_verification import verify_session_token
+    from session_token_verification import stateless_auth
     from order_processing import process_orders
     from inventory import update_inventory
     from reporting import generate_report

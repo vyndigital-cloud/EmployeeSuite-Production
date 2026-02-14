@@ -22,7 +22,7 @@ from flask import (
     current_app,
 )
 from flask_login import current_user
-from session_token_verification import verify_session_token
+
 from access_control import require_access, require_zero_trust
 
 logger = logging.getLogger(__name__)

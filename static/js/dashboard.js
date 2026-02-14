@@ -361,38 +361,11 @@ window.processOrders = async function (button) {
         signal: controller.signal
     };
 
-    // CRITICAL: Await session token for embedded apps
-    // This resolves the [object Promise] bug
-    if (window.shopify && typeof window.shopify.idToken === 'function') {
-        try {
-            window.sessionToken = await window.shopify.idToken();
-        } catch (e) {
-            console.error("Failed to retrieve Shopify ID Token", e);
-        }
-    }
-
-    if (window.sessionToken) {
-        fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
-    }
+    // ZERO-FLAW UPDATE: Auth handled globally by layout_polaris.html interceptor
 
     fetch(apiUrl, fetchOptions)
         .then(async r => {
             if (controller.signal.aborted) return null;
-
-            // Handle session token expiry
-            if (r.status === 401 && window.shopify && window.shopify.idToken) {
-                // Refresh token and retry
-                try {
-                    console.log('Token expired, refreshing...');
-                    window.sessionToken = await window.shopify.idToken();
-                    // Retry the request with new token
-                    fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
-                    return fetch(apiUrl, fetchOptions);
-                } catch (e) {
-                    console.error('Token refresh failed:', e);
-                }
-            }
-
             if (!r.ok) throw new Error('Request failed');
             return r.json();
         })
@@ -444,37 +417,11 @@ window.updateInventory = async function (button) {
         signal: controller.signal
     };
 
-    // CRITICAL: Await session token for embedded apps
-    if (window.shopify && typeof window.shopify.idToken === 'function') {
-        try {
-            window.sessionToken = await window.shopify.idToken();
-        } catch (e) {
-            console.error("Failed to retrieve Shopify ID Token", e);
-        }
-    }
-
-    if (window.sessionToken) {
-        fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
-    }
+    // ZERO-FLAW UPDATE: Auth handled globally by layout_polaris.html interceptor
 
     fetch(apiUrl, fetchOptions)
         .then(async r => {
             if (controller.signal.aborted) return null;
-
-            // Handle session token expiry
-            if (r.status === 401 && window.shopify && window.shopify.idToken) {
-                // Refresh token and retry
-                try {
-                    console.log('Token expired, refreshing...');
-                    window.sessionToken = await window.shopify.idToken();
-                    // Retry the request with new token
-                    fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
-                    return fetch(apiUrl, fetchOptions);
-                } catch (e) {
-                    console.error('Token refresh failed:', e);
-                }
-            }
-
             if (!r.ok) throw new Error('Request failed');
             return r.json();
         })
@@ -526,37 +473,11 @@ window.generateReport = async function (button) {
         signal: controller.signal
     };
 
-    // CRITICAL: Await session token for embedded apps
-    if (window.shopify && typeof window.shopify.idToken === 'function') {
-        try {
-            window.sessionToken = await window.shopify.idToken();
-        } catch (e) {
-            console.error("Failed to retrieve Shopify ID Token", e);
-        }
-    }
-
-    if (window.sessionToken) {
-        fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
-    }
+    // ZERO-FLAW UPDATE: Auth handled globally by layout_polaris.html interceptor
 
     fetch(apiUrl, fetchOptions)
         .then(async r => {
             if (controller.signal.aborted) return null;
-
-            // Handle session token expiry
-            if (r.status === 401 && window.shopify && window.shopify.idToken) {
-                // Refresh token and retry
-                try {
-                    console.log('Token expired, refreshing...');
-                    window.sessionToken = await window.shopify.idToken();
-                    // Retry the request with new token
-                    fetchOptions.headers['Authorization'] = 'Bearer ' + window.sessionToken;
-                    return fetch(apiUrl, fetchOptions);
-                } catch (e) {
-                    console.error('Token refresh failed:', e);
-                }
-            }
-
             if (!r.ok) throw new Error('Request failed');
             return r.json();
         })

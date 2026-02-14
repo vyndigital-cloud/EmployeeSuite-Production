@@ -9,7 +9,7 @@ from order_processing import process_orders
 from inventory import update_inventory
 from email_service import send_report_email
 import logging
-from session_token_verification import verify_session_token
+from session_token_verification import stateless_auth
 from flask_login import current_user
 from access_control import require_access, require_active_shop, require_zero_trust
 

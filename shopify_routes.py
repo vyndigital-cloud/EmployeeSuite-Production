@@ -21,7 +21,7 @@ from config import SHOPIFY_API_VERSION
 from input_validation import sanitize_input, validate_url
 from logging_config import logger
 from models import ShopifyStore, db
-from session_token_verification import verify_session_token
+from session_token_verification import stateless_auth
 from shopify_utils import normalize_shop_url, app_bridge_redirect
 
 shopify_bp = Blueprint("shopify", __name__)
@@ -40,7 +40,7 @@ def connections_alias():
 
 
 @shopify_bp.route("/settings/shopify")
-@verify_session_token
+@stateless_auth
 def shopify_settings():
     """Shopify settings page - works in both embedded and standalone modes"""
     # 1. Extract verified shop from the JWT decorator

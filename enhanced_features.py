@@ -23,7 +23,7 @@ from reporting import generate_report
 from data_encryption import encrypt_access_token, decrypt_access_token
 from logging_config import logger
 from access_control import require_access  # Use existing require_access decorator
-from session_token_verification import verify_session_token
+from session_token_verification import stateless_auth
 
 enhanced_bp = Blueprint('enhanced', __name__)
 
@@ -32,7 +32,7 @@ enhanced_bp = Blueprint('enhanced', __name__)
 # ============================================================================
 
 @enhanced_bp.route('/api/export/orders', methods=['GET'])
-@verify_session_token
+@stateless_auth
 @require_access
 def export_orders_csv():
     """Export orders to CSV with date filtering"""
@@ -113,7 +113,7 @@ def export_orders_csv():
         }), 500
 
 @enhanced_bp.route('/api/export/inventory', methods=['GET'])
-@verify_session_token
+@stateless_auth
 @require_access
 def export_inventory_csv_enhanced():
     """Export inventory to CSV (Direct API Fetch)"""
@@ -159,7 +159,7 @@ def export_inventory_csv_enhanced():
         return jsonify({"success": False, "error": str(e)}), 500
 
 @enhanced_bp.route('/api/export/revenue', methods=['GET'])
-@verify_session_token
+@stateless_auth
 @require_access
 def export_revenue_csv_enhanced():
     """Export revenue report to CSV (Direct API Fetch)"""
@@ -236,7 +236,7 @@ def export_revenue_csv_enhanced():
 # ============================================================================
 
 @enhanced_bp.route('/api/settings', methods=['GET'])
-@verify_session_token
+@stateless_auth
 @require_access
 def get_settings():
     """Get user settings"""
@@ -259,7 +259,7 @@ def get_settings():
         return jsonify({"error": str(e)}), 500
 
 @enhanced_bp.route('/api/settings', methods=['POST'])
-@verify_session_token
+@stateless_auth
 @require_access
 def update_settings():
     """Update user settings"""
@@ -311,7 +311,7 @@ def update_settings():
 # ============================================================================
 
 @enhanced_bp.route('/api/scheduled-reports', methods=['GET'])
-@verify_session_token
+@stateless_auth
 @require_access
 def get_scheduled_reports():
     """Get user's scheduled reports"""
@@ -337,7 +337,7 @@ def get_scheduled_reports():
         return jsonify({"error": str(e)}), 500
 
 @enhanced_bp.route('/api/scheduled-reports', methods=['POST'])
-@verify_session_token
+@stateless_auth
 @require_access
 def create_scheduled_report():
     """Create a scheduled report"""
@@ -377,7 +377,7 @@ def create_scheduled_report():
         return jsonify({"error": str(e)}), 500
 
 @enhanced_bp.route('/api/scheduled-reports/<int:report_id>', methods=['DELETE'])
-@verify_session_token
+@stateless_auth
 @require_access
 def delete_scheduled_report(report_id):
     """Delete a scheduled report"""
@@ -526,7 +526,7 @@ def send_sms_notification(phone_number, message):
 # ============================================================================
 
 @enhanced_bp.route('/api/dashboard/comprehensive', methods=['GET'])
-@verify_session_token
+@stateless_auth
 @require_access
 def get_comprehensive_dashboard():
     """Get comprehensive dashboard with all 3 reports"""
@@ -625,7 +625,7 @@ def get_comprehensive_dashboard():
 # ============================================================================
 
 @enhanced_bp.route('/api/trigger-report-email', methods=['POST'])
-@verify_session_token
+@stateless_auth
 @require_access
 def trigger_report_email():
     """Trigger an immediate email report (SOS)"""
@@ -679,7 +679,7 @@ def trigger_report_email():
 # ============================================================================
 
 @enhanced_bp.route('/scheduled-reports', methods=['GET'])
-@verify_session_token
+@stateless_auth
 def scheduled_reports_page():
     """Render the Scheduled Reports UI"""
     shop = getattr(request, 'shop_domain', None) or request.args.get("shop")

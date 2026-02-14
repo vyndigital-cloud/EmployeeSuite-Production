@@ -28,31 +28,13 @@ def create_app():
                 static_folder=None, 
                 template_folder=template_dir)
     
-    # Manually set static folder for internal reference if needed
-    app.static_folder = static_dir
+    # [STATELSS MODE] Manual static folder assignment REMOVED. 
+    # Assets are now 100% CDN or Inlined.
+    # app.static_folder = static_dir 
 
-    # 2. THE FIX: Manually stream bytes to stop the "200 0" empty file error
-    # We name the function 'static' so url_for('static', filename='...') works
-    @app.route('/static/<path:filename>', endpoint='static')
-    def serve_static(filename):
-        try:
-            # DEBUG: Log every static request to confirm custom handler is working
-            app.logger.info(f"📂 MANUAL STATIC SERVE: {filename}")
-            
-            response = make_response(send_from_directory(static_dir, filename))
-            
-            # Force the browser to treat .js files as executable code
-            if filename.endswith('.js'):
-                response.headers['Content-Type'] = 'application/javascript'
-            elif filename.endswith('.css'):
-                response.headers['Content-Type'] = 'text/css'
-                
-            # Cache control
-            response.headers['Cache-Control'] = 'public, max-age=3600'
-            return response
-        except Exception as e:
-            app.logger.error(f"❌ STATIC SERVE ERROR: {filename} | {str(e)}")
-            return jsonify(error="Static file error"), 404
+    # [STATELSS MODE] Manual static route REMOVED.
+    # All Core Assets -> CDN
+    # All Custom Assets -> Inlined in layout_polaris.html
 
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
@@ -190,8 +172,8 @@ def create_app():
             id_token = request.args.get("id_token") or request.headers.get("Authorization", "").replace("Bearer ", "")
             if id_token:
                 try:
-                    from session_token_verification import verify_session_token_stateless
-                    payload = verify_session_token_stateless(id_token)
+                    from session_token_verification import verify_shopify_token
+                    payload = verify_shopify_token(id_token)
                     if payload:
                         # sub is the Shopify User ID / Shop Domain linkage
                         shop = payload.get("dest", "").replace("https://", "").split("/")[0]
@@ -495,40 +477,8 @@ def create_app():
     signal.signal(signal.SIGTERM, titan_last_breath)
     signal.signal(signal.SIGINT, titan_last_breath)    
     # === CONTEXT PROCESSORS ===
-    @app.context_processor
-    def inject_sentinel():
-        """
-        Sentinel Bot: Conditional diagnostic script injection
-        Activate via ?sentinel_mode=true or for specific test users
-        SKIP injection if token already present (prevents over-injection)
-        """
-        from flask import request
-        from flask_login import current_user
-        
-        # FIX: Skip Sentinel if token already present in URL or headers
-        id_token_in_url = request.args.get('id_token')
-        auth_header = request.headers.get('Authorization')
-        has_token = bool(id_token_in_url or auth_header)
-        
-        if has_token:
-            # Token present, Sentinel not needed
-            return dict(show_sentinel=False)
-        
-        # Check query parameter
-        sentinel_via_param = request.args.get('sentinel_mode') == 'true'
-        
-        # Check for specific test user (User 11 for JWT diagnostics)
-        sentinel_via_user = False
-        if current_user and current_user.is_authenticated:
-            # Only inject for User 11 (test account)
-            sentinel_via_user = getattr(current_user, 'id', None) == 11
-        
-        show_sentinel = sentinel_via_param or sentinel_via_user
-        
-        if show_sentinel:
-            app.logger.info(f"🤖 Sentinel Bot activated | Param: {sentinel_via_param} | User: {sentinel_via_user}")
-        
-        return dict(show_sentinel=show_sentinel)
+    # === CONTEXT PROCESSORS ===
+    # [SENTINEL] Logic inlined to layout_polaris.html. Processor removed.
     
     @app.context_processor
     def inject_shopify_config():
@@ -746,8 +696,8 @@ def create_app():
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
             try:
-                from session_token_verification import verify_session_token_stateless
-                payload = verify_session_token_stateless(auth_header.split(" ")[1])
+                from session_token_verification import verify_shopify_token
+                payload = verify_shopify_token(auth_header.split(" ")[1])
                 if payload:
                     dest = payload.get("dest", "")
                     request.shop_domain = dest.replace("https://", "").split("/")[0]
@@ -801,11 +751,11 @@ def create_app():
         from flask import request
         from flask_login import current_user, login_user
         from models import ShopifyStore
-        from session_token_verification import get_bearer_token, verify_session_token_stateless
+        from session_token_verification import get_bearer_token, verify_shopify_token
 
         token = get_bearer_token() or request.args.get("id_token")
         if token:
-            payload = verify_session_token_stateless(token)
+            payload = verify_shopify_token(token)
             if payload:
                 # [FINALITY] Extract shop domain ONLY from 'dest' payload
                 dest = payload.get("dest", "")

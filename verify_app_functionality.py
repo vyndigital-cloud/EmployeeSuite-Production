@@ -103,8 +103,9 @@ def test_gdpr_routes():
 # Test 8: Session token verification
 def test_session_tokens():
     try:
-        from session_token_verification import verify_session_token
-        return verify_session_token is not None
+        from session_token_verification import stateless_auth
+        # Check if function exists (basic import check)
+        return stateless_auth is not None
     except Exception:
         return False
 

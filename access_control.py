@@ -122,9 +122,9 @@ def require_zero_trust(f):
     Validates JWT identity + Authentication + Active Store Connection.
     MANDATORY for all functional routes.
     """
-    from session_token_verification import verify_session_token
+    from session_token_verification import stateless_auth
     
-    @verify_session_token
+    @stateless_auth
     @wraps(f)
     def decorated_function(*args, **kwargs):
         from flask import request, redirect, url_for

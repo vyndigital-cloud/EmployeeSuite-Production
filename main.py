@@ -35,12 +35,12 @@ except ImportError as e:
 
 # Import session token verification
 try:
-    from session_token_verification import verify_session_token
+    from session_token_verification import stateless_auth
     logger.info("Session token verification imported successfully")
 except ImportError as e:
     logger.error(f"Session token verification import failed: {e}")
     # Create a fallback decorator
-    def verify_session_token(func):
+    def stateless_auth(func):
         return func
 
 # Create a fallback error logger
@@ -403,7 +403,7 @@ if app and startup_error_details is None:
 
     # Add API routes
     @app.route('/api/process_orders')
-    @verify_session_token
+    @stateless_auth
     @log_errors("API_PROCESS_ORDERS")
     def api_process_orders():
         """API endpoint for processing orders"""
@@ -422,7 +422,7 @@ if app and startup_error_details is None:
             return jsonify({"success": False, "error": str(e)}), 500
 
     @app.route('/api/update_inventory')
-    @verify_session_token
+    @stateless_auth
     @log_errors("API_UPDATE_INVENTORY")
     def api_update_inventory():
         """API endpoint for updating inventory"""
@@ -441,7 +441,7 @@ if app and startup_error_details is None:
             return jsonify({"success": False, "error": str(e)}), 500
 
     @app.route('/api/generate_report')
-    @verify_session_token
+    @stateless_auth
     @log_errors("API_GENERATE_REPORT")
     def api_generate_report():
         """API endpoint for generating revenue report"""
