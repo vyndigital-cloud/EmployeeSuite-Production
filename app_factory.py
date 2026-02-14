@@ -20,22 +20,40 @@ def create_app():
     # [RENDER FIX] Explicitly define static and template folders for production environment
     # Use os.path.abspath(os.path.dirname(__file__)) to ensure we are looking at the root of the project
     base_dir = os.path.abspath(os.path.dirname(__file__))
+    static_dir = os.path.join(base_dir, 'static')
+    template_dir = os.path.join(base_dir, 'templates')
+
+    # DISABLE default static handler to force our manual one
     app = Flask(__name__, 
-                static_folder=os.path.join(base_dir, 'static'), 
-                template_folder=os.path.join(base_dir, 'templates'))
+                static_folder=None, 
+                template_folder=template_dir)
     
+    # Manually set static folder for internal reference if needed
+    app.static_folder = static_dir
 
     # 2. THE FIX: Manually stream bytes to stop the "200 0" empty file error
-    @app.route('/static/<path:filename>')
-    def protected_static(filename):
-        response = make_response(send_from_directory(app.static_folder, filename))
-        # Force the browser to treat .js files as executable code
-        if filename.endswith('.js'):
-            response.headers['Content-Type'] = 'application/javascript'
-        return response
+    # We name the function 'static' so url_for('static', filename='...') works
+    @app.route('/static/<path:filename>', endpoint='static')
+    def serve_static(filename):
+        try:
+            # DEBUG: Log every static request to confirm custom handler is working
+            app.logger.info(f"📂 MANUAL STATIC SERVE: {filename}")
+            
+            response = make_response(send_from_directory(static_dir, filename))
+            
+            # Force the browser to treat .js files as executable code
+            if filename.endswith('.js'):
+                response.headers['Content-Type'] = 'application/javascript'
+            elif filename.endswith('.css'):
+                response.headers['Content-Type'] = 'text/css'
+                
+            # Cache control
+            response.headers['Cache-Control'] = 'public, max-age=3600'
+            return response
+        except Exception as e:
+            app.logger.error(f"❌ STATIC SERVE ERROR: {filename} | {str(e)}")
+            return jsonify(error="Static file error"), 404
 
-    # Ensure static url path is correct
-    app.static_url_path = "/static"
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     # Enhanced config
