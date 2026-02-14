@@ -38,6 +38,11 @@ def create_app():
 
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
+    # [ANTI-STALL] CRITICAL: Fix Database URL Protocol + Disable Blocking Migrations
+    database_url = os.getenv("DATABASE_URL", "sqlite:///app.db")
+    if database_url and database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+
     # Enhanced config
     app.config.update(
         {
@@ -46,8 +51,7 @@ def create_app():
             ),
             "SHOPIFY_API_KEY": os.getenv("SHOPIFY_API_KEY", ""),
             "SHOPIFY_API_SECRET": os.getenv("SHOPIFY_API_SECRET", ""),
-            # [RENDER FIX] SQLAlchemy 2.0 requires postgresql://, but Render provides postgres://
-            "SQLALCHEMY_DATABASE_URI": os.getenv("DATABASE_URL", "sqlite:///app.db").replace("postgres://", "postgresql://", 1),
+            "SQLALCHEMY_DATABASE_URI": database_url,
             "SQLALCHEMY_TRACK_MODIFICATIONS": False,
             "SQLALCHEMY_ENGINE_OPTIONS": os.getenv(
                 "SQLALCHEMY_ENGINE_OPTIONS", # Allow override
@@ -55,32 +59,31 @@ def create_app():
                     "pool_size": 10,
                     "max_overflow": 20,
                     "pool_pre_ping": True,
-                    "pool_recycle": 300, # Triangle: 5 mins to prevent stale connections
+                    "pool_recycle": 300, 
                 },
             ),
             "WTF_CSRF_ENABLED": True,
             "WTF_CSRF_TIME_LIMIT": 3600,
-            # Session cookie configuration for login persistence
-            "SESSION_COOKIE_SECURE": True,    # CRITICAL: Mandatory for SameSite=None
-            "SESSION_COOKIE_HTTPONLY": True,  # Prevent JavaScript access
-            "SESSION_COOKIE_SAMESITE": "None",  # CRITICAL: Mandatory for Embedded Apps
-            "SESSION_COOKIE_DOMAIN": None,  # Don't restrict domain for flexibility
-            "SESSION_COOKIE_PATH": "/",  # Available on all paths
+            # Session config
+            "SESSION_COOKIE_SECURE": True,
+            "SESSION_COOKIE_HTTPONLY": True,
+            "SESSION_COOKIE_SAMESITE": "None",
+            "SESSION_COOKIE_DOMAIN": None,
+            "SESSION_COOKIE_PATH": "/",
             "REMEMBER_COOKIE_SECURE": True,
             "REMEMBER_COOKIE_HTTPONLY": True,
-            "REMEMBER_COOKIE_SAMESITE": "None",  # CRITICAL FIX: None for cross-site compatibility
-            "REMEMBER_COOKIE_DURATION": 2592000,  # 30 days
+            "REMEMBER_COOKIE_SAMESITE": "None",
+            "REMEMBER_COOKIE_DURATION": 2592000,
             "SESSION_COOKIE_NAME": "__Host-session",
-            "PERMANENT_SESSION_LIFETIME": timedelta(days=7),  # Safari Grace: 7 days for iframe
-            # Server-side Session Config
-            "SESSION_TYPE": os.getenv(
-                "SESSION_TYPE", "sqlalchemy"
-            ),  # Default to DB if not set
+            "PERMANENT_SESSION_LIFETIME": timedelta(days=7),
+            
+            # [ANTI-STALL] DISABLE SERVER-SIDE SESSIONS (Redis/DB)
+            # We use strictly client-side signed cookies + Stateless JWT
+            "SESSION_TYPE": None, 
             "SESSION_PERMANENT": True,
             "SESSION_USE_SIGNER": True,
             "SESSION_KEY_PREFIX": "missioncontrol:session:",
-            # TITAN: Static Asset Latency Fix
-            "SEND_FILE_MAX_AGE_DEFAULT": 31536000,  # 1 year caching for CSS/JS
+            "SEND_FILE_MAX_AGE_DEFAULT": 31536000,
         }
     )
 
@@ -90,46 +93,10 @@ def create_app():
 
         db.init_app(app)
 
-        # Auto-run database migrations on startup (production-safe)
-        with app.app_context():
-            try:
-                from sqlalchemy import inspect, text
-
-                inspector = inspect(db.engine)
-                columns = [col["name"] for col in inspector.get_columns("users")]
-
-                if "trial_started_at" not in columns:
-                    app.logger.info("🔧 Adding missing trial_started_at column...")
-                    db.session.execute(
-                        text("""
-                        ALTER TABLE users
-                        ADD COLUMN trial_started_at TIMESTAMP WITH TIME ZONE
-                    """)
-                    )
-                    db.session.commit()
-                    app.logger.info("✅ Successfully added trial_started_at column")
-
-                if "current_store_id" not in columns:
-                    app.logger.info("🔧 Adding missing current_store_id column to users...")
-                    db.session.execute(
-                        text("""
-                        ALTER TABLE users
-                        ADD COLUMN current_store_id INTEGER REFERENCES shopify_stores(id) ON DELETE SET NULL
-                    """)
-                    )
-                    db.session.commit()
-                    app.logger.info("✅ Successfully added current_store_id column")
-                
-                app.logger.debug("✅ Database schema up to date")
-            except Exception as migration_error:
-                app.logger.warning(
-                    f"Migration check failed (non-critical): {migration_error}"
-                )
-                # Don't crash the app if migration fails - it might already exist
-                try:
-                    db.session.rollback()
-                except:
-                    pass
+        # [ANTI-STALL] Auto-migration check REMOVED. 
+        # User Order: "Go to Render Shell and run flask db upgrade manually"
+        # The previous logic was causing app factory to hang on bad DB connection.
+        app.logger.info("🚀 App Factory: Database initialized. Migration check skipped (ANTI-STALL).")
 
     except ImportError:
         # Fallback database initialization
@@ -138,9 +105,7 @@ def create_app():
         db = SQLAlchemy()
         db.init_app(app)
 
-    # KILLED SERVER SESSIONS: No longer using Flask-Session or Redis/SQLAlchemy sessions.
-    # We are now Level 100 Stateless JWT (Shopify Session Tokens).
-    app.config["SESSION_TYPE"] = None
+    # KILLED SERVER SESSIONS: Verified None above.
 
     # Initialize login manager
     try:
