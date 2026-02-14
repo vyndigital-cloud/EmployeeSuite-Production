@@ -120,3 +120,80 @@ def handle_subscription_update(self, shop_domain, data):
         except Exception as e:
             print(f"Worker Error (sub update): {e}")
             raise self.retry(exc=e)
+
+@app.task(bind=True, max_retries=5)
+def sync_usage_to_shopify(self):
+    """
+    PASSIVE REVENUE SYNC
+    Batch and sync pending UsageEvents to Shopify.
+    Scheduled to run every hour or triggered by high usage.
+    """
+    from models import db, UsageEvent, ShopifyStore
+    from app_factory import create_app
+    from billing_metered import sync_usage_event_to_shopify, get_subscription_line_item_id
+    from datetime import datetime
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    flask_app = create_app()
+    with flask_app.app_context():
+        try:
+            # 1. Fetch pending events
+            pending_events = UsageEvent.query.filter(UsageEvent.reported_at == None).all()
+            if not pending_events:
+                return {"status": "no_pending_events"}
+            
+            # 2. Group by store for efficiency
+            store_events = {}
+            for event in pending_events:
+                if event.store_id not in store_events:
+                    store_events[event.store_id] = []
+                store_events[event.store_id].append(event)
+            
+            synced_count = 0
+            for store_id, events in store_events.items():
+                store = ShopifyStore.query.get(store_id)
+                if not store:
+                    continue
+                
+                access_token = store.get_access_token()
+                if not access_token:
+                    continue
+                
+                # 3. Get line item ID
+                # In a high-scale app, we would cache this in Redis for 24h
+                line_item_id = get_subscription_line_item_id(store.shop_url, access_token)
+                if not line_item_id:
+                    logger.warning(f"No metered subscription line item found for {store.shop_url}")
+                    continue
+                
+                for event in events:
+                    record_id = sync_usage_event_to_shopify(
+                        store.shop_url, 
+                        access_token, 
+                        line_item_id, 
+                        event
+                    )
+                    if record_id:
+                        # Extract record_id from GID if necessary, but we can store the whole GID
+                        # Shopify GIDs are strings, so cast if model expects int (it does)
+                        try:
+                            if isinstance(record_id, str) and "/" in record_id:
+                                event.shopify_usage_record_id = int(record_id.split("/")[-1])
+                            else:
+                                event.shopify_usage_record_id = int(record_id)
+                        except (ValueError, TypeError):
+                            # If we can't parse it as int, we'll just mark it reported without the ID
+                            pass
+                            
+                        event.reported_at = datetime.utcnow()
+                        synced_count += 1
+            
+            db.session.commit()
+            logger.info(f"✅ [WORKER] Synced {synced_count} usage events to Shopify.")
+            return {"status": "success", "synced": synced_count}
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"❌ [WORKER] Usage Sync Failed: {e}", exc_info=True)
+            raise self.retry(exc=e, countdown=600) # Retry in 10 minutes

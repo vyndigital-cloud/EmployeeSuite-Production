@@ -834,6 +834,46 @@ class ScheduledReport(db.Model):
     def __repr__(self):
         return f'<ScheduledReport user_id={self.user_id} type={self.report_type}>'
 
+class UsageEvent(db.Model, TimestampMixin):
+    """
+    PASSIVE REVENUE METER
+    Tracks billable events (reports, emails, AI analysis).
+    """
+    __tablename__ = "usage_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    store_id: Mapped[int] = mapped_column(Integer, db.ForeignKey("shopify_stores.id", ondelete="CASCADE"), nullable=False, index=True)
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False) # 'report_generated', 'email_sent'
+    description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    price: Mapped[float] = mapped_column(db.Numeric(10, 2), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+    shopify_usage_record_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    reported_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+
+    store: Mapped["ShopifyStore"] = relationship("ShopifyStore", backref=db.backref("usage_events", lazy="dynamic", cascade="all, delete-orphan"))
+
+    def __repr__(self) -> str:
+        return f"<UsageEvent {self.event_type} store={self.store_id}>"
+
+class BillingLedger(db.Model, TimestampMixin):
+    """
+    BILLING AUDIT TRAIL
+    Tracks all financial movements (credits, debits, payouts).
+    """
+    __tablename__ = "billing_ledger"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    store_id: Mapped[int] = mapped_column(Integer, db.ForeignKey("shopify_stores.id", ondelete="CASCADE"), nullable=False, index=True)
+    amount: Mapped[float] = mapped_column(db.Numeric(10, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), default='USD', nullable=False)
+    type: Mapped[str] = mapped_column(String(20), nullable=False) # 'credit', 'debit', 'payout'
+    reference_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+
+    store: Mapped["ShopifyStore"] = relationship("ShopifyStore", backref=db.backref("ledger_entries", lazy="dynamic"))
+
+    def __repr__(self) -> str:
+        return f"<BillingLedger {self.type} amount={self.amount}>"
+
 # Extend User model with helper methods
 def get_user_plan(user):
     """Get user's subscription plan"""

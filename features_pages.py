@@ -8,7 +8,7 @@ Frontend pages for enhanced features
 from flask import Blueprint, render_template, request, current_app
 from flask_login import login_required, current_user
 from access_control import require_access
-from models import ShopifyStore
+from models import ShopifyStore, UsageEvent
 from app_bridge_integration import get_app_bridge_script
 from session_token_verification import stateless_auth
 
@@ -60,5 +60,14 @@ def comprehensive_dashboard_page():
     shop = request.args.get('shop', '')
     host = request.args.get('host', '')
     
-    return render_template('features/dashboard.html', shop=shop, host=host)
+    # Onboarding check: Has user generated any reports?
+    store = ShopifyStore.query.filter_by(user_id=current_user.id, is_active=True).first()
+    
+    show_onboarding = True
+    if store:
+        usage = UsageEvent.query.filter_by(store_id=store.id, event_type='report_generated').first()
+        if usage:
+            show_onboarding = False
+            
+    return render_template('features/dashboard.html', shop=shop, host=host, show_onboarding=show_onboarding)
 

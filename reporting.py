@@ -6,7 +6,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
-from models import ShopifyStore
+import uuid
+from models import ShopifyStore, UsageEvent, db
 from shopify_integration import ShopifyClient
 
 logger = logging.getLogger(__name__)
@@ -321,6 +322,14 @@ def generate_report(user_id=None, shop_url=None, start_date=None, end_date=None)
             </div>
             """
             
+            # RECORD USAGE (Passive Revenue Meter)
+            record_usage_event(
+                store_id=store.id,
+                event_type='report_generated',
+                description=f"Generated {total_orders} order report",
+                price=0.01  # Metered price per report
+            )
+
             return {
                 "success": True, 
                 "html": html,
@@ -545,3 +554,35 @@ def generate_inventory_report(user_id=None):
     except Exception as e:
         logger.error(f"Error generating inventory report: {e}")
         return {"success": False, "error": str(e)}
+
+def record_usage_event(store_id: int, event_type: str, description: Optional[str] = None, price: float = 0.0):
+    """
+    Record a billable event in the database for later sync with Shopify.
+    Uses minute-level idempotency to prevent accidental double-billing.
+    """
+    try:
+        # Minute-level idempotency key
+        timestamp_key = datetime.utcnow().strftime('%Y%m%d%H%M')
+        idempotency_key = f"{event_type}:{store_id}:{timestamp_key}"
+        
+        # Check if already recorded in this minute
+        existing = UsageEvent.query.filter_by(idempotency_key=idempotency_key).first()
+        if existing:
+            return existing
+
+        usage = UsageEvent(
+            store_id=store_id,
+            event_type=event_type,
+            description=description,
+            price=price,
+            idempotency_key=idempotency_key
+        )
+        db.session.add(usage)
+        db.session.commit()
+        
+        logger.info(f"📈 [METER] Recorded {event_type} for store {store_id}")
+        return usage
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"❌ [METER] Failed to record usage: {e}")
+        return None
