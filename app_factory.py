@@ -10,15 +10,31 @@ import sys
 import traceback
 from datetime import timedelta
 
-from flask import Flask, request, jsonify, g, session, redirect, url_for, render_template_string, current_app, render_template
+from flask import Flask, request, jsonify, g, session, redirect, url_for, render_template_string, current_app, render_template, send_from_directory, make_response
 from werkzeug.middleware.proxy_fix import ProxyFix
 from models import db, User, ShopifyStore
 
 
 def create_app():
     """Create Flask app with comprehensive error handling"""
-    app = Flask(__name__)
-    app.static_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), "static")
+    # [RENDER FIX] Explicitly define static and template folders for production environment
+    # Use os.path.abspath(os.path.dirname(__file__)) to ensure we are looking at the root of the project
+    base_dir = os.path.abspath(os.path.dirname(__file__))
+    app = Flask(__name__, 
+                static_folder=os.path.join(base_dir, 'static'), 
+                template_folder=os.path.join(base_dir, 'templates'))
+    
+
+    # 2. THE FIX: Manually stream bytes to stop the "200 0" empty file error
+    @app.route('/static/<path:filename>')
+    def protected_static(filename):
+        response = make_response(send_from_directory(app.static_folder, filename))
+        # Force the browser to treat .js files as executable code
+        if filename.endswith('.js'):
+            response.headers['Content-Type'] = 'application/javascript'
+        return response
+
+    # Ensure static url path is correct
     app.static_url_path = "/static"
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
@@ -430,7 +446,9 @@ def create_app():
         # This ensures the 'frame-ancestors' policy is ALWAYS sent
         if "Content-Security-Policy" not in response.headers:
             response.headers['Content-Security-Policy'] = (
-                "frame-ancestors https://admin.shopify.com https://*.myshopify.com;"
+                "frame-ancestors https://admin.shopify.com https://*.myshopify.com; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com https://cdnjs.cloudflare.com https://unpkg.com https://www.googletagmanager.com; "
+                "connect-src 'self' https://admin.shopify.com https://*.myshopify.com https://monorail-edge.shopifysvc.com https://www.google-analytics.com;"
             )
 
         # 2. AUDIT THE COOKIES (Detects the 403 Risk)
@@ -443,6 +461,11 @@ def create_app():
 
         # 3. LEGACY SUPPORT (For older browsers)
         response.headers['X-Frame-Options'] = 'ALLOW-FROM https://admin.shopify.com'
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+
+        # [RENDER FIX] Force correct MIME type for JS files (prevent 0-byte or nosniff errors)
+        if request.path.endswith('.js'):
+            response.content_type = 'application/javascript'
         
         return response
 
@@ -498,11 +521,17 @@ def create_app():
             g.get('shop_domain') or 
             session.get('shop')
         )
+        if not shop:
+            shop = None
+            
         host = (
             request.args.get('host') or 
             g.get('host') or 
             session.get('host')
         )
+        if not host:
+            host = None
+            
         return {
             "SHOPIFY_API_KEY": os.getenv("SHOPIFY_API_KEY", ""),
             "shop": shop,
@@ -527,6 +556,7 @@ def create_app():
         ("auth", "auth_bp"),  # Authentication routes
         ("gdpr_compliance", "gdpr_bp"),  # GDPR Webhooks - CRITICAL
         ("diagnostic_routes", "diagnostic_bp"), # Infrastructure Health Check
+        ("diagnostic_routes", "diagnostic_bp"), # [NEW] Asset 0-byte check
         # Removed: help_routes, profile_routes (files don't exist)
     ]
 
@@ -598,6 +628,9 @@ def create_app():
     # ============================================================================
     @app.errorhandler(404)
     def not_found_error(error):
+        # [USER REQUEST] Log the exact URL Shopify was trying to reach
+        app.logger.error(f"404 Error: {request.url} | Path: {request.path}")
+
         if request.path.startswith(('/api', '/webhooks', '/static')):
             return jsonify({"error": "Not Found"}), 404
         

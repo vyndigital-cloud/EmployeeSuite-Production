@@ -2,6 +2,41 @@
 <html lang="en">
 
 <head>
+    <!-- GLOBAL ERROR CATCHER: Must be the VERY FIRST script -->
+    <script>
+        // Resource Load Listener: Catches "Ghost Scripts" (0-byte loads) or network failures
+        window.addEventListener('error', function (e) {
+            // Check if the error is from a script or link tag (Resource Error)
+            // Resource errors do not bubble, so we need useCapture=true
+            if (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK') {
+                console.error("Resource Fail:", e.target.src || e.target.href);
+                fetch('/api/log_error', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        error_type: 'ResourceFail',
+                        error_message: 'Failed to load: ' + (e.target.src || e.target.href),
+                        location: window.location.href,
+                        tag: e.target.tagName
+                    })
+                }).catch(() => { }); // Eat the error if logging fails
+            }
+        }, true); // TRUE is critical for capturing resource errors
+
+        window.onerror = function (message, source, lineno, colno, error) {
+            console.error("Global Catch:", message);
+            fetch('/api/log_error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    error_type: 'GlobalError',
+                    message: message,
+                    location: source + ':' + lineno,
+                    stack: error ? error.stack : 'No stack trace'
+                })
+            }).catch(e => console.error("Failed to log global error:", e));
+        };
+    </script>
     {% if show_sentinel %}
     <!-- SENTINEL BOT: PRIORITY INJECTION - Must load first to catch shark early -->
     <script>
@@ -48,8 +83,9 @@
     <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
 
     <!-- Shopify Polaris Design System -->
-    <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/styles.css" />
-    <script src="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/polaris.min.js"></script>
+    <!-- [LOCAL] Using 'polaris.css' and 'polaris.min.js' to bypass 'nosniff' blocks -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/polaris.css') }}" />
+    <script src="{{ url_for('static', filename='js/polaris.min.js') }}"></script>
     <!-- Phosphor Icons CSS removed - using inline SVGs -->
     <!-- Stateless Pivot: App Bridge Interceptor -->
     <script>
@@ -120,8 +156,8 @@
     <script>
         // Inject Config for app_bridge_nav.js
         window.SHOPIFY_API_KEY = '{{ config.SHOPIFY_API_KEY }}';
-        window.SHOP_PARAM = '{{ shop }}';
-        window.HOST_PARAM = '{{ host }}';
+        window.SHOP_PARAM = '{{ shop or "" }}';
+        window.HOST_PARAM = '{{ host or "" }}';
     </script>
     <script src="{{ url_for('static', filename='js/app_bridge_nav.js') }}"></script>
 

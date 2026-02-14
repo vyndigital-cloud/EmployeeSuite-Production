@@ -8,8 +8,9 @@
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js" data-api-key="{{ api_key }}"></script>
 
     <!-- Shopify Polaris Design System -->
-    <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/styles.css" />
-    <script src="https://unpkg.com/@shopify/polaris@10.0.0/build/esm/polaris.min.js"></script>
+    <!-- [LOCAL] Using 'polaris.css' and 'polaris.min.js' to bypass 'nosniff' blocks -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/polaris.css') }}" />
+    <script src="{{ url_for('static', filename='js/polaris.min.js') }}"></script>
     <!-- Phosphor Icons CSS removed - using inline SVGs -->
     <script>
         // Initialize App Bridge - moved to external JS file
@@ -155,7 +156,7 @@
                             <span class="quick-menu-shortcut">⌘,</span>
                         </a>
                         <a href="#" onclick="
-                                    openPage('/subscribe');
+                                    openPage('{{ url_for('billing.subscribe', shop=shop, host=host) }}');
                                     return false;
                                 " class="quick-menu-item">
                             <span class="quick-menu-item-icon">💳</span>
@@ -168,7 +169,7 @@
                             return false;
                         " class="nav-btn">Settings</a>
                 <a href="#" onclick="
-                            openPage('/subscribe');
+                            openPage('{{ url_for('billing.subscribe', shop=shop, host=host) }}');
                             return false;
                         " class="nav-btn nav-btn-primary">Subscribe</a>
                 <a href="#" onclick="openPage('/logout'); return false;" class="nav-btn">Logout</a>
@@ -201,7 +202,9 @@
                         Settings
                     </a>
                     {% if not is_subscribed %}
-                    <a href="#" onclick="openPage('/subscribe'); return false;" class="status-pill"
+                    <a href="#"
+                        onclick="openPage('{{ url_for('billing.subscribe', shop=shop, host=host) }}'); return false;"
+                        class="status-pill"
                         style="background: #e3fcef; color: #008060; text-decoration: none; padding: 6px 16px; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px;">
                         Upgrade to Pro
                     </a>
@@ -227,7 +230,9 @@
                     </div>
                 </div>
                 <div class="banner-actions">
-                    <a href="#" onclick="openPage('/subscribe'); return false;" class="banner-action urgent">
+                    <a href="#"
+                        onclick="openPage('{{ url_for('billing.subscribe', shop=shop, host=host) }}'); return false;"
+                        class="banner-action urgent">
                         Subscribe Now
                     </a>
                 </div>
@@ -451,7 +456,7 @@
                     </div>
                     <h3 style="color: #111827; margin-bottom: 8px; font-size: 20px; font-weight: 700;">Subscription Required</h3>
                     <p style="color: #6B7280; margin-bottom: 24px; font-size: 15px; line-height: 1.5;">This feature is available with Employee Suite Pro. Subscribe to unlock full access.</p>
-                    <a href="#" onclick="window.internalNav('/subscribe?shop={{ shop }}{% if host %}&host={{ host }}{% endif %}'); return false;" style="display: inline-block; background: #2563EB; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.2s; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">Upgrade Now →</a>
+                    <a href="#" onclick="window.internalNav('{{ url_for('billing.subscribe', shop=shop, host=host) }}'); return false;" style="display: inline-block; background: #2563EB; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.2s; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">Upgrade Now →</a>
                     <p style="color: #9CA3AF; margin-top: 16px; font-size: 13px;">$39/month • 7-day money-back guarantee</p>
                 </div>
             `;

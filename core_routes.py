@@ -451,9 +451,9 @@ def home():
             has_shopify=has_shopify,
             has_access=has_access,
             quick_stats=quick_stats,
-            shop=shop or "",
+            shop=shop or None,
             APP_URL=os.getenv("APP_URL", request.url_root.rstrip("/")),
-            host=host or "",
+            host=host or None,
             plan_name="Employee Suite Pro",
             plan_price=39,
             api_key=current_app.config.get("SHOPIFY_API_KEY", "")

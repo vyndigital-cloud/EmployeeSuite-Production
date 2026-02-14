@@ -144,42 +144,53 @@
         }, true);
     }
 
-    // Initialize interceptors as soon as DOM is ready or if already ready
-    // Initialize interceptors as soon as DOM is ready or if already ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeInterceptors);
-    } else {
-        initializeInterceptors();
-    }
-
     // 5. Visibility Guardian: Ensure app becomes visible
-    function setAppReady() {
-        document.body.classList.add('app-ready');
+    const setAppReady = () => {
+        const body = document.body;
+        if (!body) {
+            // [SAFETY] If body isn't ready, wait 50ms and try again
+            console.log('⏳ Waiting for body...');
+            setTimeout(setAppReady, 50);
+            return;
+        }
+        body.classList.add('app-ready');
         window.appBridgeReady = true;
         console.log('✨ App Visibility: Ready');
+    };
+
+    function init() {
+        // Initialize interceptors
+        initializeInterceptors();
+
+        // If handshake was successful, set ready
+        if (window.appBridgeReady) {
+            setAppReady();
+        } else {
+            // Safety Timeout: 3 seconds to show something even if handshake is slow/failing
+            setTimeout(() => {
+                if (document.body && !document.body.classList.contains('app-ready')) {
+                    console.warn('⚠️ Handshake timeout - forcing visibility');
+                    setAppReady();
+                }
+            }, 3000);
+
+            // Also listen for successful handshake if it happens later
+            const checkReady = setInterval(() => {
+                if (window.appBridgeReady) {
+                    clearInterval(checkReady);
+                    setAppReady();
+                }
+            }, 100);
+        }
+
+        console.log('🚀 App Bridge Navigation Guardian Active');
     }
 
-    // If handshake was successful, set ready
-    if (window.appBridgeReady) {
-        setAppReady();
+    // MAIN EXECUTION GUARD
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
     } else {
-        // Safety Timeout: 3 seconds to show something even if handshake is slow/failing
-        setTimeout(() => {
-            if (!document.body.classList.contains('app-ready')) {
-                console.warn('⚠️ Handshake timeout - forcing visibility');
-                setAppReady();
-            }
-        }, 3000);
-
-        // Also listen for successful handshake if it happens later
-        const checkReady = setInterval(() => {
-            if (window.appBridgeReady) {
-                clearInterval(checkReady);
-                setAppReady();
-            }
-        }, 100);
+        init();
     }
-
-    console.log('🚀 App Bridge Navigation Guardian Active');
 
 })();
