@@ -46,7 +46,8 @@ def create_app():
             ),
             "SHOPIFY_API_KEY": os.getenv("SHOPIFY_API_KEY", ""),
             "SHOPIFY_API_SECRET": os.getenv("SHOPIFY_API_SECRET", ""),
-            "SQLALCHEMY_DATABASE_URI": os.getenv("DATABASE_URL", "sqlite:///app.db"),
+            # [RENDER FIX] SQLAlchemy 2.0 requires postgresql://, but Render provides postgres://
+            "SQLALCHEMY_DATABASE_URI": os.getenv("DATABASE_URL", "sqlite:///app.db").replace("postgres://", "postgresql://", 1),
             "SQLALCHEMY_TRACK_MODIFICATIONS": False,
             "SQLALCHEMY_ENGINE_OPTIONS": os.getenv(
                 "SQLALCHEMY_ENGINE_OPTIONS", # Allow override
