@@ -535,81 +535,8 @@ def silence_sourcemaps(filename):
 
 @core_bp.route("/health")
 def health():
-    """Enhanced health check endpoint"""
-    from models import db
-
-    checks = {}
-    overall_status = "healthy"
-
-    # Database check
-    try:
-        db.session.execute(db.text("SELECT 1"))
-        checks["database"] = {"status": "connected"}
-    except Exception as e:
-        checks["database"] = {"error": str(e), "status": "disconnected"}
-        overall_status = "unhealthy"
-
-    # Cache check
-    try:
-        from performance import get_cache_stats
-
-        cache_stats = get_cache_stats()
-        checks["cache"] = {
-            "entries": cache_stats.get("entries", 0),
-            "status": "operational",
-        }
-    except Exception as e:
-        checks["cache"] = {"error": str(e), "status": "error"}
-        overall_status = "unhealthy"
-
-    # Configuration check
-    try:
-        required_vars = ["SHOPIFY_API_KEY", "SHOPIFY_API_SECRET", "SECRET_KEY"]
-        missing = [var for var in required_vars if not os.getenv(var)]
-
-        checks["configuration"] = {
-            "status": "valid" if not missing else "invalid",
-            "missing_vars": missing,
-        }
-
-        if missing:
-            overall_status = "unhealthy"
-
-    except Exception as e:
-        checks["configuration"] = {"error": str(e)}
-        overall_status = "unhealthy"
-
-    # Memory check
-    try:
-        import psutil
-
-        memory_percent = psutil.virtual_memory().percent
-        checks["memory"] = {
-            "usage_percent": memory_percent,
-            "status": "ok" if memory_percent < 90 else "high",
-        }
-
-        if memory_percent > 95:
-            overall_status = "unhealthy"
-
-    except ImportError:
-        checks["memory"] = {"status": "unavailable", "message": "psutil not installed"}
-    except Exception as e:
-        checks["memory"] = {"error": str(e)}
-
-    # Log critical failures for debugging
-    if overall_status == "unhealthy":
-        logger.error(f"HEALTH CHECK FAILED: {checks}")
-
-    return jsonify(
-        {
-            "status": overall_status,
-            "service": "Employee Suite",
-            "version": "2.7",
-            "checks": checks,
-            "timestamp": datetime.utcnow().isoformat(),
-        }
-    ), 200  # ALWAYS RETURN 200 TO ALLOW DEPLOYMENT DIAGNOSTICS
+    """DUMB HEALTH CHECK - SURVIVAL MODE"""
+    return "OK", 200
 
 
 # ---------------------------------------------------------------------------
