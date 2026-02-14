@@ -814,6 +814,37 @@ const Sentinel = {
         }
     },
 
+    // ==================== INITIALIZATION ====================
+
+    async initAllLayers() {
+        this.log("🚀 Starting Sentinel Initialization...");
+
+        // 1. Core DNA & Session Tracking
+        this.initSessionTracking();
+        await this.loadDNA();
+
+        // 2. Network Layer (Global Proxy & Fetch Interceptor)
+        this.initGlobalProxy();
+        this.initFetchInterceptor();
+
+        // 3. DOM Layer (Link Proxy & Mutation Observer)
+        this.initLinkProxy();
+        this.initMutationObserver();
+        this.initSentinelScout();
+
+        // 4. App Bridge Layer (Speed Trap)
+        this.initAppBridgeSpeedTrap();
+
+        // 5. Resource Layer (Recovery)
+        this.initResourceRecovery();
+
+        // 6. Heartbeat (Silent Pulse)
+        this.startSilentPulse();
+
+        this.log("✅ All Sentinel Layers Active");
+        return true;
+    },
+
     // LAYER 1: MUTATION OBSERVER - Watch for dynamically added links
     initMutationObserver() {
         const observer = new MutationObserver((mutations) => {
