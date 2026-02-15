@@ -89,12 +89,12 @@ def create_app():
             "SQLALCHEMY_ENGINE_OPTIONS": os.getenv(
                 "SQLALCHEMY_ENGINE_OPTIONS", # Allow override
                 {
-                    # [NEON FREE TIER] Limit connections to prevent "remaining connection slots are reserved" error
-                    "pool_size": 3,
-                    "max_overflow": 0,
-                    "pool_pre_ping": True,
-                    # [ETERNAL WARMTH] Recycle connections every hour to prevent stale connections
-                    "pool_recycle": 3600, 
+                    # [NEON TUNING] Optimized for Neon Free Tier & Auto-Suspend
+                    "pool_size": 3,      # CRITICAL: Keep small for Free Tier (Max 10 total connections)
+                    "max_overflow": 0,   # CRITICAL: No overflow to prevent "remaining connection slots" error
+                    "pool_timeout": 30,  # [NEW] Fail fast if pool is empty
+                    "pool_recycle": 280, # [NEW] Recycle before Neon's 300s close
+                    "pool_pre_ping": True, 
                 },
             ),
             "WTF_CSRF_ENABLED": True,
