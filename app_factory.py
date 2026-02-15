@@ -287,28 +287,35 @@ def create_app():
         if request.path.startswith('/health'):
             return None
 
-        # Generate unique request ID for log correlation
-        from unified_error_boundary import generate_request_id
-        request_id = generate_request_id()
-        
-        # FAST TRACK: Bypass heavy logging for static files
-        if request.path.startswith('/static/') or request.path.endswith('.ico'):
-            # allow debug log if needed, or just skip
-            # app.logger.debug(f"STATIC [{request_id}] {request.path}")
+        try:
+            # 1. Total Isolation: Skip if endpoint is None (Health/Static)
+            if not request.endpoint:
+                return None
+
+            # Generate unique request ID for log correlation
+            from unified_error_boundary import generate_request_id
+            request_id = generate_request_id()
+            
+            # FAST TRACK: Bypass heavy logging for static files
+            if request.path.startswith('/static/') or request.path.endswith('.ico'):
+                return None
+            
+            # Filter Render/UptimeRobot User Agents
+            user_agent = request.headers.get('User-Agent', '')
+            if 'Render' in user_agent or 'UptimeRobot' in user_agent:
+                return None
+            
+            g.titan_start_time = time.time()
+            client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+            
+            # INFO level for normal requests
+            app.logger.info(
+                f"TITAN [HIT] [{request_id}] {request.method} {request.path} | IP: {client_ip} | Referer: {request.referrer}"
+            )
+        except Exception as e:
+            # [SUBMISSIVE] Never crash the request
+            print(f"Titan Observer Before Error: {e}", file=sys.stderr)
             return None
-        
-        # Filter Render/UptimeRobot User Agents
-        user_agent = request.headers.get('User-Agent', '')
-        if 'Render' in user_agent or 'UptimeRobot' in user_agent:
-            return None
-        
-        g.titan_start_time = time.time()
-        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-        
-        # INFO level for normal requests
-        app.logger.info(
-            f"TITAN [HIT] [{request_id}] {request.method} {request.path} | IP: {client_ip} | Referer: {request.referrer}"
-        )
 
     @app.after_request
     def titan_observer_after(response):
@@ -317,44 +324,57 @@ def create_app():
         if request.path.startswith('/health'):
             return response
 
-        # [SAFETY] If titan_observer_before skipped (e.g. static files), we must skip after
-        if not hasattr(g, 'titan_start_time'):
-            return response
+        try:
+            # [SUBMISSIVE] 1. Ghost Bypass: If DB is dead, Titan is dead.
+            # We access db.engine safely via current_app if possible, or just skip complexity
+            # Note: Checking db.engine might trigger connection, so we rely on try/except mainly
+            
+            # 2. Total Isolation: Skip if endpoint is None
+            if not request.endpoint:
+                return response
 
-        from unified_error_boundary import generate_request_id
-        # Use existing ID or generate new on fly
-        request_id = getattr(g, 'request_id', generate_request_id())
-        
-        latency = time.time() - g.titan_start_time
-        latency_ms = int(latency * 1000)
-        
-        # Metadata enrichment
-        shop = getattr(g, 'shop_domain', request.args.get('shop', 'NONE'))
-        user_id = getattr(g, 'user_id', 'NONE')
-        status_code = response.status_code
-        
-        # Log level classification
-        if status_code >= 500:
-            # CRITICAL: Server errors
-            app.logger.critical(
-                f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
-                f"Status: {status_code} | Latency: {latency_ms}ms | "
-                f"User: {user_id} | Shop: {shop}"
-            )
-        elif status_code >= 400:
-            # WARNING: Client errors
-            app.logger.warning(
-                f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
-                f"Status: {status_code} | Latency: {latency_ms}ms | "
-                f"User: {user_id} | Shop: {shop}"
-            )
-        else:
-            # INFO: Success
-            app.logger.info(
-                f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
-                f"Status: {status_code} | Latency: {latency_ms}ms | "
-                f"User: {user_id} | Shop: {shop}"
-            )
+            # [SAFETY] If titan_observer_before skipped (e.g. static files), we must skip after
+            if not hasattr(g, 'titan_start_time'):
+                return response
+
+            from unified_error_boundary import generate_request_id
+            # Use existing ID or generate new on fly
+            request_id = getattr(g, 'request_id', generate_request_id())
+            
+            latency = time.time() - g.titan_start_time
+            latency_ms = int(latency * 1000)
+            
+            # Metadata enrichment
+            shop = getattr(g, 'shop_domain', request.args.get('shop', 'NONE'))
+            user_id = getattr(g, 'user_id', 'NONE')
+            status_code = response.status_code
+            
+            # Log level classification
+            if status_code >= 500:
+                # CRITICAL: Server errors
+                app.logger.critical(
+                    f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
+                    f"Status: {status_code} | Latency: {latency_ms}ms | "
+                    f"User: {user_id} | Shop: {shop}"
+                )
+            elif status_code >= 400:
+                # WARNING: Client errors
+                app.logger.warning(
+                    f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
+                    f"Status: {status_code} | Latency: {latency_ms}ms | "
+                    f"User: {user_id} | Shop: {shop}"
+                )
+            else:
+                # INFO: Success
+                app.logger.info(
+                    f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
+                    f"Status: {status_code} | Latency: {latency_ms}ms | "
+                    f"User: {user_id} | Shop: {shop}"
+                )
+        except Exception as e:
+            # [SUBMISSIVE] Never crash the response
+            print(f"Titan Observer After Error: {e}", file=sys.stderr)
+            
         return response
 
     # ============================================================================
