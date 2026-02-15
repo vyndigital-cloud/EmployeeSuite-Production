@@ -39,6 +39,14 @@ def create_app():
         """Derived from the Core, this is the absolute source of truth."""
         return Response("OK", status=200, mimetype='text/plain')
 
+    # [NUCLEAR BYPASS] Hard-Code 200 OK for Health/Head
+    # Intercepts request BEFORE any other middleware runs
+    @app.before_request
+    def kickstart():
+        """The 'Ghost' Bypass: Force 200 OK for health/head checks."""
+        if request.path == '/health' or (request.method == 'HEAD' and request.path == '/'):
+            return Response("OK", status=200, mimetype='text/plain')
+    
     # [STATELSS MODE] Manual static route REMOVED.
     # All Core Assets -> CDN
     # All Custom Assets -> Inlined in layout_polaris.html
@@ -304,6 +312,13 @@ def create_app():
             user_agent = request.headers.get('User-Agent', '')
             if 'Render' in user_agent or 'UptimeRobot' in user_agent:
                 return None
+
+            # [LAZY TITAN] Optional: If we want to skip purely anonymous traffic? 
+            # Current implementation logs them as "NONE" user, which is safer for debugging.
+            # But per user order: "If the app was live without Titan, then Titan must be opt-in."
+            # We already have endpoint check. Let's add 'Headless' check.
+            if request.method == 'HEAD':
+                 return None
             
             g.titan_start_time = time.time()
             client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
