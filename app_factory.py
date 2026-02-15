@@ -822,6 +822,10 @@ def create_app():
         2. Active Store Presence (DB Check)
         3. Identity Integrity (Session vs JWT vs URL)
         """
+        # [SURVIVAL MODE] FAST EXIT for Health Check
+        if request.path == '/health':
+            return
+
         from flask import jsonify, redirect, request, session, url_for
         from flask_login import current_user, logout_user
         from shopify_utils import normalize_shop_url
@@ -997,6 +1001,10 @@ def create_app():
     @app.before_request
     def cctv_watchdog():
         """THE WATCHDOG: Surveillance & Neutralization"""
+        # [SURVIVAL MODE] FAST EXIT for Health Check
+        if request.path == '/health':
+            return
+            
         from flask import session
         
         from models import ShopifyStore, db
@@ -1025,42 +1033,9 @@ def create_app():
                 db.session.rollback()
 
 
-    @app.route("/health")
-    def health_check():
-        """Legend Tier Observability: Verify DB and Redis connectivity"""
-        from flask import jsonify
-        from models import db
-        import redis
-        
-        status = {"status": "healthy", "database": "unknown", "redis": "unknown"}
-        
-        # 1. Check Database
-        try:
-            from sqlalchemy import text
-            db.session.execute(text("SELECT 1"))
-            status["database"] = "connected"
-        except Exception as e:
-            app.logger.error(f"Health Check Failure (DB): {e}")
-            status["database"] = "error"
-            status["status"] = "degraded"
-            
-        # 2. Check Redis
-        try:
-            # [REDIS CIRCUIT BREAKER] Only connect if REDIS_URL is explicitly set
-            redis_url = os.getenv("REDIS_URL")
-            if not redis_url:
-                app.logger.info("🔄 TITAN [REDIS] No REDIS_URL configured, running in bypass mode (direct DB)")
-                return jsonify({"status": "healthy", "redis": "disabled"}), 200
-            
-            r = redis.from_url(redis_url)
-            r.ping()
-            return jsonify({"status": "healthy", "redis": "connected"}), 200
-        except redis.RedisError as e:
-            app.logger.warning(f"🔴 TITAN [REDIS] Circuit open. Redis unreachable: {e}")
-            return jsonify({"status": "healthy", "redis": "unreachable"}), 200
-        except Exception as e:
-            app.logger.error(f"Health check failed: {e}")
-            return jsonify({"status": "unhealthy", "error": str(e)}), 500
+    # [REMOVED] Conflicting internal health_check that caused DB crashes. 
+    # The authoritative 'dumb' health check is in core_routes.py
+
 
     return app
 
