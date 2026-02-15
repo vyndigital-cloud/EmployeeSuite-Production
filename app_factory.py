@@ -46,6 +46,13 @@ def create_app():
         """The 'Ghost' Bypass: Force 200 OK for health/head checks."""
         if request.path == '/health' or (request.method == 'HEAD' and request.path == '/'):
             return Response("OK", status=200, mimetype='text/plain')
+            
+    # [ZOMBIE FIX] Killswitch for Recursive Error Logging
+    # Stop the app from crashing while trying to report a crash
+    @app.route('/api/log_error', methods=['POST'])
+    def log_error_killswitch():
+        """Silently swallow client-side errors to prevent loop."""
+        return jsonify({'status': 'ignored', 'zombie_mode': True}), 200
     
     # [STATELSS MODE] Manual static route REMOVED.
     # All Core Assets -> CDN
@@ -58,8 +65,9 @@ def create_app():
 
     # [ANTI-STALL] CRITICAL: Fix Database URL Protocol + Disable Blocking Migrations
     database_url = os.getenv("DATABASE_URL", "sqlite:///app.db")
-    if database_url and database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    # [ZOMBIE FIX] Aggressive replacement for SQLAlchemy 2.0 Compatibility
+    if database_url:
+        database_url = database_url.replace("postgres://", "postgresql://")
     
     # [INFRASTRUCTURE FIX] Enforce SSL for Neon/Render (Fixes Connection Timeout)
     if database_url and "postgresql://" in database_url and "sslmode" not in database_url:
@@ -314,8 +322,6 @@ def create_app():
                 return None
 
             # [LAZY TITAN] Optional: If we want to skip purely anonymous traffic? 
-            # Current implementation logs them as "NONE" user, which is safer for debugging.
-            # But per user order: "If the app was live without Titan, then Titan must be opt-in."
             # We already have endpoint check. Let's add 'Headless' check.
             if request.method == 'HEAD':
                  return None
@@ -362,6 +368,13 @@ def create_app():
             # Metadata enrichment
             shop = getattr(g, 'shop_domain', request.args.get('shop', 'NONE'))
             user_id = getattr(g, 'user_id', 'NONE')
+            
+            # [ZOMBIE FIX] Anonymous Titan Guard
+            # If we don't know who the user is, DO NOT LOG to DB/CloudWatch/etc.
+            # This prevents 3.7s timeouts on the landing page for unauthenticated users.
+            if not g.get('current_user') and user_id == 'NONE':
+                return response
+
             status_code = response.status_code
             
             # Log level classification
