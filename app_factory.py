@@ -10,7 +10,7 @@ import sys
 import traceback
 from datetime import timedelta
 
-from flask import Flask, request, jsonify, g, session, redirect, url_for, render_template_string, current_app, render_template, send_from_directory, make_response
+from flask import Flask, request, jsonify, g, session, redirect, url_for, render_template_string, current_app, render_template, send_from_directory, make_response, Response
 from werkzeug.middleware.proxy_fix import ProxyFix
 from models import db, User, ShopifyStore
 
@@ -33,16 +33,20 @@ def create_app():
     # app.static_folder = static_dir 
 
     # [NUCLEAR HEALTH CHECK] Top-Level Route, No Decorators, No DB.
+    # [DEEP STACK] Use raw Response to bypass template/jsonify machinery
     @app.route('/health')
     def health_check():
         """Derived from the Core, this is the absolute source of truth."""
-        return "OK", 200
+        return Response("OK", status=200, mimetype='text/plain')
 
     # [STATELSS MODE] Manual static route REMOVED.
     # All Core Assets -> CDN
     # All Custom Assets -> Inlined in layout_polaris.html
 
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+    # [DEEP STACK] Force raw exception visibility in Render logs
+    app.config['PROPAGATE_EXCEPTIONS'] = True
 
     # [ANTI-STALL] CRITICAL: Fix Database URL Protocol + Disable Blocking Migrations
     database_url = os.getenv("DATABASE_URL", "sqlite:///app.db")
