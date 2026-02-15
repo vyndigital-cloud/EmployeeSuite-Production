@@ -52,6 +52,13 @@ def create_app():
     database_url = os.getenv("DATABASE_URL", "sqlite:///app.db")
     if database_url and database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
+    
+    # [INFRASTRUCTURE FIX] Enforce SSL for Neon/Render (Fixes Connection Timeout)
+    if database_url and "postgresql://" in database_url and "sslmode" not in database_url:
+        if "?" in database_url:
+            database_url += "&sslmode=require"
+        else:
+            database_url += "?sslmode=require"
 
     # Enhanced config
     app.config.update(
