@@ -266,20 +266,23 @@ def create_app():
     @app.before_request
     def titan_observer_before():
         """TITAN: Record start time and log incoming request"""
+        # [SURVIVAL MODE] FAST EXIT for Health Check
+        if request.path == '/health':
+            return None
+
         # Generate unique request ID for log correlation
         from unified_error_boundary import generate_request_id
         request_id = generate_request_id()
         
-        # FAST TRACK: Bypass heavy logging for health check monitors (eliminate 600-700ms latency)
-        user_agent = request.headers.get('User-Agent', '')
-        if request.path == '/health' or 'Render' in user_agent or 'UptimeRobot' in user_agent:
-            # DEBUG level for noise
-            app.logger.debug(f"HEALTH_CHECK [{request_id}] {request.method} {request.path}")
+        # FAST TRACK: Bypass heavy logging for static files
+        if request.path.startswith('/static/') or request.path.endswith('.ico'):
+            # allow debug log if needed, or just skip
+            # app.logger.debug(f"STATIC [{request_id}] {request.path}")
             return None
         
-        # Skip static assets (DEBUG level)
-        if request.path.startswith('/static/') or request.path.endswith('.ico'):
-            app.logger.debug(f"STATIC [{request_id}] {request.path}")
+        # Filter Render/UptimeRobot User Agents
+        user_agent = request.headers.get('User-Agent', '')
+        if 'Render' in user_agent or 'UptimeRobot' in user_agent:
             return None
         
         g.titan_start_time = time.time()
@@ -293,12 +296,12 @@ def create_app():
     @app.after_request
     def titan_observer_after(response):
         """TITAN: Calculate latency and log response status"""
+        # [SURVIVAL MODE] FAST EXIT for Health Check
+        if request.path == '/health':
+            return response
+
         from unified_error_boundary import generate_request_id
         request_id = generate_request_id()
-        
-        # SILENCE THE NOISE: Don't log 200 OKs for health checks
-        if request.path == '/health' and response.status_code == 200:
-            return response
         
         if hasattr(g, 'titan_start_time'):
             latency = time.time() - g.titan_start_time
@@ -407,7 +410,10 @@ def create_app():
         Acts as the 'Internal Auditor' for the $10k/day engine.
         Ensures Shopify never cuts off the connection.
         """
-        
+        # [SURVIVAL MODE] Skip for health check
+        if request.path == '/health':
+            return response
+            
         # 1. ENFORCE THE BRIDGE (Fixes the White Screen)
         # This ensures the 'frame-ancestors' policy is ALWAYS sent
         if "Content-Security-Policy" not in response.headers:
@@ -714,6 +720,10 @@ def create_app():
         Sets request.session_token_verified and request.shop_domain.
         Also performs GLOBAL IDENTITY SYNC to ensure current_user matches JWT.
         """
+        # [SURVIVAL MODE] FAST EXIT for Health Check
+        if request.path == '/health':
+            return
+            
         from flask import request
         from flask_login import current_user, login_user
         from models import ShopifyStore
