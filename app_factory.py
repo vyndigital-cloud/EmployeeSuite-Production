@@ -51,8 +51,8 @@ def create_app():
     # Stop the app from crashing while trying to report a crash
     @app.route('/api/log_error', methods=['POST'])
     def log_error_killswitch():
-        """Silently swallow client-side errors to prevent loop."""
-        return jsonify({'status': 'ignored', 'zombie_mode': True}), 200
+        """Silently swallow client-side errors. NO JSON PARSING. NO LOGIC."""
+        return Response("OK", status=200, mimetype='text/plain')
     
     # [STATELSS MODE] Manual static route REMOVED.
     # All Core Assets -> CDN
@@ -89,8 +89,9 @@ def create_app():
             "SQLALCHEMY_ENGINE_OPTIONS": os.getenv(
                 "SQLALCHEMY_ENGINE_OPTIONS", # Allow override
                 {
-                    "pool_size": 10,
-                    "max_overflow": 20,
+                    # [NEON FREE TIER] Limit connections to prevent "remaining connection slots are reserved" error
+                    "pool_size": 3,
+                    "max_overflow": 0,
                     "pool_pre_ping": True,
                     # [ETERNAL WARMTH] Recycle connections every hour to prevent stale connections
                     "pool_recycle": 3600, 
@@ -378,6 +379,12 @@ def create_app():
             # Metadata enrichment
             shop = getattr(g, 'shop_domain', request.args.get('shop', 'NONE'))
             user_id = getattr(g, 'user_id', 'NONE')
+            
+            # [TITAN SILENCE] Pure "Ghost" Mode for Server Errors
+            if response.status_code >= 500:
+                # If the ship is sinking, don't ask the captain for a status report.
+                # Just return the error page and keep the logs clean of noise.
+                return response
             
             # [ZOMBIE FIX] Anonymous Titan Guard
             # If we don't know who the user is, DO NOT LOG to DB/CloudWatch/etc.
