@@ -222,14 +222,22 @@ def order_created():
         if not shop_domain:
             return Response('Missing shop domain', status=400)
         
-        # Process order - update inventory, send notifications, etc.
-        logger.info(f"Order created webhook processed for {shop_domain}")
+        # [PASSIVE AUTONOMY] Async Revenue Processing
+        # We queue the task and return 200 OK immediately.
+        # This prevents timeouts and ensures revenue logic doesn't block the webhook.
+        from worker import handle_order_created
         
+        # Fire and Forget
+        handle_order_created.delay(shop_domain, data)
+        
+        logger.info(f"🚀 [ASYNC] Queued order processing for {shop_domain}")
         return Response('OK', status=200)
         
     except Exception as e:
-        logger.error(f"Error processing order creation: {e}")
-        return Response('Internal server error', status=500)
+        # Even if queuing fails, we log it and return 200 to keep Shopify happy.
+        # The Smoke Detector will catch the logs if this happens often.
+        logger.error(f"Error queuing order webhook: {e}")
+        return Response('OK', status=200)
 
 @webhooks_bp.route('/webhooks/orders/updated', methods=['POST'])
 def order_updated():

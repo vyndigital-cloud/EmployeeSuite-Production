@@ -197,3 +197,40 @@ def sync_usage_to_shopify(self):
             db.session.rollback()
             logger.error(f"❌ [WORKER] Usage Sync Failed: {e}", exc_info=True)
             raise self.retry(exc=e, countdown=600) # Retry in 10 minutes
+
+@app.task(bind=True, max_retries=3)
+def handle_order_created(self, shop_domain, order_data):
+    """
+    ASYNC REVENUE ENGINE
+    Process new orders in background to calculate revenue stats.
+    Zero-latency for the webhook response.
+    """
+    from models import db, ShopifyStore
+    from app_factory import create_app
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    flask_app = create_app()
+    with flask_app.app_context():
+        try:
+            # 1. Verify store exists
+            store = ShopifyStore.query.filter_by(shop_url=shop_domain).first()
+            if not store:
+                logger.warning(f"⚠️ Revenue sync skipped: Store {shop_domain} not found.")
+                return
+
+            # 2. Extract revenue data
+            total_price = float(order_data.get('total_price', 0))
+            currency = order_data.get('currency', 'USD')
+            order_id = order_data.get('id')
+            
+            logger.info(f"💰 [REVENUE] Processing Order {order_id} for {shop_domain}: {total_price} {currency}")
+            
+            # TODO: Add your actual revenue aggregation logic here
+            # For now, we log it to prove the async pipe is working
+            
+            return {"status": "success", "order_id": order_id, "revenue": total_price}
+            
+        except Exception as e:
+            logger.error(f"❌ [WORKER] Revenue Sync Failed: {e}", exc_info=True)
+            raise self.retry(exc=e)

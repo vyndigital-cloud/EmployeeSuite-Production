@@ -92,7 +92,8 @@ def create_app():
                     "pool_size": 10,
                     "max_overflow": 20,
                     "pool_pre_ping": True,
-                    "pool_recycle": 300, 
+                    # [ETERNAL WARMTH] Recycle connections every hour to prevent stale connections
+                    "pool_recycle": 3600, 
                 },
             ),
             "WTF_CSRF_ENABLED": True,
@@ -336,6 +337,15 @@ def create_app():
         except Exception as e:
             # [SUBMISSIVE] Never crash the request
             print(f"Titan Observer Before Error: {e}", file=sys.stderr)
+            
+            # [SMOKE DETECTOR] Check for sustained failures
+            failures = getattr(current_app, 'titan_failures', 0) + 1
+            current_app.titan_failures = failures
+            
+            if failures >= 5:
+                print(f"🔥 SMOKE SIGNAL: Titan has failed {failures} times consecutively! Error: {e}", file=sys.stderr)
+                # TODO: Add Discord/Telegram webhook call here
+                
             return None
 
     @app.after_request
@@ -373,9 +383,14 @@ def create_app():
             # If we don't know who the user is, DO NOT LOG to DB/CloudWatch/etc.
             # This prevents 3.7s timeouts on the landing page for unauthenticated users.
             if not g.get('current_user') and user_id == 'NONE':
+                # Reset smoke detector on successful "ignore"
+                current_app.titan_failures = 0 
                 return response
 
             status_code = response.status_code
+            
+            # [PASSIVE AUTONOMY] Titan Success - Reset Smoke Detector
+            current_app.titan_failures = 0
             
             # Log level classification
             if status_code >= 500:
