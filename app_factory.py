@@ -508,7 +508,7 @@ def create_app():
         ("admin_routes", "admin_bp"),
         ("telemetry_routes", "telemetry_bp"),  # Sentinel Bot endpoint
         ("auth", "auth_bp"),  # Authentication routes
-        ("gdpr_compliance", "gdpr_bp"),  # GDPR Webhooks - CRITICAL
+        # ("gdpr_compliance", "gdpr_bp"), # GDPR Webhooks - OFF (Conflict with app context)
         ("diagnostic_routes", "diagnostic_bp"), # Infrastructure Health Check
         ("diagnostic_routes", "diagnostic_bp"), # [NEW] Asset 0-byte check
         # Removed: help_routes, profile_routes (files don't exist)
@@ -596,7 +596,12 @@ def create_app():
             if shop and host:
                 from shopify_utils import app_bridge_redirect
                 return app_bridge_redirect('/features/dashboard')
-            return redirect(url_for('oauth.install'))
+            
+            # [SAFETY] Check if 'oauth.install' exists before redirecting
+            if 'oauth.install' in app.view_functions:
+                return redirect(url_for('oauth.install'))
+            else:
+                return "OAuth System Offline", 503
 
         return render_template('error_polaris.html', error=error), 404
 
@@ -608,11 +613,21 @@ def create_app():
         if shop and host:
             from shopify_utils import app_bridge_redirect
             return app_bridge_redirect('/features/dashboard')
-        return redirect(url_for('oauth.install'))
+        
+        # [SAFETY] Check if 'oauth.install' exists before redirecting
+        if 'oauth.install' in app.view_functions:
+            return redirect(url_for('oauth.install'))
+        else:
+             return "OAuth System Offline", 503
 
     @app.errorhandler(500)
     def internal_error(error):
-        db.session.rollback()
+        # [SAFETY] WRAP DB ROLLBACK
+        try:
+            db.session.rollback()
+        except:
+            pass # DB might be dead, don't crash the error handler
+
         if request.path.startswith(('/api', '/webhooks', '/static')):
             return jsonify({'error': 'Internal server error'}), 500
         return render_template('error_polaris.html', error_code='500', error_message='Internal Server Error', error_details=str(error)), 500
