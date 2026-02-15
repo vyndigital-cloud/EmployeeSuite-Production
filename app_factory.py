@@ -32,6 +32,12 @@ def create_app():
     # Assets are now 100% CDN or Inlined.
     # app.static_folder = static_dir 
 
+    # [NUCLEAR HEALTH CHECK] Top-Level Route, No Decorators, No DB.
+    @app.route('/health')
+    def health_check():
+        """Derived from the Core, this is the absolute source of truth."""
+        return "OK", 200
+
     # [STATELSS MODE] Manual static route REMOVED.
     # All Core Assets -> CDN
     # All Custom Assets -> Inlined in layout_polaris.html
@@ -267,7 +273,7 @@ def create_app():
     def titan_observer_before():
         """TITAN: Record start time and log incoming request"""
         # [SURVIVAL MODE] FAST EXIT for Health Check
-        if request.path == '/health':
+        if request.path.startswith('/health'):
             return None
 
         # Generate unique request ID for log correlation
@@ -297,7 +303,7 @@ def create_app():
     def titan_observer_after(response):
         """TITAN: Calculate latency and log response status"""
         # [SURVIVAL MODE] FAST EXIT for Health Check
-        if request.path == '/health':
+        if request.path.startswith('/health'):
             return response
 
         # [SAFETY] If titan_observer_before skipped (e.g. static files), we must skip after
@@ -415,7 +421,7 @@ def create_app():
         Ensures Shopify never cuts off the connection.
         """
         # [SURVIVAL MODE] Skip for health check
-        if request.path == '/health':
+        if request.path.startswith('/health'):
             return response
             
         # 1. ENFORCE THE BRIDGE (Fixes the White Screen)
@@ -725,7 +731,7 @@ def create_app():
         Also performs GLOBAL IDENTITY SYNC to ensure current_user matches JWT.
         """
         # [SURVIVAL MODE] FAST EXIT for Health Check
-        if request.path == '/health':
+        if request.path.startswith('/health'):
             return
             
         from flask import request
@@ -827,7 +833,7 @@ def create_app():
         3. Identity Integrity (Session vs JWT vs URL)
         """
         # [SURVIVAL MODE] FAST EXIT for Health Check
-        if request.path == '/health':
+        if request.path.startswith('/health'):
             return
 
         from flask import jsonify, redirect, request, session, url_for
@@ -1006,7 +1012,7 @@ def create_app():
     def cctv_watchdog():
         """THE WATCHDOG: Surveillance & Neutralization"""
         # [SURVIVAL MODE] FAST EXIT for Health Check
-        if request.path == '/health':
+        if request.path.startswith('/health'):
             return
             
         from flask import session
