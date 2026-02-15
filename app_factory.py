@@ -300,40 +300,44 @@ def create_app():
         if request.path == '/health':
             return response
 
+        # [SAFETY] If titan_observer_before skipped (e.g. static files), we must skip after
+        if not hasattr(g, 'titan_start_time'):
+            return response
+
         from unified_error_boundary import generate_request_id
-        request_id = generate_request_id()
+        # Use existing ID or generate new on fly
+        request_id = getattr(g, 'request_id', generate_request_id())
         
-        if hasattr(g, 'titan_start_time'):
-            latency = time.time() - g.titan_start_time
-            latency_ms = int(latency * 1000)
-            
-            # Metadata enrichment
-            shop = getattr(g, 'shop_domain', request.args.get('shop', 'NONE'))
-            user_id = getattr(g, 'user_id', 'NONE')
-            status_code = response.status_code
-            
-            # Log level classification
-            if status_code >= 500:
-                # CRITICAL: Server errors
-                app.logger.critical(
-                    f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
-                    f"Status: {status_code} | Latency: {latency_ms}ms | "
-                    f"User: {user_id} | Shop: {shop}"
-                )
-            elif status_code >= 400:
-                # WARNING: Client errors
-                app.logger.warning(
-                    f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
-                    f"Status: {status_code} | Latency: {latency_ms}ms | "
-                    f"User: {user_id} | Shop: {shop}"
-                )
-            else:
-                # INFO: Success
-                app.logger.info(
-                    f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
-                    f"Status: {status_code} | Latency: {latency_ms}ms | "
-                    f"User: {user_id} | Shop: {shop}"
-                )
+        latency = time.time() - g.titan_start_time
+        latency_ms = int(latency * 1000)
+        
+        # Metadata enrichment
+        shop = getattr(g, 'shop_domain', request.args.get('shop', 'NONE'))
+        user_id = getattr(g, 'user_id', 'NONE')
+        status_code = response.status_code
+        
+        # Log level classification
+        if status_code >= 500:
+            # CRITICAL: Server errors
+            app.logger.critical(
+                f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
+                f"Status: {status_code} | Latency: {latency_ms}ms | "
+                f"User: {user_id} | Shop: {shop}"
+            )
+        elif status_code >= 400:
+            # WARNING: Client errors
+            app.logger.warning(
+                f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
+                f"Status: {status_code} | Latency: {latency_ms}ms | "
+                f"User: {user_id} | Shop: {shop}"
+            )
+        else:
+            # INFO: Success
+            app.logger.info(
+                f"TITAN [OUT] [{request_id}] {request.method} {request.path} | "
+                f"Status: {status_code} | Latency: {latency_ms}ms | "
+                f"User: {user_id} | Shop: {shop}"
+            )
         return response
 
     # ============================================================================
