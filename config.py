@@ -9,9 +9,9 @@ _CONFIG_CACHE = {
     "SHOPIFY_API_KEY": os.getenv("SHOPIFY_API_KEY", ""),
     "SHOPIFY_API_SECRET": os.getenv("SHOPIFY_API_SECRET", ""),
     "SHOPIFY_APP_HANDLE": os.getenv("SHOPIFY_APP_HANDLE", "employee-suite-7"),  # True app handle from Partners Dashboard
-    "DATABASE_URL": os.getenv("DATABASE_URL", "sqlite:///app.db"),
+    "DATABASE_URL": os.getenv("DATABASE_URL", "sqlite:///app.db").replace("postgres://", "postgresql://", 1) if os.getenv("DATABASE_URL") else "sqlite:///app.db",
     "ENVIRONMENT": os.getenv("ENVIRONMENT", "production"),
-    "SQLALCHEMY_DATABASE_URI": os.getenv("DATABASE_URL", "sqlite:///app.db"),
+    "SQLALCHEMY_DATABASE_URI": os.getenv("DATABASE_URL", "sqlite:///app.db").replace("postgres://", "postgresql://", 1) if os.getenv("DATABASE_URL") else "sqlite:///app.db",
     "SQLALCHEMY_TRACK_MODIFICATIONS": False,
     "WTF_CSRF_ENABLED": True,
     "MAX_CONTENT_LENGTH": 16 * 1024 * 1024,
