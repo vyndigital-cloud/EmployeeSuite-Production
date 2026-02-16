@@ -89,11 +89,11 @@ def create_app():
             "SQLALCHEMY_ENGINE_OPTIONS": os.getenv(
                 "SQLALCHEMY_ENGINE_OPTIONS", # Allow override
                 {
-                    # [NEON TUNING] Optimized for Neon Free Tier & Auto-Suspend
-                    "pool_size": 3,      # CRITICAL: Keep small for Free Tier (Max 10 total connections)
-                    "max_overflow": 0,   # CRITICAL: No overflow to prevent "remaining connection slots" error
-                    "pool_timeout": 30,  # [NEW] Fail fast if pool is empty
-                    "pool_recycle": 280, # [NEW] Recycle before Neon's 300s close
+                    # [LAUNCH TIER] Optimized for Production (Neon Launch + Render Starter)
+                    "pool_size": 10,     # Standard production pool
+                    "max_overflow": 5,   # Allow spike buffer
+                    "pool_timeout": 30,  # Fail fast on cold start
+                    "pool_recycle": 280, # Beat the Neon 300s reaper
                     "pool_pre_ping": True, 
                 },
             ),
